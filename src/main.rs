@@ -14,4 +14,14 @@ fn main() {
     let (_, header) = Header::parse(&data).expect("failed to parse header");
 
     println!("{:#?}", header);
+
+    for table in &header.tables {
+        for page_index in table.page_indices() {
+            let (_, page) = header
+                .page(&data, &page_index)
+                .expect("failed to parse page");
+            assert_eq!(page.page_index, page_index);
+            println!("{:#?}", page)
+        }
+    }
 }

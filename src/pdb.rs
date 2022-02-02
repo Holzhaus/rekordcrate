@@ -19,6 +19,7 @@
 //! - <https://github.com/flesniak/python-prodj-link/tree/master/prodj/pdblib>
 
 use nom::IResult;
+use std::num::TryFromIntError;
 
 /// The type of pages found inside a `Table`.
 #[derive(Debug)]
@@ -83,7 +84,7 @@ impl PageType {
 /// Points to a table page and can be used to calculate the page's file offset by multiplying it
 /// with the page size (found in the file header).
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
-pub struct PageIndex(u32);
+pub struct PageIndex(pub u32);
 
 impl PageIndex {
     fn parse(input: &[u8]) -> IResult<&[u8], PageIndex> {
@@ -127,6 +128,15 @@ impl Table {
                 last_page,
             },
         ))
+    }
+
+    /// An iterator that yields all page indices belonging to this table.
+    pub fn page_indices(&self) -> impl Iterator<Item = PageIndex> {
+        let PageIndex(first_page_index) = self.first_page;
+        let PageIndex(last_page_index) = self.last_page;
+        (first_page_index..=last_page_index)
+            .into_iter()
+            .map(PageIndex)
     }
 }
 
@@ -178,5 +188,172 @@ impl Header {
                 tables,
             },
         ))
+    }
+
+    /// Returns the offset for the given `page_index`, relative to the start of the PDB file.
+    pub fn page_offset(&self, PageIndex(page_index): &PageIndex) -> Result<usize, TryFromIntError> {
+        (page_index * self.page_size).try_into()
+    }
+
+    /// Parses and returns a page from the original data slice.
+    pub fn page<'a>(&self, input: &'a [u8], page_index: &PageIndex) -> IResult<&'a [u8], Page> {
+        let position = self.page_offset(page_index).unwrap();
+        let (data, page) = Page::parse(&input[position..], self.page_size)?;
+        Ok((data, page))
+    }
+}
+
+#[derive(Debug)]
+/// A table page.
+///
+/// Each page consists of a header that contains information about the type, number of rows, etc.,
+/// followed by the data section that holds the row data. Each row needs to be located using an
+/// offset found in the page footer at the end of the page.
+pub struct Page {
+    /// Index of the page.
+    ///
+    /// Should match the index used for lookup and can be used to verify that the correct page was loaded.
+    pub page_index: PageIndex,
+    /// Type of information that the rows of this page contain.
+    ///
+    /// Should match the page type of the table that this page belongs to.
+    pub page_type: PageType,
+    /// Index of the next page with the same page type.
+    ///
+    /// If this page is the last one of that type, the page index stored in the field will point
+    /// past the end of the file.
+    pub next_page: PageIndex,
+    /// Unknown field.
+    #[allow(dead_code)]
+    unknown1: u32,
+    /// Unknown field.
+    #[allow(dead_code)]
+    unknown2: u32,
+    /// Number of rows in this table (8-bit version).
+    ///
+    /// Used if `num_rows_large` not greater than this value and not equal to `0x1FFF`, which means
+    /// that the number of rows fits into a single byte.
+    pub num_rows_small: u8,
+    /// Unknown field.
+    ///
+    /// According to [@flesniak](https://github.com/flesniak):
+    /// > a bitmask (first track: 32)
+    #[allow(dead_code)]
+    unknown3: u8,
+    /// Unknown field.
+    ///
+    /// According to [@flesniak](https://github.com/flesniak):
+    /// > often 0, sometimes larger, esp. for pages with high real_entry_count (e.g. 12 for 101 entries)
+    #[allow(dead_code)]
+    unknown4: u8,
+    /// Page flags.
+    ///
+    /// According to [@flesniak](https://github.com/flesniak):
+    /// > strange pages: 0x44, 0x64; otherwise seen: 0x24, 0x34
+    pub page_flags: u8,
+    /// Free space in bytes in the data section of the page (excluding the row offsets in the page footer).
+    pub free_size: u16,
+    /// Used space in bytes in the data section of the page.
+    pub used_size: u16,
+    /// Unknown field.
+    ///
+    /// According to [@flesniak](https://github.com/flesniak):
+    /// > (0->1: 2)
+    #[allow(dead_code)]
+    unknown5: u16,
+    /// Number of rows in this table (16-bit version).
+    ///
+    /// Used when the number of rows does not fit into a single byte. In that case,`num_rows_large`
+    /// is greater than `num_rows_small`, but is not equal to `0x1FFF`.
+    pub num_rows_large: u16,
+    /// Unknown field.
+    #[allow(dead_code)]
+    unknown6: u16,
+    /// Unknown field.
+    ///
+    /// According to [@flesniak](https://github.com/flesniak):
+    /// > always 0, except 1 for history pages, num entries for strange pages?"
+    #[allow(dead_code)]
+    unknown7: u16,
+    /// Unknown field.
+    ///
+    /// In contrast to the other fields, this is part of the footer, at the last two bytes of the
+    /// page.
+    #[allow(dead_code)]
+    unknown8: u16,
+}
+
+impl Page {
+    /// Parses a page of a PDB file.
+    fn parse(input: &[u8], page_size: u32) -> IResult<&[u8], Page> {
+        let page_data = input;
+        // Signature (?)
+        let (input, _) = nom::bytes::complete::tag(b"\0\0\0\0")(input)?;
+        let (input, page_index) = PageIndex::parse(input)?;
+        let (input, page_type) = PageType::parse(input)?;
+        let (input, next_page) = PageIndex::parse(input)?;
+        let (input, unknown1) = nom::number::complete::le_u32(input)?;
+        let (input, unknown2) = nom::number::complete::le_u32(input)?;
+        let (input, num_rows_small) = nom::number::complete::u8(input)?;
+        let (input, unknown3) = nom::number::complete::u8(input)?;
+        let (input, unknown4) = nom::number::complete::u8(input)?;
+        let (input, page_flags) = nom::number::complete::u8(input)?;
+        let (input, free_size) = nom::number::complete::le_u16(input)?;
+        let (input, used_size) = nom::number::complete::le_u16(input)?;
+        let (input, unknown5) = nom::number::complete::le_u16(input)?;
+        let (input, num_rows_large) = nom::number::complete::le_u16(input)?;
+        let (input, unknown6) = nom::number::complete::le_u16(input)?;
+        let (input, unknown7) = nom::number::complete::le_u16(input)?;
+
+        let page_end = usize::try_from(page_size).unwrap();
+        let (_, unknown8) = nom::number::complete::le_u16(&page_data[..page_end - 2])?;
+
+        let page = Page {
+            page_index,
+            page_type,
+            next_page,
+            unknown1,
+            unknown2,
+            num_rows_small,
+            unknown3,
+            unknown4,
+            page_flags,
+            free_size,
+            used_size,
+            unknown5,
+            num_rows_large,
+            unknown6,
+            unknown7,
+            unknown8,
+        };
+
+        Ok((input, page))
+    }
+
+    #[must_use]
+    /// Returns `true` if the page actually contains row data.
+    pub fn has_data(&self) -> bool {
+        (self.page_flags & 0x40) == 0
+    }
+
+    #[must_use]
+    /// Number of rows on this page.
+    ///
+    /// Note that this number includes rows that have been flagged as missing by the row group.
+    pub fn num_rows(&self) -> u16 {
+        if self.num_rows_large > self.num_rows_small.into() && self.num_rows_large != 0x1fff {
+            self.num_rows_large
+        } else {
+            self.num_rows_small.into()
+        }
+    }
+
+    #[must_use]
+    /// Number of row groups.
+    ///
+    /// All row groups except the last one consist of 16 rows (but that number includes rows that
+    /// have been flagged as missing by the row group.
+    pub fn num_row_groups(&self) -> u16 {
+        (self.num_rows() - 1) / 16 + 1
     }
 }
