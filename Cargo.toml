@@ -1,0 +1,5 @@
+[package]
+name = "rekordcrate"
+version = "0.1.0"
+authors = ["Jan Holthuis <jan.holthuis@ruhr-uni-bochum.de>"]
+edition = "2021"
