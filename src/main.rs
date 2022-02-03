@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-use rekordcrate::pdb::Header;
+use rekordcrate::pdb::{Header, RowGroup};
 
 fn main() {
     let path = std::env::args().nth(1).expect("no path given");
@@ -21,7 +21,16 @@ fn main() {
                 .page(&data, &page_index)
                 .expect("failed to parse page");
             assert_eq!(page.page_index, page_index);
-            println!("{:#?}", page)
+            let page_offset = header.page_offset(&page_index).unwrap();
+            let page_data = &data[page_offset..];
+            page.row_groups(page_data, header.page_size)
+                .for_each(|row_group| {
+                    let RowGroup(row_offsets) = row_group;
+                    for row_offset in row_offsets {
+                        let (_, row) = page.row(page_data, &row_offset).unwrap();
+                        println!("{:?}", row);
+                    }
+                })
         }
     }
 }

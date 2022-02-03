@@ -284,6 +284,8 @@ pub struct Page {
 }
 
 impl Page {
+    const HEADER_SIZE: usize = 0x28;
+
     /// Parses a page of a PDB file.
     fn parse(input: &[u8], page_size: u32) -> IResult<&[u8], Page> {
         let page_data = input;
@@ -354,6 +356,114 @@ impl Page {
     /// All row groups except the last one consist of 16 rows (but that number includes rows that
     /// have been flagged as missing by the row group.
     pub fn num_row_groups(&self) -> u16 {
-        (self.num_rows() - 1) / 16 + 1
+        let num_rows = self.num_rows();
+        if num_rows > 0 {
+            (num_rows - 1) / RowGroup::MAX_ROW_COUNT + 1
+        } else {
+            0
+        }
+    }
+
+    /// The number of row groups that are present in the index. Each group can hold up to sixteen
+    /// rows. All but the final one will hold sixteen rows.
+    fn row_group_counts(&self) -> impl Iterator<Item = u16> + '_ {
+        let num_groups = if self.has_data() {
+            self.num_row_groups()
+        } else {
+            0u16
+        };
+        (0..num_groups).map(move |i| {
+            if (i + 1) == num_groups {
+                let num = self.num_rows() % RowGroup::MAX_ROW_COUNT;
+                if num == 0 {
+                    RowGroup::MAX_ROW_COUNT
+                } else {
+                    num
+                }
+            } else {
+                RowGroup::MAX_ROW_COUNT
+            }
+        })
+    }
+
+    /// The rows groups found in this page.
+    pub fn row_groups<'a>(
+        &'a self,
+        page_data: &'a [u8],
+        page_size: u32,
+    ) -> impl Iterator<Item = RowGroup> + 'a {
+        let row_groups_offset = usize::try_from(page_size).unwrap() - 2;
+        self.row_group_counts()
+            .map(usize::try_from)
+            .map(Result::unwrap)
+            .scan(row_groups_offset, |offset, num_rows_in_group| {
+                *offset -= num_rows_in_group * 2 + 2;
+                Some((*offset, num_rows_in_group))
+            })
+            .map(|(offset, num_rows_in_group)| {
+                let (_, row_group) =
+                    RowGroup::parse(&page_data[offset..], num_rows_in_group).unwrap();
+                row_group
+            })
+    }
+
+    /// Get the page row from the `page_data` slice.
+    pub fn row<'a>(
+        &self,
+        page_data: &'a [u8],
+        &RowOffset(row_offset): &RowOffset,
+    ) -> IResult<&'a [u8], Row> {
+        let offset: usize = Self::HEADER_SIZE + usize::try_from(row_offset).unwrap();
+        let (input, row) = Row::parse(&page_data[offset..], &self.page_type)?;
+        Ok((input, row))
+    }
+}
+
+#[derive(Debug)]
+/// An offset which points to a row in the table, whose actual presence is controlled by one of the
+/// bits in `row_present_flags`. This instance allows the row itself to be lazily loaded, unless it
+/// is not present, in which case there is no content to be loaded.
+pub struct RowOffset(u16);
+
+#[derive(Debug)]
+/// A group of row indices, which are built backwards from the end of the page. Holds up to sixteen
+/// row offsets, along with a bit mask that indicates whether each row is actually present in the
+/// table.
+pub struct RowGroup(pub Vec<RowOffset>);
+
+impl RowGroup {
+    const MAX_ROW_COUNT: u16 = 16;
+
+    fn parse(input: &[u8], num_rows: usize) -> IResult<&[u8], RowGroup> {
+        let (input, rows) = nom::multi::count(nom::number::complete::le_u16, num_rows)(input)?;
+        let (input, row_presence_flags) = nom::number::complete::le_u16(input)?;
+
+        let rows_filtered = rows
+            .into_iter()
+            .rev()
+            .enumerate()
+            .filter_map(|(i, index)| {
+                if (row_presence_flags & (1 << i)) != 0 {
+                    Some(RowOffset(index))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        Ok((input, RowGroup(rows_filtered)))
+    }
+}
+
+#[derive(Debug)]
+/// A table rows contains the actual data
+pub enum Row {
+    /// The row format (and also its size) is unknown, which means it can't be parsed.
+    Unknown,
+}
+
+impl Row {
+    fn parse<'a>(input: &'a [u8], _page_type: &PageType) -> IResult<&'a [u8], Row> {
+        Ok((input, Row::Unknown))
     }
 }
