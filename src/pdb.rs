@@ -570,6 +570,25 @@ impl From<u16> for Color {
 #[derive(Debug)]
 /// A table rows contains the actual data
 pub enum Row {
+    /// Contains the album name, along with an ID of the corresponding artist.
+    Album {
+        /// Unknown field, usually `80 00`.
+        unknown1: u16,
+        /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
+        index_shift: u16,
+        /// Unknown field.
+        unknown2: u32,
+        /// ID of the artist row associated with this row.
+        artist_id: u32,
+        /// ID of this row.
+        id: u32,
+        /// Unknown field.
+        unknown3: u32,
+        /// Unknown field.
+        unknown4: u8,
+        /// Byte offset of the album name string, relative to the start of this row.
+        name: DeviceSQLString,
+    },
     /// Contains numeric color ID
     Color {
         /// Unknown field.
@@ -590,9 +609,44 @@ pub enum Row {
 impl Row {
     fn parse<'a>(input: &'a [u8], page_type: &PageType) -> IResult<&'a [u8], Row> {
         match page_type {
+            PageType::Albums => Row::parse_album(input),
             PageType::Colors => Row::parse_color(input),
             _ => Ok((input, Row::Unknown)),
         }
+    }
+
+    fn parse_string_offset<'a>(
+        input: &'a [u8],
+        row_data: &'a [u8],
+    ) -> IResult<&'a [u8], DeviceSQLString> {
+        let (input, offset) = nom::number::complete::le_u16(input)?;
+        let (_, text) = DeviceSQLString::parse(&row_data[usize::from(offset)..])?;
+        Ok((input, text))
+    }
+
+    fn parse_album(row_data: &[u8]) -> IResult<&[u8], Row> {
+        let (input, unknown1) = nom::number::complete::le_u16(row_data)?;
+        let (input, index_shift) = nom::number::complete::le_u16(input)?;
+        let (input, unknown2) = nom::number::complete::le_u32(input)?;
+        let (input, artist_id) = nom::number::complete::le_u32(input)?;
+        let (input, id) = nom::number::complete::le_u32(input)?;
+        let (input, unknown3) = nom::number::complete::le_u32(input)?;
+        let (input, unknown4) = nom::number::complete::u8(input)?;
+        let (input, name) = Self::parse_string_offset(input, row_data)?;
+
+        Ok((
+            input,
+            Row::Album {
+                unknown1,
+                index_shift,
+                unknown2,
+                artist_id,
+                id,
+                unknown3,
+                unknown4,
+                name,
+            },
+        ))
     }
 
     fn parse_color(input: &[u8]) -> IResult<&[u8], Row> {
