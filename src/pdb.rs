@@ -606,6 +606,13 @@ pub enum Row {
         /// Name of this artist.
         name: DeviceSQLString,
     },
+    /// Contains the artwork path and ID.
+    Artwork {
+        /// ID of this row.
+        id: u32,
+        /// Path to the album art file.
+        path: DeviceSQLString,
+    },
     /// Contains numeric color ID
     Color {
         /// Unknown field.
@@ -735,6 +742,7 @@ impl Row {
         match page_type {
             PageType::Albums => Row::parse_album(input),
             PageType::Artists => Row::parse_artist(input),
+            PageType::Artwork => Row::parse_artwork(input),
             PageType::Colors => Row::parse_color(input),
             PageType::Tracks => Row::parse_track(input),
             _ => Ok((input, Row::Unknown)),
@@ -800,6 +808,13 @@ impl Row {
                 name,
             },
         ))
+    }
+
+    fn parse_artwork(row_data: &[u8]) -> IResult<&[u8], Row> {
+        let (input, id) = nom::number::complete::le_u32(row_data)?;
+        let (input, path) = DeviceSQLString::parse(input)?;
+
+        Ok((input, Row::Artwork { id, path }))
     }
 
     fn parse_color(input: &[u8]) -> IResult<&[u8], Row> {
