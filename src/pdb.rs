@@ -566,6 +566,11 @@ impl From<u16> for Color {
     }
 }
 
+// The large enum size is unfortunate, but since users of this library will probably use iterators
+// to consume the results on demand, we can live with this. The alternative of using a `Box` would
+// require a heap allocation per row, which is arguably worse. Hence, the warning is disabled for
+// this enum.
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug)]
 /// A table rows contains the actual data
 pub enum Row {
@@ -614,6 +619,113 @@ pub enum Row {
         /// User-defined name of the color.
         name: DeviceSQLString,
     },
+    /// Contains the album name, along with an ID of the corresponding artist.
+    Track {
+        /// Unknown field, usually `24 00`.
+        unknown1: u16,
+        /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
+        index_shift: u16,
+        /// Unknown field, called `bitmask` by [@flesniak](https://github.com/flesniak).
+        bitmask: u32,
+        /// Sample Rate in Hz.
+        sample_rate: u32,
+        /// Composer of this track as artist row ID (non-zero if set).
+        composer_id: u32,
+        /// File size in bytes.
+        file_size: u32,
+        /// Unknown field (maybe another ID?)
+        unknown2: u32,
+        /// Unknown field ("always 19048?" according to [@flesniak](https://github.com/flesniak))
+        unknown3: u16,
+        /// Unknown field ("always 30967?" according to [@flesniak](https://github.com/flesniak))
+        unknown4: u16,
+        /// Artwork row ID for the cover art (non-zero if set),
+        artwork_id: u32,
+        /// Key row ID for the cover art (non-zero if set).
+        key_id: u32,
+        /// Artist row ID of the original performer (non-zero if set).
+        orig_artist_id: u32,
+        /// Label row ID of the original performer (non-zero if set).
+        label_id: u32,
+        /// Artist row ID of the remixer (non-zero if set).
+        remixer_id: u32,
+        /// Bitrate of the track.
+        bitrate: u32,
+        /// Track number of the track.
+        track_number: u32,
+        /// Track tempo in centi-BPM (= 1/100 BPM).
+        tempo: u32,
+        /// Genre row ID for this track (non-zero if set).
+        genre_id: u32,
+        /// Album row ID for this track (non-zero if set).
+        album_id: u32,
+        /// Artist row ID for this track (non-zero if set).
+        artist_id: u32,
+        /// Row ID of this track (non-zero if set).
+        id: u32,
+        /// Disc number of this track (non-zero if set).
+        disc_number: u16,
+        /// Number of times this track was played.
+        play_count: u16,
+        /// Year this track was released.
+        year: u16,
+        /// Bits per sample of the track aduio file.
+        sample_depth: u16,
+        /// Playback duration of this track in seconds (at normal speed).
+        duration: u16,
+        /// Unknown field, apparently always "29".
+        unknown5: u16,
+        /// Color row ID for this track (non-zero if set).
+        color: Color,
+        /// User rating of this track (0 to 5 starts).
+        rating: u8,
+        /// Unknown field, apparently always "1".
+        unknown6: u16,
+        /// Unknown field (alternating "2" and "3"?).
+        unknown7: u16,
+        /// International Standard Recording Code (ISRC), in mangled format.
+        isrc: DeviceSQLString,
+        /// Unknown string field.
+        unknown_string1: DeviceSQLString,
+        /// Unknown string field.
+        unknown_string2: DeviceSQLString,
+        /// Unknown string field.
+        unknown_string3: DeviceSQLString,
+        /// Unknown string field.
+        unknown_string4: DeviceSQLString,
+        /// Unknown string field (named by [@flesniak](https://github.com/flesniak)).
+        message: DeviceSQLString,
+        /// Probably describes whether the track is public on kuvo.com (?). Value is either "ON" or empty string.
+        kuvo_public: DeviceSQLString,
+        /// Determines if hotcues should be autoloaded. Value is either "ON" or empty string.
+        autoload_hotcues: DeviceSQLString,
+        /// Unknown string field.
+        unknown_string5: DeviceSQLString,
+        /// Unknown string field (usually empty).
+        unknown_string6: DeviceSQLString,
+        /// Date when the track was added to the Rekordbox collection.
+        date_added: DeviceSQLString,
+        /// Date when the track was released.
+        release_date: DeviceSQLString,
+        /// Name of the remix (if any).
+        mix_name: DeviceSQLString,
+        /// Unknown string field (usually empty).
+        unknown_string7: DeviceSQLString,
+        /// File path of the track analysis file.
+        analyze_path: DeviceSQLString,
+        /// Date when the track analysis was performed.
+        analyze_date: DeviceSQLString,
+        /// Track comment.
+        comment: DeviceSQLString,
+        /// Track title.
+        title: DeviceSQLString,
+        /// Unknown string field (usually empty).
+        unknown_string8: DeviceSQLString,
+        /// Name of the file.
+        filename: DeviceSQLString,
+        /// Path of the file.
+        file_path: DeviceSQLString,
+    },
     /// The row format (and also its size) is unknown, which means it can't be parsed.
     Unknown,
 }
@@ -624,6 +736,7 @@ impl Row {
             PageType::Albums => Row::parse_album(input),
             PageType::Artists => Row::parse_artist(input),
             PageType::Colors => Row::parse_color(input),
+            PageType::Tracks => Row::parse_track(input),
             _ => Ok((input, Row::Unknown)),
         }
     }
@@ -703,6 +816,121 @@ impl Row {
                 color,
                 unknown3,
                 name,
+            },
+        ))
+    }
+
+    fn parse_track(row_data: &[u8]) -> IResult<&[u8], Row> {
+        let (input, unknown1) = nom::number::complete::le_u16(row_data)?;
+        let (input, index_shift) = nom::number::complete::le_u16(input)?;
+        let (input, bitmask) = nom::number::complete::le_u32(input)?;
+        let (input, sample_rate) = nom::number::complete::le_u32(input)?;
+        let (input, composer_id) = nom::number::complete::le_u32(input)?;
+        let (input, file_size) = nom::number::complete::le_u32(input)?;
+        let (input, unknown2) = nom::number::complete::le_u32(input)?;
+        let (input, unknown3) = nom::number::complete::le_u16(input)?;
+        let (input, unknown4) = nom::number::complete::le_u16(input)?;
+        let (input, artwork_id) = nom::number::complete::le_u32(input)?;
+        let (input, key_id) = nom::number::complete::le_u32(input)?;
+        let (input, orig_artist_id) = nom::number::complete::le_u32(input)?;
+        let (input, label_id) = nom::number::complete::le_u32(input)?;
+        let (input, remixer_id) = nom::number::complete::le_u32(input)?;
+        let (input, bitrate) = nom::number::complete::le_u32(input)?;
+        let (input, track_number) = nom::number::complete::le_u32(input)?;
+        let (input, tempo) = nom::number::complete::le_u32(input)?;
+        let (input, genre_id) = nom::number::complete::le_u32(input)?;
+        let (input, album_id) = nom::number::complete::le_u32(input)?;
+        let (input, artist_id) = nom::number::complete::le_u32(input)?;
+        let (input, id) = nom::number::complete::le_u32(input)?;
+        let (input, disc_number) = nom::number::complete::le_u16(input)?;
+        let (input, play_count) = nom::number::complete::le_u16(input)?;
+        let (input, year) = nom::number::complete::le_u16(input)?;
+        let (input, sample_depth) = nom::number::complete::le_u16(input)?;
+        let (input, duration) = nom::number::complete::le_u16(input)?;
+        let (input, unknown5) = nom::number::complete::le_u16(input)?;
+        let (input, color) = Color::parse_u8(input)?;
+        let (input, rating) = nom::number::complete::u8(input)?;
+        let (input, unknown6) = nom::number::complete::le_u16(input)?;
+        let (input, unknown7) = nom::number::complete::le_u16(input)?;
+
+        // String offsets
+        let (input, isrc) = Self::parse_string_offset(input, row_data)?;
+        let (input, unknown_string1) = Self::parse_string_offset(input, row_data)?;
+        let (input, unknown_string2) = Self::parse_string_offset(input, row_data)?;
+        let (input, unknown_string3) = Self::parse_string_offset(input, row_data)?;
+        let (input, unknown_string4) = Self::parse_string_offset(input, row_data)?;
+        let (input, message) = Self::parse_string_offset(input, row_data)?;
+        let (input, kuvo_public) = Self::parse_string_offset(input, row_data)?;
+        let (input, autoload_hotcues) = Self::parse_string_offset(input, row_data)?;
+        let (input, unknown_string5) = Self::parse_string_offset(input, row_data)?;
+        let (input, unknown_string6) = Self::parse_string_offset(input, row_data)?;
+        let (input, date_added) = Self::parse_string_offset(input, row_data)?;
+        let (input, release_date) = Self::parse_string_offset(input, row_data)?;
+        let (input, mix_name) = Self::parse_string_offset(input, row_data)?;
+        let (input, unknown_string7) = Self::parse_string_offset(input, row_data)?;
+        let (input, analyze_path) = Self::parse_string_offset(input, row_data)?;
+        let (input, analyze_date) = Self::parse_string_offset(input, row_data)?;
+        let (input, comment) = Self::parse_string_offset(input, row_data)?;
+        let (input, title) = Self::parse_string_offset(input, row_data)?;
+        let (input, unknown_string8) = Self::parse_string_offset(input, row_data)?;
+        let (input, filename) = Self::parse_string_offset(input, row_data)?;
+        let (input, file_path) = Self::parse_string_offset(input, row_data)?;
+
+        Ok((
+            input,
+            Row::Track {
+                unknown1,
+                index_shift,
+                bitmask,
+                sample_rate,
+                composer_id,
+                file_size,
+                unknown2,
+                unknown3,
+                unknown4,
+                artwork_id,
+                key_id,
+                orig_artist_id,
+                label_id,
+                remixer_id,
+                bitrate,
+                track_number,
+                tempo,
+                genre_id,
+                album_id,
+                artist_id,
+                id,
+                disc_number,
+                play_count,
+                year,
+                sample_depth,
+                duration,
+                unknown5,
+                color,
+                rating,
+                unknown6,
+                unknown7,
+                isrc,
+                unknown_string1,
+                unknown_string2,
+                unknown_string3,
+                unknown_string4,
+                message,
+                kuvo_public,
+                autoload_hotcues,
+                unknown_string5,
+                unknown_string6,
+                date_added,
+                release_date,
+                mix_name,
+                unknown_string7,
+                analyze_path,
+                analyze_date,
+                comment,
+                title,
+                unknown_string8,
+                filename,
+                file_path,
             },
         ))
     }
