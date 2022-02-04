@@ -680,6 +680,15 @@ pub enum Row {
         /// Name of this node, as shown when navigating the menu.
         name: DeviceSQLString,
     },
+    /// Represents a track entry in a playlist.
+    PlaylistEntry {
+        /// Position within the playlist.
+        entry_index: u32,
+        /// ID of the track played at this position in the playlist.
+        track_id: u32,
+        /// ID of the history playlist.
+        playlist_id: u32,
+    },
     /// Contains the album name, along with an ID of the corresponding artist.
     Track {
         /// Unknown field, usually `24 00`.
@@ -799,6 +808,7 @@ impl Row {
             PageType::Artwork => Row::parse_artwork(input),
             PageType::Colors => Row::parse_color(input),
             PageType::PlaylistTree => Row::parse_playlist_tree_node(input),
+            PageType::PlaylistEntries => Row::parse_playlist_entry(input),
             PageType::Genres => Row::parse_genre(input),
             PageType::HistoryPlaylists => Row::parse_history_playlist(input),
             PageType::HistoryEntries => Row::parse_history_entry(input),
@@ -956,6 +966,21 @@ impl Row {
                 id,
                 node_is_folder,
                 name,
+            },
+        ))
+    }
+
+    fn parse_playlist_entry(row_data: &[u8]) -> IResult<&[u8], Row> {
+        let (input, entry_index) = nom::number::complete::le_u32(row_data)?;
+        let (input, track_id) = nom::number::complete::le_u32(input)?;
+        let (input, playlist_id) = nom::number::complete::le_u32(input)?;
+
+        Ok((
+            input,
+            Row::PlaylistEntry {
+                entry_index,
+                track_id,
+                playlist_id,
             },
         ))
     }
