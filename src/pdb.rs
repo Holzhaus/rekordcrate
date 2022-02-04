@@ -538,7 +538,6 @@ pub enum Color {
 }
 
 impl Color {
-    #[allow(dead_code)]
     fn parse_u8(input: &[u8]) -> IResult<&[u8], Self> {
         let (input, color_id) = nom::number::complete::u8(input)?;
         Ok((input, Color::from(u16::from(color_id))))
@@ -589,6 +588,19 @@ pub enum Row {
         /// Byte offset of the album name string, relative to the start of this row.
         name: DeviceSQLString,
     },
+    /// Contains the artist name and ID.
+    Artist {
+        /// Determines if the `name` string is located at the 8-bit offset (0x60) or the 16-bit offset (0x64).
+        subtype: u16,
+        /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
+        index_shift: u16,
+        /// ID of this row.
+        id: u32,
+        /// Unknown field.
+        unknown1: u8,
+        /// Name of this artist.
+        name: DeviceSQLString,
+    },
     /// Contains numeric color ID
     Color {
         /// Unknown field.
@@ -610,6 +622,7 @@ impl Row {
     fn parse<'a>(input: &'a [u8], page_type: &PageType) -> IResult<&'a [u8], Row> {
         match page_type {
             PageType::Albums => Row::parse_album(input),
+            PageType::Artists => Row::parse_artist(input),
             PageType::Colors => Row::parse_color(input),
             _ => Ok((input, Row::Unknown)),
         }
@@ -644,6 +657,33 @@ impl Row {
                 id,
                 unknown3,
                 unknown4,
+                name,
+            },
+        ))
+    }
+
+    fn parse_artist(row_data: &[u8]) -> IResult<&[u8], Row> {
+        let (input, subtype) = nom::number::complete::le_u16(row_data)?;
+        let (input, index_shift) = nom::number::complete::le_u16(input)?;
+        let (input, id) = nom::number::complete::le_u32(input)?;
+        let (input, unknown1) = nom::number::complete::u8(input)?;
+        let (input, ofs_name_near) = nom::number::complete::u8(input)?;
+        let (input, name) = if subtype == 0x60 {
+            let (_, text) = DeviceSQLString::parse(&row_data[usize::from(ofs_name_near)..])?;
+            (input, text)
+        } else {
+            let (input, ofs_name_far) = nom::number::complete::le_u16(row_data)?;
+            let (_, text) = DeviceSQLString::parse(&row_data[usize::from(ofs_name_far)..])?;
+            (input, text)
+        };
+
+        Ok((
+            input,
+            Row::Artist {
+                subtype,
+                index_shift,
+                id,
+                unknown1,
                 name,
             },
         ))
