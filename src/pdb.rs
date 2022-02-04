@@ -467,7 +467,6 @@ pub enum DeviceSQLString {
 }
 
 impl DeviceSQLString {
-    #[allow(dead_code)]
     fn parse(input: &[u8]) -> IResult<&[u8], DeviceSQLString> {
         let (_, length_and_kind) = nom::number::complete::u8(input)?;
         match length_and_kind {
@@ -514,14 +513,97 @@ impl DeviceSQLString {
 }
 
 #[derive(Debug)]
+/// Color identifiers used for tracks.
+pub enum Color {
+    /// No color.
+    None,
+    /// Pink color.
+    Pink,
+    /// Red color.
+    Red,
+    /// Orange color.
+    Orange,
+    /// Yellow color.
+    Yellow,
+    /// Green color.
+    Green,
+    /// Aqua color.
+    Aqua,
+    /// Blue color.
+    Blue,
+    /// Purple color.
+    Purple,
+    /// Unknown color.
+    Unknown(u16),
+}
+
+impl Color {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, color_id) = nom::number::complete::le_u16(input)?;
+        Ok((input, Color::from(color_id)))
+    }
+}
+
+impl From<u16> for Color {
+    fn from(color_id: u16) -> Self {
+        match color_id {
+            0 => Self::None,
+            1 => Self::Pink,
+            2 => Self::Red,
+            3 => Self::Orange,
+            4 => Self::Yellow,
+            5 => Self::Green,
+            6 => Self::Aqua,
+            7 => Self::Blue,
+            8 => Self::Purple,
+            x => Self::Unknown(x),
+        }
+    }
+}
+
+#[derive(Debug)]
 /// A table rows contains the actual data
 pub enum Row {
+    /// Contains numeric color ID
+    Color {
+        /// Unknown field.
+        unknown1: u32,
+        /// Unknown field.
+        unknown2: u8,
+        /// Numeric color ID
+        color: Color,
+        /// Unknown field.
+        unknown3: u8,
+        /// User-defined name of the color.
+        name: DeviceSQLString,
+    },
     /// The row format (and also its size) is unknown, which means it can't be parsed.
     Unknown,
 }
 
 impl Row {
-    fn parse<'a>(input: &'a [u8], _page_type: &PageType) -> IResult<&'a [u8], Row> {
-        Ok((input, Row::Unknown))
+    fn parse<'a>(input: &'a [u8], page_type: &PageType) -> IResult<&'a [u8], Row> {
+        match page_type {
+            PageType::Colors => Row::parse_color(input),
+            _ => Ok((input, Row::Unknown)),
+        }
+    }
+
+    fn parse_color(input: &[u8]) -> IResult<&[u8], Row> {
+        let (input, unknown1) = nom::number::complete::le_u32(input)?;
+        let (input, unknown2) = nom::number::complete::u8(input)?;
+        let (input, color) = Color::parse(input)?;
+        let (input, unknown3) = nom::number::complete::u8(input)?;
+        let (input, name) = DeviceSQLString::parse(input)?;
+        Ok((
+            input,
+            Row::Color {
+                unknown1,
+                unknown2,
+                color,
+                unknown3,
+                name,
+            },
+        ))
     }
 }
