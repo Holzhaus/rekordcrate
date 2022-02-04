@@ -642,6 +642,13 @@ pub enum Row {
         /// Name of the key.
         name: DeviceSQLString,
     },
+    /// Represents a record label.
+    Label {
+        /// ID of this row.
+        id: u32,
+        /// Name of the record label.
+        name: DeviceSQLString,
+    },
     /// Contains the album name, along with an ID of the corresponding artist.
     Track {
         /// Unknown field, usually `24 00`.
@@ -762,6 +769,7 @@ impl Row {
             PageType::Colors => Row::parse_color(input),
             PageType::Genres => Row::parse_genre(input),
             PageType::Keys => Row::parse_key(input),
+            PageType::Labels => Row::parse_label(input),
             PageType::Tracks => Row::parse_track(input),
             _ => Ok((input, Row::Unknown)),
         }
@@ -866,6 +874,13 @@ impl Row {
         let (input, name) = DeviceSQLString::parse(input)?;
 
         Ok((input, Row::Key { id, id2, name }))
+    }
+
+    fn parse_label(row_data: &[u8]) -> IResult<&[u8], Row> {
+        let (input, id) = nom::number::complete::le_u32(row_data)?;
+        let (input, name) = DeviceSQLString::parse(input)?;
+
+        Ok((input, Row::Label { id, name }))
     }
 
     fn parse_track(row_data: &[u8]) -> IResult<&[u8], Row> {
