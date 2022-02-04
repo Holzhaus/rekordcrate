@@ -665,6 +665,21 @@ pub enum Row {
         /// Name of the record label.
         name: DeviceSQLString,
     },
+    /// Represents a node in the playlist tree (either a folder or a playlist).
+    PlaylistTreeNode {
+        /// ID of parent row of this row (which means that the parent is a folder).
+        parent_id: u32,
+        /// Unknown field.
+        unknown: u32,
+        /// ID of this row.
+        id: u32,
+        /// Sort order indicastor.
+        sort_order: u32,
+        /// Indicates if the node is a folder. Non-zero if it's a leaf node, i.e. a playlist.
+        node_is_folder: u32,
+        /// Name of this node, as shown when navigating the menu.
+        name: DeviceSQLString,
+    },
     /// Contains the album name, along with an ID of the corresponding artist.
     Track {
         /// Unknown field, usually `24 00`.
@@ -783,6 +798,7 @@ impl Row {
             PageType::Artists => Row::parse_artist(input),
             PageType::Artwork => Row::parse_artwork(input),
             PageType::Colors => Row::parse_color(input),
+            PageType::PlaylistTree => Row::parse_playlist_tree_node(input),
             PageType::Genres => Row::parse_genre(input),
             PageType::HistoryPlaylists => Row::parse_history_playlist(input),
             PageType::HistoryEntries => Row::parse_history_entry(input),
@@ -921,6 +937,27 @@ impl Row {
         let (input, name) = DeviceSQLString::parse(input)?;
 
         Ok((input, Row::Label { id, name }))
+    }
+
+    fn parse_playlist_tree_node(row_data: &[u8]) -> IResult<&[u8], Row> {
+        let (input, parent_id) = nom::number::complete::le_u32(row_data)?;
+        let (input, unknown) = nom::number::complete::le_u32(input)?;
+        let (input, sort_order) = nom::number::complete::le_u32(input)?;
+        let (input, id) = nom::number::complete::le_u32(input)?;
+        let (input, node_is_folder) = nom::number::complete::le_u32(input)?;
+        let (input, name) = DeviceSQLString::parse(input)?;
+
+        Ok((
+            input,
+            Row::PlaylistTreeNode {
+                parent_id,
+                unknown,
+                sort_order,
+                id,
+                node_is_folder,
+                name,
+            },
+        ))
     }
 
     fn parse_track(row_data: &[u8]) -> IResult<&[u8], Row> {
