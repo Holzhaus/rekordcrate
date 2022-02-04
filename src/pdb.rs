@@ -456,6 +456,64 @@ impl RowGroup {
 }
 
 #[derive(Debug)]
+/// A string.
+pub enum DeviceSQLString {
+    /// A short ASCII encoded string (max 126 characters).
+    ShortASCII(String),
+    /// A long ASCII encoded string (max 65535 characters).
+    LongASCII(String),
+    /// A long UTF-16 little-endian encoded string (max 32767 characters).
+    LongUTF16LE(String),
+}
+
+impl DeviceSQLString {
+    #[allow(dead_code)]
+    fn parse(input: &[u8]) -> IResult<&[u8], DeviceSQLString> {
+        let (_, length_and_kind) = nom::number::complete::u8(input)?;
+        match length_and_kind {
+            0x40 => Self::parse_long_ascii(input),
+            0x90 => Self::parse_long_utf16le(input),
+            _ => Self::parse_short_ascii(input),
+        }
+    }
+
+    fn parse_short_ascii(input: &[u8]) -> IResult<&[u8], DeviceSQLString> {
+        let (input, mangled_length) = nom::number::complete::u8(input)?;
+        let length = ((mangled_length - 1) / 2) - 1;
+        let (input, data) = nom::bytes::complete::take(length)(input)?;
+        let text = std::str::from_utf8(data).unwrap().to_owned();
+        Ok((input, Self::ShortASCII(text)))
+    }
+
+    fn parse_long_ascii(input: &[u8]) -> IResult<&[u8], DeviceSQLString> {
+        let (input, _) = nom::bytes::complete::tag(b"\x40")(input)?;
+        let (input, data) = nom::multi::length_value(
+            nom::number::complete::le_u16,
+            nom::bytes::complete::take(1usize),
+        )(input)?;
+        let text = std::str::from_utf8(data).unwrap().to_owned();
+        Ok((input, Self::LongASCII(text)))
+    }
+
+    fn parse_long_utf16le(input: &[u8]) -> IResult<&[u8], DeviceSQLString> {
+        let (input, _) = nom::bytes::complete::tag(b"\x90")(input)?;
+        let (input, length) = nom::number::complete::le_u16(input)?;
+        let (input, _) = nom::bytes::complete::tag(b"\x00")(input)?;
+
+        // TODO: Ensure that length is always even
+        //assert_eq!(length % 2, 0);
+        // Don't include the trailing two nullbytes in the string.
+        let str_length = usize::from(length) / 2 - 1;
+
+        let (input, data) = nom::multi::count(nom::number::complete::le_u16, str_length)(input)?;
+        let (input, _) = nom::bytes::complete::tag(b"\x00\x00")(input)?;
+
+        let text = String::from_utf16(&data).unwrap();
+        Ok((input, Self::LongUTF16LE(text)))
+    }
+}
+
+#[derive(Debug)]
 /// A table rows contains the actual data
 pub enum Row {
     /// The row format (and also its size) is unknown, which means it can't be parsed.
