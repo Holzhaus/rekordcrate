@@ -640,6 +640,15 @@ pub enum Row {
         /// Name of the playlist.
         name: DeviceSQLString,
     },
+    /// Represents a history playlist.
+    HistoryEntry {
+        /// ID of the track played at this position in the playlist.
+        track_id: u32,
+        /// ID of the history playlist.
+        playlist_id: u32,
+        /// Position within the playlist.
+        entry_index: u32,
+    },
     /// Represents a musical key.
     Key {
         /// ID of this row.
@@ -776,6 +785,7 @@ impl Row {
             PageType::Colors => Row::parse_color(input),
             PageType::Genres => Row::parse_genre(input),
             PageType::HistoryPlaylists => Row::parse_history_playlist(input),
+            PageType::HistoryEntries => Row::parse_history_entry(input),
             PageType::Keys => Row::parse_key(input),
             PageType::Labels => Row::parse_label(input),
             PageType::Tracks => Row::parse_track(input),
@@ -881,6 +891,21 @@ impl Row {
         let (input, name) = DeviceSQLString::parse(input)?;
 
         Ok((input, Row::HistoryPlaylist { id, name }))
+    }
+
+    fn parse_history_entry(row_data: &[u8]) -> IResult<&[u8], Row> {
+        let (input, track_id) = nom::number::complete::le_u32(row_data)?;
+        let (input, playlist_id) = nom::number::complete::le_u32(input)?;
+        let (input, entry_index) = nom::number::complete::le_u32(input)?;
+
+        Ok((
+            input,
+            Row::HistoryEntry {
+                track_id,
+                playlist_id,
+                entry_index,
+            },
+        ))
     }
 
     fn parse_key(row_data: &[u8]) -> IResult<&[u8], Row> {
