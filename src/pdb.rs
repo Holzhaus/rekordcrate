@@ -538,7 +538,13 @@ pub enum Color {
 }
 
 impl Color {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+    #[allow(dead_code)]
+    fn parse_u8(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, color_id) = nom::number::complete::u8(input)?;
+        Ok((input, Color::from(u16::from(color_id))))
+    }
+
+    fn parse_u16(input: &[u8]) -> IResult<&[u8], Self> {
         let (input, color_id) = nom::number::complete::le_u16(input)?;
         Ok((input, Color::from(color_id)))
     }
@@ -592,7 +598,7 @@ impl Row {
     fn parse_color(input: &[u8]) -> IResult<&[u8], Row> {
         let (input, unknown1) = nom::number::complete::le_u32(input)?;
         let (input, unknown2) = nom::number::complete::u8(input)?;
-        let (input, color) = Color::parse(input)?;
+        let (input, color) = Color::parse_u16(input)?;
         let (input, unknown3) = nom::number::complete::u8(input)?;
         let (input, name) = DeviceSQLString::parse(input)?;
         Ok((
