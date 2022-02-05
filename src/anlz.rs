@@ -143,6 +143,35 @@ pub enum Content {
     },
 }
 
+impl Content {
+    fn parse<'a>(input: &'a [u8], header: &Header) -> IResult<&'a [u8], Self> {
+        match header.kind {
+            ContentKind::File => Err(Err::Error(nom::error::Error::from_error_kind(
+                input,
+                ErrorKind::Tag,
+            ))),
+            _ => Self::parse_unknown(input, header),
+        }
+    }
+
+    fn parse_unknown<'a>(input: &'a [u8], header: &Header) -> IResult<&'a [u8], Self> {
+        let (input, header_data_slice) =
+            nom::bytes::complete::take(header.remaining_size())(input)?;
+        let header_data: Vec<u8> = header_data_slice.to_owned();
+
+        let (input, content_data_slice) = nom::bytes::complete::take(header.content_size())(input)?;
+        let content_data: Vec<u8> = content_data_slice.to_owned();
+
+        Ok((
+            input,
+            Content::Unknown {
+                header_data,
+                content_data,
+            },
+        ))
+    }
+}
+
 #[derive(Debug)]
 /// ANLZ Section.
 pub struct Section {
@@ -155,30 +184,7 @@ pub struct Section {
 impl Section {
     fn parse(input: &[u8]) -> IResult<&[u8], Self> {
         let (input, header) = Header::parse(input)?;
-        let res = match header.kind {
-            ContentKind::File => Err(Err::Error(nom::error::Error::from_error_kind(
-                input,
-                ErrorKind::Tag,
-            ))),
-            _ => {
-                let (input, header_data_slice) =
-                    nom::bytes::complete::take(header.remaining_size())(input)?;
-                let header_data: Vec<u8> = header_data_slice.to_owned();
-
-                let (input, content_data_slice) =
-                    nom::bytes::complete::take(header.content_size())(input)?;
-                let content_data: Vec<u8> = content_data_slice.to_owned();
-
-                Ok((
-                    input,
-                    Content::Unknown {
-                        header_data,
-                        content_data,
-                    },
-                ))
-            }
-        };
-        let (input, content) = res?;
+        let (input, content) = Content::parse(input, &header)?;
         Ok((input, Self { header, content }))
     }
 }
