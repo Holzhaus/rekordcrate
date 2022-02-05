@@ -626,6 +626,13 @@ pub enum Row {
         /// User-defined name of the color.
         name: DeviceSQLString,
     },
+    /// Represents a musical genre.
+    Genre {
+        /// ID of this row.
+        id: u32,
+        /// Name of the genre.
+        name: DeviceSQLString,
+    },
     /// Contains the album name, along with an ID of the corresponding artist.
     Track {
         /// Unknown field, usually `24 00`.
@@ -744,6 +751,7 @@ impl Row {
             PageType::Artists => Row::parse_artist(input),
             PageType::Artwork => Row::parse_artwork(input),
             PageType::Colors => Row::parse_color(input),
+            PageType::Genres => Row::parse_genre(input),
             PageType::Tracks => Row::parse_track(input),
             _ => Ok((input, Row::Unknown)),
         }
@@ -833,6 +841,13 @@ impl Row {
                 name,
             },
         ))
+    }
+
+    fn parse_genre(row_data: &[u8]) -> IResult<&[u8], Row> {
+        let (input, id) = nom::number::complete::le_u32(row_data)?;
+        let (input, name) = DeviceSQLString::parse(input)?;
+
+        Ok((input, Row::Genre { id, name }))
     }
 
     fn parse_track(row_data: &[u8]) -> IResult<&[u8], Row> {
