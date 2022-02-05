@@ -1,0 +1,59 @@
+name: Generate Docs
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  docs:
+    name: Update Docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Check out repository"
+        uses: actions/checkout@v2
+
+      - name: Print Rust version
+        run:  rustc -vV
+
+      - name: Generate Documentation
+        run: cargo doc --all-features --no-deps
+
+      - name: Generate index file
+        shell: python3 {0}
+        run: |
+          import os
+
+          package = os.environ["PACKAGE_NAME"]
+          assert package
+
+          owner, sep, repository = os.environ["GITHUB_REPOSITORY"].partition("/")
+          assert owner
+          assert repository
+
+          doc = f"""<!DOCTYPE html>
+          <html>
+            <head>
+              <title>Redirecting to https://{owner}.github.io/{repository}/{package}/</title>
+              <meta charset="utf-8">
+              <meta http-equiv="refresh" content="0; URL=https://{owner}.github.io/{repository}/{package}/">
+              <link rel="canonical" href="https://{owner}.github.io/{repository}/{package}/">
+            </head>
+          </html>"""
+
+          output_dir = os.environ["OUTPUT_DIR"]
+          assert output_dir
+          output_dir = os.path.join(output_dir, "index.html")
+
+          print(f"Writing to {output_dir}")
+          with open(output_dir, mode="w") as f:
+              f.write(doc)
+        env:
+          PACKAGE_NAME: rekordcrate
+          OUTPUT_DIR: target/doc
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: target/doc
