@@ -138,8 +138,48 @@ impl Header {
 }
 
 #[derive(Debug)]
+/// A single beat inside the beat grid.
+pub struct Beat {
+    /// Beat number inside the bar (1-4).
+    pub beat_number: u16,
+    /// Current tempo in centi-BPM (= 1/100 BPM).
+    pub tempo: u16,
+    /// Time in milliseconds after which this beat would occur (at normal playback speed).
+    pub time: u32,
+}
+
+impl Beat {
+    /// Parse a beat entry.
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, beat_number) = nom::number::complete::be_u16(input)?;
+        let (input, tempo) = nom::number::complete::be_u16(input)?;
+        let (input, time) = nom::number::complete::be_u32(input)?;
+
+        Ok((
+            input,
+            Self {
+                beat_number,
+                tempo,
+                time,
+            },
+        ))
+    }
+}
+
+#[derive(Debug)]
 /// Section content which differs depending on the section type.
 pub enum Content {
+    /// All beats in the track.
+    BeatGrid {
+        /// Unknown field.
+        unknown1: u32,
+        /// Unknown field.
+        ///
+        /// According to [@flesniak](https://github.com/flesniak), this is always `00800000`.
+        unknown2: u32,
+        /// Beats in this beatgrid.
+        beats: Vec<Beat>,
+    },
     /// Unknown content.
     Unknown {
         /// Unknown header data.
@@ -156,8 +196,25 @@ impl Content {
                 input,
                 ErrorKind::Tag,
             ))),
+            ContentKind::BeatGrid => Self::parse_beatgrid(input, header),
             _ => Self::parse_unknown(input, header),
         }
+    }
+
+    fn parse_beatgrid<'a>(input: &'a [u8], _header: &Header) -> IResult<&'a [u8], Self> {
+        let (input, unknown1) = nom::number::complete::be_u32(input)?;
+        let (input, unknown2) = nom::number::complete::be_u32(input)?;
+        let (input, beats) =
+            nom::multi::length_count(nom::number::complete::be_u32, Beat::parse)(input)?;
+
+        Ok((
+            input,
+            Content::BeatGrid {
+                unknown1,
+                unknown2,
+                beats,
+            },
+        ))
     }
 
     fn parse_unknown<'a>(input: &'a [u8], header: &Header) -> IResult<&'a [u8], Self> {
