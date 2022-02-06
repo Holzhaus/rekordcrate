@@ -40,6 +40,10 @@ pub enum ContentKind {
     CueList,
     /// Extended version of the `CueList` section (since Nexus 2 series).
     ExtendedCueList,
+    /// Single cue entry inside a `ExtendedCueList` section.
+    ExtendedCue,
+    /// Single cue entry inside a `CueList` section.
+    Cue,
     /// File path of the audio file.
     Path,
     /// Seek information for variable bitrate files.
@@ -76,6 +80,8 @@ impl ContentKind {
             b"PMAI" => ContentKind::File,
             b"PCO2" => ContentKind::ExtendedCueList,
             b"PCOB" => ContentKind::CueList,
+            b"PCP2" => ContentKind::ExtendedCue,
+            b"PCPT" => ContentKind::Cue,
             b"PPTH" => ContentKind::Path,
             b"PQTZ" => ContentKind::BeatGrid,
             b"PVBR" => ContentKind::VBR,
