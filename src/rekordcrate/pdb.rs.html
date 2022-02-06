@@ -1048,59 +1048,6 @@
 <span id="1047">1047</span>
 <span id="1048">1048</span>
 <span id="1049">1049</span>
-<span id="1050">1050</span>
-<span id="1051">1051</span>
-<span id="1052">1052</span>
-<span id="1053">1053</span>
-<span id="1054">1054</span>
-<span id="1055">1055</span>
-<span id="1056">1056</span>
-<span id="1057">1057</span>
-<span id="1058">1058</span>
-<span id="1059">1059</span>
-<span id="1060">1060</span>
-<span id="1061">1061</span>
-<span id="1062">1062</span>
-<span id="1063">1063</span>
-<span id="1064">1064</span>
-<span id="1065">1065</span>
-<span id="1066">1066</span>
-<span id="1067">1067</span>
-<span id="1068">1068</span>
-<span id="1069">1069</span>
-<span id="1070">1070</span>
-<span id="1071">1071</span>
-<span id="1072">1072</span>
-<span id="1073">1073</span>
-<span id="1074">1074</span>
-<span id="1075">1075</span>
-<span id="1076">1076</span>
-<span id="1077">1077</span>
-<span id="1078">1078</span>
-<span id="1079">1079</span>
-<span id="1080">1080</span>
-<span id="1081">1081</span>
-<span id="1082">1082</span>
-<span id="1083">1083</span>
-<span id="1084">1084</span>
-<span id="1085">1085</span>
-<span id="1086">1086</span>
-<span id="1087">1087</span>
-<span id="1088">1088</span>
-<span id="1089">1089</span>
-<span id="1090">1090</span>
-<span id="1091">1091</span>
-<span id="1092">1092</span>
-<span id="1093">1093</span>
-<span id="1094">1094</span>
-<span id="1095">1095</span>
-<span id="1096">1096</span>
-<span id="1097">1097</span>
-<span id="1098">1098</span>
-<span id="1099">1099</span>
-<span id="1100">1100</span>
-<span id="1101">1101</span>
-<span id="1102">1102</span>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) 2022 Jan Holthuis</span>
 <span class="comment">//</span>
 <span class="comment">// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy</span>
@@ -1121,6 +1068,7 @@
 <span class="doccomment">//! - &lt;https://github.com/henrybetts/Rekordbox-Decoding&gt;</span>
 <span class="doccomment">//! - &lt;https://github.com/flesniak/python-prodj-link/tree/master/prodj/pdblib&gt;</span>
 
+<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::util::ColorIndex</span>;
 <span class="kw">use</span> <span class="ident">nom::IResult</span>;
 <span class="kw">use</span> <span class="ident">std::num::TryFromIntError</span>;
 
@@ -1615,60 +1563,6 @@
     }
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
-<span class="doccomment">/// Color identifiers used for tracks.</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">Color</span> {
-    <span class="doccomment">/// No color.</span>
-    <span class="prelude-val">None</span>,
-    <span class="doccomment">/// Pink color.</span>
-    <span class="ident">Pink</span>,
-    <span class="doccomment">/// Red color.</span>
-    <span class="ident">Red</span>,
-    <span class="doccomment">/// Orange color.</span>
-    <span class="ident">Orange</span>,
-    <span class="doccomment">/// Yellow color.</span>
-    <span class="ident">Yellow</span>,
-    <span class="doccomment">/// Green color.</span>
-    <span class="ident">Green</span>,
-    <span class="doccomment">/// Aqua color.</span>
-    <span class="ident">Aqua</span>,
-    <span class="doccomment">/// Blue color.</span>
-    <span class="ident">Blue</span>,
-    <span class="doccomment">/// Purple color.</span>
-    <span class="ident">Purple</span>,
-    <span class="doccomment">/// Unknown color.</span>
-    <span class="ident">Unknown</span>(<span class="ident">u16</span>),
-}
-
-<span class="kw">impl</span> <span class="ident">Color</span> {
-    <span class="kw">fn</span> <span class="ident">parse_u8</span>(<span class="ident">input</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) -&gt; <span class="ident">IResult</span><span class="op">&lt;</span><span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="self">Self</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">color_id</span>) <span class="op">=</span> <span class="ident">nom::number::complete::u8</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>((<span class="ident">input</span>, <span class="ident">Color::from</span>(<span class="ident">u16::from</span>(<span class="ident">color_id</span>))))
-    }
-
-    <span class="kw">fn</span> <span class="ident">parse_u16</span>(<span class="ident">input</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) -&gt; <span class="ident">IResult</span><span class="op">&lt;</span><span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="self">Self</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">color_id</span>) <span class="op">=</span> <span class="ident">nom::number::complete::le_u16</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>((<span class="ident">input</span>, <span class="ident">Color::from</span>(<span class="ident">color_id</span>)))
-    }
-}
-
-<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">u16</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Color</span> {
-    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">color_id</span>: <span class="ident">u16</span>) -&gt; <span class="self">Self</span> {
-        <span class="kw">match</span> <span class="ident">color_id</span> {
-            <span class="number">0</span> =&gt; <span class="ident"><span class="self">Self</span>::None</span>,
-            <span class="number">1</span> =&gt; <span class="ident"><span class="self">Self</span>::Pink</span>,
-            <span class="number">2</span> =&gt; <span class="ident"><span class="self">Self</span>::Red</span>,
-            <span class="number">3</span> =&gt; <span class="ident"><span class="self">Self</span>::Orange</span>,
-            <span class="number">4</span> =&gt; <span class="ident"><span class="self">Self</span>::Yellow</span>,
-            <span class="number">5</span> =&gt; <span class="ident"><span class="self">Self</span>::Green</span>,
-            <span class="number">6</span> =&gt; <span class="ident"><span class="self">Self</span>::Aqua</span>,
-            <span class="number">7</span> =&gt; <span class="ident"><span class="self">Self</span>::Blue</span>,
-            <span class="number">8</span> =&gt; <span class="ident"><span class="self">Self</span>::Purple</span>,
-            <span class="ident">x</span> =&gt; <span class="ident"><span class="self">Self</span>::Unknown</span>(<span class="ident">x</span>),
-        }
-    }
-}
-
 <span class="comment">// The large enum size is unfortunate, but since users of this library will probably use iterators</span>
 <span class="comment">// to consume the results on demand, we can live with this. The alternative of using a `Box` would</span>
 <span class="comment">// require a heap allocation per row, which is arguably worse. Hence, the warning is disabled for</span>
@@ -1723,7 +1617,7 @@
         <span class="doccomment">/// Unknown field.</span>
         <span class="ident">unknown2</span>: <span class="ident">u8</span>,
         <span class="doccomment">/// Numeric color ID</span>
-        <span class="ident">color</span>: <span class="ident">Color</span>,
+        <span class="ident">color</span>: <span class="ident">ColorIndex</span>,
         <span class="doccomment">/// Unknown field.</span>
         <span class="ident">unknown3</span>: <span class="ident">u8</span>,
         <span class="doccomment">/// User-defined name of the color.</span>
@@ -1849,7 +1743,7 @@
         <span class="doccomment">/// Unknown field, apparently always &quot;29&quot;.</span>
         <span class="ident">unknown5</span>: <span class="ident">u16</span>,
         <span class="doccomment">/// Color row ID for this track (non-zero if set).</span>
-        <span class="ident">color</span>: <span class="ident">Color</span>,
+        <span class="ident">color</span>: <span class="ident">ColorIndex</span>,
         <span class="doccomment">/// User rating of this track (0 to 5 starts).</span>
         <span class="ident">rating</span>: <span class="ident">u8</span>,
         <span class="doccomment">/// Unknown field, apparently always &quot;1&quot;.</span>
@@ -1993,7 +1887,7 @@
     <span class="kw">fn</span> <span class="ident">parse_color</span>(<span class="ident">input</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) -&gt; <span class="ident">IResult</span><span class="op">&lt;</span><span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="ident">Row</span><span class="op">&gt;</span> {
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">unknown1</span>) <span class="op">=</span> <span class="ident">nom::number::complete::le_u32</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">unknown2</span>) <span class="op">=</span> <span class="ident">nom::number::complete::u8</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
-        <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">color</span>) <span class="op">=</span> <span class="ident">Color::parse_u16</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
+        <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">color</span>) <span class="op">=</span> <span class="ident">ColorIndex::parse_u16</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">unknown3</span>) <span class="op">=</span> <span class="ident">nom::number::complete::u8</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">name</span>) <span class="op">=</span> <span class="ident">DeviceSQLString::parse</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>((
@@ -2116,7 +2010,7 @@
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">sample_depth</span>) <span class="op">=</span> <span class="ident">nom::number::complete::le_u16</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">duration</span>) <span class="op">=</span> <span class="ident">nom::number::complete::le_u16</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">unknown5</span>) <span class="op">=</span> <span class="ident">nom::number::complete::le_u16</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
-        <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">color</span>) <span class="op">=</span> <span class="ident">Color::parse_u8</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
+        <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">color</span>) <span class="op">=</span> <span class="ident">ColorIndex::parse_u8</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">rating</span>) <span class="op">=</span> <span class="ident">nom::number::complete::u8</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">unknown6</span>) <span class="op">=</span> <span class="ident">nom::number::complete::le_u16</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">unknown7</span>) <span class="op">=</span> <span class="ident">nom::number::complete::le_u16</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
