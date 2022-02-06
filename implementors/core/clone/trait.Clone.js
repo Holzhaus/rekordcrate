@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["rekordcrate"] = [{"text":"impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.58.1/core/clone/trait.Clone.html\" title=\"trait core::clone::Clone\">Clone</a> for <a class=\"struct\" href=\"rekordcrate/pdb/struct.PageIndex.html\" title=\"struct rekordcrate::pdb::PageIndex\">PageIndex</a>","synthetic":false,"types":["rekordcrate::pdb::PageIndex"]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

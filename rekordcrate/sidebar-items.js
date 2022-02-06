@@ -1,1 +1,1 @@
-initSidebarItems({});
+initSidebarItems({"mod":[["pdb","Parser for Pioneer DeviceSQL database exports (PDB)."]]});
