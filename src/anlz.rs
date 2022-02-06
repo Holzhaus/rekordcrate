@@ -541,6 +541,8 @@ pub enum Content {
         /// Cues
         cues: Vec<ExtendedCue>,
     },
+    /// Path of the audio file that this analysis belongs to.
+    Path(String),
     /// Unknown content.
     Unknown {
         /// Unknown header data.
@@ -560,6 +562,7 @@ impl Content {
             ContentKind::BeatGrid => Self::parse_beatgrid(input, header),
             ContentKind::CueList => Self::parse_cuelist(input, header),
             ContentKind::ExtendedCueList => Self::parse_extendedcuelist(input, header),
+            ContentKind::Path => Self::parse_path(input, header),
             _ => Self::parse_unknown(input, header),
         }
     }
@@ -606,6 +609,16 @@ impl Content {
             nom::multi::count(ExtendedCue::parse, len_cues.try_into().unwrap())(input)?;
 
         Ok((input, Content::ExtendedCueList { list_type, cues }))
+    }
+
+    fn parse_path<'a>(input: &'a [u8], _header: &Header) -> IResult<&'a [u8], Self> {
+        let (input, len_path) = nom::number::complete::be_u32(input)?;
+        let str_length = usize::try_from(len_path).unwrap() / 2 - 1;
+        let (input, data) = nom::multi::count(nom::number::complete::be_u16, str_length)(input)?;
+        let (input, _) = nom::bytes::complete::tag(b"\x00\x00")(input)?;
+        let path = String::from_utf16(&data).unwrap();
+
+        Ok((input, Content::Path(path)))
     }
 
     fn parse_unknown<'a>(input: &'a [u8], header: &Header) -> IResult<&'a [u8], Self> {
