@@ -526,6 +526,21 @@ impl From<u8> for WaveformPreviewColumn {
 }
 
 #[derive(Debug)]
+/// Single Column value in a Tiny Waveform Preview.
+pub struct TinyWaveformPreviewColumn {
+    /// Height of the Column in pixels.
+    pub height: u8,
+}
+
+impl From<u8> for TinyWaveformPreviewColumn {
+    fn from(byte: u8) -> Self {
+        Self {
+            height: (byte & 0b00001111),
+        }
+    }
+}
+
+#[derive(Debug)]
 /// Section content which differs depending on the section type.
 pub enum Content {
     /// All beats in the track.
@@ -578,6 +593,15 @@ pub enum Content {
         /// Waveform preview column data.
         data: Vec<WaveformPreviewColumn>,
     },
+    /// Smaller version of the fixed-width monochrome preview of the track waveform.
+    TinyWaveformPreview {
+        /// Unknown field.
+        len_preview: u32,
+        /// Unknown field (apparently always `0x00100000`)
+        unknown: u32,
+        /// Waveform preview column data.
+        data: Vec<TinyWaveformPreviewColumn>,
+    },
     /// Unknown content.
     Unknown {
         /// Unknown header data.
@@ -600,6 +624,7 @@ impl Content {
             ContentKind::Path => Self::parse_path(input, header),
             ContentKind::VBR => Self::parse_vbr(input, header),
             ContentKind::WaveformPreview => Self::parse_waveform_preview(input, header),
+            ContentKind::TinyWaveformPreview => Self::parse_tiny_waveform_preview(input, header),
             _ => Self::parse_unknown(input, header),
         }
     }
@@ -679,6 +704,29 @@ impl Content {
         Ok((
             input,
             Content::WaveformPreview {
+                len_preview,
+                unknown,
+                data,
+            },
+        ))
+    }
+
+    fn parse_tiny_waveform_preview<'a>(
+        input: &'a [u8],
+        header: &Header,
+    ) -> IResult<&'a [u8], Self> {
+        let (input, len_preview) = nom::number::complete::be_u32(input)?;
+        let (input, unknown) = nom::number::complete::be_u32(input)?;
+        let (input, content_data_slice) = nom::bytes::complete::take(header.content_size())(input)?;
+        let data: Vec<TinyWaveformPreviewColumn> = content_data_slice
+            .iter()
+            .cloned()
+            .map(TinyWaveformPreviewColumn::from)
+            .collect();
+
+        Ok((
+            input,
+            Content::TinyWaveformPreview {
                 len_preview,
                 unknown,
                 data,
