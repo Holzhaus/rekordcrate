@@ -6,6 +6,18 @@
 **Note:** This library is currently still under heavy development and might
 have breaking API changes in the future.
 
+## Command Line Usage
+
+This library includes a command line tool named `rekordcrate-pdb` to inspect
+database exports (i.e. `PIONEER/rekordbox/export.pdb` files):
+
+    $ cargo run --bin rekordcrate-pdb data/demo-tracks/PIONEER/rekordbox/export.pdb
+
+Analysis files (`.DAT`, `.EXT` and `.2EX` files in the `PIONEER/USBANLZ`
+directory) can be viewed using the `rekordcrate-anlz` binary:
+
+    $ cargo run --bin rekordcrate-anlz -- data/demo-tracks/PIONEER/USBANLZ/P016/0000875E/ANLZ0000.DAT
+
 ## FAQ
 
 ### Is this software affiliated with Pioneer Corp. or its related companies?
