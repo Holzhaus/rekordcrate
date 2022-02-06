@@ -543,6 +543,13 @@ pub enum Content {
     },
     /// Path of the audio file that this analysis belongs to.
     Path(String),
+    /// Seek information for variable bitrate files (probably).
+    VBR {
+        /// Unknown field.
+        unknown1: u32,
+        /// Unknown data.
+        unknown2: Vec<u8>,
+    },
     /// Unknown content.
     Unknown {
         /// Unknown header data.
@@ -563,6 +570,7 @@ impl Content {
             ContentKind::CueList => Self::parse_cuelist(input, header),
             ContentKind::ExtendedCueList => Self::parse_extendedcuelist(input, header),
             ContentKind::Path => Self::parse_path(input, header),
+            ContentKind::VBR => Self::parse_vbr(input, header),
             _ => Self::parse_unknown(input, header),
         }
     }
@@ -619,6 +627,14 @@ impl Content {
         let path = String::from_utf16(&data).unwrap();
 
         Ok((input, Content::Path(path)))
+    }
+
+    fn parse_vbr<'a>(input: &'a [u8], header: &Header) -> IResult<&'a [u8], Self> {
+        let (input, unknown1) = nom::number::complete::be_u32(input)?;
+        let (input, content_data_slice) = nom::bytes::complete::take(header.content_size())(input)?;
+        let unknown2: Vec<u8> = content_data_slice.to_owned();
+
+        Ok((input, Content::VBR { unknown1, unknown2 }))
     }
 
     fn parse_unknown<'a>(input: &'a [u8], header: &Header) -> IResult<&'a [u8], Self> {
