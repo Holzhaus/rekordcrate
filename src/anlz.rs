@@ -506,6 +506,25 @@ impl ExtendedCue {
         ))
     }
 }
+
+#[derive(Debug)]
+/// Single Column value in a Waveform Preview.
+pub struct WaveformPreviewColumn {
+    /// Height of the Column in pixels.
+    pub height: u8,
+    /// Shade of white.
+    pub whiteness: u8,
+}
+
+impl From<u8> for WaveformPreviewColumn {
+    fn from(byte: u8) -> Self {
+        Self {
+            height: (byte & 0b00011111),
+            whiteness: (byte >> 5),
+        }
+    }
+}
+
 #[derive(Debug)]
 /// Section content which differs depending on the section type.
 pub enum Content {
@@ -550,6 +569,15 @@ pub enum Content {
         /// Unknown data.
         unknown2: Vec<u8>,
     },
+    /// Fixed-width monochrome preview of the track waveform.
+    WaveformPreview {
+        /// Unknown field.
+        len_preview: u32,
+        /// Unknown field (apparently always `0x00100000`)
+        unknown: u32,
+        /// Waveform preview column data.
+        data: Vec<WaveformPreviewColumn>,
+    },
     /// Unknown content.
     Unknown {
         /// Unknown header data.
@@ -571,6 +599,7 @@ impl Content {
             ContentKind::ExtendedCueList => Self::parse_extendedcuelist(input, header),
             ContentKind::Path => Self::parse_path(input, header),
             ContentKind::VBR => Self::parse_vbr(input, header),
+            ContentKind::WaveformPreview => Self::parse_waveform_preview(input, header),
             _ => Self::parse_unknown(input, header),
         }
     }
@@ -635,6 +664,26 @@ impl Content {
         let unknown2: Vec<u8> = content_data_slice.to_owned();
 
         Ok((input, Content::VBR { unknown1, unknown2 }))
+    }
+
+    fn parse_waveform_preview<'a>(input: &'a [u8], header: &Header) -> IResult<&'a [u8], Self> {
+        let (input, len_preview) = nom::number::complete::be_u32(input)?;
+        let (input, unknown) = nom::number::complete::be_u32(input)?;
+        let (input, content_data_slice) = nom::bytes::complete::take(header.content_size())(input)?;
+        let data: Vec<WaveformPreviewColumn> = content_data_slice
+            .iter()
+            .cloned()
+            .map(WaveformPreviewColumn::from)
+            .collect();
+
+        Ok((
+            input,
+            Content::WaveformPreview {
+                len_preview,
+                unknown,
+                data,
+            },
+        ))
     }
 
     fn parse_unknown<'a>(input: &'a [u8], header: &Header) -> IResult<&'a [u8], Self> {
