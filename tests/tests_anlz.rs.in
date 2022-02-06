@@ -1,0 +1,11 @@
+#[test]
+#[allow(non_snake_case)]
+fn anlz_{name}() {{
+    println!("Parsing file: {filepath}");
+    let data = include_bytes!("{filepath}").as_slice();
+    let (input, anlz) = ANLZ::parse(data).expect("failed to parse header");
+    println!("File Header: {{:#?}}", anlz);
+    for (i, section) in anlz.sections(input).enumerate() {{
+        println!("#{{}}: {{:#?}}", i, section);
+    }}
+}}
