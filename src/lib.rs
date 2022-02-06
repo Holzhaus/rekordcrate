@@ -23,4 +23,5 @@
 #![cfg_attr(not(test), deny(clippy::panic_in_result_fn))]
 #![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
 
+pub mod anlz;
 pub mod pdb;
