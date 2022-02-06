@@ -1,1 +1,1 @@
-window.ALL_CRATES = ["rekordcrate"];
+window.ALL_CRATES = ["rekordcrate","rekordcrate_anlz","rekordcrate_pdb"];

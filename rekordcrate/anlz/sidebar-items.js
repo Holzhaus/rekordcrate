@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["Content","Section content which differs depending on the section type."],["ContentKind","The kind of section."]],"struct":[["ANLZ","ANLZ file section."],["Header","Header of a section that contains type and size information."],["Section","ANLZ Section."]]});
