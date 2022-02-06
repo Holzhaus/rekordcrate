@@ -18,6 +18,7 @@
 //! - <https://github.com/henrybetts/Rekordbox-Decoding>
 //! - <https://github.com/flesniak/python-prodj-link/tree/master/prodj/pdblib>
 
+use crate::util::ColorIndex;
 use nom::IResult;
 use std::num::TryFromIntError;
 
@@ -512,60 +513,6 @@ impl DeviceSQLString {
     }
 }
 
-#[derive(Debug)]
-/// Color identifiers used for tracks.
-pub enum Color {
-    /// No color.
-    None,
-    /// Pink color.
-    Pink,
-    /// Red color.
-    Red,
-    /// Orange color.
-    Orange,
-    /// Yellow color.
-    Yellow,
-    /// Green color.
-    Green,
-    /// Aqua color.
-    Aqua,
-    /// Blue color.
-    Blue,
-    /// Purple color.
-    Purple,
-    /// Unknown color.
-    Unknown(u16),
-}
-
-impl Color {
-    fn parse_u8(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, color_id) = nom::number::complete::u8(input)?;
-        Ok((input, Color::from(u16::from(color_id))))
-    }
-
-    fn parse_u16(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, color_id) = nom::number::complete::le_u16(input)?;
-        Ok((input, Color::from(color_id)))
-    }
-}
-
-impl From<u16> for Color {
-    fn from(color_id: u16) -> Self {
-        match color_id {
-            0 => Self::None,
-            1 => Self::Pink,
-            2 => Self::Red,
-            3 => Self::Orange,
-            4 => Self::Yellow,
-            5 => Self::Green,
-            6 => Self::Aqua,
-            7 => Self::Blue,
-            8 => Self::Purple,
-            x => Self::Unknown(x),
-        }
-    }
-}
-
 // The large enum size is unfortunate, but since users of this library will probably use iterators
 // to consume the results on demand, we can live with this. The alternative of using a `Box` would
 // require a heap allocation per row, which is arguably worse. Hence, the warning is disabled for
@@ -620,7 +567,7 @@ pub enum Row {
         /// Unknown field.
         unknown2: u8,
         /// Numeric color ID
-        color: Color,
+        color: ColorIndex,
         /// Unknown field.
         unknown3: u8,
         /// User-defined name of the color.
@@ -746,7 +693,7 @@ pub enum Row {
         /// Unknown field, apparently always "29".
         unknown5: u16,
         /// Color row ID for this track (non-zero if set).
-        color: Color,
+        color: ColorIndex,
         /// User rating of this track (0 to 5 starts).
         rating: u8,
         /// Unknown field, apparently always "1".
@@ -890,7 +837,7 @@ impl Row {
     fn parse_color(input: &[u8]) -> IResult<&[u8], Row> {
         let (input, unknown1) = nom::number::complete::le_u32(input)?;
         let (input, unknown2) = nom::number::complete::u8(input)?;
-        let (input, color) = Color::parse_u16(input)?;
+        let (input, color) = ColorIndex::parse_u16(input)?;
         let (input, unknown3) = nom::number::complete::u8(input)?;
         let (input, name) = DeviceSQLString::parse(input)?;
         Ok((
@@ -1013,7 +960,7 @@ impl Row {
         let (input, sample_depth) = nom::number::complete::le_u16(input)?;
         let (input, duration) = nom::number::complete::le_u16(input)?;
         let (input, unknown5) = nom::number::complete::le_u16(input)?;
-        let (input, color) = Color::parse_u8(input)?;
+        let (input, color) = ColorIndex::parse_u8(input)?;
         let (input, rating) = nom::number::complete::u8(input)?;
         let (input, unknown6) = nom::number::complete::le_u16(input)?;
         let (input, unknown7) = nom::number::complete::le_u16(input)?;
