@@ -167,6 +167,159 @@ impl Beat {
 }
 
 #[derive(Debug)]
+/// Describes the types of entries found in a Cue List section.
+pub enum CueListType {
+    /// Memory cues or loops.
+    MemoryCues,
+    /// Hot cues or loops.
+    HotCues,
+    /// Unknown type.
+    Unknown(u32),
+}
+
+impl CueListType {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, list_type_id) = nom::number::complete::be_u32(input)?;
+        let list_type = match list_type_id {
+            0 => CueListType::MemoryCues,
+            1 => CueListType::HotCues,
+            x => CueListType::Unknown(x),
+        };
+        Ok((input, list_type))
+    }
+}
+
+#[derive(Debug)]
+/// Indicates if the cue is point or a loop.
+pub enum CueType {
+    /// Cue is a single point.
+    Point,
+    /// Cue is a loop.
+    Loop,
+    /// Unknown type.
+    Unknown(u8),
+}
+
+impl CueType {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, cue_type_id) = nom::number::complete::u8(input)?;
+        let cue_type = match cue_type_id {
+            0 => CueType::Point,
+            2 => CueType::Loop,
+            x => CueType::Unknown(x),
+        };
+        Ok((input, cue_type))
+    }
+}
+
+#[derive(Debug)]
+/// A memory or hot cue (or loop).
+pub struct Cue {
+    /// Cue entry header.
+    pub header: Header,
+    /// Hot cue number.
+    ///
+    /// | Value | Hot cue        |
+    /// | ----- | -------------- |
+    /// |     0 | Not a hot cue. |
+    /// |     1 | A              |
+    /// |     2 | B              |
+    /// | ...   | ...            |
+    pub hot_cue: u32,
+    /// Loop status. `4` if this cue is an active loop, `0` otherwise.
+    pub status: u32,
+    /// Unknown field. Seems to always have the value `0x00100000`.
+    pub unknown1: u32,
+    /// Somehow used for sorting cues.
+    ///
+    /// | Value    | Cue    |
+    /// | -------- | ------ |
+    /// | `0xFFFF` | 1      |
+    /// | `0x0000` | 2      |
+    /// | `0x0002` | 3      |
+    /// | `0x0003` | 4      |
+    /// | ...      | ...    |
+    ///
+    /// It is unknown why both `order_first` and `order_last` exist, when on of those values should
+    /// suffice.
+    pub order_first: u16,
+    /// Somehow used for sorting cues.
+    ///
+    /// | Value    | Cue    |
+    /// | -------- | ------ |
+    /// | `0x0001` | 1      |
+    /// | `0x0002` | 2      |
+    /// | `0x0003` | 3      |
+    /// | `0x0004` | 4      |
+    /// | ...      | ...    |
+    /// | `0xFFFF` | *last* |
+    ///
+    /// It is unknown why both `order_first` and `order_last` exist, when on of those values should
+    /// suffice.
+    pub order_last: u16,
+    /// Type of this cue (`2` if this cue is a loop).
+    pub cue_type: CueType,
+    /// Unknown field. Seems always have the value `0`.
+    pub unknown2: u8,
+    /// Unknown field. Seems always have the value `0x03E8` (= decimal 1000).
+    pub unknown3: u16,
+    /// Time in milliseconds after which this cue would occur (at normal playback speed).
+    pub time: u32,
+    /// Time in milliseconds after which this the loop would jump back to `time` (at normal playback speed).
+    pub loop_time: u32,
+    /// Unknown field.
+    pub unknown4: u32,
+    /// Unknown field.
+    pub unknown5: u32,
+    /// Unknown field.
+    pub unknown6: u32,
+    /// Unknown field.
+    pub unknown7: u32,
+}
+
+impl Cue {
+    /// Parse a cue entry.
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, header) = Header::parse(input)?;
+        let (input, hot_cue) = nom::number::complete::be_u32(input)?;
+        let (input, status) = nom::number::complete::be_u32(input)?;
+        let (input, unknown1) = nom::number::complete::be_u32(input)?;
+        let (input, order_first) = nom::number::complete::be_u16(input)?;
+        let (input, order_last) = nom::number::complete::be_u16(input)?;
+        let (input, cue_type) = CueType::parse(input)?;
+        let (input, unknown2) = nom::number::complete::u8(input)?;
+        let (input, unknown3) = nom::number::complete::be_u16(input)?;
+        let (input, time) = nom::number::complete::be_u32(input)?;
+        let (input, loop_time) = nom::number::complete::be_u32(input)?;
+        let (input, unknown4) = nom::number::complete::be_u32(input)?;
+        let (input, unknown5) = nom::number::complete::be_u32(input)?;
+        let (input, unknown6) = nom::number::complete::be_u32(input)?;
+        let (input, unknown7) = nom::number::complete::be_u32(input)?;
+
+        Ok((
+            input,
+            Self {
+                header,
+                hot_cue,
+                status,
+                unknown1,
+                order_first,
+                order_last,
+                cue_type,
+                unknown2,
+                unknown3,
+                time,
+                loop_time,
+                unknown4,
+                unknown5,
+                unknown6,
+                unknown7,
+            },
+        ))
+    }
+}
+
+#[derive(Debug)]
 /// Section content which differs depending on the section type.
 pub enum Content {
     /// All beats in the track.
@@ -179,6 +332,17 @@ pub enum Content {
         unknown2: u32,
         /// Beats in this beatgrid.
         beats: Vec<Beat>,
+    },
+    /// List of cue points or loops (either hot cues or memory cues).
+    CueList {
+        /// The types of cues (memory or hot) that this list contains.
+        list_type: CueListType,
+        /// Unknown field
+        unknown: u16,
+        /// Unknown field.
+        memory_count: u32,
+        /// Cues
+        cues: Vec<Cue>,
     },
     /// Unknown content.
     Unknown {
@@ -197,6 +361,7 @@ impl Content {
                 ErrorKind::Tag,
             ))),
             ContentKind::BeatGrid => Self::parse_beatgrid(input, header),
+            ContentKind::CueList => Self::parse_cuelist(input, header),
             _ => Self::parse_unknown(input, header),
         }
     }
@@ -213,6 +378,24 @@ impl Content {
                 unknown1,
                 unknown2,
                 beats,
+            },
+        ))
+    }
+
+    fn parse_cuelist<'a>(input: &'a [u8], _header: &Header) -> IResult<&'a [u8], Self> {
+        let (input, list_type) = CueListType::parse(input)?;
+        let (input, unknown) = nom::number::complete::be_u16(input)?;
+        let (input, len_cues) = nom::number::complete::be_u16(input)?;
+        let (input, memory_count) = nom::number::complete::be_u32(input)?;
+        let (input, cues) = nom::multi::count(Cue::parse, len_cues.try_into().unwrap())(input)?;
+
+        Ok((
+            input,
+            Content::CueList {
+                list_type,
+                unknown,
+                memory_count,
+                cues,
             },
         ))
     }
