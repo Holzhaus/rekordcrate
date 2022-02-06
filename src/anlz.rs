@@ -22,6 +22,7 @@
 //! - <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html>
 //! - <https://reverseengineering.stackexchange.com/questions/4311/help-reversing-a-edb-database-file-for-pioneers-rekordbox-software>
 
+use crate::util::ColorIndex;
 use nom::error::{ErrorKind, ParseError};
 use nom::Err;
 use nom::IResult;
@@ -320,6 +321,192 @@ impl Cue {
 }
 
 #[derive(Debug)]
+/// A memory or hot cue (or loop).
+pub struct ExtendedCue {
+    /// Cue entry header.
+    pub header: Header,
+    /// Hot cue number.
+    ///
+    /// | Value | Hot cue        |
+    /// | ----- | -------------- |
+    /// |     0 | Not a hot cue. |
+    /// |     1 | A              |
+    /// |     2 | B              |
+    /// | ...   | ...            |
+    pub hot_cue: u32,
+    /// Type of this cue (`2` if this cue is a loop).
+    pub cue_type: CueType,
+    /// Unknown field. Seems always have the value `0`.
+    pub unknown1: u8,
+    /// Unknown field. Seems always have the value `0x03E8` (= decimal 1000).
+    pub unknown2: u16,
+    /// Time in milliseconds after which this cue would occur (at normal playback speed).
+    pub time: u32,
+    /// Time in milliseconds after which this the loop would jump back to `time` (at normal playback speed).
+    pub loop_time: u32,
+    /// Color assigned to this cue.
+    ///
+    /// Only used by memory cues, hot cues use a different value (see below).
+    pub color: ColorIndex,
+    /// Unknown field.
+    pub unknown3: u8,
+    /// Unknown field.
+    pub unknown4: u16,
+    /// Unknown field.
+    pub unknown5: u32,
+    /// Represents the loop size numerator (if this is a quantized loop).
+    pub loop_numerator: u16,
+    /// Represents the loop size denominator (if this is a quantized loop).
+    pub loop_denominator: u16,
+    /// Length of the comment in bytes.
+    pub len_comment: u32,
+    /// And UTF-16BE encoded string, followed by a trailing  `0x0000`.
+    pub comment: String,
+    /// Rekordbox hotcue color index.
+    ///
+    /// | `0x00` | None (Green on older CDJs). |
+    /// | `0x01` | `#305aff`                   |
+    /// | `0x02` | `#5073ff`                   |
+    /// | `0x03` | `#508cff`                   |
+    /// | `0x04` | `#50a0ff`                   |
+    /// | `0x05` | `#50b4ff`                   |
+    /// | `0x06` | `#50b0f2`                   |
+    /// | `0x07` | `#50aee8`                   |
+    /// | `0x08` | `#45acdb`                   |
+    /// | `0x09` | `#00e0ff`                   |
+    /// | `0x0a` | `#19daf0`                   |
+    /// | `0x0b` | `#32d2e6`                   |
+    /// | `0x0c` | `#21b4b9`                   |
+    /// | `0x0d` | `#20aaa0`                   |
+    /// | `0x0e` | `#1fa392`                   |
+    /// | `0x0f` | `#19a08c`                   |
+    /// | `0x10` | `#14a584`                   |
+    /// | `0x11` | `#14aa7d`                   |
+    /// | `0x12` | `#10b176`                   |
+    /// | `0x13` | `#30d26e`                   |
+    /// | `0x14` | `#37de5a`                   |
+    /// | `0x15` | `#3ceb50`                   |
+    /// | `0x16` | `#28e214`                   |
+    /// | `0x17` | `#7dc13d`                   |
+    /// | `0x18` | `#8cc832`                   |
+    /// | `0x19` | `#9bd723`                   |
+    /// | `0x1a` | `#a5e116`                   |
+    /// | `0x1b` | `#a5dc0a`                   |
+    /// | `0x1c` | `#aad208`                   |
+    /// | `0x1d` | `#b4c805`                   |
+    /// | `0x1e` | `#b4be04`                   |
+    /// | `0x1f` | `#bab404`                   |
+    /// | `0x20` | `#c3af04`                   |
+    /// | `0x21` | `#e1aa00`                   |
+    /// | `0x22` | `#ffa000`                   |
+    /// | `0x23` | `#ff9600`                   |
+    /// | `0x24` | `#ff8c00`                   |
+    /// | `0x25` | `#ff7500`                   |
+    /// | `0x26` | `#e0641b`                   |
+    /// | `0x27` | `#e0461e`                   |
+    /// | `0x28` | `#e0301e`                   |
+    /// | `0x29` | `#e02823`                   |
+    /// | `0x2a` | `#e62828`                   |
+    /// | `0x2b` | `#ff376f`                   |
+    /// | `0x2c` | `#ff2d6f`                   |
+    /// | `0x2d` | `#ff127b`                   |
+    /// | `0x2e` | `#f51e8c`                   |
+    /// | `0x2f` | `#eb2da0`                   |
+    /// | `0x30` | `#e637b4`                   |
+    /// | `0x31` | `#de44cf`                   |
+    /// | `0x32` | `#de448d`                   |
+    /// | `0x33` | `#e630b4`                   |
+    /// | `0x34` | `#e619dc`                   |
+    /// | `0x35` | `#e600ff`                   |
+    /// | `0x36` | `#dc00ff`                   |
+    /// | `0x37` | `#cc00ff`                   |
+    /// | `0x38` | `#b432ff`                   |
+    /// | `0x39` | `#b93cff`                   |
+    /// | `0x3a` | `#c542ff`                   |
+    /// | `0x3b` | `#aa5aff`                   |
+    /// | `0x3c` | `#aa72ff`                   |
+    /// | `0x3d` | `#8272ff`                   |
+    /// | `0x3e` | `#6473ff`                   |
+    pub hot_cue_color_index: u8,
+    /// Rekordbot hot cue color RGB value.
+    ///
+    /// This color is similar but not identical to the color that Rekordbox displays, and possibly
+    /// used to illuminate the RGB LEDs in a player that has loaded the cue. If not color is
+    /// associated with this hot cue, the value is `(0, 0, 0)`.
+    pub hot_cue_color_rgb: (u8, u8, u8),
+    /// Unknown field.
+    pub unknown6: u32,
+    /// Unknown field.
+    pub unknown7: u32,
+    /// Unknown field.
+    pub unknown8: u32,
+    /// Unknown field.
+    pub unknown9: u32,
+    /// Unknown field.
+    pub unknown10: u32,
+}
+
+impl ExtendedCue {
+    /// Parse an extended cue entry.
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, header) = Header::parse(input)?;
+        let (input, hot_cue) = nom::number::complete::be_u32(input)?;
+        let (input, cue_type) = CueType::parse(input)?;
+        let (input, unknown1) = nom::number::complete::u8(input)?;
+        let (input, unknown2) = nom::number::complete::be_u16(input)?;
+        let (input, time) = nom::number::complete::be_u32(input)?;
+        let (input, loop_time) = nom::number::complete::be_u32(input)?;
+        let (input, color) = ColorIndex::parse_u8(input)?;
+        let (input, unknown3) = nom::number::complete::u8(input)?;
+        let (input, unknown4) = nom::number::complete::be_u16(input)?;
+        let (input, unknown5) = nom::number::complete::be_u32(input)?;
+        let (input, loop_numerator) = nom::number::complete::be_u16(input)?;
+        let (input, loop_denominator) = nom::number::complete::be_u16(input)?;
+        let (input, len_comment) = nom::number::complete::be_u32(input)?;
+        // TODO: comment
+        let (input, _) = nom::bytes::complete::take(usize::try_from(len_comment).unwrap())(input)?;
+        let comment = String::new();
+        let (input, hot_cue_color_index) = nom::number::complete::u8(input)?;
+        let (input, hot_cue_color_red) = nom::number::complete::u8(input)?;
+        let (input, hot_cue_color_green) = nom::number::complete::u8(input)?;
+        let (input, hot_cue_color_blue) = nom::number::complete::u8(input)?;
+        let hot_cue_color_rgb = (hot_cue_color_red, hot_cue_color_green, hot_cue_color_blue);
+        let (input, unknown6) = nom::number::complete::be_u32(input)?;
+        let (input, unknown7) = nom::number::complete::be_u32(input)?;
+        let (input, unknown8) = nom::number::complete::be_u32(input)?;
+        let (input, unknown9) = nom::number::complete::be_u32(input)?;
+        let (input, unknown10) = nom::number::complete::be_u32(input)?;
+
+        Ok((
+            input,
+            Self {
+                header,
+                hot_cue,
+                cue_type,
+                unknown1,
+                unknown2,
+                time,
+                loop_time,
+                color,
+                unknown3,
+                unknown4,
+                unknown5,
+                loop_numerator,
+                loop_denominator,
+                len_comment,
+                comment,
+                hot_cue_color_index,
+                hot_cue_color_rgb,
+                unknown6,
+                unknown7,
+                unknown8,
+                unknown9,
+                unknown10,
+            },
+        ))
+    }
+}
+#[derive(Debug)]
 /// Section content which differs depending on the section type.
 pub enum Content {
     /// All beats in the track.
@@ -344,6 +531,16 @@ pub enum Content {
         /// Cues
         cues: Vec<Cue>,
     },
+    /// List of cue points or loops (either hot cues or memory cues, extended version).
+    ///
+    /// Variation of the original `CueList` that also adds support for more metadata such as
+    /// comments and colors. Introduces with the Nexus 2 series players.
+    ExtendedCueList {
+        /// The types of cues (memory or hot) that this list contains.
+        list_type: CueListType,
+        /// Cues
+        cues: Vec<ExtendedCue>,
+    },
     /// Unknown content.
     Unknown {
         /// Unknown header data.
@@ -362,6 +559,7 @@ impl Content {
             ))),
             ContentKind::BeatGrid => Self::parse_beatgrid(input, header),
             ContentKind::CueList => Self::parse_cuelist(input, header),
+            ContentKind::ExtendedCueList => Self::parse_extendedcuelist(input, header),
             _ => Self::parse_unknown(input, header),
         }
     }
@@ -398,6 +596,16 @@ impl Content {
                 cues,
             },
         ))
+    }
+
+    fn parse_extendedcuelist<'a>(input: &'a [u8], _header: &Header) -> IResult<&'a [u8], Self> {
+        let (input, list_type) = CueListType::parse(input)?;
+        let (input, len_cues) = nom::number::complete::be_u16(input)?;
+        let (input, _) = nom::bytes::complete::tag(b"00")(input)?;
+        let (input, cues) =
+            nom::multi::count(ExtendedCue::parse, len_cues.try_into().unwrap())(input)?;
+
+        Ok((input, Content::ExtendedCueList { list_type, cues }))
     }
 
     fn parse_unknown<'a>(input: &'a [u8], header: &Header) -> IResult<&'a [u8], Self> {
