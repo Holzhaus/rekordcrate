@@ -463,9 +463,13 @@ impl ExtendedCue {
         let (input, loop_numerator) = nom::number::complete::be_u16(input)?;
         let (input, loop_denominator) = nom::number::complete::be_u16(input)?;
         let (input, len_comment) = nom::number::complete::be_u32(input)?;
-        // TODO: comment
-        let (input, _) = nom::bytes::complete::take(usize::try_from(len_comment).unwrap())(input)?;
-        let comment = String::new();
+
+        let str_length = usize::try_from(len_comment).unwrap() / 2 - 1;
+        let (input, str_data) =
+            nom::multi::count(nom::number::complete::be_u16, str_length)(input)?;
+        let (input, _) = nom::bytes::complete::tag(b"\x00\x00")(input)?;
+        let comment = String::from_utf16(&str_data).unwrap();
+
         let (input, hot_cue_color_index) = nom::number::complete::u8(input)?;
         let (input, hot_cue_color_red) = nom::number::complete::u8(input)?;
         let (input, hot_cue_color_green) = nom::number::complete::u8(input)?;
