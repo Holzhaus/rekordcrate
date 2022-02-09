@@ -610,6 +610,39 @@ impl WaveformColorPreviewColumn {
 }
 
 #[derive(Debug)]
+/// Single Column value in a Waveform Color Detail section.
+pub struct WaveformColorDetailColumn {
+    /// Red color component.
+    pub red: u8,
+    /// Green color component.
+    pub green: u8,
+    /// Blue color component.
+    pub blue: u8,
+    /// Height of the column.
+    pub height: u8,
+}
+
+impl WaveformColorDetailColumn {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, data) = nom::number::complete::be_u16(input)?;
+        let height = (data >> 2) as u8 * 0b11111;
+        let blue = (data >> 7) as u8 * 0b111;
+        let green = (data >> 10) as u8 * 0b111;
+        let red = (data >> 13) as u8 * 0b111;
+
+        Ok((
+            input,
+            Self {
+                red,
+                green,
+                blue,
+                height,
+            },
+        ))
+    }
+}
+
+#[derive(Debug)]
 /// Section content which differs depending on the section type.
 pub enum Content {
     /// All beats in the track.
@@ -703,6 +736,19 @@ pub enum Content {
         /// so for each second of track audio there are 150 waveform detail entries.
         data: Vec<WaveformColorPreviewColumn>,
     },
+    /// Variable-width large colored version of the track waveform.
+    ///
+    /// Used in `.EXT` files.
+    WaveformColorDetail {
+        /// Size of a single entry, always 1.
+        len_entry_bytes: u32,
+        /// Number of entries in this section.
+        len_entries: u32,
+        /// Unknown field.
+        unknown: u32,
+        /// Waveform detail column data.
+        data: Vec<WaveformColorDetailColumn>,
+    },
     /// Unknown content.
     Unknown {
         /// Unknown header data.
@@ -728,6 +774,7 @@ impl Content {
             ContentKind::TinyWaveformPreview => Self::parse_tiny_waveform_preview(input, header),
             ContentKind::WaveformDetail => Self::parse_waveform_detail(input, header),
             ContentKind::WaveformColorPreview => Self::parse_waveform_color_preview(input, header),
+            ContentKind::WaveformColorDetail => Self::parse_waveform_color_detail(input, header),
             _ => Self::parse_unknown(input, header),
         }
     }
@@ -920,6 +967,37 @@ impl Content {
         Ok((
             input,
             Content::WaveformColorPreview {
+                len_entry_bytes,
+                len_entries,
+                unknown,
+                data,
+            },
+        ))
+    }
+
+    fn parse_waveform_color_detail<'a>(
+        input: &'a [u8],
+        _header: &Header,
+    ) -> IResult<&'a [u8], Self> {
+        let (input, len_entry_bytes) = nom::number::complete::be_u32(input)?;
+        let (input, len_entries) = nom::number::complete::be_u32(input)?;
+        let entry_count = match usize::try_from(len_entries) {
+            Ok(x) => x,
+            Err(_) => {
+                return Err(Err::Error(nom::error::Error::from_error_kind(
+                    input,
+                    ErrorKind::TooLarge,
+                )));
+            }
+        };
+
+        let (input, unknown) = nom::number::complete::be_u32(input)?;
+        let (input, data) =
+            nom::multi::count(WaveformColorDetailColumn::parse, entry_count)(input)?;
+
+        Ok((
+            input,
+            Content::WaveformColorDetail {
                 len_entry_bytes,
                 len_entries,
                 unknown,
