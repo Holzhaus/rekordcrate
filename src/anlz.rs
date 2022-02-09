@@ -468,7 +468,15 @@ impl ExtendedCue {
         let (input, str_data) =
             nom::multi::count(nom::number::complete::be_u16, str_length)(input)?;
         let (input, _) = nom::bytes::complete::tag(b"\x00\x00")(input)?;
-        let comment = String::from_utf16(&str_data).unwrap();
+        let comment = match String::from_utf16(&str_data) {
+            Ok(x) => x,
+            Err(_) => {
+                return Err(Err::Error(nom::error::Error::from_error_kind(
+                    input,
+                    ErrorKind::Char,
+                )));
+            }
+        };
 
         let (input, hot_cue_color_index) = nom::number::complete::u8(input)?;
         let (input, hot_cue_color_red) = nom::number::complete::u8(input)?;
@@ -680,9 +688,18 @@ impl Content {
     fn parse_path<'a>(input: &'a [u8], _header: &Header) -> IResult<&'a [u8], Self> {
         let (input, len_path) = nom::number::complete::be_u32(input)?;
         let str_length = usize::try_from(len_path).unwrap() / 2 - 1;
-        let (input, data) = nom::multi::count(nom::number::complete::be_u16, str_length)(input)?;
+        let (input, str_data) =
+            nom::multi::count(nom::number::complete::be_u16, str_length)(input)?;
         let (input, _) = nom::bytes::complete::tag(b"\x00\x00")(input)?;
-        let path = String::from_utf16(&data).unwrap();
+        let path = match String::from_utf16(&str_data) {
+            Ok(x) => x,
+            Err(_) => {
+                return Err(Err::Error(nom::error::Error::from_error_kind(
+                    input,
+                    ErrorKind::Char,
+                )));
+            }
+        };
 
         Ok((input, Content::Path(path)))
     }
