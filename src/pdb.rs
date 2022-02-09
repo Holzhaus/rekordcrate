@@ -19,6 +19,8 @@
 //! - <https://github.com/flesniak/python-prodj-link/tree/master/prodj/pdblib>
 
 use crate::util::ColorIndex;
+use nom::error::{ErrorKind, ParseError};
+use nom::Err;
 use nom::IResult;
 use std::num::TryFromIntError;
 
@@ -481,8 +483,15 @@ impl DeviceSQLString {
         let (input, mangled_length) = nom::number::complete::u8(input)?;
         let length = ((mangled_length - 1) / 2) - 1;
         let (input, data) = nom::bytes::complete::take(length)(input)?;
-        let text = std::str::from_utf8(data).unwrap().to_owned();
-        Ok((input, Self::ShortASCII(text)))
+        std::str::from_utf8(data).map_or_else(
+            |_| {
+                Err(Err::Error(nom::error::Error::from_error_kind(
+                    input,
+                    ErrorKind::Char,
+                )))
+            },
+            |text| Ok((input, Self::ShortASCII(text.to_owned()))),
+        )
     }
 
     fn parse_long_ascii(input: &[u8]) -> IResult<&[u8], DeviceSQLString> {
@@ -491,8 +500,15 @@ impl DeviceSQLString {
             nom::number::complete::le_u16,
             nom::bytes::complete::take(1usize),
         )(input)?;
-        let text = std::str::from_utf8(data).unwrap().to_owned();
-        Ok((input, Self::LongASCII(text)))
+        std::str::from_utf8(data).map_or_else(
+            |_| {
+                Err(Err::Error(nom::error::Error::from_error_kind(
+                    input,
+                    ErrorKind::Char,
+                )))
+            },
+            |text| Ok((input, Self::LongASCII(text.to_owned()))),
+        )
     }
 
     fn parse_long_utf16le(input: &[u8]) -> IResult<&[u8], DeviceSQLString> {
@@ -508,8 +524,15 @@ impl DeviceSQLString {
         let (input, data) = nom::multi::count(nom::number::complete::le_u16, str_length)(input)?;
         let (input, _) = nom::bytes::complete::tag(b"\x00\x00")(input)?;
 
-        let text = String::from_utf16(&data).unwrap();
-        Ok((input, Self::LongUTF16LE(text)))
+        String::from_utf16(&data).map_or_else(
+            |_| {
+                Err(Err::Error(nom::error::Error::from_error_kind(
+                    input,
+                    ErrorKind::Char,
+                )))
+            },
+            |text| Ok((input, Self::LongUTF16LE(text))),
+        )
     }
 }
 
