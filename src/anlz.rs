@@ -620,6 +620,22 @@ pub enum Content {
         /// Waveform preview column data.
         data: Vec<TinyWaveformPreviewColumn>,
     },
+    /// Variable-width large monochrome version of the track waveform.
+    ///
+    /// Used in `.EXT` files.
+    WaveformDetail {
+        /// Size of a single entry, always 1.
+        len_entry_bytes: u32,
+        /// Number of entries in this section.
+        len_entries: u32,
+        /// Unknown field (apparently always `0x00960000`)
+        unknown: u32,
+        /// Waveform preview column data.
+        ///
+        /// Each entry represents one half-frame of audio data, and there are 75 frames per second,
+        /// so for each second of track audio there are 150 waveform detail entries.
+        data: Vec<WaveformPreviewColumn>,
+    },
     /// Unknown content.
     Unknown {
         /// Unknown header data.
@@ -643,6 +659,7 @@ impl Content {
             ContentKind::VBR => Self::parse_vbr(input, header),
             ContentKind::WaveformPreview => Self::parse_waveform_preview(input, header),
             ContentKind::TinyWaveformPreview => Self::parse_tiny_waveform_preview(input, header),
+            ContentKind::WaveformDetail => Self::parse_waveform_detail(input, header),
             _ => Self::parse_unknown(input, header),
         }
     }
@@ -784,6 +801,28 @@ impl Content {
             input,
             Content::TinyWaveformPreview {
                 len_preview,
+                unknown,
+                data,
+            },
+        ))
+    }
+
+    fn parse_waveform_detail<'a>(input: &'a [u8], header: &Header) -> IResult<&'a [u8], Self> {
+        let (input, len_entry_bytes) = nom::number::complete::be_u32(input)?;
+        let (input, len_entries) = nom::number::complete::be_u32(input)?;
+        let (input, unknown) = nom::number::complete::be_u32(input)?;
+        let (input, content_data_slice) = nom::bytes::complete::take(header.content_size())(input)?;
+        let data: Vec<WaveformPreviewColumn> = content_data_slice
+            .iter()
+            .cloned()
+            .map(WaveformPreviewColumn::from)
+            .collect();
+
+        Ok((
+            input,
+            Content::WaveformDetail {
+                len_entry_bytes,
+                len_entries,
                 unknown,
                 data,
             },
