@@ -559,6 +559,57 @@ impl From<u8> for TinyWaveformPreviewColumn {
 }
 
 #[derive(Debug)]
+/// Single Column value in a Waveform Color Preview.
+///
+/// See these the documentation for details:
+/// <https://djl-analysis.deepsymmetry.org/djl-analysis/track_metadata.html#color-preview-analysis>
+pub struct WaveformColorPreviewColumn {
+    /// Unknown field (somehow encodes the "whiteness").
+    pub unknown1: u8,
+    /// Unknown field (somehow encodes the "whiteness").
+    pub unknown2: u8,
+    /// Sound energy in the bottom half of the frequency range (<10 KHz).
+    pub energy_bottom_half_freq: u8,
+    /// Sound energy in the bottom third of the frequency range.
+    pub energy_bottom_third_freq: u8,
+    /// Sound energy in the mid of the frequency range.
+    pub energy_mid_third_freq: u8,
+    /// Sound energy in the top of the frequency range.
+    pub energy_top_third_freq: u8,
+    /// Combination of the sound energy of the bottom, mid and top thirds of the frequency range.
+    pub color: u8,
+    /// Combination of the all other values in this struct.
+    pub blue: u8,
+}
+
+impl WaveformColorPreviewColumn {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, unknown1) = nom::number::complete::u8(input)?;
+        let (input, unknown2) = nom::number::complete::u8(input)?;
+        let (input, energy_bottom_half_freq) = nom::number::complete::u8(input)?;
+        let (input, energy_bottom_third_freq) = nom::number::complete::u8(input)?;
+        let (input, energy_mid_third_freq) = nom::number::complete::u8(input)?;
+        let (input, energy_top_third_freq) = nom::number::complete::u8(input)?;
+        let (input, color) = nom::number::complete::u8(input)?;
+        let (input, blue) = nom::number::complete::u8(input)?;
+
+        Ok((
+            input,
+            Self {
+                unknown1,
+                unknown2,
+                energy_bottom_half_freq,
+                energy_bottom_third_freq,
+                energy_mid_third_freq,
+                energy_top_third_freq,
+                color,
+                blue,
+            },
+        ))
+    }
+}
+
+#[derive(Debug)]
 /// Section content which differs depending on the section type.
 pub enum Content {
     /// All beats in the track.
@@ -636,6 +687,22 @@ pub enum Content {
         /// so for each second of track audio there are 150 waveform detail entries.
         data: Vec<WaveformPreviewColumn>,
     },
+    /// Variable-width large monochrome version of the track waveform.
+    ///
+    /// Used in `.EXT` files.
+    WaveformColorPreview {
+        /// Size of a single entry, always 1.
+        len_entry_bytes: u32,
+        /// Number of entries in this section.
+        len_entries: u32,
+        /// Unknown field.
+        unknown: u32,
+        /// Waveform preview column data.
+        ///
+        /// Each entry represents one half-frame of audio data, and there are 75 frames per second,
+        /// so for each second of track audio there are 150 waveform detail entries.
+        data: Vec<WaveformColorPreviewColumn>,
+    },
     /// Unknown content.
     Unknown {
         /// Unknown header data.
@@ -660,6 +727,7 @@ impl Content {
             ContentKind::WaveformPreview => Self::parse_waveform_preview(input, header),
             ContentKind::TinyWaveformPreview => Self::parse_tiny_waveform_preview(input, header),
             ContentKind::WaveformDetail => Self::parse_waveform_detail(input, header),
+            ContentKind::WaveformColorPreview => Self::parse_waveform_color_preview(input, header),
             _ => Self::parse_unknown(input, header),
         }
     }
@@ -821,6 +889,37 @@ impl Content {
         Ok((
             input,
             Content::WaveformDetail {
+                len_entry_bytes,
+                len_entries,
+                unknown,
+                data,
+            },
+        ))
+    }
+
+    fn parse_waveform_color_preview<'a>(
+        input: &'a [u8],
+        _header: &Header,
+    ) -> IResult<&'a [u8], Self> {
+        let (input, len_entry_bytes) = nom::number::complete::be_u32(input)?;
+        let (input, len_entries) = nom::number::complete::be_u32(input)?;
+        let entry_count = match usize::try_from(len_entries) {
+            Ok(x) => x,
+            Err(_) => {
+                return Err(Err::Error(nom::error::Error::from_error_kind(
+                    input,
+                    ErrorKind::TooLarge,
+                )));
+            }
+        };
+
+        let (input, unknown) = nom::number::complete::be_u32(input)?;
+        let (input, data) =
+            nom::multi::count(WaveformColorPreviewColumn::parse, entry_count)(input)?;
+
+        Ok((
+            input,
+            Content::WaveformColorPreview {
                 len_entry_bytes,
                 len_entries,
                 unknown,
