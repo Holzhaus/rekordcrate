@@ -358,8 +358,6 @@ pub struct ExtendedCue {
     pub loop_numerator: u16,
     /// Represents the loop size denominator (if this is a quantized loop).
     pub loop_denominator: u16,
-    /// Length of the comment in bytes.
-    pub len_comment: u32,
     /// And UTF-16BE encoded string, followed by a trailing  `0x0000`.
     pub comment: String,
     /// Rekordbox hotcue color index.
@@ -505,7 +503,6 @@ impl ExtendedCue {
                 unknown5,
                 loop_numerator,
                 loop_denominator,
-                len_comment,
                 comment,
                 hot_cue_color_index,
                 hot_cue_color_rgb,
