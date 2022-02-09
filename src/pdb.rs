@@ -177,9 +177,18 @@ impl Header {
         // Gap
         let (input, _) = nom::bytes::complete::tag(b"\0\0\0\0")(input)?;
 
+        let num_tables = match usize::try_from(num_tables) {
+            Ok(x) => x,
+            Err(_) => {
+                return Err(Err::Error(nom::error::Error::from_error_kind(
+                    input,
+                    ErrorKind::TooLarge,
+                )));
+            }
+        };
+
         // Tables
-        let (input, tables) =
-            nom::multi::count(Table::parse, num_tables.try_into().unwrap())(input)?;
+        let (input, tables) = nom::multi::count(Table::parse, num_tables)(input)?;
 
         Ok((
             input,
@@ -200,7 +209,16 @@ impl Header {
 
     /// Parses and returns a page from the original data slice.
     pub fn page<'a>(&self, input: &'a [u8], page_index: &PageIndex) -> IResult<&'a [u8], Page> {
-        let position = self.page_offset(page_index).unwrap();
+        let position = match self.page_offset(page_index) {
+            Ok(x) => x,
+            Err(_) => {
+                return Err(Err::Error(nom::error::Error::from_error_kind(
+                    input,
+                    ErrorKind::TooLarge,
+                )));
+            }
+        };
+
         let (data, page) = Page::parse(&input[position..], self.page_size)?;
         Ok((data, page))
     }
@@ -290,10 +308,19 @@ impl Page {
     const HEADER_SIZE: usize = 0x28;
 
     /// Parses a page of a PDB file.
-    fn parse(input: &[u8], page_size: u32) -> IResult<&[u8], Page> {
-        let page_data = input;
+    fn parse(page_data: &[u8], page_size: u32) -> IResult<&[u8], Page> {
+        let page_end = match usize::try_from(page_size) {
+            Ok(x) => x,
+            Err(_) => {
+                return Err(Err::Error(nom::error::Error::from_error_kind(
+                    page_data,
+                    ErrorKind::TooLarge,
+                )));
+            }
+        };
+
         // Signature (?)
-        let (input, _) = nom::bytes::complete::tag(b"\0\0\0\0")(input)?;
+        let (input, _) = nom::bytes::complete::tag(b"\0\0\0\0")(page_data)?;
         let (input, page_index) = PageIndex::parse(input)?;
         let (input, page_type) = PageType::parse(input)?;
         let (input, next_page) = PageIndex::parse(input)?;
@@ -310,7 +337,6 @@ impl Page {
         let (input, unknown6) = nom::number::complete::le_u16(input)?;
         let (input, unknown7) = nom::number::complete::le_u16(input)?;
 
-        let page_end = usize::try_from(page_size).unwrap();
         let (_, unknown8) = nom::number::complete::le_u16(&page_data[..page_end - 2])?;
 
         let page = Page {
@@ -416,7 +442,16 @@ impl Page {
         page_data: &'a [u8],
         &RowOffset(row_offset): &RowOffset,
     ) -> IResult<&'a [u8], Row> {
-        let offset: usize = Self::HEADER_SIZE + usize::try_from(row_offset).unwrap();
+        let row_offset = match usize::try_from(row_offset) {
+            Ok(x) => x,
+            Err(_) => {
+                return Err(Err::Error(nom::error::Error::from_error_kind(
+                    page_data,
+                    ErrorKind::TooLarge,
+                )));
+            }
+        };
+        let offset = Self::HEADER_SIZE + row_offset;
         let (input, row) = Row::parse(&page_data[offset..], &self.page_type)?;
         Ok((input, row))
     }
