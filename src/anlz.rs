@@ -358,8 +358,6 @@ pub struct ExtendedCue {
     pub loop_numerator: u16,
     /// Represents the loop size denominator (if this is a quantized loop).
     pub loop_denominator: u16,
-    /// Length of the comment in bytes.
-    pub len_comment: u32,
     /// And UTF-16BE encoded string, followed by a trailing  `0x0000`.
     pub comment: String,
     /// Rekordbox hotcue color index.
@@ -463,12 +461,29 @@ impl ExtendedCue {
         let (input, loop_numerator) = nom::number::complete::be_u16(input)?;
         let (input, loop_denominator) = nom::number::complete::be_u16(input)?;
         let (input, len_comment) = nom::number::complete::be_u32(input)?;
+        let len_comment = match usize::try_from(len_comment) {
+            Ok(x) => x,
+            Err(_) => {
+                return Err(Err::Error(nom::error::Error::from_error_kind(
+                    input,
+                    ErrorKind::TooLarge,
+                )));
+            }
+        };
 
-        let str_length = usize::try_from(len_comment).unwrap() / 2 - 1;
+        let str_length = len_comment / 2 - 1;
         let (input, str_data) =
             nom::multi::count(nom::number::complete::be_u16, str_length)(input)?;
         let (input, _) = nom::bytes::complete::tag(b"\x00\x00")(input)?;
-        let comment = String::from_utf16(&str_data).unwrap();
+        let comment = match String::from_utf16(&str_data) {
+            Ok(x) => x,
+            Err(_) => {
+                return Err(Err::Error(nom::error::Error::from_error_kind(
+                    input,
+                    ErrorKind::Char,
+                )));
+            }
+        };
 
         let (input, hot_cue_color_index) = nom::number::complete::u8(input)?;
         let (input, hot_cue_color_red) = nom::number::complete::u8(input)?;
@@ -497,7 +512,6 @@ impl ExtendedCue {
                 unknown5,
                 loop_numerator,
                 loop_denominator,
-                len_comment,
                 comment,
                 hot_cue_color_index,
                 hot_cue_color_rgb,
@@ -653,8 +667,18 @@ impl Content {
         let (input, list_type) = CueListType::parse(input)?;
         let (input, unknown) = nom::number::complete::be_u16(input)?;
         let (input, len_cues) = nom::number::complete::be_u16(input)?;
+        let len_cues = match usize::try_from(len_cues) {
+            Ok(x) => x,
+            Err(_) => {
+                return Err(Err::Error(nom::error::Error::from_error_kind(
+                    input,
+                    ErrorKind::TooLarge,
+                )));
+            }
+        };
+
         let (input, memory_count) = nom::number::complete::be_u32(input)?;
-        let (input, cues) = nom::multi::count(Cue::parse, len_cues.try_into().unwrap())(input)?;
+        let (input, cues) = nom::multi::count(Cue::parse, len_cues)(input)?;
 
         Ok((
             input,
@@ -670,19 +694,47 @@ impl Content {
     fn parse_extendedcuelist<'a>(input: &'a [u8], _header: &Header) -> IResult<&'a [u8], Self> {
         let (input, list_type) = CueListType::parse(input)?;
         let (input, len_cues) = nom::number::complete::be_u16(input)?;
+        let len_cues = match usize::try_from(len_cues) {
+            Ok(x) => x,
+            Err(_) => {
+                return Err(Err::Error(nom::error::Error::from_error_kind(
+                    input,
+                    ErrorKind::TooLarge,
+                )));
+            }
+        };
+
         let (input, _) = nom::bytes::complete::tag(b"00")(input)?;
-        let (input, cues) =
-            nom::multi::count(ExtendedCue::parse, len_cues.try_into().unwrap())(input)?;
+        let (input, cues) = nom::multi::count(ExtendedCue::parse, len_cues)(input)?;
 
         Ok((input, Content::ExtendedCueList { list_type, cues }))
     }
 
     fn parse_path<'a>(input: &'a [u8], _header: &Header) -> IResult<&'a [u8], Self> {
         let (input, len_path) = nom::number::complete::be_u32(input)?;
-        let str_length = usize::try_from(len_path).unwrap() / 2 - 1;
-        let (input, data) = nom::multi::count(nom::number::complete::be_u16, str_length)(input)?;
+        let len_path = match usize::try_from(len_path) {
+            Ok(x) => x,
+            Err(_) => {
+                return Err(Err::Error(nom::error::Error::from_error_kind(
+                    input,
+                    ErrorKind::TooLarge,
+                )));
+            }
+        };
+
+        let str_length = len_path / 2 - 1;
+        let (input, str_data) =
+            nom::multi::count(nom::number::complete::be_u16, str_length)(input)?;
         let (input, _) = nom::bytes::complete::tag(b"\x00\x00")(input)?;
-        let path = String::from_utf16(&data).unwrap();
+        let path = match String::from_utf16(&str_data) {
+            Ok(x) => x,
+            Err(_) => {
+                return Err(Err::Error(nom::error::Error::from_error_kind(
+                    input,
+                    ErrorKind::Char,
+                )));
+            }
+        };
 
         Ok((input, Content::Path(path)))
     }
