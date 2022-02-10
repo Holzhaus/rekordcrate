@@ -170,6 +170,13 @@ impl Header {
 
         let (input, page_size) = nom::number::complete::le_u32(input)?;
         let (input, num_tables) = nom::number::complete::le_u32(input)?;
+        let table_count = usize::try_from(num_tables).map_err(|_| {
+            Err::Error(nom::error::Error::from_error_kind(
+                input,
+                ErrorKind::TooLarge,
+            ))
+        })?;
+
         let (input, next_unused_page) = PageIndex::parse(input)?;
         let (input, unknown) = nom::number::complete::le_u32(input)?;
         let (input, sequence) = nom::number::complete::le_u32(input)?;
@@ -177,18 +184,8 @@ impl Header {
         // Gap
         let (input, _) = nom::bytes::complete::tag(b"\0\0\0\0")(input)?;
 
-        let num_tables = match usize::try_from(num_tables) {
-            Ok(x) => x,
-            Err(_) => {
-                return Err(Err::Error(nom::error::Error::from_error_kind(
-                    input,
-                    ErrorKind::TooLarge,
-                )));
-            }
-        };
-
         // Tables
-        let (input, tables) = nom::multi::count(Table::parse, num_tables)(input)?;
+        let (input, tables) = nom::multi::count(Table::parse, table_count)(input)?;
 
         Ok((
             input,
@@ -209,16 +206,12 @@ impl Header {
 
     /// Parses and returns a page from the original data slice.
     pub fn page<'a>(&self, input: &'a [u8], page_index: &PageIndex) -> IResult<&'a [u8], Page> {
-        let position = match self.page_offset(page_index) {
-            Ok(x) => x,
-            Err(_) => {
-                return Err(Err::Error(nom::error::Error::from_error_kind(
-                    input,
-                    ErrorKind::TooLarge,
-                )));
-            }
-        };
-
+        let position = self.page_offset(page_index).map_err(|_| {
+            Err::Error(nom::error::Error::from_error_kind(
+                input,
+                ErrorKind::TooLarge,
+            ))
+        })?;
         let (data, page) = Page::parse(&input[position..], self.page_size)?;
         Ok((data, page))
     }
@@ -309,15 +302,12 @@ impl Page {
 
     /// Parses a page of a PDB file.
     fn parse(page_data: &[u8], page_size: u32) -> IResult<&[u8], Page> {
-        let page_end = match usize::try_from(page_size) {
-            Ok(x) => x,
-            Err(_) => {
-                return Err(Err::Error(nom::error::Error::from_error_kind(
-                    page_data,
-                    ErrorKind::TooLarge,
-                )));
-            }
-        };
+        let page_end = usize::try_from(page_size).map_err(|_| {
+            Err::Error(nom::error::Error::from_error_kind(
+                page_data,
+                ErrorKind::TooLarge,
+            ))
+        })?;
 
         // Signature (?)
         let (input, _) = nom::bytes::complete::tag(b"\0\0\0\0")(page_data)?;
@@ -442,15 +432,12 @@ impl Page {
         page_data: &'a [u8],
         &RowOffset(row_offset): &RowOffset,
     ) -> IResult<&'a [u8], Row> {
-        let row_offset = match usize::try_from(row_offset) {
-            Ok(x) => x,
-            Err(_) => {
-                return Err(Err::Error(nom::error::Error::from_error_kind(
-                    page_data,
-                    ErrorKind::TooLarge,
-                )));
-            }
-        };
+        let row_offset = usize::try_from(row_offset).map_err(|_| {
+            Err::Error(nom::error::Error::from_error_kind(
+                page_data,
+                ErrorKind::TooLarge,
+            ))
+        })?;
         let offset = Self::HEADER_SIZE + row_offset;
         let (input, row) = Row::parse(&page_data[offset..], &self.page_type)?;
         Ok((input, row))
