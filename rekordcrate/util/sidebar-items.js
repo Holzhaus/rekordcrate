@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["ColorIndex","Indexed Color identifiers used for memory cues and tracks."]]});
+initSidebarItems({"enum":[["ColorIndex","Indexed Color identifiers used for memory cues and tracks."]],"fn":[["nom_input_error_with_kind","Convenience method that returns a nom parse error with the given `ErrorKind`."]]});

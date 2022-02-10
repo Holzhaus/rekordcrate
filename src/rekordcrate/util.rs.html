@@ -66,6 +66,14 @@
 <span id="65">65</span>
 <span id="66">66</span>
 <span id="67">67</span>
+<span id="68">68</span>
+<span id="69">69</span>
+<span id="70">70</span>
+<span id="71">71</span>
+<span id="72">72</span>
+<span id="73">73</span>
+<span id="74">74</span>
+<span id="75">75</span>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) 2022 Jan Holthuis</span>
 <span class="comment">//</span>
 <span class="comment">// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy</span>
@@ -76,7 +84,15 @@
 
 <span class="doccomment">//! Common types used in multiple modules.</span>
 
+<span class="kw">use</span> <span class="ident">nom::error</span>::{<span class="ident">ErrorKind</span>, <span class="ident">ParseError</span>};
+<span class="kw">use</span> <span class="ident">nom::Err</span>;
 <span class="kw">use</span> <span class="ident">nom::IResult</span>;
+
+<span class="attribute">#[<span class="ident">must_use</span>]</span>
+<span class="doccomment">/// Convenience method that returns a nom parse error with the given `ErrorKind`.</span>
+<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">nom_input_error_with_kind</span>(<span class="ident">input</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="ident">kind</span>: <span class="ident">ErrorKind</span>) -&gt; <span class="prelude-val">Err</span><span class="op">&lt;</span><span class="ident">nom::error::Error</span><span class="op">&lt;</span><span class="kw-2">&amp;</span>[<span class="ident">u8</span>]<span class="op">&gt;</span><span class="op">&gt;</span> {
+    <span class="ident">Err::Error</span>(<span class="ident">nom::error::Error::from_error_kind</span>(<span class="ident">input</span>, <span class="ident">kind</span>))
+}
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
 <span class="doccomment">/// Indexed Color identifiers used for memory cues and tracks.</span>

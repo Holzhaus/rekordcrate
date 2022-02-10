@@ -1267,38 +1267,6 @@
 <span id="1266">1266</span>
 <span id="1267">1267</span>
 <span id="1268">1268</span>
-<span id="1269">1269</span>
-<span id="1270">1270</span>
-<span id="1271">1271</span>
-<span id="1272">1272</span>
-<span id="1273">1273</span>
-<span id="1274">1274</span>
-<span id="1275">1275</span>
-<span id="1276">1276</span>
-<span id="1277">1277</span>
-<span id="1278">1278</span>
-<span id="1279">1279</span>
-<span id="1280">1280</span>
-<span id="1281">1281</span>
-<span id="1282">1282</span>
-<span id="1283">1283</span>
-<span id="1284">1284</span>
-<span id="1285">1285</span>
-<span id="1286">1286</span>
-<span id="1287">1287</span>
-<span id="1288">1288</span>
-<span id="1289">1289</span>
-<span id="1290">1290</span>
-<span id="1291">1291</span>
-<span id="1292">1292</span>
-<span id="1293">1293</span>
-<span id="1294">1294</span>
-<span id="1295">1295</span>
-<span id="1296">1296</span>
-<span id="1297">1297</span>
-<span id="1298">1298</span>
-<span id="1299">1299</span>
-<span id="1300">1300</span>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) 2022 Jan Holthuis</span>
 <span class="comment">//</span>
 <span class="comment">// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy</span>
@@ -1323,9 +1291,8 @@
 <span class="doccomment">//! - &lt;https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html&gt;</span>
 <span class="doccomment">//! - &lt;https://reverseengineering.stackexchange.com/questions/4311/help-reversing-a-edb-database-file-for-pioneers-rekordbox-software&gt;</span>
 
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::util::ColorIndex</span>;
-<span class="kw">use</span> <span class="ident">nom::error</span>::{<span class="ident">ErrorKind</span>, <span class="ident">ParseError</span>};
-<span class="kw">use</span> <span class="ident">nom::Err</span>;
+<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::util</span>::{<span class="ident">nom_input_error_with_kind</span>, <span class="ident">ColorIndex</span>};
+<span class="kw">use</span> <span class="ident">nom::error::ErrorKind</span>;
 <span class="kw">use</span> <span class="ident">nom::IResult</span>;
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
@@ -1762,18 +1729,14 @@
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">loop_numerator</span>) <span class="op">=</span> <span class="ident">nom::number::complete::be_u16</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">loop_denominator</span>) <span class="op">=</span> <span class="ident">nom::number::complete::be_u16</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">len_comment</span>) <span class="op">=</span> <span class="ident">nom::number::complete::be_u32</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">len_comment</span> <span class="op">=</span> <span class="ident">usize::try_from</span>(<span class="ident">len_comment</span>).<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> {
-            <span class="ident">Err::Error</span>(<span class="ident">nom::error::Error::from_error_kind</span>(
-                <span class="ident">input</span>,
-                <span class="ident">ErrorKind::TooLarge</span>,
-            ))
-        })<span class="question-mark">?</span>;
+        <span class="kw">let</span> <span class="ident">len_comment</span> <span class="op">=</span> <span class="ident">usize::try_from</span>(<span class="ident">len_comment</span>)
+            .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">nom_input_error_with_kind</span>(<span class="ident">input</span>, <span class="ident">ErrorKind::TooLarge</span>))<span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="ident">str_length</span> <span class="op">=</span> <span class="ident">len_comment</span> <span class="op">/</span> <span class="number">2</span> <span class="op">-</span> <span class="number">1</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">str_data</span>) <span class="op">=</span>
             <span class="ident">nom::multi::count</span>(<span class="ident">nom::number::complete::be_u16</span>, <span class="ident">str_length</span>)(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="kw">_</span>) <span class="op">=</span> <span class="ident">nom::bytes::complete::tag</span>(<span class="string">b&quot;\x00\x00&quot;</span>)(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="ident">comment</span> <span class="op">=</span> <span class="ident">String::from_utf16</span>(<span class="kw-2">&amp;</span><span class="ident">str_data</span>)
-            .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">Err::Error</span>(<span class="ident">nom::error::Error::from_error_kind</span>(<span class="ident">input</span>, <span class="ident">ErrorKind::Char</span>)))<span class="question-mark">?</span>;
+            .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">nom_input_error_with_kind</span>(<span class="ident">input</span>, <span class="ident">ErrorKind::Char</span>))<span class="question-mark">?</span>;
 
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">hot_cue_color_index</span>) <span class="op">=</span> <span class="ident">nom::number::complete::u8</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">hot_cue_color_red</span>) <span class="op">=</span> <span class="ident">nom::number::complete::u8</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
@@ -2266,10 +2229,7 @@
 <span class="kw">impl</span> <span class="ident">Content</span> {
     <span class="kw">fn</span> <span class="ident">parse</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="ident">input</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> [<span class="ident">u8</span>], <span class="ident">header</span>: <span class="kw-2">&amp;</span><span class="ident">Header</span>) -&gt; <span class="ident">IResult</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> [<span class="ident">u8</span>], <span class="self">Self</span><span class="op">&gt;</span> {
         <span class="kw">match</span> <span class="ident">header</span>.<span class="ident">kind</span> {
-            <span class="ident">ContentKind::File</span> =&gt; <span class="prelude-val">Err</span>(<span class="ident">Err::Error</span>(<span class="ident">nom::error::Error::from_error_kind</span>(
-                <span class="ident">input</span>,
-                <span class="ident">ErrorKind::Tag</span>,
-            ))),
+            <span class="ident">ContentKind::File</span> =&gt; <span class="prelude-val">Err</span>(<span class="ident">nom_input_error_with_kind</span>(<span class="ident">input</span>, <span class="ident">ErrorKind::Tag</span>)),
             <span class="ident">ContentKind::BeatGrid</span> =&gt; <span class="ident"><span class="self">Self</span>::parse_beatgrid</span>(<span class="ident">input</span>, <span class="ident">header</span>),
             <span class="ident">ContentKind::CueList</span> =&gt; <span class="ident"><span class="self">Self</span>::parse_cuelist</span>(<span class="ident">input</span>, <span class="ident">header</span>),
             <span class="ident">ContentKind::ExtendedCueList</span> =&gt; <span class="ident"><span class="self">Self</span>::parse_extendedcuelist</span>(<span class="ident">input</span>, <span class="ident">header</span>),
@@ -2305,12 +2265,8 @@
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">list_type</span>) <span class="op">=</span> <span class="ident">CueListType::parse</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">unknown</span>) <span class="op">=</span> <span class="ident">nom::number::complete::be_u16</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">len_cues</span>) <span class="op">=</span> <span class="ident">nom::number::complete::be_u16</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">len_cues</span> <span class="op">=</span> <span class="ident">usize::try_from</span>(<span class="ident">len_cues</span>).<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> {
-            <span class="ident">Err::Error</span>(<span class="ident">nom::error::Error::from_error_kind</span>(
-                <span class="ident">input</span>,
-                <span class="ident">ErrorKind::TooLarge</span>,
-            ))
-        })<span class="question-mark">?</span>;
+        <span class="kw">let</span> <span class="ident">len_cues</span> <span class="op">=</span> <span class="ident">usize::try_from</span>(<span class="ident">len_cues</span>)
+            .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">nom_input_error_with_kind</span>(<span class="ident">input</span>, <span class="ident">ErrorKind::TooLarge</span>))<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">memory_count</span>) <span class="op">=</span> <span class="ident">nom::number::complete::be_u32</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">cues</span>) <span class="op">=</span> <span class="ident">nom::multi::count</span>(<span class="ident">Cue::parse</span>, <span class="ident">len_cues</span>)(<span class="ident">input</span>)<span class="question-mark">?</span>;
 
@@ -2328,12 +2284,8 @@
     <span class="kw">fn</span> <span class="ident">parse_extendedcuelist</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="ident">input</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> [<span class="ident">u8</span>], <span class="ident">_header</span>: <span class="kw-2">&amp;</span><span class="ident">Header</span>) -&gt; <span class="ident">IResult</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> [<span class="ident">u8</span>], <span class="self">Self</span><span class="op">&gt;</span> {
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">list_type</span>) <span class="op">=</span> <span class="ident">CueListType::parse</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">len_cues</span>) <span class="op">=</span> <span class="ident">nom::number::complete::be_u16</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">len_cues</span> <span class="op">=</span> <span class="ident">usize::try_from</span>(<span class="ident">len_cues</span>).<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> {
-            <span class="ident">Err::Error</span>(<span class="ident">nom::error::Error::from_error_kind</span>(
-                <span class="ident">input</span>,
-                <span class="ident">ErrorKind::TooLarge</span>,
-            ))
-        })<span class="question-mark">?</span>;
+        <span class="kw">let</span> <span class="ident">len_cues</span> <span class="op">=</span> <span class="ident">usize::try_from</span>(<span class="ident">len_cues</span>)
+            .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">nom_input_error_with_kind</span>(<span class="ident">input</span>, <span class="ident">ErrorKind::TooLarge</span>))<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="kw">_</span>) <span class="op">=</span> <span class="ident">nom::bytes::complete::tag</span>(<span class="string">b&quot;00&quot;</span>)(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">cues</span>) <span class="op">=</span> <span class="ident">nom::multi::count</span>(<span class="ident">ExtendedCue::parse</span>, <span class="ident">len_cues</span>)(<span class="ident">input</span>)<span class="question-mark">?</span>;
 
@@ -2342,19 +2294,15 @@
 
     <span class="kw">fn</span> <span class="ident">parse_path</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="ident">input</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> [<span class="ident">u8</span>], <span class="ident">_header</span>: <span class="kw-2">&amp;</span><span class="ident">Header</span>) -&gt; <span class="ident">IResult</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> [<span class="ident">u8</span>], <span class="self">Self</span><span class="op">&gt;</span> {
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">len_path</span>) <span class="op">=</span> <span class="ident">nom::number::complete::be_u32</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">len_path</span> <span class="op">=</span> <span class="ident">usize::try_from</span>(<span class="ident">len_path</span>).<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> {
-            <span class="ident">Err::Error</span>(<span class="ident">nom::error::Error::from_error_kind</span>(
-                <span class="ident">input</span>,
-                <span class="ident">ErrorKind::TooLarge</span>,
-            ))
-        })<span class="question-mark">?</span>;
+        <span class="kw">let</span> <span class="ident">len_path</span> <span class="op">=</span> <span class="ident">usize::try_from</span>(<span class="ident">len_path</span>)
+            .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">nom_input_error_with_kind</span>(<span class="ident">input</span>, <span class="ident">ErrorKind::TooLarge</span>))<span class="question-mark">?</span>;
 
         <span class="kw">let</span> <span class="ident">str_length</span> <span class="op">=</span> <span class="ident">len_path</span> <span class="op">/</span> <span class="number">2</span> <span class="op">-</span> <span class="number">1</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">str_data</span>) <span class="op">=</span>
             <span class="ident">nom::multi::count</span>(<span class="ident">nom::number::complete::be_u16</span>, <span class="ident">str_length</span>)(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="kw">_</span>) <span class="op">=</span> <span class="ident">nom::bytes::complete::tag</span>(<span class="string">b&quot;\x00\x00&quot;</span>)(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> <span class="ident">path</span> <span class="op">=</span> <span class="ident">String::from_utf16</span>(<span class="kw-2">&amp;</span><span class="ident">str_data</span>)
-            .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">Err::Error</span>(<span class="ident">nom::error::Error::from_error_kind</span>(<span class="ident">input</span>, <span class="ident">ErrorKind::Char</span>)))<span class="question-mark">?</span>;
+            .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">nom_input_error_with_kind</span>(<span class="ident">input</span>, <span class="ident">ErrorKind::Char</span>))<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>((<span class="ident">input</span>, <span class="ident">Content::Path</span>(<span class="ident">path</span>)))
     }
@@ -2438,12 +2386,8 @@
     ) -&gt; <span class="ident">IResult</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> [<span class="ident">u8</span>], <span class="self">Self</span><span class="op">&gt;</span> {
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">len_entry_bytes</span>) <span class="op">=</span> <span class="ident">nom::number::complete::be_u32</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">len_entries</span>) <span class="op">=</span> <span class="ident">nom::number::complete::be_u32</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">entry_count</span> <span class="op">=</span> <span class="ident">usize::try_from</span>(<span class="ident">len_entries</span>).<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> {
-            <span class="ident">Err::Error</span>(<span class="ident">nom::error::Error::from_error_kind</span>(
-                <span class="ident">input</span>,
-                <span class="ident">ErrorKind::TooLarge</span>,
-            ))
-        })<span class="question-mark">?</span>;
+        <span class="kw">let</span> <span class="ident">entry_count</span> <span class="op">=</span> <span class="ident">usize::try_from</span>(<span class="ident">len_entries</span>)
+            .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">nom_input_error_with_kind</span>(<span class="ident">input</span>, <span class="ident">ErrorKind::TooLarge</span>))<span class="question-mark">?</span>;
 
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">unknown</span>) <span class="op">=</span> <span class="ident">nom::number::complete::be_u32</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">data</span>) <span class="op">=</span>
@@ -2466,12 +2410,8 @@
     ) -&gt; <span class="ident">IResult</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> [<span class="ident">u8</span>], <span class="self">Self</span><span class="op">&gt;</span> {
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">len_entry_bytes</span>) <span class="op">=</span> <span class="ident">nom::number::complete::be_u32</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">len_entries</span>) <span class="op">=</span> <span class="ident">nom::number::complete::be_u32</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">entry_count</span> <span class="op">=</span> <span class="ident">usize::try_from</span>(<span class="ident">len_entries</span>).<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> {
-            <span class="ident">Err::Error</span>(<span class="ident">nom::error::Error::from_error_kind</span>(
-                <span class="ident">input</span>,
-                <span class="ident">ErrorKind::TooLarge</span>,
-            ))
-        })<span class="question-mark">?</span>;
+        <span class="kw">let</span> <span class="ident">entry_count</span> <span class="op">=</span> <span class="ident">usize::try_from</span>(<span class="ident">len_entries</span>)
+            .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">nom_input_error_with_kind</span>(<span class="ident">input</span>, <span class="ident">ErrorKind::TooLarge</span>))<span class="question-mark">?</span>;
 
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">unknown</span>) <span class="op">=</span> <span class="ident">nom::number::complete::be_u32</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">data</span>) <span class="op">=</span>
@@ -2491,12 +2431,8 @@
     <span class="kw">fn</span> <span class="ident">parse_song_structure</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(<span class="ident">input</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> [<span class="ident">u8</span>], <span class="ident">_header</span>: <span class="kw-2">&amp;</span><span class="ident">Header</span>) -&gt; <span class="ident">IResult</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> [<span class="ident">u8</span>], <span class="self">Self</span><span class="op">&gt;</span> {
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">len_entry_bytes</span>) <span class="op">=</span> <span class="ident">nom::number::complete::be_u32</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">len_entries</span>) <span class="op">=</span> <span class="ident">nom::number::complete::be_u16</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">entry_count</span> <span class="op">=</span> <span class="ident">usize::try_from</span>(<span class="ident">len_entries</span>).<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> {
-            <span class="ident">Err::Error</span>(<span class="ident">nom::error::Error::from_error_kind</span>(
-                <span class="ident">input</span>,
-                <span class="ident">ErrorKind::TooLarge</span>,
-            ))
-        })<span class="question-mark">?</span>;
+        <span class="kw">let</span> <span class="ident">entry_count</span> <span class="op">=</span> <span class="ident">usize::try_from</span>(<span class="ident">len_entries</span>)
+            .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">nom_input_error_with_kind</span>(<span class="ident">input</span>, <span class="ident">ErrorKind::TooLarge</span>))<span class="question-mark">?</span>;
 
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">mood</span>) <span class="op">=</span> <span class="ident">Mood::parse</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">unknown1</span>) <span class="op">=</span> <span class="ident">nom::number::complete::be_u32</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
