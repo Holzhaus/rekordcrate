@@ -1,5 +1,5 @@
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="A memory or hot cue (or loop)."><meta name="keywords" content="rust, rustlang, rust-lang, ExtendedCue"><title>ExtendedCue in rekordcrate::anlz - Rust</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled ><script id="default-settings" ></script><script src="../../storage.js"></script><script src="../../crates.js"></script><script defer src="../../main.js"></script>
-    <noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc struct"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu" role="button">&#9776;</div><a href='../../rekordcrate/index.html'><div class='logo-container rust-logo'><img src='../../rust-logo.png' alt='logo'></div></a><h2 class="location">Struct ExtendedCue</h2><div class="sidebar-elems"><div class="block items"><h3 class="sidebar-title"><a href="#fields">Fields</a></h3><div class="sidebar-links"><a href="#structfield.color">color</a><a href="#structfield.comment">comment</a><a href="#structfield.cue_type">cue_type</a><a href="#structfield.header">header</a><a href="#structfield.hot_cue">hot_cue</a><a href="#structfield.hot_cue_color_index">hot_cue_color_index</a><a href="#structfield.hot_cue_color_rgb">hot_cue_color_rgb</a><a href="#structfield.loop_denominator">loop_denominator</a><a href="#structfield.loop_numerator">loop_numerator</a><a href="#structfield.loop_time">loop_time</a><a href="#structfield.time">time</a><a href="#structfield.unknown1">unknown1</a><a href="#structfield.unknown10">unknown10</a><a href="#structfield.unknown2">unknown2</a><a href="#structfield.unknown3">unknown3</a><a href="#structfield.unknown4">unknown4</a><a href="#structfield.unknown5">unknown5</a><a href="#structfield.unknown6">unknown6</a><a href="#structfield.unknown7">unknown7</a><a href="#structfield.unknown8">unknown8</a><a href="#structfield.unknown9">unknown9</a></div><h3 class="sidebar-title"><a href="#trait-implementations">Trait Implementations</a></h3><div class="sidebar-links"><a href="#impl-Debug">Debug</a></div><h3 class="sidebar-title"><a href="#synthetic-implementations">Auto Trait Implementations</a></h3><div class="sidebar-links"><a href="#impl-RefUnwindSafe">RefUnwindSafe</a><a href="#impl-Send">Send</a><a href="#impl-Sync">Sync</a><a href="#impl-Unpin">Unpin</a><a href="#impl-UnwindSafe">UnwindSafe</a></div><h3 class="sidebar-title"><a href="#blanket-implementations">Blanket Implementations</a></h3><div class="sidebar-links"><a href="#impl-Any">Any</a><a href="#impl-Borrow%3CT%3E">Borrow&lt;T&gt;</a><a href="#impl-BorrowMut%3CT%3E">BorrowMut&lt;T&gt;</a><a href="#impl-From%3CT%3E">From&lt;T&gt;</a><a href="#impl-Into%3CU%3E">Into&lt;U&gt;</a><a href="#impl-TryFrom%3CU%3E">TryFrom&lt;U&gt;</a><a href="#impl-TryInto%3CU%3E">TryInto&lt;U&gt;</a></div></div><h2 class="location">Other items in<br><a href="../index.html">rekordcrate</a>::<wbr><a href="index.html">anlz</a></h2><div id="sidebar-vars" data-name="ExtendedCue" data-ty="struct" data-relpath=""></div><script defer src="sidebar-items.js"></script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu" title="themes"><img width="18" height="18" alt="Pick another theme!" src="../../brush.svg"></button><div id="theme-choices" role="menu"></div></div><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" id="help-button" title="help">?</button><a id="settings-menu" href="../../settings.html" title="settings"><img width="18" height="18" alt="Change settings" src="../../wheel.svg"></a></div></form></nav><section id="main" class="content"><h1 class="fqn"><span class="in-band">Struct <a href="../index.html">rekordcrate</a>::<wbr><a href="index.html">anlz</a>::<wbr><a class="struct" href="#">ExtendedCue</a><button id="copy-path" onclick="copy_path(this)" title="Copy item path to clipboard"><img src="../../clipboard.svg" width="19" height="18" alt="Copy item path"></button></span><span class="out-of-band"><span id="render-detail"><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span><a class="srclink" href="../../src/rekordcrate/anlz.rs.html#324-444" title="goto source code">[src]</a></span></h1><div class="docblock item-decl"><pre class="rust struct"><code>pub struct ExtendedCue {<details class="rustdoc-toggle type-contents-toggle"><summary class="hideme"><span>Show 21 fields</span></summary>
+    <noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc struct"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu" role="button">&#9776;</div><a href='../../rekordcrate/index.html'><div class='logo-container rust-logo'><img src='../../rust-logo.png' alt='logo'></div></a><h2 class="location">Struct ExtendedCue</h2><div class="sidebar-elems"><div class="block items"><h3 class="sidebar-title"><a href="#fields">Fields</a></h3><div class="sidebar-links"><a href="#structfield.color">color</a><a href="#structfield.comment">comment</a><a href="#structfield.cue_type">cue_type</a><a href="#structfield.header">header</a><a href="#structfield.hot_cue">hot_cue</a><a href="#structfield.hot_cue_color_index">hot_cue_color_index</a><a href="#structfield.hot_cue_color_rgb">hot_cue_color_rgb</a><a href="#structfield.loop_denominator">loop_denominator</a><a href="#structfield.loop_numerator">loop_numerator</a><a href="#structfield.loop_time">loop_time</a><a href="#structfield.time">time</a><a href="#structfield.unknown1">unknown1</a><a href="#structfield.unknown10">unknown10</a><a href="#structfield.unknown2">unknown2</a><a href="#structfield.unknown3">unknown3</a><a href="#structfield.unknown4">unknown4</a><a href="#structfield.unknown5">unknown5</a><a href="#structfield.unknown6">unknown6</a><a href="#structfield.unknown7">unknown7</a><a href="#structfield.unknown8">unknown8</a><a href="#structfield.unknown9">unknown9</a></div><h3 class="sidebar-title"><a href="#trait-implementations">Trait Implementations</a></h3><div class="sidebar-links"><a href="#impl-Debug">Debug</a></div><h3 class="sidebar-title"><a href="#synthetic-implementations">Auto Trait Implementations</a></h3><div class="sidebar-links"><a href="#impl-RefUnwindSafe">RefUnwindSafe</a><a href="#impl-Send">Send</a><a href="#impl-Sync">Sync</a><a href="#impl-Unpin">Unpin</a><a href="#impl-UnwindSafe">UnwindSafe</a></div><h3 class="sidebar-title"><a href="#blanket-implementations">Blanket Implementations</a></h3><div class="sidebar-links"><a href="#impl-Any">Any</a><a href="#impl-Borrow%3CT%3E">Borrow&lt;T&gt;</a><a href="#impl-BorrowMut%3CT%3E">BorrowMut&lt;T&gt;</a><a href="#impl-From%3CT%3E">From&lt;T&gt;</a><a href="#impl-Into%3CU%3E">Into&lt;U&gt;</a><a href="#impl-TryFrom%3CU%3E">TryFrom&lt;U&gt;</a><a href="#impl-TryInto%3CU%3E">TryInto&lt;U&gt;</a></div></div><h2 class="location">Other items in<br><a href="../index.html">rekordcrate</a>::<wbr><a href="index.html">anlz</a></h2><div id="sidebar-vars" data-name="ExtendedCue" data-ty="struct" data-relpath=""></div><script defer src="sidebar-items.js"></script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu" title="themes"><img width="18" height="18" alt="Pick another theme!" src="../../brush.svg"></button><div id="theme-choices" role="menu"></div></div><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><button type="button" id="help-button" title="help">?</button><a id="settings-menu" href="../../settings.html" title="settings"><img width="18" height="18" alt="Change settings" src="../../wheel.svg"></a></div></form></nav><section id="main" class="content"><h1 class="fqn"><span class="in-band">Struct <a href="../index.html">rekordcrate</a>::<wbr><a href="index.html">anlz</a>::<wbr><a class="struct" href="#">ExtendedCue</a><button id="copy-path" onclick="copy_path(this)" title="Copy item path to clipboard"><img src="../../clipboard.svg" width="19" height="18" alt="Copy item path"></button></span><span class="out-of-band"><span id="render-detail"><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span><a class="srclink" href="../../src/rekordcrate/anlz.rs.html#324-446" title="goto source code">[src]</a></span></h1><div class="docblock item-decl"><pre class="rust struct"><code>pub struct ExtendedCue {<details class="rustdoc-toggle type-contents-toggle"><summary class="hideme"><span>Show 21 fields</span></summary>
     pub header: <a class="struct" href="struct.Header.html" title="struct rekordcrate::anlz::Header">Header</a>,
     pub hot_cue: <a class="primitive" href="https://doc.rust-lang.org/1.58.1/std/primitive.u32.html">u32</a>,
     pub cue_type: <a class="enum" href="enum.CueType.html" title="enum rekordcrate::anlz::CueType">CueType</a>,
@@ -44,70 +44,72 @@
 </div><span id="structfield.loop_denominator" class="structfield small-section-header"><a href="#structfield.loop_denominator" class="anchor field"></a><code>loop_denominator: <a class="primitive" href="https://doc.rust-lang.org/1.58.1/std/primitive.u16.html">u16</a></code></span><div class="docblock"><p>Represents the loop size denominator (if this is a quantized loop).</p>
 </div><span id="structfield.comment" class="structfield small-section-header"><a href="#structfield.comment" class="anchor field"></a><code>comment: <a class="struct" href="https://doc.rust-lang.org/1.58.1/alloc/string/struct.String.html" title="struct alloc::string::String">String</a></code></span><div class="docblock"><p>And UTF-16BE encoded string, followed by a trailing  <code>0x0000</code>.</p>
 </div><span id="structfield.hot_cue_color_index" class="structfield small-section-header"><a href="#structfield.hot_cue_color_index" class="anchor field"></a><code>hot_cue_color_index: <a class="primitive" href="https://doc.rust-lang.org/1.58.1/std/primitive.u8.html">u8</a></code></span><div class="docblock"><p>Rekordbox hotcue color index.</p>
-<p>| <code>0x00</code> | None (Green on older CDJs). |
-| <code>0x01</code> | <code>#305aff</code>                   |
-| <code>0x02</code> | <code>#5073ff</code>                   |
-| <code>0x03</code> | <code>#508cff</code>                   |
-| <code>0x04</code> | <code>#50a0ff</code>                   |
-| <code>0x05</code> | <code>#50b4ff</code>                   |
-| <code>0x06</code> | <code>#50b0f2</code>                   |
-| <code>0x07</code> | <code>#50aee8</code>                   |
-| <code>0x08</code> | <code>#45acdb</code>                   |
-| <code>0x09</code> | <code>#00e0ff</code>                   |
-| <code>0x0a</code> | <code>#19daf0</code>                   |
-| <code>0x0b</code> | <code>#32d2e6</code>                   |
-| <code>0x0c</code> | <code>#21b4b9</code>                   |
-| <code>0x0d</code> | <code>#20aaa0</code>                   |
-| <code>0x0e</code> | <code>#1fa392</code>                   |
-| <code>0x0f</code> | <code>#19a08c</code>                   |
-| <code>0x10</code> | <code>#14a584</code>                   |
-| <code>0x11</code> | <code>#14aa7d</code>                   |
-| <code>0x12</code> | <code>#10b176</code>                   |
-| <code>0x13</code> | <code>#30d26e</code>                   |
-| <code>0x14</code> | <code>#37de5a</code>                   |
-| <code>0x15</code> | <code>#3ceb50</code>                   |
-| <code>0x16</code> | <code>#28e214</code>                   |
-| <code>0x17</code> | <code>#7dc13d</code>                   |
-| <code>0x18</code> | <code>#8cc832</code>                   |
-| <code>0x19</code> | <code>#9bd723</code>                   |
-| <code>0x1a</code> | <code>#a5e116</code>                   |
-| <code>0x1b</code> | <code>#a5dc0a</code>                   |
-| <code>0x1c</code> | <code>#aad208</code>                   |
-| <code>0x1d</code> | <code>#b4c805</code>                   |
-| <code>0x1e</code> | <code>#b4be04</code>                   |
-| <code>0x1f</code> | <code>#bab404</code>                   |
-| <code>0x20</code> | <code>#c3af04</code>                   |
-| <code>0x21</code> | <code>#e1aa00</code>                   |
-| <code>0x22</code> | <code>#ffa000</code>                   |
-| <code>0x23</code> | <code>#ff9600</code>                   |
-| <code>0x24</code> | <code>#ff8c00</code>                   |
-| <code>0x25</code> | <code>#ff7500</code>                   |
-| <code>0x26</code> | <code>#e0641b</code>                   |
-| <code>0x27</code> | <code>#e0461e</code>                   |
-| <code>0x28</code> | <code>#e0301e</code>                   |
-| <code>0x29</code> | <code>#e02823</code>                   |
-| <code>0x2a</code> | <code>#e62828</code>                   |
-| <code>0x2b</code> | <code>#ff376f</code>                   |
-| <code>0x2c</code> | <code>#ff2d6f</code>                   |
-| <code>0x2d</code> | <code>#ff127b</code>                   |
-| <code>0x2e</code> | <code>#f51e8c</code>                   |
-| <code>0x2f</code> | <code>#eb2da0</code>                   |
-| <code>0x30</code> | <code>#e637b4</code>                   |
-| <code>0x31</code> | <code>#de44cf</code>                   |
-| <code>0x32</code> | <code>#de448d</code>                   |
-| <code>0x33</code> | <code>#e630b4</code>                   |
-| <code>0x34</code> | <code>#e619dc</code>                   |
-| <code>0x35</code> | <code>#e600ff</code>                   |
-| <code>0x36</code> | <code>#dc00ff</code>                   |
-| <code>0x37</code> | <code>#cc00ff</code>                   |
-| <code>0x38</code> | <code>#b432ff</code>                   |
-| <code>0x39</code> | <code>#b93cff</code>                   |
-| <code>0x3a</code> | <code>#c542ff</code>                   |
-| <code>0x3b</code> | <code>#aa5aff</code>                   |
-| <code>0x3c</code> | <code>#aa72ff</code>                   |
-| <code>0x3d</code> | <code>#8272ff</code>                   |
-| <code>0x3e</code> | <code>#6473ff</code>                   |</p>
-</div><span id="structfield.hot_cue_color_rgb" class="structfield small-section-header"><a href="#structfield.hot_cue_color_rgb" class="anchor field"></a><code>hot_cue_color_rgb: <a class="primitive" href="https://doc.rust-lang.org/1.58.1/std/primitive.tuple.html">(</a><a class="primitive" href="https://doc.rust-lang.org/1.58.1/std/primitive.u8.html">u8</a>, <a class="primitive" href="https://doc.rust-lang.org/1.58.1/std/primitive.u8.html">u8</a>, <a class="primitive" href="https://doc.rust-lang.org/1.58.1/std/primitive.u8.html">u8</a><a class="primitive" href="https://doc.rust-lang.org/1.58.1/std/primitive.tuple.html">)</a></code></span><div class="docblock"><p>Rekordbot hot cue color RGB value.</p>
+<div><table><thead><tr><th>Value</th><th>Color</th></tr></thead><tbody>
+<tr><td><code>0x00</code></td><td>None (Green on older CDJs).</td></tr>
+<tr><td><code>0x01</code></td><td><code>#305aff</code></td></tr>
+<tr><td><code>0x02</code></td><td><code>#5073ff</code></td></tr>
+<tr><td><code>0x03</code></td><td><code>#508cff</code></td></tr>
+<tr><td><code>0x04</code></td><td><code>#50a0ff</code></td></tr>
+<tr><td><code>0x05</code></td><td><code>#50b4ff</code></td></tr>
+<tr><td><code>0x06</code></td><td><code>#50b0f2</code></td></tr>
+<tr><td><code>0x07</code></td><td><code>#50aee8</code></td></tr>
+<tr><td><code>0x08</code></td><td><code>#45acdb</code></td></tr>
+<tr><td><code>0x09</code></td><td><code>#00e0ff</code></td></tr>
+<tr><td><code>0x0a</code></td><td><code>#19daf0</code></td></tr>
+<tr><td><code>0x0b</code></td><td><code>#32d2e6</code></td></tr>
+<tr><td><code>0x0c</code></td><td><code>#21b4b9</code></td></tr>
+<tr><td><code>0x0d</code></td><td><code>#20aaa0</code></td></tr>
+<tr><td><code>0x0e</code></td><td><code>#1fa392</code></td></tr>
+<tr><td><code>0x0f</code></td><td><code>#19a08c</code></td></tr>
+<tr><td><code>0x10</code></td><td><code>#14a584</code></td></tr>
+<tr><td><code>0x11</code></td><td><code>#14aa7d</code></td></tr>
+<tr><td><code>0x12</code></td><td><code>#10b176</code></td></tr>
+<tr><td><code>0x13</code></td><td><code>#30d26e</code></td></tr>
+<tr><td><code>0x14</code></td><td><code>#37de5a</code></td></tr>
+<tr><td><code>0x15</code></td><td><code>#3ceb50</code></td></tr>
+<tr><td><code>0x16</code></td><td><code>#28e214</code></td></tr>
+<tr><td><code>0x17</code></td><td><code>#7dc13d</code></td></tr>
+<tr><td><code>0x18</code></td><td><code>#8cc832</code></td></tr>
+<tr><td><code>0x19</code></td><td><code>#9bd723</code></td></tr>
+<tr><td><code>0x1a</code></td><td><code>#a5e116</code></td></tr>
+<tr><td><code>0x1b</code></td><td><code>#a5dc0a</code></td></tr>
+<tr><td><code>0x1c</code></td><td><code>#aad208</code></td></tr>
+<tr><td><code>0x1d</code></td><td><code>#b4c805</code></td></tr>
+<tr><td><code>0x1e</code></td><td><code>#b4be04</code></td></tr>
+<tr><td><code>0x1f</code></td><td><code>#bab404</code></td></tr>
+<tr><td><code>0x20</code></td><td><code>#c3af04</code></td></tr>
+<tr><td><code>0x21</code></td><td><code>#e1aa00</code></td></tr>
+<tr><td><code>0x22</code></td><td><code>#ffa000</code></td></tr>
+<tr><td><code>0x23</code></td><td><code>#ff9600</code></td></tr>
+<tr><td><code>0x24</code></td><td><code>#ff8c00</code></td></tr>
+<tr><td><code>0x25</code></td><td><code>#ff7500</code></td></tr>
+<tr><td><code>0x26</code></td><td><code>#e0641b</code></td></tr>
+<tr><td><code>0x27</code></td><td><code>#e0461e</code></td></tr>
+<tr><td><code>0x28</code></td><td><code>#e0301e</code></td></tr>
+<tr><td><code>0x29</code></td><td><code>#e02823</code></td></tr>
+<tr><td><code>0x2a</code></td><td><code>#e62828</code></td></tr>
+<tr><td><code>0x2b</code></td><td><code>#ff376f</code></td></tr>
+<tr><td><code>0x2c</code></td><td><code>#ff2d6f</code></td></tr>
+<tr><td><code>0x2d</code></td><td><code>#ff127b</code></td></tr>
+<tr><td><code>0x2e</code></td><td><code>#f51e8c</code></td></tr>
+<tr><td><code>0x2f</code></td><td><code>#eb2da0</code></td></tr>
+<tr><td><code>0x30</code></td><td><code>#e637b4</code></td></tr>
+<tr><td><code>0x31</code></td><td><code>#de44cf</code></td></tr>
+<tr><td><code>0x32</code></td><td><code>#de448d</code></td></tr>
+<tr><td><code>0x33</code></td><td><code>#e630b4</code></td></tr>
+<tr><td><code>0x34</code></td><td><code>#e619dc</code></td></tr>
+<tr><td><code>0x35</code></td><td><code>#e600ff</code></td></tr>
+<tr><td><code>0x36</code></td><td><code>#dc00ff</code></td></tr>
+<tr><td><code>0x37</code></td><td><code>#cc00ff</code></td></tr>
+<tr><td><code>0x38</code></td><td><code>#b432ff</code></td></tr>
+<tr><td><code>0x39</code></td><td><code>#b93cff</code></td></tr>
+<tr><td><code>0x3a</code></td><td><code>#c542ff</code></td></tr>
+<tr><td><code>0x3b</code></td><td><code>#aa5aff</code></td></tr>
+<tr><td><code>0x3c</code></td><td><code>#aa72ff</code></td></tr>
+<tr><td><code>0x3d</code></td><td><code>#8272ff</code></td></tr>
+<tr><td><code>0x3e</code></td><td><code>#6473ff</code></td></tr>
+</tbody></table>
+</div></div><span id="structfield.hot_cue_color_rgb" class="structfield small-section-header"><a href="#structfield.hot_cue_color_rgb" class="anchor field"></a><code>hot_cue_color_rgb: <a class="primitive" href="https://doc.rust-lang.org/1.58.1/std/primitive.tuple.html">(</a><a class="primitive" href="https://doc.rust-lang.org/1.58.1/std/primitive.u8.html">u8</a>, <a class="primitive" href="https://doc.rust-lang.org/1.58.1/std/primitive.u8.html">u8</a>, <a class="primitive" href="https://doc.rust-lang.org/1.58.1/std/primitive.u8.html">u8</a><a class="primitive" href="https://doc.rust-lang.org/1.58.1/std/primitive.tuple.html">)</a></code></span><div class="docblock"><p>Rekordbot hot cue color RGB value.</p>
 <p>This color is similar but not identical to the color that Rekordbox displays, and possibly
 used to illuminate the RGB LEDs in a player that has loaded the cue. If not color is
 associated with this hot cue, the value is <code>(0, 0, 0)</code>.</p>
