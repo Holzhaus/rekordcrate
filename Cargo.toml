@@ -12,4 +12,4 @@ edition = "2021"
 exclude = [".*"]
 
 [dependencies]
-nom = "6"
+nom = "7"
