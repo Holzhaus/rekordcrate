@@ -361,6 +361,8 @@ pub struct ExtendedCue {
     pub comment: String,
     /// Rekordbox hotcue color index.
     ///
+    /// | Value  | Color                       |
+    /// | ------ | --------------------------- |
     /// | `0x00` | None (Green on older CDJs). |
     /// | `0x01` | `#305aff`                   |
     /// | `0x02` | `#5073ff`                   |
