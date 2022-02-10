@@ -18,9 +18,8 @@
 //! - <https://github.com/henrybetts/Rekordbox-Decoding>
 //! - <https://github.com/flesniak/python-prodj-link/tree/master/prodj/pdblib>
 
-use crate::util::ColorIndex;
-use nom::error::{ErrorKind, ParseError};
-use nom::Err;
+use crate::util::{nom_input_error_with_kind, ColorIndex};
+use nom::error::ErrorKind;
 use nom::IResult;
 use std::num::TryFromIntError;
 
@@ -170,12 +169,8 @@ impl Header {
 
         let (input, page_size) = nom::number::complete::le_u32(input)?;
         let (input, num_tables) = nom::number::complete::le_u32(input)?;
-        let table_count = usize::try_from(num_tables).map_err(|_| {
-            Err::Error(nom::error::Error::from_error_kind(
-                input,
-                ErrorKind::TooLarge,
-            ))
-        })?;
+        let table_count = usize::try_from(num_tables)
+            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
 
         let (input, next_unused_page) = PageIndex::parse(input)?;
         let (input, unknown) = nom::number::complete::le_u32(input)?;
@@ -206,12 +201,9 @@ impl Header {
 
     /// Parses and returns a page from the original data slice.
     pub fn page<'a>(&self, input: &'a [u8], page_index: &PageIndex) -> IResult<&'a [u8], Page> {
-        let position = self.page_offset(page_index).map_err(|_| {
-            Err::Error(nom::error::Error::from_error_kind(
-                input,
-                ErrorKind::TooLarge,
-            ))
-        })?;
+        let position = self
+            .page_offset(page_index)
+            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
         let (data, page) = Page::parse(&input[position..], self.page_size)?;
         Ok((data, page))
     }
@@ -302,12 +294,8 @@ impl Page {
 
     /// Parses a page of a PDB file.
     fn parse(page_data: &[u8], page_size: u32) -> IResult<&[u8], Page> {
-        let page_end = usize::try_from(page_size).map_err(|_| {
-            Err::Error(nom::error::Error::from_error_kind(
-                page_data,
-                ErrorKind::TooLarge,
-            ))
-        })?;
+        let page_end = usize::try_from(page_size)
+            .map_err(|_| nom_input_error_with_kind(page_data, ErrorKind::TooLarge))?;
 
         // Signature (?)
         let (input, _) = nom::bytes::complete::tag(b"\0\0\0\0")(page_data)?;
@@ -432,12 +420,8 @@ impl Page {
         page_data: &'a [u8],
         &RowOffset(row_offset): &RowOffset,
     ) -> IResult<&'a [u8], Row> {
-        let row_offset = usize::try_from(row_offset).map_err(|_| {
-            Err::Error(nom::error::Error::from_error_kind(
-                page_data,
-                ErrorKind::TooLarge,
-            ))
-        })?;
+        let row_offset = usize::try_from(row_offset)
+            .map_err(|_| nom_input_error_with_kind(page_data, ErrorKind::TooLarge))?;
         let offset = Self::HEADER_SIZE + row_offset;
         let (input, row) = Row::parse(&page_data[offset..], &self.page_type)?;
         Ok((input, row))
@@ -506,12 +490,7 @@ impl DeviceSQLString {
         let length = ((mangled_length - 1) / 2) - 1;
         let (input, data) = nom::bytes::complete::take(length)(input)?;
         std::str::from_utf8(data).map_or_else(
-            |_| {
-                Err(Err::Error(nom::error::Error::from_error_kind(
-                    input,
-                    ErrorKind::Char,
-                )))
-            },
+            |_| Err(nom_input_error_with_kind(input, ErrorKind::Char)),
             |text| Ok((input, Self::ShortASCII(text.to_owned()))),
         )
     }
@@ -523,12 +502,7 @@ impl DeviceSQLString {
             nom::bytes::complete::take(1usize),
         )(input)?;
         std::str::from_utf8(data).map_or_else(
-            |_| {
-                Err(Err::Error(nom::error::Error::from_error_kind(
-                    input,
-                    ErrorKind::Char,
-                )))
-            },
+            |_| Err(nom_input_error_with_kind(input, ErrorKind::Char)),
             |text| Ok((input, Self::LongASCII(text.to_owned()))),
         )
     }
@@ -547,12 +521,7 @@ impl DeviceSQLString {
         let (input, _) = nom::bytes::complete::tag(b"\x00\x00")(input)?;
 
         String::from_utf16(&data).map_or_else(
-            |_| {
-                Err(Err::Error(nom::error::Error::from_error_kind(
-                    input,
-                    ErrorKind::Char,
-                )))
-            },
+            |_| Err(nom_input_error_with_kind(input, ErrorKind::Char)),
             |text| Ok((input, Self::LongUTF16LE(text))),
         )
     }
