@@ -9,6 +9,7 @@ license = "MPL-2.0"
 keywords = ["rekordbox", "dj", "export", "database", "parser"]
 categories = ["parser-implementations"]
 edition = "2021"
+exclude = [".*"]
 
 [dependencies]
 nom = "6"
