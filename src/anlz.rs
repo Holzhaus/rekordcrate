@@ -559,6 +559,280 @@ impl From<u8> for TinyWaveformPreviewColumn {
 }
 
 #[derive(Debug)]
+/// Single Column value in a Waveform Color Preview.
+///
+/// See these the documentation for details:
+/// <https://djl-analysis.deepsymmetry.org/djl-analysis/track_metadata.html#color-preview-analysis>
+pub struct WaveformColorPreviewColumn {
+    /// Unknown field (somehow encodes the "whiteness").
+    pub unknown1: u8,
+    /// Unknown field (somehow encodes the "whiteness").
+    pub unknown2: u8,
+    /// Sound energy in the bottom half of the frequency range (<10 KHz).
+    pub energy_bottom_half_freq: u8,
+    /// Sound energy in the bottom third of the frequency range.
+    pub energy_bottom_third_freq: u8,
+    /// Sound energy in the mid of the frequency range.
+    pub energy_mid_third_freq: u8,
+    /// Sound energy in the top of the frequency range.
+    pub energy_top_third_freq: u8,
+    /// Combination of the sound energy of the bottom, mid and top thirds of the frequency range.
+    pub color: u8,
+    /// Combination of the all other values in this struct.
+    pub blue: u8,
+}
+
+impl WaveformColorPreviewColumn {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, unknown1) = nom::number::complete::u8(input)?;
+        let (input, unknown2) = nom::number::complete::u8(input)?;
+        let (input, energy_bottom_half_freq) = nom::number::complete::u8(input)?;
+        let (input, energy_bottom_third_freq) = nom::number::complete::u8(input)?;
+        let (input, energy_mid_third_freq) = nom::number::complete::u8(input)?;
+        let (input, energy_top_third_freq) = nom::number::complete::u8(input)?;
+        let (input, color) = nom::number::complete::u8(input)?;
+        let (input, blue) = nom::number::complete::u8(input)?;
+
+        Ok((
+            input,
+            Self {
+                unknown1,
+                unknown2,
+                energy_bottom_half_freq,
+                energy_bottom_third_freq,
+                energy_mid_third_freq,
+                energy_top_third_freq,
+                color,
+                blue,
+            },
+        ))
+    }
+}
+
+#[derive(Debug)]
+/// Single Column value in a Waveform Color Detail section.
+pub struct WaveformColorDetailColumn {
+    /// Red color component.
+    pub red: u8,
+    /// Green color component.
+    pub green: u8,
+    /// Blue color component.
+    pub blue: u8,
+    /// Height of the column.
+    pub height: u8,
+}
+
+impl WaveformColorDetailColumn {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, data) = nom::number::complete::be_u16(input)?;
+        let height = (data >> 2) as u8 * 0b11111;
+        let blue = (data >> 7) as u8 * 0b111;
+        let green = (data >> 10) as u8 * 0b111;
+        let red = (data >> 13) as u8 * 0b111;
+
+        Ok((
+            input,
+            Self {
+                red,
+                green,
+                blue,
+                height,
+            },
+        ))
+    }
+}
+
+#[derive(Debug)]
+/// Music classification that is used for Lightnight mode and based on rhythm, tempo kick drum and
+/// sound density.
+pub enum Mood {
+    /// Phrase types consist of "Intro", "Up", "Down", "Chorus", and "Outro". Other values in each
+    /// phrase entry cause the intro, chorus, and outro phrases to have their labels subdivided
+    /// into styes "1" or "2" (for example, "Intro 1"), and "up" is subdivided into style "Up 1",
+    /// "Up 2", or "Up 3".
+    High,
+    /// Phrase types are labeled "Intro", "Verse 1" through "Verse 6", "Chorus", "Bridge", and
+    /// "Outro".
+    Mid,
+    /// Phrase types are labeled "Intro", "Verse 1", "Verse 2", "Chorus", "Bridge", and "Outro".
+    /// There are three different phrase type values for each of "Verse 1" and "Verse 2", but
+    /// rekordbox makes no distinction between them.
+    Low,
+    /// Unknown value.
+    Unknown(u16),
+}
+
+impl Mood {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, mood_id) = nom::number::complete::be_u16(input)?;
+        let mood = Mood::from(mood_id);
+
+        Ok((input, mood))
+    }
+}
+
+impl From<u16> for Mood {
+    fn from(mood_id: u16) -> Self {
+        match mood_id {
+            1 => Self::High,
+            2 => Self::Mid,
+            3 => Self::Low,
+            x => Self::Unknown(x),
+        }
+    }
+}
+
+#[derive(Debug)]
+/// Stylistic track bank for Lightning mode.
+pub enum Bank {
+    /// Default bank variant, treated as `Cool`.
+    Default,
+    /// "Cool" bank variant.
+    Cool,
+    /// "Natural" bank variant.
+    Natural,
+    /// "Hot" bank variant.
+    Hot,
+    /// "Subtle" bank variant.
+    Subtle,
+    /// "Warm" bank variant.
+    Warm,
+    /// "Vivid" bank variant.
+    Vivid,
+    /// "Club 1" bank variant.
+    Club1,
+    /// "Club 2" bank variant.
+    Club2,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl Bank {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, bank_id) = nom::number::complete::u8(input)?;
+        let bank = Bank::from(bank_id);
+
+        Ok((input, bank))
+    }
+}
+
+impl From<u8> for Bank {
+    fn from(bank_id: u8) -> Self {
+        match bank_id {
+            0 => Self::Default,
+            1 => Self::Cool,
+            2 => Self::Natural,
+            3 => Self::Hot,
+            4 => Self::Subtle,
+            5 => Self::Warm,
+            6 => Self::Vivid,
+            7 => Self::Club1,
+            8 => Self::Club2,
+            x => Self::Unknown(x),
+        }
+    }
+}
+
+#[derive(Debug)]
+/// A song structure entry that represents a phrase in the track.
+pub struct Phrase {
+    /// Phrase number (starting at 1).
+    pub index: u16,
+    /// Beat number where this phrase begins.
+    pub beat: u16,
+    /// Kind of phrase that rekordbox has identified (?).
+    pub kind: u16,
+    /// Unknown field.
+    #[allow(dead_code)]
+    unknown1: u8,
+    /// Flag byte used for numbered variations (in case of the `High` mood).
+    ///
+    /// See the documentation for details:
+    /// <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#high-phrase-variants>
+    pub k1: u8,
+    /// Unknown field.
+    #[allow(dead_code)]
+    unknown2: u8,
+    /// Flag byte used for numbered variations (in case of the `High` mood).
+    ///
+    /// See the documentation for details:
+    /// <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#high-phrase-variants>
+    pub k2: u8,
+    /// Unknown field.
+    #[allow(dead_code)]
+    unknown3: u8,
+    /// Flag that determined if only `beat2` is used (0), or if `beat2`, `beat3` and `beat4` are
+    /// used (1).
+    pub b: u8,
+    /// Beat number.
+    pub beat2: u16,
+    /// Beat number.
+    pub beat3: u16,
+    /// Beat number.
+    pub beat4: u16,
+    /// Unknown field.
+    #[allow(dead_code)]
+    unknown4: u8,
+    /// Flag byte used for numbered variations (in case of the `High` mood).
+    ///
+    /// See the documentation for details:
+    /// <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#high-phrase-variants>
+    pub k3: u8,
+    /// Unknown field.
+    #[allow(dead_code)]
+    unknown5: u8,
+    /// Indicates if there are fill (non-phrase) beats at the end of the phrase.
+    pub fill: u8,
+    /// Beat number where the fill begins (if `fill` is non-zero).
+    pub beat_fill: u16,
+}
+
+impl Phrase {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, index) = nom::number::complete::be_u16(input)?;
+        let (input, beat) = nom::number::complete::be_u16(input)?;
+        let (input, kind) = nom::number::complete::be_u16(input)?;
+        let (input, unknown1) = nom::number::complete::u8(input)?;
+        let (input, k1) = nom::number::complete::u8(input)?;
+        let (input, unknown2) = nom::number::complete::u8(input)?;
+        let (input, k2) = nom::number::complete::u8(input)?;
+        let (input, unknown3) = nom::number::complete::u8(input)?;
+        let (input, b) = nom::number::complete::u8(input)?;
+        let (input, beat2) = nom::number::complete::be_u16(input)?;
+        let (input, beat3) = nom::number::complete::be_u16(input)?;
+        let (input, beat4) = nom::number::complete::be_u16(input)?;
+        let (input, unknown4) = nom::number::complete::u8(input)?;
+        let (input, k3) = nom::number::complete::u8(input)?;
+        let (input, unknown5) = nom::number::complete::u8(input)?;
+        let (input, fill) = nom::number::complete::u8(input)?;
+        let (input, beat_fill) = nom::number::complete::be_u16(input)?;
+
+        Ok((
+            input,
+            Self {
+                index,
+                beat,
+                kind,
+                unknown1,
+                k1,
+                unknown2,
+                k2,
+                unknown3,
+                b,
+                beat2,
+                beat3,
+                beat4,
+                unknown4,
+                k3,
+                unknown5,
+                fill,
+                beat_fill,
+            },
+        ))
+    }
+}
+
+#[derive(Debug)]
 /// Section content which differs depending on the section type.
 pub enum Content {
     /// All beats in the track.
@@ -620,6 +894,76 @@ pub enum Content {
         /// Waveform preview column data.
         data: Vec<TinyWaveformPreviewColumn>,
     },
+    /// Variable-width large monochrome version of the track waveform.
+    ///
+    /// Used in `.EXT` files.
+    WaveformDetail {
+        /// Size of a single entry, always 1.
+        len_entry_bytes: u32,
+        /// Number of entries in this section.
+        len_entries: u32,
+        /// Unknown field (apparently always `0x00960000`)
+        unknown: u32,
+        /// Waveform preview column data.
+        ///
+        /// Each entry represents one half-frame of audio data, and there are 75 frames per second,
+        /// so for each second of track audio there are 150 waveform detail entries.
+        data: Vec<WaveformPreviewColumn>,
+    },
+    /// Variable-width large monochrome version of the track waveform.
+    ///
+    /// Used in `.EXT` files.
+    WaveformColorPreview {
+        /// Size of a single entry, always 1.
+        len_entry_bytes: u32,
+        /// Number of entries in this section.
+        len_entries: u32,
+        /// Unknown field.
+        unknown: u32,
+        /// Waveform preview column data.
+        ///
+        /// Each entry represents one half-frame of audio data, and there are 75 frames per second,
+        /// so for each second of track audio there are 150 waveform detail entries.
+        data: Vec<WaveformColorPreviewColumn>,
+    },
+    /// Variable-width large colored version of the track waveform.
+    ///
+    /// Used in `.EXT` files.
+    WaveformColorDetail {
+        /// Size of a single entry, always 1.
+        len_entry_bytes: u32,
+        /// Number of entries in this section.
+        len_entries: u32,
+        /// Unknown field.
+        unknown: u32,
+        /// Waveform detail column data.
+        data: Vec<WaveformColorDetailColumn>,
+    },
+    /// Describes the structure of a sond (Intro, Chrous, Verse, etc.).
+    ///
+    /// Used in `.EXT` files.
+    SongStructure {
+        /// Size of a single entry, always 1.
+        len_entry_bytes: u32,
+        /// Number of entries in this section.
+        len_entries: u16,
+        /// Overall type of phrase structure.
+        mood: Mood,
+        /// Unknown field.
+        unknown1: u32,
+        /// Unknown field.
+        unknown2: u16,
+        /// Number of the beat at which the last recognized phrase ends.
+        end_beat: u16,
+        /// Unknown field.
+        unknown3: u16,
+        /// Stylistic bank assigned in Lightning Mode.
+        bank: Bank,
+        /// Unknown field.
+        unknown4: u8,
+        /// Phrase entry data.
+        data: Vec<Phrase>,
+    },
     /// Unknown content.
     Unknown {
         /// Unknown header data.
@@ -643,6 +987,10 @@ impl Content {
             ContentKind::VBR => Self::parse_vbr(input, header),
             ContentKind::WaveformPreview => Self::parse_waveform_preview(input, header),
             ContentKind::TinyWaveformPreview => Self::parse_tiny_waveform_preview(input, header),
+            ContentKind::WaveformDetail => Self::parse_waveform_detail(input, header),
+            ContentKind::WaveformColorPreview => Self::parse_waveform_color_preview(input, header),
+            ContentKind::WaveformColorDetail => Self::parse_waveform_color_detail(input, header),
+            ContentKind::SongStructure => Self::parse_song_structure(input, header),
             _ => Self::parse_unknown(input, header),
         }
     }
@@ -785,6 +1133,129 @@ impl Content {
             Content::TinyWaveformPreview {
                 len_preview,
                 unknown,
+                data,
+            },
+        ))
+    }
+
+    fn parse_waveform_detail<'a>(input: &'a [u8], header: &Header) -> IResult<&'a [u8], Self> {
+        let (input, len_entry_bytes) = nom::number::complete::be_u32(input)?;
+        let (input, len_entries) = nom::number::complete::be_u32(input)?;
+        let (input, unknown) = nom::number::complete::be_u32(input)?;
+        let (input, content_data_slice) = nom::bytes::complete::take(header.content_size())(input)?;
+        let data: Vec<WaveformPreviewColumn> = content_data_slice
+            .iter()
+            .cloned()
+            .map(WaveformPreviewColumn::from)
+            .collect();
+
+        Ok((
+            input,
+            Content::WaveformDetail {
+                len_entry_bytes,
+                len_entries,
+                unknown,
+                data,
+            },
+        ))
+    }
+
+    fn parse_waveform_color_preview<'a>(
+        input: &'a [u8],
+        _header: &Header,
+    ) -> IResult<&'a [u8], Self> {
+        let (input, len_entry_bytes) = nom::number::complete::be_u32(input)?;
+        let (input, len_entries) = nom::number::complete::be_u32(input)?;
+        let entry_count = match usize::try_from(len_entries) {
+            Ok(x) => x,
+            Err(_) => {
+                return Err(Err::Error(nom::error::Error::from_error_kind(
+                    input,
+                    ErrorKind::TooLarge,
+                )));
+            }
+        };
+
+        let (input, unknown) = nom::number::complete::be_u32(input)?;
+        let (input, data) =
+            nom::multi::count(WaveformColorPreviewColumn::parse, entry_count)(input)?;
+
+        Ok((
+            input,
+            Content::WaveformColorPreview {
+                len_entry_bytes,
+                len_entries,
+                unknown,
+                data,
+            },
+        ))
+    }
+
+    fn parse_waveform_color_detail<'a>(
+        input: &'a [u8],
+        _header: &Header,
+    ) -> IResult<&'a [u8], Self> {
+        let (input, len_entry_bytes) = nom::number::complete::be_u32(input)?;
+        let (input, len_entries) = nom::number::complete::be_u32(input)?;
+        let entry_count = match usize::try_from(len_entries) {
+            Ok(x) => x,
+            Err(_) => {
+                return Err(Err::Error(nom::error::Error::from_error_kind(
+                    input,
+                    ErrorKind::TooLarge,
+                )));
+            }
+        };
+
+        let (input, unknown) = nom::number::complete::be_u32(input)?;
+        let (input, data) =
+            nom::multi::count(WaveformColorDetailColumn::parse, entry_count)(input)?;
+
+        Ok((
+            input,
+            Content::WaveformColorDetail {
+                len_entry_bytes,
+                len_entries,
+                unknown,
+                data,
+            },
+        ))
+    }
+
+    fn parse_song_structure<'a>(input: &'a [u8], _header: &Header) -> IResult<&'a [u8], Self> {
+        let (input, len_entry_bytes) = nom::number::complete::be_u32(input)?;
+        let (input, len_entries) = nom::number::complete::be_u16(input)?;
+        let entry_count = match usize::try_from(len_entries) {
+            Ok(x) => x,
+            Err(_) => {
+                return Err(Err::Error(nom::error::Error::from_error_kind(
+                    input,
+                    ErrorKind::TooLarge,
+                )));
+            }
+        };
+
+        let (input, mood) = Mood::parse(input)?;
+        let (input, unknown1) = nom::number::complete::be_u32(input)?;
+        let (input, unknown2) = nom::number::complete::be_u16(input)?;
+        let (input, end_beat) = nom::number::complete::be_u16(input)?;
+        let (input, unknown3) = nom::number::complete::be_u16(input)?;
+        let (input, bank) = Bank::parse(input)?;
+        let (input, unknown4) = nom::number::complete::u8(input)?;
+        let (input, data) = nom::multi::count(Phrase::parse, entry_count)(input)?;
+
+        Ok((
+            input,
+            Content::SongStructure {
+                len_entry_bytes,
+                len_entries,
+                mood,
+                unknown1,
+                unknown2,
+                end_beat,
+                unknown3,
+                bank,
+                unknown4,
                 data,
             },
         ))
