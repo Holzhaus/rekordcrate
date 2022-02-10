@@ -1,5 +1,9 @@
 # rekordcrate - Library for parsing Pioneer Rekordbox device exports
 
+[![Version](https://img.shields.io/crates/v/rekordcrate)](https://crates.io/crates/rekordcrate)
+[![License](https://img.shields.io/github/license/Holzhaus/rekordcrate)](https://github.com/Holzhaus/rekordcrate/blob/main/COPYING)
+[![Build Status](https://img.shields.io/github/checks-status/Holzhaus/rekordcrate/main)](https://github.com/Holzhaus/rekordcrate/actions?query=branch%3Amain)
+
 *rekordcrate* is library to parse device exports for the CDJ/XDJ series players
 (usually exported from the Pioneer Rekordbox DJ software), written in Rust.
 
