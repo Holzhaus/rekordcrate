@@ -22,9 +22,8 @@
 //! - <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html>
 //! - <https://reverseengineering.stackexchange.com/questions/4311/help-reversing-a-edb-database-file-for-pioneers-rekordbox-software>
 
-use crate::util::ColorIndex;
-use nom::error::{ErrorKind, ParseError};
-use nom::Err;
+use crate::util::{nom_input_error_with_kind, ColorIndex};
+use nom::error::ErrorKind;
 use nom::IResult;
 
 #[derive(Debug)]
@@ -461,18 +460,14 @@ impl ExtendedCue {
         let (input, loop_numerator) = nom::number::complete::be_u16(input)?;
         let (input, loop_denominator) = nom::number::complete::be_u16(input)?;
         let (input, len_comment) = nom::number::complete::be_u32(input)?;
-        let len_comment = usize::try_from(len_comment).map_err(|_| {
-            Err::Error(nom::error::Error::from_error_kind(
-                input,
-                ErrorKind::TooLarge,
-            ))
-        })?;
+        let len_comment = usize::try_from(len_comment)
+            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
         let str_length = len_comment / 2 - 1;
         let (input, str_data) =
             nom::multi::count(nom::number::complete::be_u16, str_length)(input)?;
         let (input, _) = nom::bytes::complete::tag(b"\x00\x00")(input)?;
         let comment = String::from_utf16(&str_data)
-            .map_err(|_| Err::Error(nom::error::Error::from_error_kind(input, ErrorKind::Char)))?;
+            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::Char))?;
 
         let (input, hot_cue_color_index) = nom::number::complete::u8(input)?;
         let (input, hot_cue_color_red) = nom::number::complete::u8(input)?;
@@ -965,10 +960,7 @@ pub enum Content {
 impl Content {
     fn parse<'a>(input: &'a [u8], header: &Header) -> IResult<&'a [u8], Self> {
         match header.kind {
-            ContentKind::File => Err(Err::Error(nom::error::Error::from_error_kind(
-                input,
-                ErrorKind::Tag,
-            ))),
+            ContentKind::File => Err(nom_input_error_with_kind(input, ErrorKind::Tag)),
             ContentKind::BeatGrid => Self::parse_beatgrid(input, header),
             ContentKind::CueList => Self::parse_cuelist(input, header),
             ContentKind::ExtendedCueList => Self::parse_extendedcuelist(input, header),
@@ -1004,12 +996,8 @@ impl Content {
         let (input, list_type) = CueListType::parse(input)?;
         let (input, unknown) = nom::number::complete::be_u16(input)?;
         let (input, len_cues) = nom::number::complete::be_u16(input)?;
-        let len_cues = usize::try_from(len_cues).map_err(|_| {
-            Err::Error(nom::error::Error::from_error_kind(
-                input,
-                ErrorKind::TooLarge,
-            ))
-        })?;
+        let len_cues = usize::try_from(len_cues)
+            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
         let (input, memory_count) = nom::number::complete::be_u32(input)?;
         let (input, cues) = nom::multi::count(Cue::parse, len_cues)(input)?;
 
@@ -1027,12 +1015,8 @@ impl Content {
     fn parse_extendedcuelist<'a>(input: &'a [u8], _header: &Header) -> IResult<&'a [u8], Self> {
         let (input, list_type) = CueListType::parse(input)?;
         let (input, len_cues) = nom::number::complete::be_u16(input)?;
-        let len_cues = usize::try_from(len_cues).map_err(|_| {
-            Err::Error(nom::error::Error::from_error_kind(
-                input,
-                ErrorKind::TooLarge,
-            ))
-        })?;
+        let len_cues = usize::try_from(len_cues)
+            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
         let (input, _) = nom::bytes::complete::tag(b"00")(input)?;
         let (input, cues) = nom::multi::count(ExtendedCue::parse, len_cues)(input)?;
 
@@ -1041,19 +1025,15 @@ impl Content {
 
     fn parse_path<'a>(input: &'a [u8], _header: &Header) -> IResult<&'a [u8], Self> {
         let (input, len_path) = nom::number::complete::be_u32(input)?;
-        let len_path = usize::try_from(len_path).map_err(|_| {
-            Err::Error(nom::error::Error::from_error_kind(
-                input,
-                ErrorKind::TooLarge,
-            ))
-        })?;
+        let len_path = usize::try_from(len_path)
+            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
 
         let str_length = len_path / 2 - 1;
         let (input, str_data) =
             nom::multi::count(nom::number::complete::be_u16, str_length)(input)?;
         let (input, _) = nom::bytes::complete::tag(b"\x00\x00")(input)?;
         let path = String::from_utf16(&str_data)
-            .map_err(|_| Err::Error(nom::error::Error::from_error_kind(input, ErrorKind::Char)))?;
+            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::Char))?;
 
         Ok((input, Content::Path(path)))
     }
@@ -1137,12 +1117,8 @@ impl Content {
     ) -> IResult<&'a [u8], Self> {
         let (input, len_entry_bytes) = nom::number::complete::be_u32(input)?;
         let (input, len_entries) = nom::number::complete::be_u32(input)?;
-        let entry_count = usize::try_from(len_entries).map_err(|_| {
-            Err::Error(nom::error::Error::from_error_kind(
-                input,
-                ErrorKind::TooLarge,
-            ))
-        })?;
+        let entry_count = usize::try_from(len_entries)
+            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
 
         let (input, unknown) = nom::number::complete::be_u32(input)?;
         let (input, data) =
@@ -1165,12 +1141,8 @@ impl Content {
     ) -> IResult<&'a [u8], Self> {
         let (input, len_entry_bytes) = nom::number::complete::be_u32(input)?;
         let (input, len_entries) = nom::number::complete::be_u32(input)?;
-        let entry_count = usize::try_from(len_entries).map_err(|_| {
-            Err::Error(nom::error::Error::from_error_kind(
-                input,
-                ErrorKind::TooLarge,
-            ))
-        })?;
+        let entry_count = usize::try_from(len_entries)
+            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
 
         let (input, unknown) = nom::number::complete::be_u32(input)?;
         let (input, data) =
@@ -1190,12 +1162,8 @@ impl Content {
     fn parse_song_structure<'a>(input: &'a [u8], _header: &Header) -> IResult<&'a [u8], Self> {
         let (input, len_entry_bytes) = nom::number::complete::be_u32(input)?;
         let (input, len_entries) = nom::number::complete::be_u16(input)?;
-        let entry_count = usize::try_from(len_entries).map_err(|_| {
-            Err::Error(nom::error::Error::from_error_kind(
-                input,
-                ErrorKind::TooLarge,
-            ))
-        })?;
+        let entry_count = usize::try_from(len_entries)
+            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
 
         let (input, mood) = Mood::parse(input)?;
         let (input, unknown1) = nom::number::complete::be_u32(input)?;

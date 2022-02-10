@@ -8,7 +8,15 @@
 
 //! Common types used in multiple modules.
 
+use nom::error::{ErrorKind, ParseError};
+use nom::Err;
 use nom::IResult;
+
+#[must_use]
+/// Convenience method that returns a nom parse error with the given `ErrorKind`.
+pub fn nom_input_error_with_kind(input: &[u8], kind: ErrorKind) -> Err<nom::error::Error<&[u8]>> {
+    Err::Error(nom::error::Error::from_error_kind(input, kind))
+}
 
 #[derive(Debug)]
 /// Indexed Color identifiers used for memory cues and tracks.
