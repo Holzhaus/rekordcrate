@@ -24,6 +24,15 @@ directory) can be viewed using the `rekordcrate-anlz` binary:
 
 No, this library has been written independently.
 
+### Is the official documentation on the file format?
+
+There isn't any official documentation publicly available, but [James
+Elliott](https://github.com/brunchboy), [Henry
+Betts](https://github.com/henrybetts), [Fabian
+Lesniak](https://github.com/flesniak) and others reverse-engineered and
+documented it on
+[djl-analysis.deepsymmetry.org](https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/exports.html).
+
 ## License
 
 This software is licensed under the terms of the [Mozilla Public License
