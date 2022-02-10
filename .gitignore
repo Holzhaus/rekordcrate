@@ -1,1 +1,6 @@
+# Cargo target directory
 /target
+# Actual audio files in data directory (for license reasons)
+/data/*/Contents/**/*.mp3
+# KUVO profile files (because they apparently contain a key?)
+/data/*/PIONEER/djprofile.nxs
