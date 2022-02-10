@@ -1140,6 +1140,15 @@ impl Content {
 
     fn parse_waveform_detail<'a>(input: &'a [u8], header: &Header) -> IResult<&'a [u8], Self> {
         let (input, len_entry_bytes) = nom::number::complete::be_u32(input)?;
+        // All waveform detail entries should be 1 byte long. If we see other values here,
+        // some reverse-engineering is needed.
+        if len_entry_bytes != 2 {
+            return Err(Err::Error(nom::error::Error::from_error_kind(
+                input,
+                ErrorKind::LengthValue,
+            )));
+        }
+
         let (input, len_entries) = nom::number::complete::be_u32(input)?;
         let (input, unknown) = nom::number::complete::be_u32(input)?;
         let (input, content_data_slice) = nom::bytes::complete::take(header.content_size())(input)?;
@@ -1165,6 +1174,15 @@ impl Content {
         _header: &Header,
     ) -> IResult<&'a [u8], Self> {
         let (input, len_entry_bytes) = nom::number::complete::be_u32(input)?;
+        // All waveform color preview entries should be 6 bytes long. If we see other values here,
+        // some reverse-engineering is needed.
+        if len_entry_bytes != 2 {
+            return Err(Err::Error(nom::error::Error::from_error_kind(
+                input,
+                ErrorKind::LengthValue,
+            )));
+        }
+
         let (input, len_entries) = nom::number::complete::be_u32(input)?;
         let entry_count = match usize::try_from(len_entries) {
             Ok(x) => x,
@@ -1196,6 +1214,15 @@ impl Content {
         _header: &Header,
     ) -> IResult<&'a [u8], Self> {
         let (input, len_entry_bytes) = nom::number::complete::be_u32(input)?;
+        // All waveform color detail entries should be 2 bytes long. If we see other values here,
+        // some reverse-engineering is needed.
+        if len_entry_bytes != 2 {
+            return Err(Err::Error(nom::error::Error::from_error_kind(
+                input,
+                ErrorKind::LengthValue,
+            )));
+        }
+
         let (input, len_entries) = nom::number::complete::be_u32(input)?;
         let entry_count = match usize::try_from(len_entries) {
             Ok(x) => x,
@@ -1224,6 +1251,15 @@ impl Content {
 
     fn parse_song_structure<'a>(input: &'a [u8], _header: &Header) -> IResult<&'a [u8], Self> {
         let (input, len_entry_bytes) = nom::number::complete::be_u32(input)?;
+        // All phrase entries should be 24 bytes long. If we see other values here, some
+        // reverse-engineering is needed.
+        if len_entry_bytes != 24 {
+            return Err(Err::Error(nom::error::Error::from_error_kind(
+                input,
+                ErrorKind::LengthValue,
+            )));
+        }
+
         let (input, len_entries) = nom::number::complete::be_u16(input)?;
         let entry_count = match usize::try_from(len_entries) {
             Ok(x) => x,
