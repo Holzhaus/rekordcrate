@@ -399,12 +399,12 @@ impl Page {
         page_data: &'a [u8],
         page_size: u32,
     ) -> impl Iterator<Item = RowGroup> + 'a {
-        let row_groups_offset = usize::try_from(page_size).unwrap() - 2;
+        let row_groups_offset = usize::try_from(page_size).unwrap();
         self.row_group_counts()
             .map(usize::try_from)
             .map(Result::unwrap)
             .scan(row_groups_offset, |offset, num_rows_in_group| {
-                *offset -= num_rows_in_group * 2 + 2;
+                *offset -= num_rows_in_group * 2 + 4;
                 Some((*offset, num_rows_in_group))
             })
             .map(|(offset, num_rows_in_group)| {
