@@ -17,7 +17,7 @@ fn main() {
 
     for (i, table) in header.tables.iter().enumerate() {
         println!("Table {}: {:?}", i, table.page_type);
-        for page_index in table.page_indices() {
+        for page_index in table.page_indices(&header, &data) {
             let (_, page) = header
                 .page(&data, &page_index)
                 .expect("failed to parse page");
