@@ -512,13 +512,11 @@ impl DeviceSQLString {
         let (input, length) = nom::number::complete::le_u16(input)?;
         let (input, _) = nom::bytes::complete::tag(b"\x00")(input)?;
 
-        // TODO: Ensure that length is always even
-        //assert_eq!(length % 2, 0);
-        // Don't include the trailing two nullbytes in the string.
-        let str_length = usize::from(length) / 2 - 1;
+        // sanity check
+        debug_assert_eq!(length % 2, 0);
 
+        let str_length = usize::from(length - 4) / 2;
         let (input, data) = nom::multi::count(nom::number::complete::le_u16, str_length)(input)?;
-        let (input, _) = nom::bytes::complete::tag(b"\x00\x00")(input)?;
 
         String::from_utf16(&data).map_or_else(
             |_| Err(nom_input_error_with_kind(input, ErrorKind::Char)),
