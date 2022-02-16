@@ -797,7 +797,8 @@ impl Row {
         let (input, id) = nom::number::complete::le_u32(input)?;
         let (input, unknown3) = nom::number::complete::le_u32(input)?;
         let (input, unknown4) = nom::number::complete::u8(input)?;
-        let (input, name) = Self::parse_string_offset(input, row_data)?;
+        let (input, offset) = nom::number::complete::u8(input)?;
+        let (_, name) = DeviceSQLString::parse(&row_data[usize::from(offset)..])?;
 
         Ok((
             input,
