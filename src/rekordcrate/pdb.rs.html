@@ -1464,12 +1464,12 @@
         <span class="ident">page_data</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> [<span class="ident">u8</span>],
         <span class="ident">page_size</span>: <span class="ident">u32</span>,
     ) -&gt; <span class="kw">impl</span> <span class="ident">Iterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="ident">RowGroup</span><span class="op">&gt;</span> <span class="op">+</span> <span class="lifetime">&#39;a</span> {
-        <span class="kw">let</span> <span class="ident">row_groups_offset</span> <span class="op">=</span> <span class="ident">usize::try_from</span>(<span class="ident">page_size</span>).<span class="ident">unwrap</span>() <span class="op">-</span> <span class="number">2</span>;
+        <span class="kw">let</span> <span class="ident">row_groups_offset</span> <span class="op">=</span> <span class="ident">usize::try_from</span>(<span class="ident">page_size</span>).<span class="ident">unwrap</span>();
         <span class="self">self</span>.<span class="ident">row_group_counts</span>()
             .<span class="ident">map</span>(<span class="ident">usize::try_from</span>)
             .<span class="ident">map</span>(<span class="ident">Result::unwrap</span>)
             .<span class="ident">scan</span>(<span class="ident">row_groups_offset</span>, <span class="op">|</span><span class="ident">offset</span>, <span class="ident">num_rows_in_group</span><span class="op">|</span> {
-                <span class="kw-2">*</span><span class="ident">offset</span> <span class="op">-</span><span class="op">=</span> <span class="ident">num_rows_in_group</span> <span class="op">*</span> <span class="number">2</span> <span class="op">+</span> <span class="number">2</span>;
+                <span class="kw-2">*</span><span class="ident">offset</span> <span class="op">-</span><span class="op">=</span> <span class="ident">num_rows_in_group</span> <span class="op">*</span> <span class="number">2</span> <span class="op">+</span> <span class="number">4</span>;
                 <span class="prelude-val">Some</span>((<span class="kw-2">*</span><span class="ident">offset</span>, <span class="ident">num_rows_in_group</span>))
             })
             .<span class="ident">map</span>(<span class="op">|</span>(<span class="ident">offset</span>, <span class="ident">num_rows_in_group</span>)<span class="op">|</span> {
