@@ -1269,6 +1269,8 @@
 <span id="1268">1268</span>
 <span id="1269">1269</span>
 <span id="1270">1270</span>
+<span id="1271">1271</span>
+<span id="1272">1272</span>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) 2022 Jan Holthuis</span>
 <span class="comment">//</span>
 <span class="comment">// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy</span>
@@ -1278,7 +1280,9 @@
 <span class="comment">// SPDX-License-Identifier: MPL-2.0</span>
 
 <span class="doccomment">//! Parser for Rekordbox analysis files, that can be found inside nested subdirectories of the</span>
-<span class="doccomment">//! `PIONEER/USBANLZ` directory and can have the extensions `.DAT`, `.EXT` or `.2EX`.</span>
+<span class="doccomment">//! `PIONEER/USBANLZ` directory and can have the extensions `.DAT`, `.EXT` or `.2EX`. Note that</span>
+<span class="doccomment">//! these files are not only used for device exports, but also for local rekordbox databases. In</span>
+<span class="doccomment">//! that case, the directory can be found at `%APPDATA%\Pioneer\rekordbox\share\PIONEER\USBANLZ`.</span>
 <span class="doccomment">//!</span>
 <span class="doccomment">//! These files contain additional data (such as beatgrids, hotcues, waveforms and song structure</span>
 <span class="doccomment">//! information) that is not part of the PDB file.</span>
