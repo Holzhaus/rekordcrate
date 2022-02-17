@@ -5,6 +5,9 @@ use std::io::Write;
 use std::path::Path;
 
 fn main() {
+    // Make cargo rerun the build script if the data directory changes.
+    println!("cargo:rerun-if-changed=data");
+
     let out_dir = env::var("OUT_DIR").unwrap();
     let out_dir = Path::new(&out_dir);
     eprintln!("Writing tests to: {:?}", out_dir);
