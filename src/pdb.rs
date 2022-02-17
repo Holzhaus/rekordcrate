@@ -497,10 +497,12 @@ impl DeviceSQLString {
 
     fn parse_long_ascii(input: &[u8]) -> IResult<&[u8], DeviceSQLString> {
         let (input, _) = nom::bytes::complete::tag(b"\x40")(input)?;
-        let (input, data) = nom::multi::length_value(
-            nom::number::complete::le_u16,
-            nom::bytes::complete::take(1usize),
-        )(input)?;
+        let (input, length) = nom::number::complete::le_u16(input)?;
+        let (input, _) = nom::bytes::complete::tag(b"\x00")(input)?;
+
+        let str_length = usize::from(length - 4);
+        let (input, data) = nom::bytes::complete::take(str_length)(input)?;
+
         std::str::from_utf8(data).map_or_else(
             |_| Err(nom_input_error_with_kind(input, ErrorKind::Char)),
             |text| Ok((input, Self::LongASCII(text.to_owned()))),
