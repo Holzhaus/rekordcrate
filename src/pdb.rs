@@ -512,7 +512,8 @@ impl DeviceSQLString {
         let (input, length) = nom::number::complete::le_u16(input)?;
         let (input, _) = nom::bytes::complete::tag(b"\x00")(input)?;
 
-        // sanity check
+        // The length is in bytes, UTF-16 code points are always 2 bytes wide,
+        // so a valid length must be even.
         debug_assert_eq!(length % 2, 0);
 
         let str_length = usize::from(length - 4) / 2;
