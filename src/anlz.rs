@@ -7,7 +7,9 @@
 // SPDX-License-Identifier: MPL-2.0
 
 //! Parser for Rekordbox analysis files, that can be found inside nested subdirectories of the
-//! `PIONEER/USBANLZ` directory and can have the extensions `.DAT`, `.EXT` or `.2EX`.
+//! `PIONEER/USBANLZ` directory and can have the extensions `.DAT`, `.EXT` or `.2EX`. Note that
+//! these files are not only used for device exports, but also for local rekordbox databases. In
+//! that case, the directory can be found at `%APPDATA%\Pioneer\rekordbox\share\PIONEER\USBANLZ`.
 //!
 //! These files contain additional data (such as beatgrids, hotcues, waveforms and song structure
 //! information) that is not part of the PDB file.
