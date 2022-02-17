@@ -1,4 +1,5 @@
 #[test]
+#[allow(non_snake_case)]
 fn pdb_{name}() {{
     println!("Parsing file: {filepath}");
     let data = include_bytes!("{filepath}").as_slice();

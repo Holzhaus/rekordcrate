@@ -13,3 +13,6 @@ exclude = [".*"]
 
 [dependencies]
 nom = "7"
+
+[build-dependencies]
+glob = "0.3"
