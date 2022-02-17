@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Setting","Represents a setting file."]]});
