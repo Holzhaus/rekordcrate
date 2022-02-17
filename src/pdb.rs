@@ -117,23 +117,18 @@ impl<'a> Iterator for PageIndexIterator<'a> {
     type Item = PageIndex;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let current_page_index = self.current_page_index.clone()?;
+        let item = self.current_page_index.clone();
+        self.current_page_index = self
+            .current_page_index
+            .as_ref()
+            .filter(|current_page_index| (current_page_index != &&self.table.last_page))
+            .and_then(|current_page_index| {
+                let (_, current_page) = self.header.page(self.data, current_page_index).ok()?;
+                let next_page_index = current_page.next_page;
+                Some(next_page_index)
+            });
 
-        if current_page_index == self.table.last_page {
-            self.current_page_index = None;
-        } else {
-            let next_page = self.header.page(self.data, &current_page_index).ok()?.1;
-            let next_page_index = next_page.next_page;
-            self.current_page_index = Some(
-                self.header
-                    .page(self.data, &next_page_index)
-                    .ok()?
-                    .1
-                    .page_index,
-            );
-        }
-
-        Some(current_page_index)
+        item
     }
 }
 
