@@ -497,10 +497,12 @@ impl DeviceSQLString {
 
     fn parse_long_ascii(input: &[u8]) -> IResult<&[u8], DeviceSQLString> {
         let (input, _) = nom::bytes::complete::tag(b"\x40")(input)?;
-        let (input, data) = nom::multi::length_value(
-            nom::number::complete::le_u16,
-            nom::bytes::complete::take(1usize),
-        )(input)?;
+        let (input, length) = nom::number::complete::le_u16(input)?;
+        let (input, _) = nom::bytes::complete::tag(b"\x00")(input)?;
+
+        let str_length = usize::from(length - 4);
+        let (input, data) = nom::bytes::complete::take(str_length)(input)?;
+
         std::str::from_utf8(data).map_or_else(
             |_| Err(nom_input_error_with_kind(input, ErrorKind::Char)),
             |text| Ok((input, Self::LongASCII(text.to_owned()))),
@@ -512,13 +514,12 @@ impl DeviceSQLString {
         let (input, length) = nom::number::complete::le_u16(input)?;
         let (input, _) = nom::bytes::complete::tag(b"\x00")(input)?;
 
-        // TODO: Ensure that length is always even
-        //assert_eq!(length % 2, 0);
-        // Don't include the trailing two nullbytes in the string.
-        let str_length = usize::from(length) / 2 - 1;
+        // The length is in bytes, UTF-16 code points are always 2 bytes wide,
+        // so a valid length must be even.
+        debug_assert_eq!(length % 2, 0);
 
+        let str_length = usize::from(length - 4) / 2;
         let (input, data) = nom::multi::count(nom::number::complete::le_u16, str_length)(input)?;
-        let (input, _) = nom::bytes::complete::tag(b"\x00\x00")(input)?;
 
         String::from_utf16(&data).map_or_else(
             |_| Err(nom_input_error_with_kind(input, ErrorKind::Char)),
