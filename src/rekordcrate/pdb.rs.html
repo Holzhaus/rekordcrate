@@ -1063,6 +1063,7 @@
 <span id="1062">1062</span>
 <span id="1063">1063</span>
 <span id="1064">1064</span>
+<span id="1065">1065</span>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) 2022 Jan Holthuis</span>
 <span class="comment">//</span>
 <span class="comment">// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy</span>
@@ -1562,10 +1563,12 @@
 
     <span class="kw">fn</span> <span class="ident">parse_long_ascii</span>(<span class="ident">input</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) -&gt; <span class="ident">IResult</span><span class="op">&lt;</span><span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="ident">DeviceSQLString</span><span class="op">&gt;</span> {
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="kw">_</span>) <span class="op">=</span> <span class="ident">nom::bytes::complete::tag</span>(<span class="string">b&quot;\x40&quot;</span>)(<span class="ident">input</span>)<span class="question-mark">?</span>;
-        <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">data</span>) <span class="op">=</span> <span class="ident">nom::multi::length_value</span>(
-            <span class="ident">nom::number::complete::le_u16</span>,
-            <span class="ident">nom::bytes::complete::take</span>(<span class="number">1usize</span>),
-        )(<span class="ident">input</span>)<span class="question-mark">?</span>;
+        <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">length</span>) <span class="op">=</span> <span class="ident">nom::number::complete::le_u16</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
+        <span class="kw">let</span> (<span class="ident">input</span>, <span class="kw">_</span>) <span class="op">=</span> <span class="ident">nom::bytes::complete::tag</span>(<span class="string">b&quot;\x00&quot;</span>)(<span class="ident">input</span>)<span class="question-mark">?</span>;
+
+        <span class="kw">let</span> <span class="ident">str_length</span> <span class="op">=</span> <span class="ident">usize::from</span>(<span class="ident">length</span> <span class="op">-</span> <span class="number">4</span>);
+        <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">data</span>) <span class="op">=</span> <span class="ident">nom::bytes::complete::take</span>(<span class="ident">str_length</span>)(<span class="ident">input</span>)<span class="question-mark">?</span>;
+
         <span class="ident">std::str::from_utf8</span>(<span class="ident">data</span>).<span class="ident">map_or_else</span>(
             <span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="prelude-val">Err</span>(<span class="ident">nom_input_error_with_kind</span>(<span class="ident">input</span>, <span class="ident">ErrorKind::Char</span>)),
             <span class="op">|</span><span class="ident">text</span><span class="op">|</span> <span class="prelude-val">Ok</span>((<span class="ident">input</span>, <span class="ident"><span class="self">Self</span>::LongASCII</span>(<span class="ident">text</span>.<span class="ident">to_owned</span>()))),
@@ -1577,13 +1580,12 @@
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">length</span>) <span class="op">=</span> <span class="ident">nom::number::complete::le_u16</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="kw">_</span>) <span class="op">=</span> <span class="ident">nom::bytes::complete::tag</span>(<span class="string">b&quot;\x00&quot;</span>)(<span class="ident">input</span>)<span class="question-mark">?</span>;
 
-        <span class="comment">// TODO: Ensure that length is always even</span>
-        <span class="comment">//assert_eq!(length % 2, 0);</span>
-        <span class="comment">// Don&#39;t include the trailing two nullbytes in the string.</span>
-        <span class="kw">let</span> <span class="ident">str_length</span> <span class="op">=</span> <span class="ident">usize::from</span>(<span class="ident">length</span>) <span class="op">/</span> <span class="number">2</span> <span class="op">-</span> <span class="number">1</span>;
+        <span class="comment">// The length is in bytes, UTF-16 code points are always 2 bytes wide,</span>
+        <span class="comment">// so a valid length must be even.</span>
+        <span class="macro">debug_assert_eq!</span>(<span class="ident">length</span> <span class="op">%</span> <span class="number">2</span>, <span class="number">0</span>);
 
+        <span class="kw">let</span> <span class="ident">str_length</span> <span class="op">=</span> <span class="ident">usize::from</span>(<span class="ident">length</span> <span class="op">-</span> <span class="number">4</span>) <span class="op">/</span> <span class="number">2</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">data</span>) <span class="op">=</span> <span class="ident">nom::multi::count</span>(<span class="ident">nom::number::complete::le_u16</span>, <span class="ident">str_length</span>)(<span class="ident">input</span>)<span class="question-mark">?</span>;
-        <span class="kw">let</span> (<span class="ident">input</span>, <span class="kw">_</span>) <span class="op">=</span> <span class="ident">nom::bytes::complete::tag</span>(<span class="string">b&quot;\x00\x00&quot;</span>)(<span class="ident">input</span>)<span class="question-mark">?</span>;
 
         <span class="ident">String::from_utf16</span>(<span class="kw-2">&amp;</span><span class="ident">data</span>).<span class="ident">map_or_else</span>(
             <span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="prelude-val">Err</span>(<span class="ident">nom_input_error_with_kind</span>(<span class="ident">input</span>, <span class="ident">ErrorKind::Char</span>)),
