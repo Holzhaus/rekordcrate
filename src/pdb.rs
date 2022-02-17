@@ -95,6 +95,47 @@ impl PageIndex {
     }
 }
 
+struct PageIndexIterator<'a> {
+    current_page_index: Option<PageIndex>,
+    table: &'a Table,
+    header: &'a Header,
+    data: &'a [u8],
+}
+
+impl<'a> PageIndexIterator<'a> {
+    pub fn new(table: &'a Table, header: &'a Header, data: &'a [u8]) -> Self {
+        Self {
+            current_page_index: Some(table.first_page.clone()),
+            table,
+            header,
+            data,
+        }
+    }
+}
+
+impl<'a> Iterator for PageIndexIterator<'a> {
+    type Item = PageIndex;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let item = self.current_page_index.clone();
+        self.current_page_index = self
+            .current_page_index
+            .as_ref()
+            .filter(|current_page_index| (current_page_index != &&self.table.last_page))
+            .and_then(|current_page_index| {
+                let (_, current_page) = self.header.page(self.data, current_page_index).ok()?;
+                let next_page_index = current_page.next_page;
+                Some(next_page_index)
+            });
+
+        item
+    }
+}
+
+// TODO check if this makes sense, when new pages are added, this might not be
+// true
+impl std::iter::FusedIterator for PageIndexIterator<'_> {}
+
 /// Tables are linked lists of pages containing rows of a single type, which are organized
 /// into groups.
 #[derive(Debug)]
@@ -133,12 +174,12 @@ impl Table {
     }
 
     /// An iterator that yields all page indices belonging to this table.
-    pub fn page_indices(&self) -> impl Iterator<Item = PageIndex> {
-        let PageIndex(first_page_index) = self.first_page;
-        let PageIndex(last_page_index) = self.last_page;
-        (first_page_index..=last_page_index)
-            .into_iter()
-            .map(PageIndex)
+    pub fn page_indices<'a>(
+        &'a self,
+        header: &'a Header,
+        data: &'a [u8],
+    ) -> impl Iterator<Item = PageIndex> + 'a {
+        PageIndexIterator::new(self, header, data)
     }
 }
 
