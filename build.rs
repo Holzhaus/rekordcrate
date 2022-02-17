@@ -1,5 +1,5 @@
+use glob::glob;
 use std::env;
-use std::fs::read_dir;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
@@ -28,23 +28,27 @@ use rekordcrate::pdb::{{Header, RowGroup}};
     )
     .unwrap();
 
-    read_dir("./data/")
-        .expect("Failed to read directory")
-        .map(|x| {
-            let path = x.unwrap();
-            (path.file_name(), path.path())
-        })
-        .for_each(|(name, mut path)| {
-            path.push("PIONEER");
-            path.push("rekordbox");
-            path.push("export");
-            path.set_extension("pdb");
+    glob("data/*/PIONEER/rekordbox/export.pdb")
+        .expect("failed to read glob pattern")
+        .map(|entry| entry.unwrap())
+        .for_each(|path| {
+            let name = path
+                .iter()
+                .enumerate()
+                .filter_map(|(i, component)| {
+                    [1, 4]
+                        .contains(&i)
+                        .then(|| component)
+                        .and_then(|component| component.to_str())
+                })
+                .collect::<Vec<&str>>()
+                .join("_")
+                .replace(".", "_");
             eprintln!("Writing pdb test: {:?}", name);
-
             write!(
                 output_file,
                 include_str!("./tests/tests_pdb.rs.in"),
-                name = name.to_str().unwrap(),
+                name = name,
                 filepath = path.canonicalize().unwrap().to_str().unwrap(),
             )
             .unwrap();
@@ -63,52 +67,22 @@ use rekordcrate::anlz::ANLZ;
     )
     .unwrap();
 
-    read_dir("./data/")
-        .expect("Failed to read directory")
-        .map(|x| x.unwrap())
-        .filter_map(|entry| {
-            let name = entry.file_name().to_str().unwrap().to_owned();
-            let mut path = entry.path().canonicalize().unwrap();
-            path.push("PIONEER");
-            path.push("USBANLZ");
-            let entries = path.read_dir();
-            entries.map_or(None, |x| Some((name, x)))
-        })
-        .flat_map(|(name, entries)| {
-            entries.map(|x| x.unwrap()).map(move |entry| {
-                let new_name = entry.file_name().to_str().unwrap().to_owned();
-                let path = entry.path();
-                (format!("{}_{}", name, new_name), path)
-            })
-        })
-        .flat_map(|(name, entries)| {
-            entries
-                .read_dir()
-                .expect("Failed to read directory")
-                .map(|x| x.unwrap())
-                .map(move |entry| {
-                    let new_name = entry.file_name().to_str().unwrap().to_owned();
-                    let path = entry.path();
-                    (format!("{}_{}", name, new_name), path)
+    glob("data/*/PIONEER/USBANLZ/*/*/ANLZ*.*")
+        .expect("failed to read glob pattern")
+        .map(|entry| entry.unwrap())
+        .for_each(|path| {
+            let name = path
+                .iter()
+                .enumerate()
+                .filter_map(|(i, component)| {
+                    [1, 4, 5, 6]
+                        .contains(&i)
+                        .then(|| component)
+                        .and_then(|component| component.to_str())
                 })
-        })
-        .flat_map(|(name, entries)| {
-            entries
-                .read_dir()
-                .expect("Failed to read directory")
-                .map(|x| x.unwrap())
-                .map(move |entry| {
-                    let new_name = entry
-                        .file_name()
-                        .to_str()
-                        .unwrap()
-                        .to_owned()
-                        .replace(".", "_");
-                    let path = entry.path();
-                    (format!("{}_{}", name, new_name), path)
-                })
-        })
-        .for_each(|(name, path)| {
+                .collect::<Vec<&str>>()
+                .join("_")
+                .replace(".", "_");
             eprintln!("Writing anlz test: {:?}", name);
             write!(
                 output_file,
@@ -132,45 +106,22 @@ use rekordcrate::setting::Setting;
     )
     .unwrap();
 
-    read_dir("./data/")
-        .expect("Failed to read directory")
-        .map(|x| x.unwrap())
-        .filter_map(|entry| {
-            let name = entry.file_name().to_str().unwrap().to_owned();
-            let mut path = entry.path().canonicalize().unwrap();
-            path.push("PIONEER");
-            let entries = path.read_dir();
-            entries.map_or(None, |x| Some((name, x)))
-        })
-        .flat_map(|(name, entries)| {
-            entries
-                .filter_map(move |entry| {
-                    let entry = entry.ok();
-                    entry
-                        .as_ref()
-                        .and_then(|x| x.file_type().ok())
-                        .and_then(|x| x.is_file().then(move || entry.unwrap()))
+    glob("data/*/PIONEER/*.DAT")
+        .expect("failed to read glob pattern")
+        .map(|entry| entry.unwrap())
+        .for_each(|path| {
+            let name = path
+                .iter()
+                .enumerate()
+                .filter_map(|(i, component)| {
+                    [1, 3]
+                        .contains(&i)
+                        .then(|| component)
+                        .and_then(|component| component.to_str())
                 })
-                .filter(|entry| {
-                    entry
-                        .file_name()
-                        .to_str()
-                        .map_or(false, |file_name| file_name.ends_with(".DAT"))
-                })
-                .map(move |entry| {
-                    let new_name = entry
-                        .file_name()
-                        .to_str()
-                        .unwrap()
-                        .rsplit_once(".")
-                        .unwrap()
-                        .0
-                        .to_owned();
-                    let path = entry.path();
-                    (format!("{}_{}", name, new_name), path)
-                })
-        })
-        .for_each(|(name, path)| {
+                .collect::<Vec<&str>>()
+                .join("_")
+                .replace(".", "_");
             eprintln!("Writing setting test: {:?}", name);
             write!(
                 output_file,
