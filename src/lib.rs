@@ -25,4 +25,5 @@
 
 pub mod anlz;
 pub mod pdb;
+pub mod setting;
 pub mod util;
