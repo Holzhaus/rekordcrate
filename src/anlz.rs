@@ -1098,10 +1098,7 @@ impl Content {
         // All waveform detail entries should be 1 byte long. If we see other values here,
         // some reverse-engineering is needed.
         if len_entry_bytes != 2 {
-            return Err(Err::Error(nom::error::Error::from_error_kind(
-                input,
-                ErrorKind::LengthValue,
-            )));
+            return Err(nom_input_error_with_kind(input, ErrorKind::LengthValue));
         }
 
         let (input, len_entries) = nom::number::complete::be_u32(input)?;
@@ -1132,10 +1129,7 @@ impl Content {
         // All waveform color preview entries should be 6 bytes long. If we see other values here,
         // some reverse-engineering is needed.
         if len_entry_bytes != 2 {
-            return Err(Err::Error(nom::error::Error::from_error_kind(
-                input,
-                ErrorKind::LengthValue,
-            )));
+            return Err(nom_input_error_with_kind(input, ErrorKind::LengthValue));
         }
 
         let (input, len_entries) = nom::number::complete::be_u32(input)?;
@@ -1165,10 +1159,7 @@ impl Content {
         // All waveform color detail entries should be 2 bytes long. If we see other values here,
         // some reverse-engineering is needed.
         if len_entry_bytes != 2 {
-            return Err(Err::Error(nom::error::Error::from_error_kind(
-                input,
-                ErrorKind::LengthValue,
-            )));
+            return Err(nom_input_error_with_kind(input, ErrorKind::LengthValue));
         }
 
         let (input, len_entries) = nom::number::complete::be_u32(input)?;
@@ -1195,10 +1186,7 @@ impl Content {
         // All phrase entries should be 24 bytes long. If we see other values here, some
         // reverse-engineering is needed.
         if len_entry_bytes != 24 {
-            return Err(Err::Error(nom::error::Error::from_error_kind(
-                input,
-                ErrorKind::LengthValue,
-            )));
+            return Err(nom_input_error_with_kind(input, ErrorKind::LengthValue));
         }
 
         let (input, len_entries) = nom::number::complete::be_u16(input)?;
