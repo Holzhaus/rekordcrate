@@ -145,17 +145,28 @@ pub enum SettingData {
         unknown5: u16,
     },
     /// Payload of a `MYSETTING2.DAT` file (40 bytes).
-    MySetting2(Vec<u8>),
+    MySetting2 {
+        /// "VINYL SPEED ADJUST" setting.
+        vinyl_speed_adjust: VinylSpeedAdjust,
+        /// Unknown field.
+        unknown1: Vec<u8>,
+        /// "WAVEFORM DIVISIONS" setting.
+        waveform_divisions: WaveformDivisions,
+        /// "WAVEFORM / PHASE METER" setting.
+        waveform: Waveform,
+        /// Unknown field.
+        unknown2: u8,
+        /// "BEAT JUMP BEAT VALUE" setting.
+        beat_jump_beat_value: BeatJumpBeatValue,
+    },
     /// Payload of an unknown setting file.
     Unknown(Vec<u8>),
 }
 
 impl SettingData {
     fn parse(input: &[u8], len_data: u32) -> IResult<&[u8], Self> {
-        // TODO: Find a way to distinguish `MYSETTING.DAT` and `MYSETTING2.DAT` data fields (they
-        // have the same size).
         match len_data {
-            40 => Self::parse_mysetting(input),
+            40 => nom::branch::alt((Self::parse_mysetting2, Self::parse_mysetting))(input),
             _ => {
                 let data_size = usize::try_from(len_data)
                     .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
@@ -163,6 +174,32 @@ impl SettingData {
                 Ok((input, Self::Unknown(data.to_vec())))
             }
         }
+    }
+
+    fn parse_mysetting2(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, vinyl_speed_adjust) = VinylSpeedAdjust::parse(input)?;
+        let (input, unknown1) = nom::bytes::complete::take(3usize)(input)?;
+        let unknown1 = unknown1.to_vec();
+        let (input, waveform_divisions) = WaveformDivisions::parse(input)?;
+        let (input, _) = nom::bytes::complete::tag(&[0, 0, 0, 0, 0])(input)?;
+        let (input, waveform) = Waveform::parse(input)?;
+        let (input, unknown2) = nom::number::complete::u8(input)?;
+        let (input, beat_jump_beat_value) = BeatJumpBeatValue::parse(input)?;
+        let (input, _) = nom::bytes::complete::tag(&[
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ])(input)?;
+
+        Ok((
+            input,
+            Self::MySetting2 {
+                vinyl_speed_adjust,
+                unknown1,
+                waveform_divisions,
+                waveform,
+                unknown2,
+                beat_jump_beat_value,
+            },
+        ))
     }
 
     fn parse_mysetting(input: &[u8]) -> IResult<&[u8], Self> {
@@ -604,6 +641,123 @@ impl PhaseMeter {
         let value = match value {
             0x80 => Self::Type1,
             0x81 => Self::Type2,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "PLAYER > DJ SETTING > WAVEFORM / PHASE METER" of the "My Settings" page in the Rekordbox
+/// preferences.
+#[derive(Debug)]
+pub enum Waveform {
+    /// Named "WAVEFORM" in the Rekordbox preferences.
+    Waveform,
+    /// Named "PHASE METER" in the Rekordbox preferences.
+    PhaseMeter,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl Waveform {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x80 => Self::Waveform,
+            0x81 => Self::PhaseMeter,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "PLAYER > DJ SETTING > WAVEFORM DIVISIONS" of the "My Settings" page in the Rekordbox
+/// preferences.
+#[derive(Debug)]
+pub enum WaveformDivisions {
+    /// Named "TIME SCALE" in the Rekordbox preferences.
+    TimeScale,
+    /// Named "PHRASE" in the Rekordbox preferences.
+    Phrase,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl WaveformDivisions {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x80 => Self::TimeScale,
+            0x81 => Self::Phrase,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "PLAYER > DJ SETTING > VINYL SPEED ADJUST" of the "My Settings" page in the Rekordbox
+/// preferences.
+#[derive(Debug)]
+pub enum VinylSpeedAdjust {
+    /// Named "TOUCH & RELEASE" in the Rekordbox preferences.
+    TouchRelease,
+    /// Named "TOUCH" in the Rekordbox preferences.
+    Touch,
+    /// Named "RELEASE" in the Rekordbox preferences.
+    Release,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl VinylSpeedAdjust {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x80 => Self::TouchRelease,
+            0x81 => Self::Touch,
+            0x82 => Self::Release,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "PLAYER > DJ SETTING > BEAT JUMP BEAT VALUE" of the "My Settings" page in the Rekordbox
+/// preferences.
+#[derive(Debug)]
+pub enum BeatJumpBeatValue {
+    /// Named "1/2 BEAT" in the Rekordbox preferences.
+    HalfBeat,
+    /// Named "1 BEAT" in the Rekordbox preferences.
+    OneBeat,
+    /// Named "2 BEAT" in the Rekordbox preferences.
+    TwoBeat,
+    /// Named "4 BEAT" in the Rekordbox preferences.
+    FourBeat,
+    /// Named "8 BEAT" in the Rekordbox preferences.
+    EightBeat,
+    /// Named "16 BEAT" in the Rekordbox preferences.
+    SixteenBeat,
+    /// Named "32 BEAT" in the Rekordbox preferences.
+    ThirtytwoBeat,
+    /// Named "64 BEAT" in the Rekordbox preferences.
+    SixtyfourBeat,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl BeatJumpBeatValue {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x80 => Self::HalfBeat,
+            0x81 => Self::OneBeat,
+            0x82 => Self::TwoBeat,
+            0x83 => Self::FourBeat,
+            0x84 => Self::EightBeat,
+            0x85 => Self::SixteenBeat,
+            0x86 => Self::ThirtytwoBeat,
+            0x87 => Self::SixtyfourBeat,
             _ => Self::Unknown(value),
         };
         Ok((input, value))
