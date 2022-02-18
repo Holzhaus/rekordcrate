@@ -36,8 +36,15 @@ pub struct Setting {
     pub len_unknown1: u32,
     /// Unknown field.
     pub unknown1: Vec<u8>,
-    /// Unknown field.
-    pub unknown2: u32,
+    /// CRC16 XMODEM checksum. The checksum is calculated over the contents of the `unknown1`
+    /// field, except for `DJMSETTING.DAT` files where the checksum is calculated over all
+    /// preceding bytes including the length fields.
+    ///
+    /// See <https://reveng.sourceforge.io/crc-catalogue/all.htm#crc.cat.crc-16-xmodem> for
+    /// details.
+    pub checksum: u16,
+    /// Unknown field (apparently always `0000`).
+    pub unknown2: u16,
 }
 
 impl Setting {
@@ -64,8 +71,8 @@ impl Setting {
         let (input, len_unknown1) = nom::number::complete::le_u32(input)?;
         let (input, unknown1) = nom::bytes::complete::take(len_unknown1 as usize)(input)?;
         let unknown1 = unknown1.to_vec();
-
-        let (input, unknown2) = nom::number::complete::le_u32(input)?;
+        let (input, checksum) = nom::number::complete::le_u16(input)?;
+        let (input, unknown2) = nom::number::complete::le_u16(input)?;
         if !input.is_empty() {
             return Err(nom_input_error_with_kind(input, ErrorKind::Complete));
         }
@@ -79,6 +86,7 @@ impl Setting {
                 version,
                 len_unknown1,
                 unknown1,
+                checksum,
                 unknown2,
             },
         ))
