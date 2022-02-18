@@ -514,6 +514,9 @@ pub enum DeviceSQLString {
     LongASCII(String),
     /// A long UTF-16 little-endian encoded string (max 32767 characters).
     LongUTF16LE(String),
+    /// A ShortASCII variant that is needed to workaround the special ISRC string
+    /// NOTE: the serialized string is a null-terminated C-String
+    ISRCASCII(String),
 }
 
 impl DeviceSQLString {
@@ -521,7 +524,7 @@ impl DeviceSQLString {
         let (_, length_and_kind) = nom::number::complete::u8(input)?;
         match length_and_kind {
             0x40 => Self::parse_long_ascii(input),
-            0x90 => Self::parse_long_utf16le(input),
+            0x90 => nom::branch::alt((Self::parse_isrc_string, Self::parse_long_utf16le))(input),
             _ => Self::parse_short_ascii(input),
         }
     }
@@ -533,6 +536,17 @@ impl DeviceSQLString {
         std::str::from_utf8(data).map_or_else(
             |_| Err(nom_input_error_with_kind(input, ErrorKind::Char)),
             |text| Ok((input, Self::ShortASCII(text.to_owned()))),
+        )
+    }
+
+    fn parse_isrc_string(input: &[u8]) -> IResult<&[u8], DeviceSQLString> {
+        let (input, _) = nom::bytes::complete::tag(b"\x90")(input)?;
+        let (input, length) = nom::number::complete::le_u16(input)?;
+        let (input, _) = nom::bytes::complete::tag(b"\x00\x03")(input)?;
+        let (input, data) = nom::bytes::complete::take(length - 5)(input)?;
+        std::str::from_utf8(data).map_or_else(
+            |_| Err(nom_input_error_with_kind(input, ErrorKind::Char)),
+            |text| Ok((input, Self::ISRCASCII(text.to_owned()))),
         )
     }
 
