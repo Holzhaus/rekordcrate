@@ -35,7 +35,7 @@ pub struct Setting {
     /// Size of the `data` data in bytes.
     pub len_data: u32,
     /// Unknown field.
-    pub data: Vec<u8>,
+    pub data: SettingData,
     /// CRC16 XMODEM checksum. The checksum is calculated over the contents of the `data`
     /// field, except for `DJMSETTING.DAT` files where the checksum is calculated over all
     /// preceding bytes including the length fields.
@@ -71,10 +71,7 @@ impl Setting {
             .to_owned();
 
         let (input, len_data) = nom::number::complete::le_u32(input)?;
-        let data_size = usize::try_from(len_data)
-            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
-        let (input, data) = nom::bytes::complete::take(data_size)(input)?;
-        let data = data.to_vec();
+        let (input, data) = SettingData::parse(input, len_data)?;
         let (input, checksum) = nom::number::complete::le_u16(input)?;
         let (input, unknown) = nom::number::complete::le_u16(input)?;
         if !input.is_empty() {
@@ -94,5 +91,29 @@ impl Setting {
                 unknown,
             },
         ))
+    }
+}
+
+/// Data section of a `*SETTING.DAT` file.
+#[derive(Debug)]
+pub enum SettingData {
+    /// Payload of a `DEVSETTING.DAT` file (32 bytes).
+    DevSetting(Vec<u8>),
+    /// Payload of a `DJMMYSETTING.DAT` file (52 bytes).
+    DJMMySetting(Vec<u8>),
+    /// Payload of a `MYSETTING.DAT` file (40 bytes).
+    MySetting(Vec<u8>),
+    /// Payload of a `MYSETTING2.DAT` file (40 bytes).
+    MySetting2(Vec<u8>),
+    /// Payload of an unknown setting file.
+    Unknown(Vec<u8>),
+}
+
+impl SettingData {
+    fn parse(input: &[u8], len_data: u32) -> IResult<&[u8], Self> {
+        let data_size = usize::try_from(len_data)
+            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
+        let (input, data) = nom::bytes::complete::take(data_size)(input)?;
+        Ok((input, Self::Unknown(data.to_vec())))
     }
 }
