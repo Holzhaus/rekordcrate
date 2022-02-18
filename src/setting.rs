@@ -105,12 +105,28 @@ pub enum SettingData {
     MySetting {
         /// Unknown field.
         unknown1: Vec<u8>,
+        /// "ON AIR DISPLAY" setting.
+        on_air_display: OnAirDisplay,
+        /// "LCD BRIGHTNESS" setting.
+        lcd_brightness: LCDBrightness,
         /// "QUANTIZE" setting.
         quantize: Quantize,
         /// "AUTO CUE LEVEL" setting.
         auto_cue_level: AutoCueLevel,
+        /// "LANGUAGE" setting.
+        language: Language,
         /// Unknown field.
-        unknown2: Vec<u8>,
+        unknown2: u8,
+        /// "JOG RING BRIGHTNESS" setting.
+        jog_ring_brightness: JogRingBrightness,
+        /// "JOG RING INDICATOR" setting.
+        jog_ring_indicator: JogRingIndicator,
+        /// "SLIP FLASHING" setting.
+        slip_flashing: SlipFlashing,
+        /// Unknown field.
+        unknown3: Vec<u8>,
+        /// "DISC SLOT ILLUMINATION" setting.
+        disc_slot_illumination: DiscSlotIllumination,
         /// "EJECT/LOAD LOCK" setting.
         eject_lock: EjectLock,
         /// "SYNC" setting.
@@ -124,11 +140,11 @@ pub enum SettingData {
         /// "HOT CUE COLOR" setting.
         hotcue_color: HotCueColor,
         /// Unknown field (apparently always 0).
-        unknown3: u16,
+        unknown4: u16,
         /// "NEEDLE LOCK" setting.
         needle_lock: NeedleLock,
         /// Unknown field (apparently always 0).
-        unknown4: u16,
+        unknown5: u16,
         /// "TIME MODE" setting.
         time_mode: TimeMode,
         /// "TIME MODE" setting.
@@ -142,20 +158,24 @@ pub enum SettingData {
         /// "PHASE METER" setting.
         phase_meter: PhaseMeter,
         /// Unknown field (apparently always 0).
-        unknown5: u16,
+        unknown6: u16,
     },
     /// Payload of a `MYSETTING2.DAT` file (40 bytes).
     MySetting2 {
         /// "VINYL SPEED ADJUST" setting.
         vinyl_speed_adjust: VinylSpeedAdjust,
-        /// Unknown field.
-        unknown1: Vec<u8>,
+        /// "JOG DISPLAY MODE" setting.
+        jog_display_mode: JogDisplayMode,
+        /// "PAD/BUTTON BRIGHTNESS" setting.
+        pad_button_brightness: PadButtonBrightness,
+        /// "JOG LCD BRIGHTNESS" setting.
+        jog_lcd_brightness: JogLCDBrightness,
         /// "WAVEFORM DIVISIONS" setting.
         waveform_divisions: WaveformDivisions,
         /// "WAVEFORM / PHASE METER" setting.
         waveform: Waveform,
         /// Unknown field.
-        unknown2: u8,
+        unknown: u8,
         /// "BEAT JUMP BEAT VALUE" setting.
         beat_jump_beat_value: BeatJumpBeatValue,
     },
@@ -178,12 +198,13 @@ impl SettingData {
 
     fn parse_mysetting2(input: &[u8]) -> IResult<&[u8], Self> {
         let (input, vinyl_speed_adjust) = VinylSpeedAdjust::parse(input)?;
-        let (input, unknown1) = nom::bytes::complete::take(3usize)(input)?;
-        let unknown1 = unknown1.to_vec();
+        let (input, jog_display_mode) = JogDisplayMode::parse(input)?;
+        let (input, pad_button_brightness) = PadButtonBrightness::parse(input)?;
+        let (input, jog_lcd_brightness) = JogLCDBrightness::parse(input)?;
         let (input, waveform_divisions) = WaveformDivisions::parse(input)?;
         let (input, _) = nom::bytes::complete::tag(&[0, 0, 0, 0, 0])(input)?;
         let (input, waveform) = Waveform::parse(input)?;
-        let (input, unknown2) = nom::number::complete::u8(input)?;
+        let (input, unknown) = nom::number::complete::u8(input)?;
         let (input, beat_jump_beat_value) = BeatJumpBeatValue::parse(input)?;
         let (input, _) = nom::bytes::complete::tag(&[
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -193,59 +214,77 @@ impl SettingData {
             input,
             Self::MySetting2 {
                 vinyl_speed_adjust,
-                unknown1,
+                jog_display_mode,
+                pad_button_brightness,
+                jog_lcd_brightness,
                 waveform_divisions,
                 waveform,
-                unknown2,
+                unknown,
                 beat_jump_beat_value,
             },
         ))
     }
 
     fn parse_mysetting(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, unknown1) = nom::bytes::complete::take(10usize)(input)?;
+        let (input, unknown1) = nom::bytes::complete::take(8usize)(input)?;
         let unknown1 = unknown1.to_vec();
+        let (input, on_air_display) = OnAirDisplay::parse(input)?;
+        let (input, lcd_brightness) = LCDBrightness::parse(input)?;
         let (input, quantize) = Quantize::parse(input)?;
         let (input, auto_cue_level) = AutoCueLevel::parse(input)?;
-        let (input, unknown2) = nom::bytes::complete::take(9usize)(input)?;
-        let unknown2 = unknown2.to_vec();
+        let (input, language) = Language::parse(input)?;
+        let (input, unknown2) = nom::number::complete::u8(input)?;
+        let (input, jog_ring_brightness) = JogRingBrightness::parse(input)?;
+        let (input, jog_ring_indicator) = JogRingIndicator::parse(input)?;
+        let (input, slip_flashing) = SlipFlashing::parse(input)?;
+        let (input, unknown3) = nom::bytes::complete::take(3usize)(input)?;
+        let unknown3 = unknown3.to_vec();
+        let (input, disc_slot_illumination) = DiscSlotIllumination::parse(input)?;
         let (input, eject_lock) = EjectLock::parse(input)?;
         let (input, sync) = Sync::parse(input)?;
         let (input, play_mode) = PlayMode::parse(input)?;
         let (input, quantize_beat_value) = QuantizeBeatValue::parse(input)?;
         let (input, hotcue_autoload) = HotCueAutoLoad::parse(input)?;
         let (input, hotcue_color) = HotCueColor::parse(input)?;
-        let (input, unknown3) = nom::number::complete::be_u16(input)?;
-        let (input, needle_lock) = NeedleLock::parse(input)?;
         let (input, unknown4) = nom::number::complete::be_u16(input)?;
+        let (input, needle_lock) = NeedleLock::parse(input)?;
+        let (input, unknown5) = nom::number::complete::be_u16(input)?;
         let (input, time_mode) = TimeMode::parse(input)?;
         let (input, jog_mode) = JogMode::parse(input)?;
         let (input, auto_cue) = AutoCue::parse(input)?;
         let (input, master_tempo) = MasterTempo::parse(input)?;
         let (input, tempo_range) = TempoRange::parse(input)?;
         let (input, phase_meter) = PhaseMeter::parse(input)?;
-        let (input, unknown5) = nom::number::complete::be_u16(input)?;
+        let (input, unknown6) = nom::number::complete::be_u16(input)?;
         let data = Self::MySetting {
             unknown1,
+            on_air_display,
+            lcd_brightness,
             quantize,
             auto_cue_level,
+            language,
             unknown2,
+            jog_ring_brightness,
+            jog_ring_indicator,
+            slip_flashing,
+            unknown3,
+            disc_slot_illumination,
             eject_lock,
             sync,
             play_mode,
             quantize_beat_value,
             hotcue_autoload,
             hotcue_color,
-            unknown3,
-            needle_lock,
             unknown4,
+            needle_lock,
+            unknown5,
             time_mode,
             jog_mode,
             auto_cue,
             master_tempo,
             tempo_range,
             phase_meter,
-            unknown5,
+            unknown6,
         };
         Ok((input, data))
     }
@@ -758,6 +797,332 @@ impl BeatJumpBeatValue {
             0x85 => Self::SixteenBeat,
             0x86 => Self::ThirtytwoBeat,
             0x87 => Self::SixtyfourBeat,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "PLAYER > DISPLAY(LCD) > LANGUAGE" of the "My Settings" page in the Rekordbox
+/// preferences.
+#[derive(Debug)]
+pub enum Language {
+    /// Named "English" in the Rekordbox preferences.
+    English,
+    /// Named "Français" in the Rekordbox preferences.
+    French,
+    /// Named "Deutsch" in the Rekordbox preferences.
+    German,
+    /// Named "Italiano" in the Rekordbox preferences.
+    Italian,
+    /// Named "Nederlands" in the Rekordbox preferences.
+    Dutch,
+    /// Named "Español" in the Rekordbox preferences.
+    Spanish,
+    /// Named "Русский" in the Rekordbox preferences.
+    Russian,
+    /// Named "한국어" in the Rekordbox preferences.
+    Korean,
+    /// Named "简体中文" in the Rekordbox preferences.
+    ChineseSimplified,
+    /// Named "繁體中文" in the Rekordbox preferences.
+    ChineseTraditional,
+    /// Named "日本語" in the Rekordbox preferences.
+    Japanese,
+    /// Named "Português" in the Rekordbox preferences.
+    Portuguese,
+    /// Named "Svenska" in the Rekordbox preferences.
+    Swedish,
+    /// Named "Čeština" in the Rekordbox preferences.
+    Czech,
+    /// Named "Magyar" in the Rekordbox preferences.
+    Hungarian,
+    /// Named "Dansk" in the Rekordbox preferences.
+    Danish,
+    /// Named "Ελληνικά" in the Rekordbox preferences.
+    Greek,
+    /// Named "Türkçe" in the Rekordbox preferences.
+    Turkish,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl Language {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x81 => Self::English,
+            0x82 => Self::French,
+            0x83 => Self::German,
+            0x84 => Self::Italian,
+            0x85 => Self::Dutch,
+            0x86 => Self::Spanish,
+            0x87 => Self::Russian,
+            0x88 => Self::Korean,
+            0x89 => Self::ChineseSimplified,
+            0x8a => Self::ChineseTraditional,
+            0x8b => Self::Japanese,
+            0x8c => Self::Portuguese,
+            0x8d => Self::Swedish,
+            0x8e => Self::Czech,
+            0x8f => Self::Hungarian,
+            0x90 => Self::Danish,
+            0x91 => Self::Greek,
+            0x92 => Self::Turkish,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "PLAYER > DISPLAY(LCD) > LCD BRIGHTNESS" of the "My Settings" page in the Rekordbox
+/// preferences.
+#[derive(Debug)]
+pub enum LCDBrightness {
+    /// Named "1" in the Rekordbox preferences.
+    One,
+    /// Named "2" in the Rekordbox preferences.
+    Two,
+    /// Named "3" in the Rekordbox preferences.
+    Three,
+    /// Named "4" in the Rekordbox preferences.
+    Four,
+    /// Named "5" in the Rekordbox preferences.
+    Five,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl LCDBrightness {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x81 => Self::One,
+            0x82 => Self::Two,
+            0x83 => Self::Three,
+            0x84 => Self::Four,
+            0x85 => Self::Five,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "PLAYER > DISPLAY(LCD) > JOG LCD BRIGHTNESS" of the "My Settings" page in the Rekordbox
+/// preferences.
+#[derive(Debug)]
+pub enum JogLCDBrightness {
+    /// Named "1" in the Rekordbox preferences.
+    One,
+    /// Named "2" in the Rekordbox preferences.
+    Two,
+    /// Named "3" in the Rekordbox preferences.
+    Three,
+    /// Named "4" in the Rekordbox preferences.
+    Four,
+    /// Named "5" in the Rekordbox preferences.
+    Five,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl JogLCDBrightness {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x81 => Self::One,
+            0x82 => Self::Two,
+            0x83 => Self::Three,
+            0x84 => Self::Four,
+            0x85 => Self::Five,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "PLAYER > DISPLAY(LCD) > JOG DISPLAY MODE" of the "My Settings" page in the Rekordbox
+/// preferences.
+#[derive(Debug)]
+pub enum JogDisplayMode {
+    /// Named "AUTO" in the Rekordbox preferences.
+    Auto,
+    /// Named "INFO" in the Rekordbox preferences.
+    Info,
+    /// Named "SIMPLE" in the Rekordbox preferences.
+    Simple,
+    /// Named "ARTWORK" in the Rekordbox preferences.
+    Artwork,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl JogDisplayMode {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x80 => Self::Auto,
+            0x81 => Self::Info,
+            0x82 => Self::Simple,
+            0x83 => Self::Artwork,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "PLAYER > DISPLAY(INDICATOR) > SLIP FLASHING" of the "My Settings" page in the Rekordbox
+/// preferences.
+#[derive(Debug)]
+pub enum SlipFlashing {
+    /// Named "OFF" in the Rekordbox preferences.
+    Off,
+    /// Named "ON" in the Rekordbox preferences.
+    On,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl SlipFlashing {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x80 => Self::Off,
+            0x81 => Self::On,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "PLAYER > DISPLAY(INDICATOR) > ON AIR DISPLAY" of the "My Settings" page in the Rekordbox
+/// preferences.
+#[derive(Debug)]
+pub enum OnAirDisplay {
+    /// Named "OFF" in the Rekordbox preferences.
+    Off,
+    /// Named "ON" in the Rekordbox preferences.
+    On,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl OnAirDisplay {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x80 => Self::Off,
+            0x81 => Self::On,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "PLAYER > DISPLAY(INDICATOR) > JOG RING BRIGHTNESS" of the "My Settings" page in the Rekordbox
+/// preferences.
+#[derive(Debug)]
+pub enum JogRingBrightness {
+    /// Named "OFF" in the Rekordbox preferences.
+    Off,
+    /// Named "1 (Dark)" in the Rekordbox preferences.
+    Dark,
+    /// Named "2 (Bright)" in the Rekordbox preferences.
+    Bright,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl JogRingBrightness {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x80 => Self::Off,
+            0x81 => Self::Dark,
+            0x82 => Self::Bright,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "PLAYER > DISPLAY(INDICATOR) > JOG RING INDICATOR" of the "My Settings" page in the Rekordbox
+/// preferences.
+#[derive(Debug)]
+pub enum JogRingIndicator {
+    /// Named "OFF" in the Rekordbox preferences.
+    Off,
+    /// Named "ON" in the Rekordbox preferences.
+    On,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl JogRingIndicator {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x80 => Self::Off,
+            0x81 => Self::On,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "PLAYER > DISPLAY(INDICATOR) > DISC SLOT ILLUMINATION" of the "My Settings" page in the Rekordbox
+/// preferences.
+#[derive(Debug)]
+pub enum DiscSlotIllumination {
+    /// Named "OFF" in the Rekordbox preferences.
+    Off,
+    /// Named "1 (Dark)" in the Rekordbox preferences.
+    Dark,
+    /// Named "2 (Bright)" in the Rekordbox preferences.
+    Bright,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl DiscSlotIllumination {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x80 => Self::Off,
+            0x81 => Self::Dark,
+            0x82 => Self::Bright,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "PLAYER > DISPLAY(INDICATOR) > PAD/BUTTON BRIGHTNESS" of the "My Settings" page in the Rekordbox
+/// preferences.
+#[derive(Debug)]
+pub enum PadButtonBrightness {
+    /// Named "1" in the Rekordbox preferences.
+    One,
+    /// Named "2" in the Rekordbox preferences.
+    Two,
+    /// Named "3" in the Rekordbox preferences.
+    Three,
+    /// Named "4" in the Rekordbox preferences.
+    Four,
+    /// Named "5" in the Rekordbox preferences.
+    Five,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl PadButtonBrightness {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x81 => Self::One,
+            0x82 => Self::Two,
+            0x83 => Self::Three,
+            0x84 => Self::Four,
             _ => Self::Unknown(value),
         };
         Ok((input, value))
