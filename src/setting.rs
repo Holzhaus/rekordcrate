@@ -49,27 +49,31 @@ pub struct Setting {
 
 impl Setting {
     /// Parses the Setting file and returns the structure.
-    pub fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, len_stringdata) = nom::number::complete::le_u32(input)?;
-        let len_stringdatasection = (len_stringdata as usize) / 3;
-        let (input, company) = nom::bytes::complete::take(len_stringdatasection)(input)?;
+    pub fn parse(orig_input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, len_stringdata) = nom::number::complete::le_u32(orig_input)?;
+        let stringdata_size = usize::try_from(len_stringdata)
+            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
+        let stringdatasection_size = stringdata_size / 3;
+        let (input, company) = nom::bytes::complete::take(stringdatasection_size)(input)?;
         let company = std::str::from_utf8(company)
             .unwrap()
             .trim_end_matches('\0')
             .to_owned();
-        let (input, software) = nom::bytes::complete::take(len_stringdatasection)(input)?;
+        let (input, software) = nom::bytes::complete::take(stringdatasection_size)(input)?;
         let software = std::str::from_utf8(software)
             .unwrap()
             .trim_end_matches('\0')
             .to_owned();
-        let (input, version) = nom::bytes::complete::take(len_stringdatasection)(input)?;
+        let (input, version) = nom::bytes::complete::take(stringdatasection_size)(input)?;
         let version = std::str::from_utf8(version)
             .unwrap()
             .trim_end_matches('\0')
             .to_owned();
 
         let (input, len_unknown1) = nom::number::complete::le_u32(input)?;
-        let (input, unknown1) = nom::bytes::complete::take(len_unknown1 as usize)(input)?;
+        let unknown1_size = usize::try_from(len_unknown1)
+            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
+        let (input, unknown1) = nom::bytes::complete::take(unknown1_size)(input)?;
         let unknown1 = unknown1.to_vec();
         let (input, checksum) = nom::number::complete::le_u16(input)?;
         let (input, unknown2) = nom::number::complete::le_u16(input)?;
