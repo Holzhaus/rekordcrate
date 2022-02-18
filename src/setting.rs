@@ -32,11 +32,11 @@ pub struct Setting {
     pub software: String,
     /// Some kind of version number.
     pub version: String,
-    /// Size of the `unknown1` data in bytes.
-    pub len_unknown1: u32,
+    /// Size of the `data` data in bytes.
+    pub len_data: u32,
     /// Unknown field.
-    pub unknown1: Vec<u8>,
-    /// CRC16 XMODEM checksum. The checksum is calculated over the contents of the `unknown1`
+    pub data: Vec<u8>,
+    /// CRC16 XMODEM checksum. The checksum is calculated over the contents of the `data`
     /// field, except for `DJMSETTING.DAT` files where the checksum is calculated over all
     /// preceding bytes including the length fields.
     ///
@@ -44,7 +44,7 @@ pub struct Setting {
     /// details.
     pub checksum: u16,
     /// Unknown field (apparently always `0000`).
-    pub unknown2: u16,
+    pub unknown: u16,
 }
 
 impl Setting {
@@ -70,13 +70,13 @@ impl Setting {
             .trim_end_matches('\0')
             .to_owned();
 
-        let (input, len_unknown1) = nom::number::complete::le_u32(input)?;
-        let unknown1_size = usize::try_from(len_unknown1)
+        let (input, len_data) = nom::number::complete::le_u32(input)?;
+        let data_size = usize::try_from(len_data)
             .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
-        let (input, unknown1) = nom::bytes::complete::take(unknown1_size)(input)?;
-        let unknown1 = unknown1.to_vec();
+        let (input, data) = nom::bytes::complete::take(data_size)(input)?;
+        let data = data.to_vec();
         let (input, checksum) = nom::number::complete::le_u16(input)?;
-        let (input, unknown2) = nom::number::complete::le_u16(input)?;
+        let (input, unknown) = nom::number::complete::le_u16(input)?;
         if !input.is_empty() {
             return Err(nom_input_error_with_kind(input, ErrorKind::Complete));
         }
@@ -88,10 +88,10 @@ impl Setting {
                 company,
                 software,
                 version,
-                len_unknown1,
-                unknown1,
+                len_data,
+                data,
                 checksum,
-                unknown2,
+                unknown,
             },
         ))
     }
