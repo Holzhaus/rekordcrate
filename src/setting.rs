@@ -100,7 +100,18 @@ pub enum SettingData {
     /// Payload of a `DEVSETTING.DAT` file (32 bytes).
     DevSetting(Vec<u8>),
     /// Payload of a `DJMMYSETTING.DAT` file (52 bytes).
-    DJMMySetting(Vec<u8>),
+    DJMMySetting {
+        /// Unknown field.
+        unknown1: Vec<u8>,
+        /// "CH FADER CURVE" setting.
+        channel_fader_curve: ChannelFaderCurve,
+        /// "CROSSFADER CURVE" setting.
+        crossfader_curve: CrossfaderCurve,
+        /// Unknown field.
+        unknown2: Vec<u8>,
+        /// "CH FADER CURVE (LONG FADER)" setting.
+        channel_fader_curve_long_fader: ChannelFaderCurveLongFader,
+    },
     /// Payload of a `MYSETTING.DAT` file (40 bytes).
     MySetting {
         /// Unknown field.
@@ -187,6 +198,7 @@ impl SettingData {
     fn parse(input: &[u8], len_data: u32) -> IResult<&[u8], Self> {
         match len_data {
             40 => nom::branch::alt((Self::parse_mysetting2, Self::parse_mysetting))(input),
+            52 => Self::parse_djmmysetting(input),
             _ => {
                 let data_size = usize::try_from(len_data)
                     .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
@@ -194,6 +206,27 @@ impl SettingData {
                 Ok((input, Self::Unknown(data.to_vec())))
             }
         }
+    }
+
+    fn parse_djmmysetting(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, unknown1) = nom::bytes::complete::take(12usize)(input)?;
+        let unknown1 = unknown1.to_vec();
+        let (input, channel_fader_curve) = ChannelFaderCurve::parse(input)?;
+        let (input, crossfader_curve) = CrossfaderCurve::parse(input)?;
+        let (input, unknown2) = nom::bytes::complete::take(10usize)(input)?;
+        let unknown2 = unknown2.to_vec();
+        let (input, channel_fader_curve_long_fader) = ChannelFaderCurveLongFader::parse(input)?;
+        let (input, _) = nom::bytes::complete::tag(&[
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ])(input)?;
+        let data = Self::DJMMySetting {
+            unknown1,
+            channel_fader_curve,
+            crossfader_curve,
+            unknown2,
+            channel_fader_curve_long_fader,
+        };
+        Ok((input, data))
     }
 
     fn parse_mysetting2(input: &[u8]) -> IResult<&[u8], Self> {
@@ -1123,6 +1156,89 @@ impl PadButtonBrightness {
             0x82 => Self::Two,
             0x83 => Self::Three,
             0x84 => Self::Four,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "MIXER > DJ SETTING > CH FADER CURVE" of the "My Settings" page in the Rekordbox
+/// preferences.
+#[derive(Debug)]
+pub enum ChannelFaderCurve {
+    /// Steep volume raise when the fader is moved near the top.
+    SteepTop,
+    /// Linear volume raise when the fader is moved.
+    Linear,
+    /// Steep volume raise when the fader is moved near the bottom.
+    SteepBottom,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl ChannelFaderCurve {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x80 => Self::SteepTop,
+            0x81 => Self::Linear,
+            0x82 => Self::SteepBottom,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "MIXER > DJ SETTING > CROSSFADER CURVE" of the "My Settings" page in the Rekordbox
+/// preferences.
+#[derive(Debug)]
+pub enum CrossfaderCurve {
+    /// Logarithmic volume raise of the other channel near the edges of the fader.
+    ConstantPower,
+    /// Steep linear volume raise of the other channel near the edges of the fader, no volume
+    /// change in the center.
+    SlowCut,
+    /// Steep linear volume raise of the other channel near the edges of the fader, no volume
+    /// change in the center.
+    FastCut,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl CrossfaderCurve {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x80 => Self::ConstantPower,
+            0x81 => Self::SlowCut,
+            0x82 => Self::FastCut,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "MIXER > DJ SETTING > CH FADER CURVE (LONG FADER)" of the "My Settings" page in the
+/// Rekordbox preferences.
+#[derive(Debug)]
+pub enum ChannelFaderCurveLongFader {
+    /// Very steep volume raise when the fader is moved the near the top (e.g. y = x⁵).
+    Exponential,
+    /// Steep volume raise when the fader is moved the near the top (e.g. y = x²).
+    Smooth,
+    /// Linear volume raise when the fader is moved (e.g. y = k * x).
+    Linear,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl ChannelFaderCurveLongFader {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x80 => Self::Exponential,
+            0x81 => Self::Smooth,
+            0x82 => Self::Linear,
             _ => Self::Unknown(value),
         };
         Ok((input, value))
