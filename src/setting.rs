@@ -107,6 +107,22 @@ pub enum SettingData {
         channel_fader_curve: ChannelFaderCurve,
         /// "CROSSFADER CURVE" setting.
         crossfader_curve: CrossfaderCurve,
+        /// "HEADPHONES PRE EQ" setting.
+        headphones_pre_eq: HeadphonesPreEQ,
+        /// "HEADPHONES MONO SPLIT" setting.
+        headphones_mono_split: HeadphonesMonoSplit,
+        /// "BEAT FX QUANTIZE" setting.
+        beat_fx_quantize: BeatFXQuantize,
+        /// "MIC LOW CUT" setting.
+        mic_low_cut: MicLowCut,
+        /// "TALK OVER MODE" setting.
+        talk_over_mode: TalkOverMode,
+        /// "TALK OVER LEVEL" setting.
+        talk_over_level: TalkOverLevel,
+        /// "MIDI CH" setting.
+        midi_channel: MidiChannel,
+        /// "MIDI BUTTON TYPE" setting.
+        midi_button_type: MidiButtonType,
         /// Unknown field.
         unknown2: Vec<u8>,
         /// "CH FADER CURVE (LONG FADER)" setting.
@@ -213,7 +229,15 @@ impl SettingData {
         let unknown1 = unknown1.to_vec();
         let (input, channel_fader_curve) = ChannelFaderCurve::parse(input)?;
         let (input, crossfader_curve) = CrossfaderCurve::parse(input)?;
-        let (input, unknown2) = nom::bytes::complete::take(10usize)(input)?;
+        let (input, headphones_pre_eq) = HeadphonesPreEQ::parse(input)?;
+        let (input, headphones_mono_split) = HeadphonesMonoSplit::parse(input)?;
+        let (input, beat_fx_quantize) = BeatFXQuantize::parse(input)?;
+        let (input, mic_low_cut) = MicLowCut::parse(input)?;
+        let (input, talk_over_mode) = TalkOverMode::parse(input)?;
+        let (input, talk_over_level) = TalkOverLevel::parse(input)?;
+        let (input, midi_channel) = MidiChannel::parse(input)?;
+        let (input, midi_button_type) = MidiButtonType::parse(input)?;
+        let (input, unknown2) = nom::bytes::complete::take(2usize)(input)?;
         let unknown2 = unknown2.to_vec();
         let (input, channel_fader_curve_long_fader) = ChannelFaderCurveLongFader::parse(input)?;
         let (input, _) = nom::bytes::complete::tag(&[0; 27])(input)?;
@@ -221,6 +245,14 @@ impl SettingData {
             unknown1,
             channel_fader_curve,
             crossfader_curve,
+            headphones_pre_eq,
+            headphones_mono_split,
+            beat_fx_quantize,
+            mic_low_cut,
+            talk_over_mode,
+            talk_over_level,
+            midi_channel,
+            midi_button_type,
             unknown2,
             channel_fader_curve_long_fader,
         };
@@ -1235,6 +1267,246 @@ impl ChannelFaderCurveLongFader {
             0x80 => Self::Exponential,
             0x81 => Self::Smooth,
             0x82 => Self::Linear,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "MIXER > DJ SETTING > HEADPHONES PRE EQ" of the "My Settings" page in the
+/// Rekordbox preferences.
+#[derive(Debug)]
+pub enum HeadphonesPreEQ {
+    /// Named "POST EQ" in the Rekordbox preferences.
+    PostEQ,
+    /// Named "PRE EQ" in the Rekordbox preferences.
+    PreEQ,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl HeadphonesPreEQ {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x80 => Self::PostEQ,
+            0x81 => Self::PreEQ,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "MIXER > DJ SETTING > HEADPHONES MONO SPLIT" of the "My Settings" page in the
+/// Rekordbox preferences.
+#[derive(Debug)]
+pub enum HeadphonesMonoSplit {
+    /// Named "MONO SPLIT" in the Rekordbox preferences.
+    MonoSplit,
+    /// Named "STEREO" in the Rekordbox preferences.
+    Stereo,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl HeadphonesMonoSplit {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x80 => Self::Stereo,
+            0x81 => Self::MonoSplit,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "MIXER > DJ SETTING > BEAT FX QUANTIZE" of the "My Settings" page in the
+/// Rekordbox preferences.
+#[derive(Debug)]
+pub enum BeatFXQuantize {
+    /// Named "OFF" in the Rekordbox preferences.
+    Off,
+    /// Named "ON" in the Rekordbox preferences.
+    On,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl BeatFXQuantize {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x80 => Self::Off,
+            0x81 => Self::On,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "MIXER > DJ SETTING > MIC LOW CUT" of the "My Settings" page in the
+/// Rekordbox preferences.
+#[derive(Debug)]
+pub enum MicLowCut {
+    /// Named "OFF" in the Rekordbox preferences.
+    Off,
+    /// Named "ON(for MC)" in the Rekordbox preferences.
+    On,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl MicLowCut {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x80 => Self::Off,
+            0x81 => Self::On,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "MIXER > DJ SETTING > TALK OVER MODE" of the "My Settings" page in the Rekordbox
+/// preferences.
+#[derive(Debug)]
+pub enum TalkOverMode {
+    /// Named "ADVANCED" in the Rekordbox preferences.
+    Advanced,
+    /// Named "NORMAL" in the Rekordbox preferences.
+    Normal,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl TalkOverMode {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x80 => Self::Advanced,
+            0x81 => Self::Normal,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "MIXER > DJ SETTING > TALK OVER LEVEL" of the "My Settings" page in the Rekordbox
+/// preferences.
+#[derive(Debug)]
+pub enum TalkOverLevel {
+    /// Named "-24dB" in the Rekordbox preferences.
+    Minus24dB,
+    /// Named "-18dB" in the Rekordbox preferences.
+    Minus18dB,
+    /// Named "-12dB" in the Rekordbox preferences.
+    Minus12dB,
+    /// Named "-6dB" in the Rekordbox preferences.
+    Minus6dB,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl TalkOverLevel {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x80 => Self::Minus24dB,
+            0x81 => Self::Minus18dB,
+            0x82 => Self::Minus12dB,
+            0x83 => Self::Minus6dB,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "MIXER > DJ SETTING > MIDI CH" of the "My Settings" page in the Rekordbox
+/// preferences.
+#[derive(Debug)]
+pub enum MidiChannel {
+    /// Named "1" in the Rekordbox preferences.
+    One,
+    /// Named "2" in the Rekordbox preferences.
+    Two,
+    /// Named "3" in the Rekordbox preferences.
+    Three,
+    /// Named "4" in the Rekordbox preferences.
+    Four,
+    /// Named "5" in the Rekordbox preferences.
+    Five,
+    /// Named "6" in the Rekordbox preferences.
+    Six,
+    /// Named "7" in the Rekordbox preferences.
+    Seven,
+    /// Named "8" in the Rekordbox preferences.
+    Eight,
+    /// Named "9" in the Rekordbox preferences.
+    Nine,
+    /// Named "10" in the Rekordbox preferences.
+    Ten,
+    /// Named "11" in the Rekordbox preferences.
+    Eleven,
+    /// Named "12" in the Rekordbox preferences.
+    Twelve,
+    /// Named "13" in the Rekordbox preferences.
+    Thirteen,
+    /// Named "14" in the Rekordbox preferences.
+    Fourteen,
+    /// Named "15" in the Rekordbox preferences.
+    Fifteen,
+    /// Named "16" in the Rekordbox preferences.
+    Sixteen,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl MidiChannel {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x80 => Self::One,
+            0x81 => Self::Two,
+            0x82 => Self::Three,
+            0x83 => Self::Four,
+            0x84 => Self::Five,
+            0x85 => Self::Six,
+            0x86 => Self::Seven,
+            0x87 => Self::Eight,
+            0x88 => Self::Nine,
+            0x89 => Self::Ten,
+            0x8a => Self::Eleven,
+            0x8b => Self::Twelve,
+            0x8c => Self::Thirteen,
+            0x8d => Self::Fourteen,
+            0x8e => Self::Fifteen,
+            0x8f => Self::Sixteen,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "MIXER > DJ SETTING > MIDI BUTTON TYPE" of the "My Settings" page in the Rekordbox
+/// preferences.
+#[derive(Debug)]
+pub enum MidiButtonType {
+    /// Named "TOGGLE" in the Rekordbox preferences.
+    Toggle,
+    /// Named "TRIGGER" in the Rekordbox preferences.
+    Trigger,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl MidiButtonType {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x80 => Self::Toggle,
+            0x81 => Self::Trigger,
             _ => Self::Unknown(value),
         };
         Ok((input, value))
