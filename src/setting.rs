@@ -102,7 +102,7 @@ pub enum SettingData {
     /// Payload of a `DJMMYSETTING.DAT` file (52 bytes).
     DJMMySetting {
         /// Unknown field.
-        unknown1: Vec<u8>,
+        unknown: Vec<u8>,
         /// "CH FADER CURVE" setting.
         channel_fader_curve: ChannelFaderCurve,
         /// "CROSSFADER CURVE" setting.
@@ -123,8 +123,10 @@ pub enum SettingData {
         midi_channel: MidiChannel,
         /// "MIDI BUTTON TYPE" setting.
         midi_button_type: MidiButtonType,
-        /// Unknown field.
-        unknown2: Vec<u8>,
+        /// "BRIGHTNESS > DISPLAY" setting.
+        display_brightness: MixerDisplayBrightness,
+        /// "BRIGHTNESS > INDICATOR" setting.
+        indicator_brightness: MixerIndicatorBrightness,
         /// "CH FADER CURVE (LONG FADER)" setting.
         channel_fader_curve_long_fader: ChannelFaderCurveLongFader,
     },
@@ -225,8 +227,8 @@ impl SettingData {
     }
 
     fn parse_djmmysetting(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, unknown1) = nom::bytes::complete::take(12usize)(input)?;
-        let unknown1 = unknown1.to_vec();
+        let (input, unknown) = nom::bytes::complete::take(12usize)(input)?;
+        let unknown = unknown.to_vec();
         let (input, channel_fader_curve) = ChannelFaderCurve::parse(input)?;
         let (input, crossfader_curve) = CrossfaderCurve::parse(input)?;
         let (input, headphones_pre_eq) = HeadphonesPreEQ::parse(input)?;
@@ -237,12 +239,12 @@ impl SettingData {
         let (input, talk_over_level) = TalkOverLevel::parse(input)?;
         let (input, midi_channel) = MidiChannel::parse(input)?;
         let (input, midi_button_type) = MidiButtonType::parse(input)?;
-        let (input, unknown2) = nom::bytes::complete::take(2usize)(input)?;
-        let unknown2 = unknown2.to_vec();
+        let (input, display_brightness) = MixerDisplayBrightness::parse(input)?;
+        let (input, indicator_brightness) = MixerIndicatorBrightness::parse(input)?;
         let (input, channel_fader_curve_long_fader) = ChannelFaderCurveLongFader::parse(input)?;
         let (input, _) = nom::bytes::complete::tag(&[0; 27])(input)?;
         let data = Self::DJMMySetting {
-            unknown1,
+            unknown,
             channel_fader_curve,
             crossfader_curve,
             headphones_pre_eq,
@@ -253,7 +255,8 @@ impl SettingData {
             talk_over_level,
             midi_channel,
             midi_button_type,
-            unknown2,
+            display_brightness,
+            indicator_brightness,
             channel_fader_curve_long_fader,
         };
         Ok((input, data))
@@ -1507,6 +1510,69 @@ impl MidiButtonType {
         let value = match value {
             0x80 => Self::Toggle,
             0x81 => Self::Trigger,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "MIXER > BRIGHTNESS > DISPLAY" of the "My Settings" page in the Rekordbox
+/// preferences.
+#[derive(Debug)]
+pub enum MixerDisplayBrightness {
+    /// Named "WHITE" in the Rekordbox preferences.
+    White,
+    /// Named "1" in the Rekordbox preferences.
+    One,
+    /// Named "2" in the Rekordbox preferences.
+    Two,
+    /// Named "3" in the Rekordbox preferences.
+    Three,
+    /// Named "4" in the Rekordbox preferences.
+    Four,
+    /// Named "5" in the Rekordbox preferences.
+    Five,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl MixerDisplayBrightness {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x80 => Self::White,
+            0x81 => Self::One,
+            0x82 => Self::Two,
+            0x83 => Self::Three,
+            0x84 => Self::Four,
+            0x85 => Self::Five,
+            _ => Self::Unknown(value),
+        };
+        Ok((input, value))
+    }
+}
+
+/// Found at "MIXER > BRIGHTNESS > INDICATOR" of the "My Settings" page in the Rekordbox
+/// preferences.
+#[derive(Debug)]
+pub enum MixerIndicatorBrightness {
+    /// Named "1" in the Rekordbox preferences.
+    One,
+    /// Named "2" in the Rekordbox preferences.
+    Two,
+    /// Named "3" in the Rekordbox preferences.
+    Three,
+    /// Unknown value.
+    Unknown(u8),
+}
+
+impl MixerIndicatorBrightness {
+    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
+        let (input, value) = nom::number::complete::u8(input)?;
+        let value = match value {
+            0x80 => Self::One,
+            0x81 => Self::Two,
+            0x82 => Self::Three,
             _ => Self::Unknown(value),
         };
         Ok((input, value))
