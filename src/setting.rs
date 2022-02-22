@@ -216,9 +216,7 @@ impl SettingData {
         let (input, unknown2) = nom::bytes::complete::take(10usize)(input)?;
         let unknown2 = unknown2.to_vec();
         let (input, channel_fader_curve_long_fader) = ChannelFaderCurveLongFader::parse(input)?;
-        let (input, _) = nom::bytes::complete::tag(&[
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        ])(input)?;
+        let (input, _) = nom::bytes::complete::tag(&[0; 27])(input)?;
         let data = Self::DJMMySetting {
             unknown1,
             channel_fader_curve,
@@ -235,13 +233,11 @@ impl SettingData {
         let (input, pad_button_brightness) = PadButtonBrightness::parse(input)?;
         let (input, jog_lcd_brightness) = JogLCDBrightness::parse(input)?;
         let (input, waveform_divisions) = WaveformDivisions::parse(input)?;
-        let (input, _) = nom::bytes::complete::tag(&[0, 0, 0, 0, 0])(input)?;
+        let (input, _) = nom::bytes::complete::tag(&[0; 5])(input)?;
         let (input, waveform) = Waveform::parse(input)?;
         let (input, unknown) = nom::number::complete::u8(input)?;
         let (input, beat_jump_beat_value) = BeatJumpBeatValue::parse(input)?;
-        let (input, _) = nom::bytes::complete::tag(&[
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-        ])(input)?;
+        let (input, _) = nom::bytes::complete::tag(&[0; 27])(input)?;
 
         Ok((
             input,
