@@ -6,4 +6,9 @@ fn setting_{name}() {{
     let mut reader = Cursor::new(data);
     let setting = Setting::read(&mut reader).expect("failed to parse setting file");
     println!("Setting file: {{:#?}}", setting);
+
+    let mut new_data = Vec::with_capacity(data.len());
+    let mut writer = Cursor::new(&mut new_data);
+    setting.write_to(&mut writer).expect("failed to write setting file");
+    assert_eq!(data, new_data);
 }}
