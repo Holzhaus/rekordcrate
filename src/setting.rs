@@ -192,12 +192,11 @@ pub enum SettingData {
 /// Rekordbox preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum PlayMode {
     /// Named "CONTINUE / ON" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    Continue,
+    Continue = 0x80,
     /// Named "SINGLE / OFF" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     Single,
 }
 
@@ -205,12 +204,11 @@ pub enum PlayMode {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum EjectLock {
     /// Named "UNLOCK" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    Unlock,
+    Unlock = 0x80,
     /// Named "LOCK" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     Lock,
 }
 
@@ -218,12 +216,11 @@ pub enum EjectLock {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum NeedleLock {
     /// Named "UNLOCK" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    Unlock,
+    Unlock = 0x80,
     /// Named "LOCK" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     Lock,
 }
 
@@ -231,47 +228,41 @@ pub enum NeedleLock {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum QuantizeBeatValue {
     /// Named "1/8 Beat" in the Rekordbox preferences.
-    #[brw(magic = 0x83u8)]
-    EighthBeat,
+    EighthBeat = 0x83,
     /// Named "1/4 Beat" in the Rekordbox preferences.
-    #[brw(magic = 0x82u8)]
-    QuarterBeat,
+    QuarterBeat = 0x82,
     /// Named "1/2 Beat" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
-    HalfBeat,
+    HalfBeat = 0x81,
     /// Named "1 Beat" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    FullBeat,
+    FullBeat = 0x80,
 }
 
 /// Found at "PLAYER > DJ SETTING > HOT CUE AUTO LOAD" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum HotCueAutoLoad {
     /// Named "OFF" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    Off,
+    Off = 0x80,
     /// Named "rekordbox SETTING" in the Rekordbox preferences.
-    #[brw(magic = 0x82u8)]
-    RekordboxSetting,
+    RekordboxSetting = 0x82,
     /// Named "On" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
-    On,
+    On = 0x81,
 }
 
 /// Found at "PLAYER > DJ SETTING > HOT CUE COLOR" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum HotCueColor {
     /// Named "OFF" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    Off,
+    Off = 0x80,
     /// Named "On" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     On,
 }
 
@@ -279,46 +270,37 @@ pub enum HotCueColor {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum AutoCueLevel {
     /// Named "-78dB" in the Rekordbox preferences.
-    #[brw(magic = 0x87u8)]
-    Minus78dB,
+    Minus78dB = 0x87,
     /// Named "-72dB" in the Rekordbox preferences.
-    #[brw(magic = 0x86u8)]
-    Minus72dB,
+    Minus72dB = 0x86,
     /// Named "-66dB" in the Rekordbox preferences.
-    #[brw(magic = 0x85u8)]
-    Minus66dB,
+    Minus66dB = 0x85,
     /// Named "-60dB" in the Rekordbox preferences.
-    #[brw(magic = 0x84u8)]
-    Minus60dB,
+    Minus60dB = 0x84,
     /// Named "-54dB" in the Rekordbox preferences.
-    #[brw(magic = 0x83u8)]
-    Minus54dB,
+    Minus54dB = 0x83,
     /// Named "-48dB" in the Rekordbox preferences.
-    #[brw(magic = 0x82u8)]
-    Minus48dB,
+    Minus48dB = 0x82,
     /// Named "-42dB" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
-    Minus42dB,
+    Minus42dB = 0x81,
     /// Named "-36dB" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    Minus36dB,
+    Minus36dB = 0x80,
     /// Named "MEMORY" in the Rekordbox preferences.
-    #[brw(magic = 0x88u8)]
-    Memory,
+    Memory = 0x88,
 }
 
 /// Found at "PLAYER > DJ SETTING > TIME MODE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum TimeMode {
     /// Named "Elapsed" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    Elapsed,
+    Elapsed = 0x80,
     /// Named "REMAIN" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     Remain,
 }
 
@@ -326,12 +308,11 @@ pub enum TimeMode {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum AutoCue {
     /// Named "OFF" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    Off,
+    Off = 0x80,
     /// Named "ON" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     On,
 }
 
@@ -339,31 +320,27 @@ pub enum AutoCue {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum JogMode {
     /// Named "VINYL" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
-    Vinyl,
+    Vinyl = 0x80,
     /// Named "CDJ" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    CDJ,
+    CDJ = 0x81,
 }
 
 /// Found at "PLAYER > DJ SETTING > TEMPO RANGE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum TempoRange {
     /// Named "±6" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    SixPercent,
+    SixPercent = 0x80,
     /// Named "±10" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     TenPercent,
     /// Named "±16" in the Rekordbox preferences.
-    #[brw(magic = 0x82u8)]
     SixteenPercent,
     /// Named "WIDE" in the Rekordbox preferences.
-    #[brw(magic = 0x83u8)]
     Wide,
 }
 
@@ -371,12 +348,11 @@ pub enum TempoRange {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum MasterTempo {
     /// Named "OFF" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    Off,
+    Off = 0x80,
     /// Named "ON" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     On,
 }
 
@@ -384,12 +360,11 @@ pub enum MasterTempo {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum Quantize {
     /// Named "OFF" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    Off,
+    Off = 0x80,
     /// Named "ON" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     On,
 }
 
@@ -397,12 +372,11 @@ pub enum Quantize {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum Sync {
     /// Named "OFF" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    Off,
+    Off = 0x80,
     /// Named "ON" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     On,
 }
 
@@ -410,12 +384,11 @@ pub enum Sync {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum PhaseMeter {
     /// Named "TYPE 1" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    Type1,
+    Type1 = 0x80,
     /// Named "TYPE 2" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     Type2,
 }
 
@@ -423,12 +396,11 @@ pub enum PhaseMeter {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum Waveform {
     /// Named "WAVEFORM" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    Waveform,
+    Waveform = 0x80,
     /// Named "PHASE METER" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     PhaseMeter,
 }
 
@@ -436,12 +408,11 @@ pub enum Waveform {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum WaveformDivisions {
     /// Named "TIME SCALE" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    TimeScale,
+    TimeScale = 0x80,
     /// Named "PHRASE" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     Phrase,
 }
 
@@ -449,15 +420,13 @@ pub enum WaveformDivisions {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum VinylSpeedAdjust {
     /// Named "TOUCH & RELEASE" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    TouchRelease,
+    TouchRelease = 0x80,
     /// Named "TOUCH" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     Touch,
     /// Named "RELEASE" in the Rekordbox preferences.
-    #[brw(magic = 0x82u8)]
     Release,
 }
 
@@ -465,30 +434,23 @@ pub enum VinylSpeedAdjust {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum BeatJumpBeatValue {
     /// Named "1/2 BEAT" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    HalfBeat,
+    HalfBeat = 0x80,
     /// Named "1 BEAT" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     OneBeat,
     /// Named "2 BEAT" in the Rekordbox preferences.
-    #[brw(magic = 0x82u8)]
     TwoBeat,
     /// Named "4 BEAT" in the Rekordbox preferences.
-    #[brw(magic = 0x83u8)]
     FourBeat,
     /// Named "8 BEAT" in the Rekordbox preferences.
-    #[brw(magic = 0x84u8)]
     EightBeat,
     /// Named "16 BEAT" in the Rekordbox preferences.
-    #[brw(magic = 0x85u8)]
     SixteenBeat,
     /// Named "32 BEAT" in the Rekordbox preferences.
-    #[brw(magic = 0x86u8)]
     ThirtytwoBeat,
     /// Named "64 BEAT" in the Rekordbox preferences.
-    #[brw(magic = 0x87u8)]
     SixtyfourBeat,
 }
 
@@ -496,60 +458,43 @@ pub enum BeatJumpBeatValue {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum Language {
     /// Named "English" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
-    English,
+    English = 0x81,
     /// Named "Français" in the Rekordbox preferences.
-    #[brw(magic = 0x82u8)]
     French,
     /// Named "Deutsch" in the Rekordbox preferences.
-    #[brw(magic = 0x83u8)]
     German,
     /// Named "Italiano" in the Rekordbox preferences.
-    #[brw(magic = 0x84u8)]
     Italian,
     /// Named "Nederlands" in the Rekordbox preferences.
-    #[brw(magic = 0x85u8)]
     Dutch,
     /// Named "Español" in the Rekordbox preferences.
-    #[brw(magic = 0x86u8)]
     Spanish,
     /// Named "Русский" in the Rekordbox preferences.
-    #[brw(magic = 0x87u8)]
     Russian,
     /// Named "한국어" in the Rekordbox preferences.
-    #[brw(magic = 0x88u8)]
     Korean,
     /// Named "简体中文" in the Rekordbox preferences.
-    #[brw(magic = 0x89u8)]
     ChineseSimplified,
     /// Named "繁體中文" in the Rekordbox preferences.
-    #[brw(magic = 0x8au8)]
     ChineseTraditional,
     /// Named "日本語" in the Rekordbox preferences.
-    #[brw(magic = 0x8bu8)]
     Japanese,
     /// Named "Português" in the Rekordbox preferences.
-    #[brw(magic = 0x8cu8)]
     Portuguese,
     /// Named "Svenska" in the Rekordbox preferences.
-    #[brw(magic = 0x8du8)]
     Swedish,
     /// Named "Čeština" in the Rekordbox preferences.
-    #[brw(magic = 0x8eu8)]
     Czech,
     /// Named "Magyar" in the Rekordbox preferences.
-    #[brw(magic = 0x8fu8)]
     Hungarian,
     /// Named "Dansk" in the Rekordbox preferences.
-    #[brw(magic = 0x90u8)]
     Danish,
     /// Named "Ελληνικά" in the Rekordbox preferences.
-    #[brw(magic = 0x91u8)]
     Greek,
     /// Named "Türkçe" in the Rekordbox preferences.
-    #[brw(magic = 0x92u8)]
     Turkish,
 }
 
@@ -557,21 +502,17 @@ pub enum Language {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum LCDBrightness {
     /// Named "1" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
-    One,
+    One = 0x81,
     /// Named "2" in the Rekordbox preferences.
-    #[brw(magic = 0x82u8)]
     Two,
     /// Named "3" in the Rekordbox preferences.
-    #[brw(magic = 0x83u8)]
     Three,
     /// Named "4" in the Rekordbox preferences.
-    #[brw(magic = 0x84u8)]
     Four,
     /// Named "5" in the Rekordbox preferences.
-    #[brw(magic = 0x85u8)]
     Five,
 }
 
@@ -579,21 +520,17 @@ pub enum LCDBrightness {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum JogLCDBrightness {
     /// Named "1" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
-    One,
+    One = 0x81,
     /// Named "2" in the Rekordbox preferences.
-    #[brw(magic = 0x82u8)]
     Two,
     /// Named "3" in the Rekordbox preferences.
-    #[brw(magic = 0x83u8)]
     Three,
     /// Named "4" in the Rekordbox preferences.
-    #[brw(magic = 0x84u8)]
     Four,
     /// Named "5" in the Rekordbox preferences.
-    #[brw(magic = 0x85u8)]
     Five,
 }
 
@@ -601,18 +538,15 @@ pub enum JogLCDBrightness {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum JogDisplayMode {
     /// Named "AUTO" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    Auto,
+    Auto = 0x80,
     /// Named "INFO" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     Info,
     /// Named "SIMPLE" in the Rekordbox preferences.
-    #[brw(magic = 0x82u8)]
     Simple,
     /// Named "ARTWORK" in the Rekordbox preferences.
-    #[brw(magic = 0x83u8)]
     Artwork,
 }
 
@@ -620,12 +554,11 @@ pub enum JogDisplayMode {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum SlipFlashing {
     /// Named "OFF" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    Off,
+    Off = 0x80,
     /// Named "ON" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     On,
 }
 
@@ -633,12 +566,11 @@ pub enum SlipFlashing {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum OnAirDisplay {
     /// Named "OFF" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    Off,
+    Off = 0x80,
     /// Named "ON" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     On,
 }
 
@@ -646,15 +578,13 @@ pub enum OnAirDisplay {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum JogRingBrightness {
     /// Named "OFF" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    Off,
+    Off = 0x80,
     /// Named "1 (Dark)" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     Dark,
     /// Named "2 (Bright)" in the Rekordbox preferences.
-    #[brw(magic = 0x82u8)]
     Bright,
 }
 
@@ -662,12 +592,11 @@ pub enum JogRingBrightness {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum JogRingIndicator {
     /// Named "OFF" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    Off,
+    Off = 0x80,
     /// Named "ON" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     On,
 }
 
@@ -675,15 +604,13 @@ pub enum JogRingIndicator {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum DiscSlotIllumination {
     /// Named "OFF" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    Off,
+    Off = 0x80,
     /// Named "1 (Dark)" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     Dark,
     /// Named "2 (Bright)" in the Rekordbox preferences.
-    #[brw(magic = 0x82u8)]
     Bright,
 }
 
@@ -691,21 +618,17 @@ pub enum DiscSlotIllumination {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum PadButtonBrightness {
     /// Named "1" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
-    One,
+    One = 0x81,
     /// Named "2" in the Rekordbox preferences.
-    #[brw(magic = 0x82u8)]
     Two,
     /// Named "3" in the Rekordbox preferences.
-    #[brw(magic = 0x83u8)]
     Three,
     /// Named "4" in the Rekordbox preferences.
-    #[brw(magic = 0x84u8)]
     Four,
     /// Named "5" in the Rekordbox preferences.
-    #[brw(magic = 0x85u8)]
     Five,
 }
 
@@ -713,15 +636,13 @@ pub enum PadButtonBrightness {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum ChannelFaderCurve {
     /// Steep volume raise when the fader is moved near the top.
-    #[brw(magic = 0x80u8)]
-    SteepTop,
+    SteepTop = 0x80,
     /// Linear volume raise when the fader is moved.
-    #[brw(magic = 0x81u8)]
     Linear,
     /// Steep volume raise when the fader is moved near the bottom.
-    #[brw(magic = 0x82u8)]
     SteepBottom,
 }
 
@@ -729,17 +650,15 @@ pub enum ChannelFaderCurve {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum CrossfaderCurve {
     /// Logarithmic volume raise of the other channel near the edges of the fader.
-    #[brw(magic = 0x80u8)]
-    ConstantPower,
+    ConstantPower = 0x80,
     /// Steep linear volume raise of the other channel near the edges of the fader, no volume
     /// change in the center.
-    #[brw(magic = 0x81u8)]
     SlowCut,
     /// Steep linear volume raise of the other channel near the edges of the fader, no volume
     /// change in the center.
-    #[brw(magic = 0x82u8)]
     FastCut,
 }
 
@@ -747,15 +666,13 @@ pub enum CrossfaderCurve {
 /// Rekordbox preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum ChannelFaderCurveLongFader {
     /// Very steep volume raise when the fader is moved the near the top (e.g. y = x⁵).
-    #[brw(magic = 0x80u8)]
-    Exponential,
+    Exponential = 0x80,
     /// Steep volume raise when the fader is moved the near the top (e.g. y = x²).
-    #[brw(magic = 0x81u8)]
     Smooth,
     /// Linear volume raise when the fader is moved (e.g. y = k * x).
-    #[brw(magic = 0x82u8)]
     Linear,
 }
 
@@ -763,12 +680,11 @@ pub enum ChannelFaderCurveLongFader {
 /// Rekordbox preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum HeadphonesPreEQ {
     /// Named "POST EQ" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    PostEQ,
+    PostEQ = 0x80,
     /// Named "PRE EQ" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     PreEQ,
 }
 
@@ -776,12 +692,11 @@ pub enum HeadphonesPreEQ {
 /// Rekordbox preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum HeadphonesMonoSplit {
     /// Named "MONO SPLIT" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    MonoSplit,
+    MonoSplit = 0x80,
     /// Named "STEREO" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     Stereo,
 }
 
@@ -789,12 +704,11 @@ pub enum HeadphonesMonoSplit {
 /// Rekordbox preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum BeatFXQuantize {
     /// Named "OFF" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    Off,
+    Off = 0x80,
     /// Named "ON" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     On,
 }
 
@@ -802,12 +716,11 @@ pub enum BeatFXQuantize {
 /// Rekordbox preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum MicLowCut {
     /// Named "OFF" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    Off,
+    Off = 0x80,
     /// Named "ON(for MC)" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     On,
 }
 
@@ -815,12 +728,11 @@ pub enum MicLowCut {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum TalkOverMode {
     /// Named "ADVANCED" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    Advanced,
+    Advanced = 0x80,
     /// Named "NORMAL" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     Normal,
 }
 
@@ -828,18 +740,15 @@ pub enum TalkOverMode {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum TalkOverLevel {
     /// Named "-24dB" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    Minus24dB,
+    Minus24dB = 0x80,
     /// Named "-18dB" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     Minus18dB,
     /// Named "-12dB" in the Rekordbox preferences.
-    #[brw(magic = 0x82u8)]
     Minus12dB,
     /// Named "-6dB" in the Rekordbox preferences.
-    #[brw(magic = 0x83u8)]
     Minus6dB,
 }
 
@@ -847,54 +756,39 @@ pub enum TalkOverLevel {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum MidiChannel {
     /// Named "1" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    One,
+    One = 0x80,
     /// Named "2" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     Two,
     /// Named "3" in the Rekordbox preferences.
-    #[brw(magic = 0x82u8)]
     Three,
     /// Named "4" in the Rekordbox preferences.
-    #[brw(magic = 0x83u8)]
     Four,
     /// Named "5" in the Rekordbox preferences.
-    #[brw(magic = 0x84u8)]
     Five,
     /// Named "6" in the Rekordbox preferences.
-    #[brw(magic = 0x85u8)]
     Six,
     /// Named "7" in the Rekordbox preferences.
-    #[brw(magic = 0x86u8)]
     Seven,
     /// Named "8" in the Rekordbox preferences.
-    #[brw(magic = 0x87u8)]
     Eight,
     /// Named "9" in the Rekordbox preferences.
-    #[brw(magic = 0x88u8)]
     Nine,
     /// Named "10" in the Rekordbox preferences.
-    #[brw(magic = 0x89u8)]
     Ten,
     /// Named "11" in the Rekordbox preferences.
-    #[brw(magic = 0x8au8)]
     Eleven,
     /// Named "12" in the Rekordbox preferences.
-    #[brw(magic = 0x8bu8)]
     Twelve,
     /// Named "13" in the Rekordbox preferences.
-    #[brw(magic = 0x8cu8)]
     Thirteen,
     /// Named "14" in the Rekordbox preferences.
-    #[brw(magic = 0x8du8)]
     Fourteen,
     /// Named "15" in the Rekordbox preferences.
-    #[brw(magic = 0x8eu8)]
     Fifteen,
     /// Named "16" in the Rekordbox preferences.
-    #[brw(magic = 0x8fu8)]
     Sixteen,
 }
 
@@ -902,12 +796,11 @@ pub enum MidiChannel {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum MidiButtonType {
     /// Named "TOGGLE" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    Toggle,
+    Toggle = 0x80,
     /// Named "TRIGGER" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     Trigger,
 }
 
@@ -915,24 +808,19 @@ pub enum MidiButtonType {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum MixerDisplayBrightness {
     /// Named "WHITE" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    White,
+    White = 0x80,
     /// Named "1" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     One,
     /// Named "2" in the Rekordbox preferences.
-    #[brw(magic = 0x82u8)]
     Two,
     /// Named "3" in the Rekordbox preferences.
-    #[brw(magic = 0x83u8)]
     Three,
     /// Named "4" in the Rekordbox preferences.
-    #[brw(magic = 0x84u8)]
     Four,
     /// Named "5" in the Rekordbox preferences.
-    #[brw(magic = 0x85u8)]
     Five,
 }
 
@@ -940,14 +828,12 @@ pub enum MixerDisplayBrightness {
 /// preferences.
 #[derive(Debug, PartialEq)]
 #[binrw]
+#[brw(repr = u8)]
 pub enum MixerIndicatorBrightness {
     /// Named "1" in the Rekordbox preferences.
-    #[brw(magic = 0x80u8)]
-    One,
+    One = 0x80,
     /// Named "2" in the Rekordbox preferences.
-    #[brw(magic = 0x81u8)]
     Two,
     /// Named "3" in the Rekordbox preferences.
-    #[brw(magic = 0x82u8)]
     Three,
 }
