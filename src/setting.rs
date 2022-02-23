@@ -27,9 +27,18 @@ pub struct Setting {
     /// Size of the string data field (should be always 96).
     #[br(assert(len_stringdata == 0x60))]
     pub len_stringdata: u32,
-    /// Name of the company ("PIONEER").
+    /// Name of the brand.
+    ///
+    /// The value seems to depend on the kind of file:
+    ///
+    /// | File               | Value        |
+    /// | ------------------ | ------------ |
+    /// | `DEVSETTING.DAT`   | `PIONEER DJ` |
+    /// | `DJMMYSETTING.DAT` | `PioneerDJ`  |
+    /// | `MYSETTING.DAT`    | `PIONEER`    |
+    /// | `MYSETTING2.DAT`   | `PIONEER`    |
     #[brw(pad_size_to = 0x20)]
-    pub company: NullString,
+    pub brand: NullString,
     /// Name of the software ("rekordbox").
     #[brw(pad_size_to = 0x20)]
     pub software: NullString,
