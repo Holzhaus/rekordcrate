@@ -430,14 +430,14 @@ impl NeedleLock {
 /// preferences.
 #[derive(Debug)]
 pub enum QuantizeBeatValue {
-    /// Named "1/8 Beat" in the Rekordbox preferences.
-    EighthBeat,
-    /// Named "1/4 Beat" in the Rekordbox preferences.
-    QuarterBeat,
-    /// Named "1/2 Beat" in the Rekordbox preferences.
-    HalfBeat,
     /// Named "1 Beat" in the Rekordbox preferences.
     FullBeat,
+    /// Named "1/2 Beat" in the Rekordbox preferences.
+    HalfBeat,
+    /// Named "1/4 Beat" in the Rekordbox preferences.
+    QuarterBeat,
+    /// Named "1/8 Beat" in the Rekordbox preferences.
+    EighthBeat,
     /// Unknown value.
     Unknown(u8),
 }
@@ -511,22 +511,22 @@ impl HotCueColor {
 /// preferences.
 #[derive(Debug)]
 pub enum AutoCueLevel {
-    /// Named "-78dB" in the Rekordbox preferences.
-    Minus78dB,
-    /// Named "-72dB" in the Rekordbox preferences.
-    Minus72dB,
-    /// Named "-66dB" in the Rekordbox preferences.
-    Minus66dB,
-    /// Named "-60dB" in the Rekordbox preferences.
-    Minus60dB,
-    /// Named "-54dB" in the Rekordbox preferences.
-    Minus54dB,
-    /// Named "-48dB" in the Rekordbox preferences.
-    Minus48dB,
-    /// Named "-42dB" in the Rekordbox preferences.
-    Minus42dB,
     /// Named "-36dB" in the Rekordbox preferences.
     Minus36dB,
+    /// Named "-42dB" in the Rekordbox preferences.
+    Minus42dB,
+    /// Named "-48dB" in the Rekordbox preferences.
+    Minus48dB,
+    /// Named "-54dB" in the Rekordbox preferences.
+    Minus54dB,
+    /// Named "-60dB" in the Rekordbox preferences.
+    Minus60dB,
+    /// Named "-66dB" in the Rekordbox preferences.
+    Minus66dB,
+    /// Named "-72dB" in the Rekordbox preferences.
+    Minus72dB,
+    /// Named "-78dB" in the Rekordbox preferences.
+    Minus78dB,
     /// Named "MEMORY" in the Rekordbox preferences.
     Memory,
     /// Unknown value.
@@ -604,10 +604,10 @@ impl AutoCue {
 /// preferences.
 #[derive(Debug)]
 pub enum JogMode {
-    /// Named "VINYL" in the Rekordbox preferences.
-    Vinyl,
     /// Named "CDJ" in the Rekordbox preferences.
     CDJ,
+    /// Named "VINYL" in the Rekordbox preferences.
+    Vinyl,
     /// Unknown value.
     Unknown(u8),
 }
