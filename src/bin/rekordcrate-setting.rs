@@ -6,12 +6,13 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
+use binrw::BinRead;
 use rekordcrate::setting::Setting;
 
 fn main() {
     let path = std::env::args().nth(1).expect("no path given");
-    let data = std::fs::read(&path).expect("failed to read file");
-    let (_, setting) = Setting::parse(&data).expect("failed to parse setting file");
+    let mut reader = std::fs::File::open(&path).expect("failed to open file");
+    let setting = Setting::read(&mut reader).expect("failed to parse setting file");
 
     println!("{:#04x?}", setting);
 }

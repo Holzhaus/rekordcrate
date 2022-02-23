@@ -3,6 +3,7 @@
 fn setting_{name}() {{
     println!("Parsing file: {filepath}");
     let data = include_bytes!("{filepath}").as_slice();
-    let (_input, setting) = Setting::parse(data).expect("failed to parse setting file");
+    let mut reader = Cursor::new(data);
+    let setting = Setting::read(&mut reader).expect("failed to parse setting file");
     println!("Setting file: {{:#?}}", setting);
 }}
