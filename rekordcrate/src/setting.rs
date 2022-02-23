@@ -20,6 +20,7 @@
 use crate::util::nom_input_error_with_kind;
 use nom::error::ErrorKind;
 use nom::IResult;
+use rekordcrate_derive::Parse;
 
 #[derive(Debug)]
 /// Represents a setting file.
@@ -356,7 +357,7 @@ impl SettingData {
 
 /// Found at "PLAYER > DJ SETTING > PLAY MODE / AUTO PLAY MODE" of the "My Settings" page in the
 /// Rekordbox preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum PlayMode {
     /// Named "CONTINUE / ON" in the Rekordbox preferences.
     Continue,
@@ -366,21 +367,9 @@ pub enum PlayMode {
     Unknown(u8),
 }
 
-impl PlayMode {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Continue,
-            0x81 => Self::Single,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DJ SETTING > EJECT/LOAD LOCK" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum EjectLock {
     /// Named "UNLOCK" in the Rekordbox preferences.
     Unlock,
@@ -390,21 +379,9 @@ pub enum EjectLock {
     Unknown(u8),
 }
 
-impl EjectLock {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Unlock,
-            0x81 => Self::Lock,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DJ SETTING > NEEDLE LOCK" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum NeedleLock {
     /// Named "UNLOCK" in the Rekordbox preferences.
     Unlock,
@@ -414,21 +391,9 @@ pub enum NeedleLock {
     Unknown(u8),
 }
 
-impl NeedleLock {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Unlock,
-            0x81 => Self::Lock,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DJ SETTING > QUANTIZE BEAT VALUE" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum QuantizeBeatValue {
     /// Named "1 Beat" in the Rekordbox preferences.
     FullBeat,
@@ -442,23 +407,9 @@ pub enum QuantizeBeatValue {
     Unknown(u8),
 }
 
-impl QuantizeBeatValue {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::FullBeat,
-            0x81 => Self::HalfBeat,
-            0x82 => Self::QuarterBeat,
-            0x83 => Self::EighthBeat,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DJ SETTING > HOT CUE AUTO LOAD" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum HotCueAutoLoad {
     /// Named "OFF" in the Rekordbox preferences.
     Off,
@@ -470,22 +421,9 @@ pub enum HotCueAutoLoad {
     Unknown(u8),
 }
 
-impl HotCueAutoLoad {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Off,
-            0x81 => Self::On,
-            0x82 => Self::RekordboxSetting,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DJ SETTING > HOT CUE COLOR" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum HotCueColor {
     /// Named "OFF" in the Rekordbox preferences.
     Off,
@@ -495,21 +433,9 @@ pub enum HotCueColor {
     Unknown(u8),
 }
 
-impl HotCueColor {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Off,
-            0x81 => Self::On,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DJ SETTING > AUTO CUE LEVEL" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum AutoCueLevel {
     /// Named "-36dB" in the Rekordbox preferences.
     Minus36dB,
@@ -533,28 +459,9 @@ pub enum AutoCueLevel {
     Unknown(u8),
 }
 
-impl AutoCueLevel {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Minus36dB,
-            0x81 => Self::Minus42dB,
-            0x82 => Self::Minus48dB,
-            0x83 => Self::Minus54dB,
-            0x84 => Self::Minus60dB,
-            0x85 => Self::Minus66dB,
-            0x86 => Self::Minus72dB,
-            0x87 => Self::Minus78dB,
-            0x88 => Self::Memory,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DJ SETTING > TIME MODE" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum TimeMode {
     /// Named "Elapsed" in the Rekordbox preferences.
     Elapsed,
@@ -564,21 +471,9 @@ pub enum TimeMode {
     Unknown(u8),
 }
 
-impl TimeMode {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Elapsed,
-            0x81 => Self::Remain,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DJ SETTING > AUTO CUE" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum AutoCue {
     /// Named "OFF" in the Rekordbox preferences.
     Off,
@@ -588,21 +483,9 @@ pub enum AutoCue {
     Unknown(u8),
 }
 
-impl AutoCue {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Off,
-            0x81 => Self::On,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DJ SETTING > JOG MODE" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum JogMode {
     /// Named "CDJ" in the Rekordbox preferences.
     CDJ,
@@ -612,21 +495,9 @@ pub enum JogMode {
     Unknown(u8),
 }
 
-impl JogMode {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::CDJ,
-            0x81 => Self::Vinyl,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DJ SETTING > TEMPO RANGE" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum TempoRange {
     /// Named "±6" in the Rekordbox preferences.
     SixPercent,
@@ -640,23 +511,9 @@ pub enum TempoRange {
     Unknown(u8),
 }
 
-impl TempoRange {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::SixPercent,
-            0x81 => Self::TenPercent,
-            0x82 => Self::SixteenPercent,
-            0x83 => Self::Wide,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DJ SETTING > MASTER TEMPO" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum MasterTempo {
     /// Named "OFF" in the Rekordbox preferences.
     Off,
@@ -666,21 +523,9 @@ pub enum MasterTempo {
     Unknown(u8),
 }
 
-impl MasterTempo {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Off,
-            0x81 => Self::On,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DJ SETTING > QUANTIZE" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum Quantize {
     /// Named "OFF" in the Rekordbox preferences.
     Off,
@@ -690,21 +535,9 @@ pub enum Quantize {
     Unknown(u8),
 }
 
-impl Quantize {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Off,
-            0x81 => Self::On,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DJ SETTING > SYNC" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum Sync {
     /// Named "OFF" in the Rekordbox preferences.
     Off,
@@ -714,21 +547,9 @@ pub enum Sync {
     Unknown(u8),
 }
 
-impl Sync {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Off,
-            0x81 => Self::On,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DJ SETTING > PHASE METER" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum PhaseMeter {
     /// Named "TYPE 1" in the Rekordbox preferences.
     Type1,
@@ -738,21 +559,9 @@ pub enum PhaseMeter {
     Unknown(u8),
 }
 
-impl PhaseMeter {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Type1,
-            0x81 => Self::Type2,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DJ SETTING > WAVEFORM / PHASE METER" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum Waveform {
     /// Named "WAVEFORM" in the Rekordbox preferences.
     Waveform,
@@ -762,21 +571,9 @@ pub enum Waveform {
     Unknown(u8),
 }
 
-impl Waveform {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Waveform,
-            0x81 => Self::PhaseMeter,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DJ SETTING > WAVEFORM DIVISIONS" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum WaveformDivisions {
     /// Named "TIME SCALE" in the Rekordbox preferences.
     TimeScale,
@@ -786,21 +583,9 @@ pub enum WaveformDivisions {
     Unknown(u8),
 }
 
-impl WaveformDivisions {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::TimeScale,
-            0x81 => Self::Phrase,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DJ SETTING > VINYL SPEED ADJUST" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum VinylSpeedAdjust {
     /// Named "TOUCH & RELEASE" in the Rekordbox preferences.
     TouchRelease,
@@ -812,22 +597,9 @@ pub enum VinylSpeedAdjust {
     Unknown(u8),
 }
 
-impl VinylSpeedAdjust {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::TouchRelease,
-            0x81 => Self::Touch,
-            0x82 => Self::Release,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DJ SETTING > BEAT JUMP BEAT VALUE" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum BeatJumpBeatValue {
     /// Named "1/2 BEAT" in the Rekordbox preferences.
     HalfBeat,
@@ -849,27 +621,9 @@ pub enum BeatJumpBeatValue {
     Unknown(u8),
 }
 
-impl BeatJumpBeatValue {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::HalfBeat,
-            0x81 => Self::OneBeat,
-            0x82 => Self::TwoBeat,
-            0x83 => Self::FourBeat,
-            0x84 => Self::EightBeat,
-            0x85 => Self::SixteenBeat,
-            0x86 => Self::ThirtytwoBeat,
-            0x87 => Self::SixtyfourBeat,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DISPLAY(LCD) > LANGUAGE" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum Language {
     /// Named "English" in the Rekordbox preferences.
     English,
@@ -911,37 +665,9 @@ pub enum Language {
     Unknown(u8),
 }
 
-impl Language {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x81 => Self::English,
-            0x82 => Self::French,
-            0x83 => Self::German,
-            0x84 => Self::Italian,
-            0x85 => Self::Dutch,
-            0x86 => Self::Spanish,
-            0x87 => Self::Russian,
-            0x88 => Self::Korean,
-            0x89 => Self::ChineseSimplified,
-            0x8a => Self::ChineseTraditional,
-            0x8b => Self::Japanese,
-            0x8c => Self::Portuguese,
-            0x8d => Self::Swedish,
-            0x8e => Self::Czech,
-            0x8f => Self::Hungarian,
-            0x90 => Self::Danish,
-            0x91 => Self::Greek,
-            0x92 => Self::Turkish,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DISPLAY(LCD) > LCD BRIGHTNESS" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum LCDBrightness {
     /// Named "1" in the Rekordbox preferences.
     One,
@@ -957,24 +683,9 @@ pub enum LCDBrightness {
     Unknown(u8),
 }
 
-impl LCDBrightness {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x81 => Self::One,
-            0x82 => Self::Two,
-            0x83 => Self::Three,
-            0x84 => Self::Four,
-            0x85 => Self::Five,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DISPLAY(LCD) > JOG LCD BRIGHTNESS" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum JogLCDBrightness {
     /// Named "1" in the Rekordbox preferences.
     One,
@@ -990,24 +701,9 @@ pub enum JogLCDBrightness {
     Unknown(u8),
 }
 
-impl JogLCDBrightness {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x81 => Self::One,
-            0x82 => Self::Two,
-            0x83 => Self::Three,
-            0x84 => Self::Four,
-            0x85 => Self::Five,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DISPLAY(LCD) > JOG DISPLAY MODE" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum JogDisplayMode {
     /// Named "AUTO" in the Rekordbox preferences.
     Auto,
@@ -1021,23 +717,9 @@ pub enum JogDisplayMode {
     Unknown(u8),
 }
 
-impl JogDisplayMode {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Auto,
-            0x81 => Self::Info,
-            0x82 => Self::Simple,
-            0x83 => Self::Artwork,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DISPLAY(INDICATOR) > SLIP FLASHING" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum SlipFlashing {
     /// Named "OFF" in the Rekordbox preferences.
     Off,
@@ -1047,21 +729,9 @@ pub enum SlipFlashing {
     Unknown(u8),
 }
 
-impl SlipFlashing {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Off,
-            0x81 => Self::On,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DISPLAY(INDICATOR) > ON AIR DISPLAY" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum OnAirDisplay {
     /// Named "OFF" in the Rekordbox preferences.
     Off,
@@ -1071,21 +741,9 @@ pub enum OnAirDisplay {
     Unknown(u8),
 }
 
-impl OnAirDisplay {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Off,
-            0x81 => Self::On,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DISPLAY(INDICATOR) > JOG RING BRIGHTNESS" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum JogRingBrightness {
     /// Named "OFF" in the Rekordbox preferences.
     Off,
@@ -1097,22 +755,9 @@ pub enum JogRingBrightness {
     Unknown(u8),
 }
 
-impl JogRingBrightness {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Off,
-            0x81 => Self::Dark,
-            0x82 => Self::Bright,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DISPLAY(INDICATOR) > JOG RING INDICATOR" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum JogRingIndicator {
     /// Named "OFF" in the Rekordbox preferences.
     Off,
@@ -1122,21 +767,9 @@ pub enum JogRingIndicator {
     Unknown(u8),
 }
 
-impl JogRingIndicator {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Off,
-            0x81 => Self::On,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DISPLAY(INDICATOR) > DISC SLOT ILLUMINATION" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum DiscSlotIllumination {
     /// Named "OFF" in the Rekordbox preferences.
     Off,
@@ -1148,22 +781,9 @@ pub enum DiscSlotIllumination {
     Unknown(u8),
 }
 
-impl DiscSlotIllumination {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Off,
-            0x81 => Self::Dark,
-            0x82 => Self::Bright,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "PLAYER > DISPLAY(INDICATOR) > PAD/BUTTON BRIGHTNESS" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum PadButtonBrightness {
     /// Named "1" in the Rekordbox preferences.
     One,
@@ -1173,29 +793,13 @@ pub enum PadButtonBrightness {
     Three,
     /// Named "4" in the Rekordbox preferences.
     Four,
-    /// Named "5" in the Rekordbox preferences.
-    Five,
     /// Unknown value.
     Unknown(u8),
 }
 
-impl PadButtonBrightness {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x81 => Self::One,
-            0x82 => Self::Two,
-            0x83 => Self::Three,
-            0x84 => Self::Four,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "MIXER > DJ SETTING > CH FADER CURVE" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum ChannelFaderCurve {
     /// Steep volume raise when the fader is moved near the top.
     SteepTop,
@@ -1207,22 +811,9 @@ pub enum ChannelFaderCurve {
     Unknown(u8),
 }
 
-impl ChannelFaderCurve {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::SteepTop,
-            0x81 => Self::Linear,
-            0x82 => Self::SteepBottom,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "MIXER > DJ SETTING > CROSSFADER CURVE" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum CrossfaderCurve {
     /// Logarithmic volume raise of the other channel near the edges of the fader.
     ConstantPower,
@@ -1236,22 +827,9 @@ pub enum CrossfaderCurve {
     Unknown(u8),
 }
 
-impl CrossfaderCurve {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::ConstantPower,
-            0x81 => Self::SlowCut,
-            0x82 => Self::FastCut,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "MIXER > DJ SETTING > CH FADER CURVE (LONG FADER)" of the "My Settings" page in the
 /// Rekordbox preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum ChannelFaderCurveLongFader {
     /// Very steep volume raise when the fader is moved the near the top (e.g. y = x⁵).
     Exponential,
@@ -1263,22 +841,9 @@ pub enum ChannelFaderCurveLongFader {
     Unknown(u8),
 }
 
-impl ChannelFaderCurveLongFader {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Exponential,
-            0x81 => Self::Smooth,
-            0x82 => Self::Linear,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "MIXER > DJ SETTING > HEADPHONES PRE EQ" of the "My Settings" page in the
 /// Rekordbox preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum HeadphonesPreEQ {
     /// Named "POST EQ" in the Rekordbox preferences.
     PostEQ,
@@ -1288,21 +853,9 @@ pub enum HeadphonesPreEQ {
     Unknown(u8),
 }
 
-impl HeadphonesPreEQ {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::PostEQ,
-            0x81 => Self::PreEQ,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "MIXER > DJ SETTING > HEADPHONES MONO SPLIT" of the "My Settings" page in the
 /// Rekordbox preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum HeadphonesMonoSplit {
     /// Named "MONO SPLIT" in the Rekordbox preferences.
     MonoSplit,
@@ -1312,21 +865,9 @@ pub enum HeadphonesMonoSplit {
     Unknown(u8),
 }
 
-impl HeadphonesMonoSplit {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Stereo,
-            0x81 => Self::MonoSplit,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "MIXER > DJ SETTING > BEAT FX QUANTIZE" of the "My Settings" page in the
 /// Rekordbox preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum BeatFXQuantize {
     /// Named "OFF" in the Rekordbox preferences.
     Off,
@@ -1336,21 +877,9 @@ pub enum BeatFXQuantize {
     Unknown(u8),
 }
 
-impl BeatFXQuantize {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Off,
-            0x81 => Self::On,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "MIXER > DJ SETTING > MIC LOW CUT" of the "My Settings" page in the
 /// Rekordbox preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum MicLowCut {
     /// Named "OFF" in the Rekordbox preferences.
     Off,
@@ -1360,21 +889,9 @@ pub enum MicLowCut {
     Unknown(u8),
 }
 
-impl MicLowCut {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Off,
-            0x81 => Self::On,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "MIXER > DJ SETTING > TALK OVER MODE" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum TalkOverMode {
     /// Named "ADVANCED" in the Rekordbox preferences.
     Advanced,
@@ -1384,21 +901,9 @@ pub enum TalkOverMode {
     Unknown(u8),
 }
 
-impl TalkOverMode {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Advanced,
-            0x81 => Self::Normal,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "MIXER > DJ SETTING > TALK OVER LEVEL" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum TalkOverLevel {
     /// Named "-24dB" in the Rekordbox preferences.
     Minus24dB,
@@ -1412,23 +917,9 @@ pub enum TalkOverLevel {
     Unknown(u8),
 }
 
-impl TalkOverLevel {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Minus24dB,
-            0x81 => Self::Minus18dB,
-            0x82 => Self::Minus12dB,
-            0x83 => Self::Minus6dB,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "MIXER > DJ SETTING > MIDI CH" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum MidiChannel {
     /// Named "1" in the Rekordbox preferences.
     One,
@@ -1466,35 +957,9 @@ pub enum MidiChannel {
     Unknown(u8),
 }
 
-impl MidiChannel {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::One,
-            0x81 => Self::Two,
-            0x82 => Self::Three,
-            0x83 => Self::Four,
-            0x84 => Self::Five,
-            0x85 => Self::Six,
-            0x86 => Self::Seven,
-            0x87 => Self::Eight,
-            0x88 => Self::Nine,
-            0x89 => Self::Ten,
-            0x8a => Self::Eleven,
-            0x8b => Self::Twelve,
-            0x8c => Self::Thirteen,
-            0x8d => Self::Fourteen,
-            0x8e => Self::Fifteen,
-            0x8f => Self::Sixteen,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "MIXER > DJ SETTING > MIDI BUTTON TYPE" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum MidiButtonType {
     /// Named "TOGGLE" in the Rekordbox preferences.
     Toggle,
@@ -1504,21 +969,9 @@ pub enum MidiButtonType {
     Unknown(u8),
 }
 
-impl MidiButtonType {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::Toggle,
-            0x81 => Self::Trigger,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "MIXER > BRIGHTNESS > DISPLAY" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum MixerDisplayBrightness {
     /// Named "WHITE" in the Rekordbox preferences.
     White,
@@ -1536,25 +989,9 @@ pub enum MixerDisplayBrightness {
     Unknown(u8),
 }
 
-impl MixerDisplayBrightness {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::White,
-            0x81 => Self::One,
-            0x82 => Self::Two,
-            0x83 => Self::Three,
-            0x84 => Self::Four,
-            0x85 => Self::Five,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
-}
-
 /// Found at "MIXER > BRIGHTNESS > INDICATOR" of the "My Settings" page in the Rekordbox
 /// preferences.
-#[derive(Debug)]
+#[derive(Debug, Parse)]
 pub enum MixerIndicatorBrightness {
     /// Named "1" in the Rekordbox preferences.
     One,
@@ -1564,17 +1001,4 @@ pub enum MixerIndicatorBrightness {
     Three,
     /// Unknown value.
     Unknown(u8),
-}
-
-impl MixerIndicatorBrightness {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, value) = nom::number::complete::u8(input)?;
-        let value = match value {
-            0x80 => Self::One,
-            0x81 => Self::Two,
-            0x82 => Self::Three,
-            _ => Self::Unknown(value),
-        };
-        Ok((input, value))
-    }
 }

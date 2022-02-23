@@ -1,0 +1,19 @@
+[package]
+name = "rekordcrate_derive"
+version = "0.1.0"
+authors = ["Jan Holthuis <jan.holthuis@ruhr-uni-bochum.de>"]
+description = "Private implementation detail of the `rekordcrate` crate"
+readme = "README.md"
+repository = "https://github.com/Holzhaus/rekordcrate"
+license = "MPL-2.0"
+keywords = ["rekordbox", "dj", "parser", "derive", "macro"]
+categories = ["parser-implementations"]
+edition = "2021"
+exclude = [".*"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = "1.0"
+quote = "1.0"

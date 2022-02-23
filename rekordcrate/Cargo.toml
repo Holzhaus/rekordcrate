@@ -13,6 +13,7 @@ exclude = [".*"]
 
 [dependencies]
 nom = "7"
+rekordcrate_derive = { path = "../rekordcrate_derive" }
 
 [build-dependencies]
 glob = "0.3"
