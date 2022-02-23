@@ -1,18 +1,4 @@
-[package]
-name = "rekordcrate"
-version = "0.1.1"
-authors = ["Jan Holthuis <jan.holthuis@ruhr-uni-bochum.de>"]
-description = "Library for parsing Pioneer Rekordbox device exports"
-readme = "README.md"
-repository = "https://github.com/Holzhaus/rekordcrate"
-license = "MPL-2.0"
-keywords = ["rekordbox", "dj", "export", "database", "parser"]
-categories = ["parser-implementations"]
-edition = "2021"
-exclude = [".*"]
-
-[dependencies]
-nom = "7"
-
-[build-dependencies]
-glob = "0.3"
+[workspace]
+members = [
+    "rekordcrate",
+]
