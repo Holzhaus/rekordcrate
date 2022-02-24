@@ -24,87 +24,83 @@
 //! - <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html>
 //! - <https://reverseengineering.stackexchange.com/questions/4311/help-reversing-a-edb-database-file-for-pioneers-rekordbox-software>
 
-use crate::util::{nom_input_error_with_kind, ColorIndex};
-use nom::error::ErrorKind;
-use nom::IResult;
+#![allow(clippy::must_use_candidate)]
 
-#[derive(Debug)]
+use crate::util::ColorIndex;
+use binrw::{
+    binread,
+    io::{Read, Seek},
+    BinRead, BinResult, ReadOptions,
+};
+use modular_bitfield::prelude::*;
+
 /// The kind of section.
+#[derive(Debug, PartialEq, Clone)]
+#[binread]
+#[br(big)]
 pub enum ContentKind {
     /// File section that contains all other sections.
+    #[br(magic = b"PMAI")]
     File,
     /// All beats found in the track.
+    #[br(magic = b"PQTZ")]
     BeatGrid,
     /// Either memory points and loops or hotcues and hot loops of the track.
     ///
     /// *Note:* Since the release of the Nexus 2 series, there also exists the `ExtendedCueList`
     /// section which can carry additional information.
+    #[br(magic = b"PCOB")]
     CueList,
     /// Extended version of the `CueList` section (since Nexus 2 series).
+    #[br(magic = b"PCO2")]
     ExtendedCueList,
     /// Single cue entry inside a `ExtendedCueList` section.
+    #[br(magic = b"PCP2")]
     ExtendedCue,
     /// Single cue entry inside a `CueList` section.
+    #[br(magic = b"PCPT")]
     Cue,
     /// File path of the audio file.
+    #[br(magic = b"PPTH")]
     Path,
     /// Seek information for variable bitrate files.
+    #[br(magic = b"PVBR")]
     VBR,
     /// Fixed-width monochrome preview of the track waveform.
+    #[br(magic = b"PWAV")]
     WaveformPreview,
     /// Smaller version of the fixed-width monochrome preview of the track waveform (for the
     /// CDJ-900).
+    #[br(magic = b"PWV2")]
     TinyWaveformPreview,
     /// Variable-width large monochrome version of the track waveform.
     ///
     /// Used in `.EXT` files.
+    #[br(magic = b"PWV3")]
     WaveformDetail,
     /// Fixed-width colored version of the track waveform.
     ///
     /// Used in `.EXT` files.
+    #[br(magic = b"PWV4")]
     WaveformColorPreview,
     /// Variable-width large colored version of the track waveform.
     ///
     /// Used in `.EXT` files.
+    #[br(magic = b"PWV5")]
     WaveformColorDetail,
     /// Describes the structure of a sond (Intro, Chrous, Verse, etc.).
     ///
     /// Used in `.EXT` files.
+    #[br(magic = b"PSSI")]
     SongStructure,
     /// Unknown Kind.
     Unknown([u8; 4]),
 }
 
-impl ContentKind {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, kind_slice) = nom::bytes::complete::take(4usize)(input)?;
-        let kind = match kind_slice {
-            b"PMAI" => ContentKind::File,
-            b"PCO2" => ContentKind::ExtendedCueList,
-            b"PCOB" => ContentKind::CueList,
-            b"PCP2" => ContentKind::ExtendedCue,
-            b"PCPT" => ContentKind::Cue,
-            b"PPTH" => ContentKind::Path,
-            b"PQTZ" => ContentKind::BeatGrid,
-            b"PVBR" => ContentKind::VBR,
-            b"PWAV" => ContentKind::WaveformPreview,
-            b"PWV2" => ContentKind::TinyWaveformPreview,
-            b"PWV3" => ContentKind::WaveformDetail,
-            b"PWV4" => ContentKind::WaveformColorPreview,
-            b"PWV5" => ContentKind::WaveformColorDetail,
-            b"PSSI" => ContentKind::SongStructure,
-            unk => {
-                let kind_buffer: [u8; 4] = unk.try_into().unwrap();
-                Self::Unknown(kind_buffer)
-            }
-        };
-
-        Ok((input, kind))
-    }
-}
-
-#[derive(Debug)]
 /// Header of a section that contains type and size information.
+#[derive(Debug, PartialEq, Clone)]
+#[binread]
+#[br(big)]
 pub struct Header {
     /// Kind of content in this item.
     pub kind: ContentKind,
@@ -115,21 +111,6 @@ pub struct Header {
 }
 
 impl Header {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, kind) = ContentKind::parse(input)?;
-        let (input, size) = nom::number::complete::be_u32(input)?;
-        let (input, total_size) = nom::number::complete::be_u32(input)?;
-
-        Ok((
-            input,
-            Self {
-                kind,
-                size,
-                total_size,
-            },
-        ))
-    }
-
     fn remaining_size(&self) -> u32 {
         self.size - 12
     }
@@ -139,8 +120,10 @@ impl Header {
     }
 }
 
-#[derive(Debug)]
 /// A single beat inside the beat grid.
+#[derive(Debug, PartialEq)]
+#[binread]
+#[br(big)]
 pub struct Beat {
     /// Beat number inside the bar (1-4).
     pub beat_number: u16,
@@ -150,77 +133,36 @@ pub struct Beat {
     pub time: u32,
 }
 
-impl Beat {
-    /// Parse a beat entry.
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, beat_number) = nom::number::complete::be_u16(input)?;
-        let (input, tempo) = nom::number::complete::be_u16(input)?;
-        let (input, time) = nom::number::complete::be_u32(input)?;
-
-        Ok((
-            input,
-            Self {
-                beat_number,
-                tempo,
-                time,
-            },
-        ))
-    }
-}
-
-#[derive(Debug)]
 /// Describes the types of entries found in a Cue List section.
+#[derive(Debug, PartialEq)]
+#[binread]
+#[br(big, repr = u32)]
 pub enum CueListType {
     /// Memory cues or loops.
-    MemoryCues,
+    MemoryCues = 0,
     /// Hot cues or loops.
-    HotCues,
-    /// Unknown type.
-    Unknown(u32),
+    HotCues = 1,
 }
 
-impl CueListType {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, list_type_id) = nom::number::complete::be_u32(input)?;
-        let list_type = match list_type_id {
-            0 => CueListType::MemoryCues,
-            1 => CueListType::HotCues,
-            x => CueListType::Unknown(x),
-        };
-        Ok((input, list_type))
-    }
-}
-
-#[derive(Debug)]
 /// Indicates if the cue is point or a loop.
+#[derive(Debug, PartialEq)]
+#[binread]
+#[br(repr = u8)]
 pub enum CueType {
     /// Cue is a single point.
-    Point,
+    Point = 0,
     /// Cue is a loop.
-    Loop,
-    /// Unknown type.
-    Unknown(u8),
+    Loop = 2,
 }
 
-impl CueType {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, cue_type_id) = nom::number::complete::u8(input)?;
-        let cue_type = match cue_type_id {
-            0 => CueType::Point,
-            2 => CueType::Loop,
-            x => CueType::Unknown(x),
-        };
-        Ok((input, cue_type))
-    }
-}
-
-#[derive(Debug)]
 /// A memory or hot cue (or loop).
+#[derive(Debug, PartialEq)]
+#[binread]
+#[br(big)]
 pub struct Cue {
     /// Cue entry header.
     pub header: Header,
     /// Hot cue number.
-    ///
     /// | Value | Hot cue        |
     /// | ----- | -------------- |
     /// |     0 | Not a hot cue. |
@@ -279,50 +221,10 @@ pub struct Cue {
     pub unknown7: u32,
 }
 
-impl Cue {
-    /// Parse a cue entry.
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, header) = Header::parse(input)?;
-        let (input, hot_cue) = nom::number::complete::be_u32(input)?;
-        let (input, status) = nom::number::complete::be_u32(input)?;
-        let (input, unknown1) = nom::number::complete::be_u32(input)?;
-        let (input, order_first) = nom::number::complete::be_u16(input)?;
-        let (input, order_last) = nom::number::complete::be_u16(input)?;
-        let (input, cue_type) = CueType::parse(input)?;
-        let (input, unknown2) = nom::number::complete::u8(input)?;
-        let (input, unknown3) = nom::number::complete::be_u16(input)?;
-        let (input, time) = nom::number::complete::be_u32(input)?;
-        let (input, loop_time) = nom::number::complete::be_u32(input)?;
-        let (input, unknown4) = nom::number::complete::be_u32(input)?;
-        let (input, unknown5) = nom::number::complete::be_u32(input)?;
-        let (input, unknown6) = nom::number::complete::be_u32(input)?;
-        let (input, unknown7) = nom::number::complete::be_u32(input)?;
-
-        Ok((
-            input,
-            Self {
-                header,
-                hot_cue,
-                status,
-                unknown1,
-                order_first,
-                order_last,
-                cue_type,
-                unknown2,
-                unknown3,
-                time,
-                loop_time,
-                unknown4,
-                unknown5,
-                unknown6,
-                unknown7,
-            },
-        ))
-    }
-}
-
-#[derive(Debug)]
 /// A memory or hot cue (or loop).
+#[derive(Debug, PartialEq)]
+#[binread]
+#[br(big)]
 pub struct ExtendedCue {
     /// Cue entry header.
     pub header: Header,
@@ -359,8 +261,11 @@ pub struct ExtendedCue {
     pub loop_numerator: u16,
     /// Represents the loop size denominator (if this is a quantized loop).
     pub loop_denominator: u16,
-    /// And UTF-16BE encoded string, followed by a trailing  `0x0000`.
-    pub comment: String,
+    /// Length of the comment string in bytes.
+    pub len_comment: u32,
+    /// An UTF-16BE encoded string, followed by a trailing  `0x0000`.
+    #[br(count = len_comment)]
+    pub comment: Vec<u8>,
     /// Rekordbox hotcue color index.
     ///
     /// | Value  | Color                       |
@@ -447,110 +352,34 @@ pub struct ExtendedCue {
     pub unknown10: u32,
 }
 
-impl ExtendedCue {
-    /// Parse an extended cue entry.
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, header) = Header::parse(input)?;
-        let (input, hot_cue) = nom::number::complete::be_u32(input)?;
-        let (input, cue_type) = CueType::parse(input)?;
-        let (input, unknown1) = nom::number::complete::u8(input)?;
-        let (input, unknown2) = nom::number::complete::be_u16(input)?;
-        let (input, time) = nom::number::complete::be_u32(input)?;
-        let (input, loop_time) = nom::number::complete::be_u32(input)?;
-        let (input, color) = ColorIndex::parse_u8(input)?;
-        let (input, unknown3) = nom::number::complete::u8(input)?;
-        let (input, unknown4) = nom::number::complete::be_u16(input)?;
-        let (input, unknown5) = nom::number::complete::be_u32(input)?;
-        let (input, loop_numerator) = nom::number::complete::be_u16(input)?;
-        let (input, loop_denominator) = nom::number::complete::be_u16(input)?;
-        let (input, len_comment) = nom::number::complete::be_u32(input)?;
-        let len_comment = usize::try_from(len_comment)
-            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
-        let str_length = len_comment / 2 - 1;
-        let (input, str_data) =
-            nom::multi::count(nom::number::complete::be_u16, str_length)(input)?;
-        let (input, _) = nom::bytes::complete::tag(b"\x00\x00")(input)?;
-        let comment = String::from_utf16(&str_data)
-            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::Char))?;
-
-        let (input, hot_cue_color_index) = nom::number::complete::u8(input)?;
-        let (input, hot_cue_color_red) = nom::number::complete::u8(input)?;
-        let (input, hot_cue_color_green) = nom::number::complete::u8(input)?;
-        let (input, hot_cue_color_blue) = nom::number::complete::u8(input)?;
-        let hot_cue_color_rgb = (hot_cue_color_red, hot_cue_color_green, hot_cue_color_blue);
-        let (input, unknown6) = nom::number::complete::be_u32(input)?;
-        let (input, unknown7) = nom::number::complete::be_u32(input)?;
-        let (input, unknown8) = nom::number::complete::be_u32(input)?;
-        let (input, unknown9) = nom::number::complete::be_u32(input)?;
-        let (input, unknown10) = nom::number::complete::be_u32(input)?;
-
-        Ok((
-            input,
-            Self {
-                header,
-                hot_cue,
-                cue_type,
-                unknown1,
-                unknown2,
-                time,
-                loop_time,
-                color,
-                unknown3,
-                unknown4,
-                unknown5,
-                loop_numerator,
-                loop_denominator,
-                comment,
-                hot_cue_color_index,
-                hot_cue_color_rgb,
-                unknown6,
-                unknown7,
-                unknown8,
-                unknown9,
-                unknown10,
-            },
-        ))
-    }
-}
-
-#[derive(Debug)]
 /// Single Column value in a Waveform Preview.
+#[bitfield]
+#[derive(BinRead, Debug, PartialEq)]
+#[br(big, map = Self::from_bytes)]
 pub struct WaveformPreviewColumn {
     /// Height of the Column in pixels.
-    pub height: u8,
+    pub height: B5,
     /// Shade of white.
-    pub whiteness: u8,
+    pub whiteness: B3,
 }
 
-impl From<u8> for WaveformPreviewColumn {
-    fn from(byte: u8) -> Self {
-        Self {
-            height: (byte & 0b00011111),
-            whiteness: (byte >> 5),
-        }
-    }
-}
-
-#[derive(Debug)]
 /// Single Column value in a Tiny Waveform Preview.
+#[bitfield]
+#[derive(BinRead, Debug, PartialEq)]
+#[br(big, map = Self::from_bytes)]
 pub struct TinyWaveformPreviewColumn {
     /// Height of the Column in pixels.
-    pub height: u8,
+    pub unused: B4,
+    pub beight: B4,
 }
 
-impl From<u8> for TinyWaveformPreviewColumn {
-    fn from(byte: u8) -> Self {
-        Self {
-            height: (byte & 0b00001111),
-        }
-    }
-}
-
-#[derive(Debug)]
 /// Single Column value in a Waveform Color Preview.
 ///
 /// See these the documentation for details:
 /// <https://djl-analysis.deepsymmetry.org/djl-analysis/track_metadata.html#color-preview-analysis>
+#[derive(Debug, PartialEq)]
+#[binread]
+#[br(big)]
 pub struct WaveformColorPreviewColumn {
     /// Unknown field (somehow encodes the "whiteness").
     pub unknown1: u8,
@@ -564,165 +393,89 @@ pub struct WaveformColorPreviewColumn {
     pub energy_mid_third_freq: u8,
     /// Sound energy in the top of the frequency range.
     pub energy_top_third_freq: u8,
-    /// Combination of the sound energy of the bottom, mid and top thirds of the frequency range.
-    pub color: u8,
-    /// Combination of the all other values in this struct.
-    pub blue: u8,
 }
 
-impl WaveformColorPreviewColumn {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, unknown1) = nom::number::complete::u8(input)?;
-        let (input, unknown2) = nom::number::complete::u8(input)?;
-        let (input, energy_bottom_half_freq) = nom::number::complete::u8(input)?;
-        let (input, energy_bottom_third_freq) = nom::number::complete::u8(input)?;
-        let (input, energy_mid_third_freq) = nom::number::complete::u8(input)?;
-        let (input, energy_top_third_freq) = nom::number::complete::u8(input)?;
-        let (input, color) = nom::number::complete::u8(input)?;
-        let (input, blue) = nom::number::complete::u8(input)?;
-
-        Ok((
-            input,
-            Self {
-                unknown1,
-                unknown2,
-                energy_bottom_half_freq,
-                energy_bottom_third_freq,
-                energy_mid_third_freq,
-                energy_top_third_freq,
-                color,
-                blue,
-            },
-        ))
-    }
-}
-
-#[derive(Debug)]
 /// Single Column value in a Waveform Color Detail section.
+#[bitfield]
+#[derive(BinRead, Debug, PartialEq)]
+#[br(map = Self::from_bytes)]
 pub struct WaveformColorDetailColumn {
     /// Red color component.
-    pub red: u8,
+    pub red: B3,
     /// Green color component.
-    pub green: u8,
+    pub green: B3,
     /// Blue color component.
-    pub blue: u8,
+    pub blue: B3,
     /// Height of the column.
-    pub height: u8,
+    pub height: B5,
+    /// Unknown field
+    pub unknown: B2,
 }
 
-impl WaveformColorDetailColumn {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, data) = nom::number::complete::be_u16(input)?;
-        let height = (data >> 2) as u8 * 0b11111;
-        let blue = (data >> 7) as u8 * 0b111;
-        let green = (data >> 10) as u8 * 0b111;
-        let red = (data >> 13) as u8 * 0b111;
-
-        Ok((
-            input,
-            Self {
-                red,
-                green,
-                blue,
-                height,
-            },
-        ))
-    }
-}
-
-#[derive(Debug)]
 /// Music classification that is used for Lightnight mode and based on rhythm, tempo kick drum and
 /// sound density.
+#[derive(Debug, PartialEq)]
+#[binread]
+#[br(big)]
 pub enum Mood {
     /// Phrase types consist of "Intro", "Up", "Down", "Chorus", and "Outro". Other values in each
     /// phrase entry cause the intro, chorus, and outro phrases to have their labels subdivided
     /// into styes "1" or "2" (for example, "Intro 1"), and "up" is subdivided into style "Up 1",
     /// "Up 2", or "Up 3".
+    #[br(magic = 1u16)]
     High,
     /// Phrase types are labeled "Intro", "Verse 1" through "Verse 6", "Chorus", "Bridge", and
     /// "Outro".
+    #[br(magic = 2u16)]
     Mid,
     /// Phrase types are labeled "Intro", "Verse 1", "Verse 2", "Chorus", "Bridge", and "Outro".
     /// There are three different phrase type values for each of "Verse 1" and "Verse 2", but
     /// rekordbox makes no distinction between them.
+    #[br(magic = 3u16)]
     Low,
     /// Unknown value.
     Unknown(u16),
 }
 
-impl Mood {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, mood_id) = nom::number::complete::be_u16(input)?;
-        let mood = Mood::from(mood_id);
-
-        Ok((input, mood))
-    }
-}
-
-impl From<u16> for Mood {
-    fn from(mood_id: u16) -> Self {
-        match mood_id {
-            1 => Self::High,
-            2 => Self::Mid,
-            3 => Self::Low,
-            x => Self::Unknown(x),
-        }
-    }
-}
-
-#[derive(Debug)]
 /// Stylistic track bank for Lightning mode.
+#[derive(Debug, PartialEq)]
+#[binread]
 pub enum Bank {
     /// Default bank variant, treated as `Cool`.
+    #[br(magic = 0u8)]
     Default,
     /// "Cool" bank variant.
+    #[br(magic = 1u8)]
     Cool,
     /// "Natural" bank variant.
+    #[br(magic = 2u8)]
     Natural,
     /// "Hot" bank variant.
+    #[br(magic = 3u8)]
     Hot,
     /// "Subtle" bank variant.
+    #[br(magic = 4u8)]
     Subtle,
     /// "Warm" bank variant.
+    #[br(magic = 5u8)]
     Warm,
     /// "Vivid" bank variant.
+    #[br(magic = 6u8)]
     Vivid,
     /// "Club 1" bank variant.
+    #[br(magic = 7u8)]
     Club1,
     /// "Club 2" bank variant.
+    #[br(magic = 8u8)]
     Club2,
     /// Unknown value.
     Unknown(u8),
 }
 
-impl Bank {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, bank_id) = nom::number::complete::u8(input)?;
-        let bank = Bank::from(bank_id);
-
-        Ok((input, bank))
-    }
-}
-
-impl From<u8> for Bank {
-    fn from(bank_id: u8) -> Self {
-        match bank_id {
-            0 => Self::Default,
-            1 => Self::Cool,
-            2 => Self::Natural,
-            3 => Self::Hot,
-            4 => Self::Subtle,
-            5 => Self::Warm,
-            6 => Self::Vivid,
-            7 => Self::Club1,
-            8 => Self::Club2,
-            x => Self::Unknown(x),
-        }
-    }
-}
-
-#[derive(Debug)]
 /// A song structure entry that represents a phrase in the track.
+#[derive(Debug, PartialEq)]
+#[binread]
+#[br(big)]
 pub struct Phrase {
     /// Phrase number (starting at 1).
     pub index: u16,
@@ -775,55 +528,13 @@ pub struct Phrase {
     pub beat_fill: u16,
 }
 
-impl Phrase {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, index) = nom::number::complete::be_u16(input)?;
-        let (input, beat) = nom::number::complete::be_u16(input)?;
-        let (input, kind) = nom::number::complete::be_u16(input)?;
-        let (input, unknown1) = nom::number::complete::u8(input)?;
-        let (input, k1) = nom::number::complete::u8(input)?;
-        let (input, unknown2) = nom::number::complete::u8(input)?;
-        let (input, k2) = nom::number::complete::u8(input)?;
-        let (input, unknown3) = nom::number::complete::u8(input)?;
-        let (input, b) = nom::number::complete::u8(input)?;
-        let (input, beat2) = nom::number::complete::be_u16(input)?;
-        let (input, beat3) = nom::number::complete::be_u16(input)?;
-        let (input, beat4) = nom::number::complete::be_u16(input)?;
-        let (input, unknown4) = nom::number::complete::u8(input)?;
-        let (input, k3) = nom::number::complete::u8(input)?;
-        let (input, unknown5) = nom::number::complete::u8(input)?;
-        let (input, fill) = nom::number::complete::u8(input)?;
-        let (input, beat_fill) = nom::number::complete::be_u16(input)?;
-
-        Ok((
-            input,
-            Self {
-                index,
-                beat,
-                kind,
-                unknown1,
-                k1,
-                unknown2,
-                k2,
-                unknown3,
-                b,
-                beat2,
-                beat3,
-                beat4,
-                unknown4,
-                k3,
-                unknown5,
-                fill,
-                beat_fill,
-            },
-        ))
-    }
-}
-
-#[derive(Debug)]
 /// Section content which differs depending on the section type.
+#[derive(Debug, PartialEq)]
+#[binread]
+#[br(big, import(header: Header))]
 pub enum Content {
     /// All beats in the track.
+    #[br(pre_assert(header.kind == ContentKind::BeatGrid))]
     BeatGrid {
         /// Unknown field.
         unknown1: u32,
@@ -831,78 +542,111 @@ pub enum Content {
         ///
         /// According to [@flesniak](https://github.com/flesniak), this is always `00800000`.
         unknown2: u32,
+        /// Number of beats in this beatgrid.
+        len_beats: u32,
         /// Beats in this beatgrid.
+        #[br(count = len_beats)]
         beats: Vec<Beat>,
     },
     /// List of cue points or loops (either hot cues or memory cues).
+    #[br(pre_assert(header.kind == ContentKind::CueList))]
     CueList {
         /// The types of cues (memory or hot) that this list contains.
         list_type: CueListType,
         /// Unknown field
         unknown: u16,
+        /// Number of cues.
+        len_cues: u16,
         /// Unknown field.
         memory_count: u32,
         /// Cues
+        #[br(count = len_cues)]
         cues: Vec<Cue>,
     },
     /// List of cue points or loops (either hot cues or memory cues, extended version).
     ///
     /// Variation of the original `CueList` that also adds support for more metadata such as
     /// comments and colors. Introduces with the Nexus 2 series players.
+    #[br(pre_assert(header.kind == ContentKind::ExtendedCueList))]
     ExtendedCueList {
         /// The types of cues (memory or hot) that this list contains.
         list_type: CueListType,
+        /// Number of cues.
+        len_cues: u16,
+        /// Unknown field
+        #[br(assert(unknown == 0))]
+        unknown: u16,
         /// Cues
+        #[br(count = len_cues)]
         cues: Vec<ExtendedCue>,
     },
     /// Path of the audio file that this analysis belongs to.
-    Path(String),
+    #[br(pre_assert(header.kind == ContentKind::Path))]
+    Path {
+        /// Length of the path field in bytes.
+        len_path: u32,
+        #[br(assert(len_path == header.content_size()), count = len_path)]
+        /// Path of the audio file.
+        path: Vec<u8>,
+    },
     /// Seek information for variable bitrate files (probably).
+    #[br(pre_assert(header.kind == ContentKind::VBR))]
     VBR {
         /// Unknown field.
         unknown1: u32,
         /// Unknown data.
+        #[br(count = header.content_size())]
         unknown2: Vec<u8>,
     },
     /// Fixed-width monochrome preview of the track waveform.
+    #[br(pre_assert(header.kind == ContentKind::WaveformPreview))]
     WaveformPreview {
         /// Unknown field.
         len_preview: u32,
         /// Unknown field (apparently always `0x00100000`)
         unknown: u32,
         /// Waveform preview column data.
+        #[br(count = header.content_size())]
         data: Vec<WaveformPreviewColumn>,
     },
     /// Smaller version of the fixed-width monochrome preview of the track waveform.
+    #[br(pre_assert(header.kind == ContentKind::TinyWaveformPreview))]
     TinyWaveformPreview {
         /// Unknown field.
         len_preview: u32,
         /// Unknown field (apparently always `0x00100000`)
         unknown: u32,
         /// Waveform preview column data.
+        #[br(count = header.content_size())]
         data: Vec<TinyWaveformPreviewColumn>,
     },
     /// Variable-width large monochrome version of the track waveform.
     ///
     /// Used in `.EXT` files.
+    #[br(pre_assert(header.kind == ContentKind::WaveformDetail))]
     WaveformDetail {
         /// Size of a single entry, always 1.
+        #[br(assert(len_entry_bytes == 1))]
         len_entry_bytes: u32,
         /// Number of entries in this section.
         len_entries: u32,
         /// Unknown field (apparently always `0x00960000`)
+        #[br(assert(unknown == 0x00960000))]
         unknown: u32,
         /// Waveform preview column data.
         ///
         /// Each entry represents one half-frame of audio data, and there are 75 frames per second,
         /// so for each second of track audio there are 150 waveform detail entries.
+        #[br(count = len_entries)]
         data: Vec<WaveformPreviewColumn>,
     },
     /// Variable-width large monochrome version of the track waveform.
     ///
     /// Used in `.EXT` files.
+    #[br(pre_assert(header.kind == ContentKind::WaveformColorPreview))]
     WaveformColorPreview {
-        /// Size of a single entry, always 1.
+        /// Size of a single entry, always 6.
+        #[br(assert(len_entry_bytes == 6))]
         len_entry_bytes: u32,
         /// Number of entries in this section.
         len_entries: u32,
@@ -912,26 +656,32 @@ pub enum Content {
         ///
         /// Each entry represents one half-frame of audio data, and there are 75 frames per second,
         /// so for each second of track audio there are 150 waveform detail entries.
+        #[br(count = len_entries)]
         data: Vec<WaveformColorPreviewColumn>,
     },
     /// Variable-width large colored version of the track waveform.
     ///
     /// Used in `.EXT` files.
+    #[br(pre_assert(header.kind == ContentKind::WaveformColorDetail))]
     WaveformColorDetail {
-        /// Size of a single entry, always 1.
+        /// Size of a single entry, always 2.
+        #[br(assert(len_entry_bytes == 2))]
         len_entry_bytes: u32,
         /// Number of entries in this section.
         len_entries: u32,
         /// Unknown field.
         unknown: u32,
         /// Waveform detail column data.
+        #[br(count = len_entries)]
         data: Vec<WaveformColorDetailColumn>,
     },
     /// Describes the structure of a sond (Intro, Chrous, Verse, etc.).
     ///
     /// Used in `.EXT` files.
+    #[br(pre_assert(header.kind == ContentKind::SongStructure))]
     SongStructure {
-        /// Size of a single entry, always 1.
+        /// Size of a single entry, always 24.
+        #[br(assert(len_entry_bytes == 24))]
         len_entry_bytes: u32,
         /// Number of entries in this section.
         len_entries: u16,
@@ -950,347 +700,66 @@ pub enum Content {
         /// Unknown field.
         unknown4: u8,
         /// Phrase entry data.
+        #[br(count = len_entries)]
         data: Vec<Phrase>,
     },
     /// Unknown content.
+    #[br(pre_assert(matches!(header.kind, ContentKind::Unknown(_))))]
     Unknown {
         /// Unknown header data.
+        #[br(count = header.remaining_size())]
         header_data: Vec<u8>,
         /// Unknown content data.
+        #[br(count = header.content_size())]
         content_data: Vec<u8>,
     },
 }
 
-impl Content {
-    fn parse<'a>(input: &'a [u8], header: &Header) -> IResult<&'a [u8], Self> {
-        match header.kind {
-            ContentKind::File => Err(nom_input_error_with_kind(input, ErrorKind::Tag)),
-            ContentKind::BeatGrid => Self::parse_beatgrid(input, header),
-            ContentKind::CueList => Self::parse_cuelist(input, header),
-            ContentKind::ExtendedCueList => Self::parse_extendedcuelist(input, header),
-            ContentKind::Path => Self::parse_path(input, header),
-            ContentKind::VBR => Self::parse_vbr(input, header),
-            ContentKind::WaveformPreview => Self::parse_waveform_preview(input, header),
-            ContentKind::TinyWaveformPreview => Self::parse_tiny_waveform_preview(input, header),
-            ContentKind::WaveformDetail => Self::parse_waveform_detail(input, header),
-            ContentKind::WaveformColorPreview => Self::parse_waveform_color_preview(input, header),
-            ContentKind::WaveformColorDetail => Self::parse_waveform_color_detail(input, header),
-            ContentKind::SongStructure => Self::parse_song_structure(input, header),
-            _ => Self::parse_unknown(input, header),
-        }
-    }
-
-    fn parse_beatgrid<'a>(input: &'a [u8], _header: &Header) -> IResult<&'a [u8], Self> {
-        let (input, unknown1) = nom::number::complete::be_u32(input)?;
-        let (input, unknown2) = nom::number::complete::be_u32(input)?;
-        let (input, beats) =
-            nom::multi::length_count(nom::number::complete::be_u32, Beat::parse)(input)?;
-
-        Ok((
-            input,
-            Content::BeatGrid {
-                unknown1,
-                unknown2,
-                beats,
-            },
-        ))
-    }
-
-    fn parse_cuelist<'a>(input: &'a [u8], _header: &Header) -> IResult<&'a [u8], Self> {
-        let (input, list_type) = CueListType::parse(input)?;
-        let (input, unknown) = nom::number::complete::be_u16(input)?;
-        let (input, len_cues) = nom::number::complete::be_u16(input)?;
-        let len_cues = usize::try_from(len_cues)
-            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
-        let (input, memory_count) = nom::number::complete::be_u32(input)?;
-        let (input, cues) = nom::multi::count(Cue::parse, len_cues)(input)?;
-
-        Ok((
-            input,
-            Content::CueList {
-                list_type,
-                unknown,
-                memory_count,
-                cues,
-            },
-        ))
-    }
-
-    fn parse_extendedcuelist<'a>(input: &'a [u8], _header: &Header) -> IResult<&'a [u8], Self> {
-        let (input, list_type) = CueListType::parse(input)?;
-        let (input, len_cues) = nom::number::complete::be_u16(input)?;
-        let len_cues = usize::try_from(len_cues)
-            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
-        let (input, _) = nom::bytes::complete::tag(b"00")(input)?;
-        let (input, cues) = nom::multi::count(ExtendedCue::parse, len_cues)(input)?;
-
-        Ok((input, Content::ExtendedCueList { list_type, cues }))
-    }
-
-    fn parse_path<'a>(input: &'a [u8], _header: &Header) -> IResult<&'a [u8], Self> {
-        let (input, len_path) = nom::number::complete::be_u32(input)?;
-        let len_path = usize::try_from(len_path)
-            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
-
-        let str_length = len_path / 2 - 1;
-        let (input, str_data) =
-            nom::multi::count(nom::number::complete::be_u16, str_length)(input)?;
-        let (input, _) = nom::bytes::complete::tag(b"\x00\x00")(input)?;
-        let path = String::from_utf16(&str_data)
-            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::Char))?;
-
-        Ok((input, Content::Path(path)))
-    }
-
-    fn parse_vbr<'a>(input: &'a [u8], header: &Header) -> IResult<&'a [u8], Self> {
-        let (input, unknown1) = nom::number::complete::be_u32(input)?;
-        let (input, content_data_slice) = nom::bytes::complete::take(header.content_size())(input)?;
-        let unknown2: Vec<u8> = content_data_slice.to_owned();
-
-        Ok((input, Content::VBR { unknown1, unknown2 }))
-    }
-
-    fn parse_waveform_preview<'a>(input: &'a [u8], header: &Header) -> IResult<&'a [u8], Self> {
-        let (input, len_preview) = nom::number::complete::be_u32(input)?;
-        let (input, unknown) = nom::number::complete::be_u32(input)?;
-        let (input, content_data_slice) = nom::bytes::complete::take(header.content_size())(input)?;
-        let data: Vec<WaveformPreviewColumn> = content_data_slice
-            .iter()
-            .cloned()
-            .map(WaveformPreviewColumn::from)
-            .collect();
-
-        Ok((
-            input,
-            Content::WaveformPreview {
-                len_preview,
-                unknown,
-                data,
-            },
-        ))
-    }
-
-    fn parse_tiny_waveform_preview<'a>(
-        input: &'a [u8],
-        header: &Header,
-    ) -> IResult<&'a [u8], Self> {
-        let (input, len_preview) = nom::number::complete::be_u32(input)?;
-        let (input, unknown) = nom::number::complete::be_u32(input)?;
-        let (input, content_data_slice) = nom::bytes::complete::take(header.content_size())(input)?;
-        let data: Vec<TinyWaveformPreviewColumn> = content_data_slice
-            .iter()
-            .cloned()
-            .map(TinyWaveformPreviewColumn::from)
-            .collect();
-
-        Ok((
-            input,
-            Content::TinyWaveformPreview {
-                len_preview,
-                unknown,
-                data,
-            },
-        ))
-    }
-
-    fn parse_waveform_detail<'a>(input: &'a [u8], header: &Header) -> IResult<&'a [u8], Self> {
-        let (input, len_entry_bytes) = nom::number::complete::be_u32(input)?;
-        // All waveform detail entries should be 1 byte long. If we see other values here,
-        // some reverse-engineering is needed.
-        if len_entry_bytes != 2 {
-            return Err(nom_input_error_with_kind(input, ErrorKind::LengthValue));
-        }
-
-        let (input, len_entries) = nom::number::complete::be_u32(input)?;
-        let (input, unknown) = nom::number::complete::be_u32(input)?;
-        let (input, content_data_slice) = nom::bytes::complete::take(header.content_size())(input)?;
-        let data: Vec<WaveformPreviewColumn> = content_data_slice
-            .iter()
-            .cloned()
-            .map(WaveformPreviewColumn::from)
-            .collect();
-
-        Ok((
-            input,
-            Content::WaveformDetail {
-                len_entry_bytes,
-                len_entries,
-                unknown,
-                data,
-            },
-        ))
-    }
-
-    fn parse_waveform_color_preview<'a>(
-        input: &'a [u8],
-        _header: &Header,
-    ) -> IResult<&'a [u8], Self> {
-        let (input, len_entry_bytes) = nom::number::complete::be_u32(input)?;
-        // All waveform color preview entries should be 6 bytes long. If we see other values here,
-        // some reverse-engineering is needed.
-        if len_entry_bytes != 2 {
-            return Err(nom_input_error_with_kind(input, ErrorKind::LengthValue));
-        }
-
-        let (input, len_entries) = nom::number::complete::be_u32(input)?;
-        let entry_count = usize::try_from(len_entries)
-            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
-
-        let (input, unknown) = nom::number::complete::be_u32(input)?;
-        let (input, data) =
-            nom::multi::count(WaveformColorPreviewColumn::parse, entry_count)(input)?;
-
-        Ok((
-            input,
-            Content::WaveformColorPreview {
-                len_entry_bytes,
-                len_entries,
-                unknown,
-                data,
-            },
-        ))
-    }
-
-    fn parse_waveform_color_detail<'a>(
-        input: &'a [u8],
-        _header: &Header,
-    ) -> IResult<&'a [u8], Self> {
-        let (input, len_entry_bytes) = nom::number::complete::be_u32(input)?;
-        // All waveform color detail entries should be 2 bytes long. If we see other values here,
-        // some reverse-engineering is needed.
-        if len_entry_bytes != 2 {
-            return Err(nom_input_error_with_kind(input, ErrorKind::LengthValue));
-        }
-
-        let (input, len_entries) = nom::number::complete::be_u32(input)?;
-        let entry_count = usize::try_from(len_entries)
-            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
-
-        let (input, unknown) = nom::number::complete::be_u32(input)?;
-        let (input, data) =
-            nom::multi::count(WaveformColorDetailColumn::parse, entry_count)(input)?;
-
-        Ok((
-            input,
-            Content::WaveformColorDetail {
-                len_entry_bytes,
-                len_entries,
-                unknown,
-                data,
-            },
-        ))
-    }
-
-    fn parse_song_structure<'a>(input: &'a [u8], _header: &Header) -> IResult<&'a [u8], Self> {
-        let (input, len_entry_bytes) = nom::number::complete::be_u32(input)?;
-        // All phrase entries should be 24 bytes long. If we see other values here, some
-        // reverse-engineering is needed.
-        if len_entry_bytes != 24 {
-            return Err(nom_input_error_with_kind(input, ErrorKind::LengthValue));
-        }
-
-        let (input, len_entries) = nom::number::complete::be_u16(input)?;
-        let entry_count = usize::try_from(len_entries)
-            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
-
-        let (input, mood) = Mood::parse(input)?;
-        let (input, unknown1) = nom::number::complete::be_u32(input)?;
-        let (input, unknown2) = nom::number::complete::be_u16(input)?;
-        let (input, end_beat) = nom::number::complete::be_u16(input)?;
-        let (input, unknown3) = nom::number::complete::be_u16(input)?;
-        let (input, bank) = Bank::parse(input)?;
-        let (input, unknown4) = nom::number::complete::u8(input)?;
-        let (input, data) = nom::multi::count(Phrase::parse, entry_count)(input)?;
-
-        Ok((
-            input,
-            Content::SongStructure {
-                len_entry_bytes,
-                len_entries,
-                mood,
-                unknown1,
-                unknown2,
-                end_beat,
-                unknown3,
-                bank,
-                unknown4,
-                data,
-            },
-        ))
-    }
-
-    fn parse_unknown<'a>(input: &'a [u8], header: &Header) -> IResult<&'a [u8], Self> {
-        let (input, header_data_slice) =
-            nom::bytes::complete::take(header.remaining_size())(input)?;
-        let header_data: Vec<u8> = header_data_slice.to_owned();
-
-        let (input, content_data_slice) = nom::bytes::complete::take(header.content_size())(input)?;
-        let content_data: Vec<u8> = content_data_slice.to_owned();
-
-        Ok((
-            input,
-            Content::Unknown {
-                header_data,
-                content_data,
-            },
-        ))
-    }
-}
-
-#[derive(Debug)]
 /// ANLZ Section.
+#[derive(Debug, PartialEq)]
+#[binread]
 pub struct Section {
     /// The header.
     pub header: Header,
     /// The section content.
+    #[br(args(header.clone()))]
     pub content: Content,
 }
 
-impl Section {
-    fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, header) = Header::parse(input)?;
-        let (input, content) = Content::parse(input, &header)?;
-        Ok((input, Self { header, content }))
-    }
-}
-
-#[derive(Debug)]
 /// ANLZ file section.
 ///
 /// The actual contents are not part of this struct and can parsed on-the-fly by iterating over the
 /// `ANLZ::sections()` method.
+#[derive(Debug, PartialEq)]
+#[binread]
+#[br(big)]
 pub struct ANLZ {
     /// The file header.
+    #[br(assert(header.kind == ContentKind::File))]
     pub header: Header,
     /// The header data.
+    #[br(count = header.remaining_size())]
     pub header_data: Vec<u8>,
+    /// The content sections.
+    #[br(parse_with = Self::parse_sections, args(header.content_size()))]
+    pub sections: Vec<Section>,
 }
 
 impl ANLZ {
-    /// Parses the ANLZ header and returns the `ANLZ` structure.
-    pub fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, _) = nom::combinator::peek(nom::bytes::complete::tag(b"PMAI"))(input)?;
-        let (input, header) = Header::parse(input)?;
-        let (input, data) = nom::bytes::complete::take(header.remaining_size())(input)?;
-        let header_data = data.to_owned();
+    fn parse_sections<R: Read + Seek>(
+        reader: &mut R,
+        ro: &ReadOptions,
+        args: (u32,),
+    ) -> BinResult<Vec<Section>> {
+        let (content_size,) = args;
+        let final_position = reader.stream_position()? + u64::from(content_size);
 
-        Ok((
-            input,
-            Self {
-                header,
-                header_data,
-            },
-        ))
-    }
+        let mut sections: Vec<Section> = vec![];
+        while reader.stream_position()? < final_position {
+            let section = Section::read_options(reader, ro, ())?;
+            sections.push(section);
+        }
 
-    /// Iterates over the file sections.
-    pub fn sections<'a>(&self, input: &'a [u8]) -> impl Iterator<Item = Section> + 'a {
-        (0..).scan(input, |input, _| match Section::parse(input) {
-            Ok((remaining_input, section)) => {
-                *input = remaining_input;
-                Some(section)
-            }
-            Err(_) => None,
-        })
+        Ok(sections)
     }
 }

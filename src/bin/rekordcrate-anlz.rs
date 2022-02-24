@@ -6,14 +6,12 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
+use binrw::BinRead;
 use rekordcrate::anlz::ANLZ;
 
 fn main() {
     let path = std::env::args().nth(1).expect("no path given");
-    let data = std::fs::read(&path).expect("failed to read file");
-    let (input, anlz) = ANLZ::parse(&data).expect("failed to parse header");
-    println!("File Header: {:#?}", anlz);
-    for (i, section) in anlz.sections(input).enumerate() {
-        println!("#{}: {:#?}", i, section);
-    }
+    let mut reader = std::fs::File::open(&path).expect("failed to open file");
+    let anlz = ANLZ::read(&mut reader).expect("failed to parse setting file");
+    println!("{:#?}", anlz);
 }

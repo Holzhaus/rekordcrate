@@ -8,6 +8,7 @@
 
 //! Common types used in multiple modules.
 
+use binrw::binread;
 use nom::error::{ErrorKind, ParseError};
 use nom::Err;
 use nom::IResult;
@@ -18,26 +19,36 @@ pub fn nom_input_error_with_kind(input: &[u8], kind: ErrorKind) -> Err<nom::erro
     Err::Error(nom::error::Error::from_error_kind(input, kind))
 }
 
-#[derive(Debug)]
 /// Indexed Color identifiers used for memory cues and tracks.
+#[derive(Debug, PartialEq)]
+#[binread]
 pub enum ColorIndex {
     /// No color.
+    #[br(magic = 0u8)]
     None,
     /// Pink color.
+    #[br(magic = 1u8)]
     Pink,
     /// Red color.
+    #[br(magic = 2u8)]
     Red,
     /// Orange color.
+    #[br(magic = 3u8)]
     Orange,
     /// Yellow color.
+    #[br(magic = 4u8)]
     Yellow,
     /// Green color.
+    #[br(magic = 5u8)]
     Green,
     /// Aqua color.
+    #[br(magic = 6u8)]
     Aqua,
     /// Blue color.
+    #[br(magic = 7u8)]
     Blue,
     /// Purple color.
+    #[br(magic = 8u8)]
     Purple,
     /// Unknown color.
     Unknown(u16),
