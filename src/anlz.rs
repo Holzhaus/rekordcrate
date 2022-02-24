@@ -531,188 +531,264 @@ pub struct Phrase {
 /// Section content which differs depending on the section type.
 #[derive(Debug, PartialEq)]
 #[binread]
-#[br(big, import(header: Header))]
+#[br(import(header: Header))]
 pub enum Content {
     /// All beats in the track.
     #[br(pre_assert(header.kind == ContentKind::BeatGrid))]
-    BeatGrid {
-        /// Unknown field.
-        unknown1: u32,
-        /// Unknown field.
-        ///
-        /// According to [@flesniak](https://github.com/flesniak), this is always `00800000`.
-        unknown2: u32,
-        /// Number of beats in this beatgrid.
-        len_beats: u32,
-        /// Beats in this beatgrid.
-        #[br(count = len_beats)]
-        beats: Vec<Beat>,
-    },
+    BeatGrid(BeatGrid),
     /// List of cue points or loops (either hot cues or memory cues).
     #[br(pre_assert(header.kind == ContentKind::CueList))]
-    CueList {
-        /// The types of cues (memory or hot) that this list contains.
-        list_type: CueListType,
-        /// Unknown field
-        unknown: u16,
-        /// Number of cues.
-        len_cues: u16,
-        /// Unknown field.
-        memory_count: u32,
-        /// Cues
-        #[br(count = len_cues)]
-        cues: Vec<Cue>,
-    },
+    CueList(CueList),
     /// List of cue points or loops (either hot cues or memory cues, extended version).
     ///
     /// Variation of the original `CueList` that also adds support for more metadata such as
     /// comments and colors. Introduces with the Nexus 2 series players.
     #[br(pre_assert(header.kind == ContentKind::ExtendedCueList))]
-    ExtendedCueList {
-        /// The types of cues (memory or hot) that this list contains.
-        list_type: CueListType,
-        /// Number of cues.
-        len_cues: u16,
-        /// Unknown field
-        #[br(assert(unknown == 0))]
-        unknown: u16,
-        /// Cues
-        #[br(count = len_cues)]
-        cues: Vec<ExtendedCue>,
-    },
+    ExtendedCueList(ExtendedCueList),
     /// Path of the audio file that this analysis belongs to.
     #[br(pre_assert(header.kind == ContentKind::Path))]
-    Path {
-        /// Length of the path field in bytes.
-        len_path: u32,
-        #[br(assert(len_path == header.content_size()), count = len_path)]
-        /// Path of the audio file.
-        path: Vec<u8>,
-    },
+    Path(#[br(args(header.clone()))] Path),
     /// Seek information for variable bitrate files (probably).
     #[br(pre_assert(header.kind == ContentKind::VBR))]
-    VBR {
-        /// Unknown field.
-        unknown1: u32,
-        /// Unknown data.
-        #[br(count = header.content_size())]
-        unknown2: Vec<u8>,
-    },
+    VBR(#[br(args(header.clone()))] VBR),
     /// Fixed-width monochrome preview of the track waveform.
     #[br(pre_assert(header.kind == ContentKind::WaveformPreview))]
-    WaveformPreview {
-        /// Unknown field.
-        len_preview: u32,
-        /// Unknown field (apparently always `0x00100000`)
-        unknown: u32,
-        /// Waveform preview column data.
-        #[br(count = header.content_size())]
-        data: Vec<WaveformPreviewColumn>,
-    },
+    WaveformPreview(#[br(args(header.clone()))] WaveformPreview),
     /// Smaller version of the fixed-width monochrome preview of the track waveform.
     #[br(pre_assert(header.kind == ContentKind::TinyWaveformPreview))]
-    TinyWaveformPreview {
-        /// Unknown field.
-        len_preview: u32,
-        /// Unknown field (apparently always `0x00100000`)
-        unknown: u32,
-        /// Waveform preview column data.
-        #[br(count = header.content_size())]
-        data: Vec<TinyWaveformPreviewColumn>,
-    },
+    TinyWaveformPreview(#[br(args(header.clone()))] TinyWaveformPreview),
     /// Variable-width large monochrome version of the track waveform.
     ///
     /// Used in `.EXT` files.
     #[br(pre_assert(header.kind == ContentKind::WaveformDetail))]
-    WaveformDetail {
-        /// Size of a single entry, always 1.
-        #[br(assert(len_entry_bytes == 1))]
-        len_entry_bytes: u32,
-        /// Number of entries in this section.
-        len_entries: u32,
-        /// Unknown field (apparently always `0x00960000`)
-        #[br(assert(unknown == 0x00960000))]
-        unknown: u32,
-        /// Waveform preview column data.
-        ///
-        /// Each entry represents one half-frame of audio data, and there are 75 frames per second,
-        /// so for each second of track audio there are 150 waveform detail entries.
-        #[br(count = len_entries)]
-        data: Vec<WaveformPreviewColumn>,
-    },
+    WaveformDetail(WaveformDetail),
     /// Variable-width large monochrome version of the track waveform.
     ///
     /// Used in `.EXT` files.
     #[br(pre_assert(header.kind == ContentKind::WaveformColorPreview))]
-    WaveformColorPreview {
-        /// Size of a single entry, always 6.
-        #[br(assert(len_entry_bytes == 6))]
-        len_entry_bytes: u32,
-        /// Number of entries in this section.
-        len_entries: u32,
-        /// Unknown field.
-        unknown: u32,
-        /// Waveform preview column data.
-        ///
-        /// Each entry represents one half-frame of audio data, and there are 75 frames per second,
-        /// so for each second of track audio there are 150 waveform detail entries.
-        #[br(count = len_entries)]
-        data: Vec<WaveformColorPreviewColumn>,
-    },
+    WaveformColorPreview(WaveformColorPreview),
     /// Variable-width large colored version of the track waveform.
     ///
     /// Used in `.EXT` files.
     #[br(pre_assert(header.kind == ContentKind::WaveformColorDetail))]
-    WaveformColorDetail {
-        /// Size of a single entry, always 2.
-        #[br(assert(len_entry_bytes == 2))]
-        len_entry_bytes: u32,
-        /// Number of entries in this section.
-        len_entries: u32,
-        /// Unknown field.
-        unknown: u32,
-        /// Waveform detail column data.
-        #[br(count = len_entries)]
-        data: Vec<WaveformColorDetailColumn>,
-    },
+    WaveformColorDetail(WaveformColorDetail),
     /// Describes the structure of a sond (Intro, Chrous, Verse, etc.).
     ///
     /// Used in `.EXT` files.
     #[br(pre_assert(header.kind == ContentKind::SongStructure))]
-    SongStructure {
-        /// Size of a single entry, always 24.
-        #[br(assert(len_entry_bytes == 24))]
-        len_entry_bytes: u32,
-        /// Number of entries in this section.
-        len_entries: u16,
-        /// Overall type of phrase structure.
-        mood: Mood,
-        /// Unknown field.
-        unknown1: u32,
-        /// Unknown field.
-        unknown2: u16,
-        /// Number of the beat at which the last recognized phrase ends.
-        end_beat: u16,
-        /// Unknown field.
-        unknown3: u16,
-        /// Stylistic bank assigned in Lightning Mode.
-        bank: Bank,
-        /// Unknown field.
-        unknown4: u8,
-        /// Phrase entry data.
-        #[br(count = len_entries)]
-        data: Vec<Phrase>,
-    },
+    SongStructure(SongStructure),
     /// Unknown content.
     #[br(pre_assert(matches!(header.kind, ContentKind::Unknown(_))))]
-    Unknown {
-        /// Unknown header data.
-        #[br(count = header.remaining_size())]
-        header_data: Vec<u8>,
-        /// Unknown content data.
-        #[br(count = header.content_size())]
-        content_data: Vec<u8>,
-    },
+    Unknown(#[br(args(header.clone()))] Unknown),
+}
+
+/// All beats in the track.
+#[derive(Debug, PartialEq)]
+#[binread]
+pub struct BeatGrid {
+    /// Unknown field.
+    unknown1: u32,
+    /// Unknown field.
+    ///
+    /// According to [@flesniak](https://github.com/flesniak), this is always `00800000`.
+    unknown2: u32,
+    /// Number of beats in this beatgrid.
+    len_beats: u32,
+    /// Beats in this beatgrid.
+    #[br(count = len_beats)]
+    pub beats: Vec<Beat>,
+}
+
+/// List of cue points or loops (either hot cues or memory cues).
+#[derive(Debug, PartialEq)]
+#[binread]
+pub struct CueList {
+    /// The types of cues (memory or hot) that this list contains.
+    pub list_type: CueListType,
+    /// Unknown field
+    unknown: u16,
+    /// Number of cues.
+    len_cues: u16,
+    /// Unknown field.
+    memory_count: u32,
+    /// Cues
+    #[br(count = len_cues)]
+    pub cues: Vec<Cue>,
+}
+
+/// List of cue points or loops (either hot cues or memory cues, extended version).
+///
+/// Variation of the original `CueList` that also adds support for more metadata such as
+/// comments and colors. Introduces with the Nexus 2 series players.
+#[derive(Debug, PartialEq)]
+#[binread]
+pub struct ExtendedCueList {
+    /// The types of cues (memory or hot) that this list contains.
+    pub list_type: CueListType,
+    /// Number of cues.
+    len_cues: u16,
+    /// Unknown field
+    #[br(assert(unknown == 0))]
+    unknown: u16,
+    /// Cues
+    #[br(count = len_cues)]
+    pub cues: Vec<ExtendedCue>,
+}
+
+/// Path of the audio file that this analysis belongs to.
+#[derive(Debug, PartialEq)]
+#[binread]
+#[br(import(header: Header))]
+pub struct Path {
+    /// Length of the path field in bytes.
+    len_path: u32,
+    #[br(assert(len_path == header.content_size()), count = len_path)]
+    /// Path of the audio file.
+    pub path: Vec<u8>,
+}
+
+/// Seek information for variable bitrate files (probably).
+#[derive(Debug, PartialEq)]
+#[binread]
+#[br(import(header: Header))]
+pub struct VBR {
+    /// Unknown field.
+    unknown1: u32,
+    /// Unknown data.
+    #[br(count = header.content_size())]
+    unknown2: Vec<u8>,
+}
+
+/// Fixed-width monochrome preview of the track waveform.
+#[derive(Debug, PartialEq)]
+#[binread]
+#[br(import(header: Header))]
+pub struct WaveformPreview {
+    /// Unknown field.
+    len_preview: u32,
+    /// Unknown field (apparently always `0x00100000`)
+    unknown: u32,
+    /// Waveform preview column data.
+    #[br(count = header.content_size())]
+    pub data: Vec<WaveformPreviewColumn>,
+}
+
+/// Smaller version of the fixed-width monochrome preview of the track waveform.
+#[derive(Debug, PartialEq)]
+#[binread]
+#[br(import(header: Header))]
+pub struct TinyWaveformPreview {
+    /// Unknown field.
+    len_preview: u32,
+    /// Unknown field (apparently always `0x00100000`)
+    unknown: u32,
+    /// Waveform preview column data.
+    #[br(count = header.content_size())]
+    pub data: Vec<TinyWaveformPreviewColumn>,
+}
+
+/// Variable-width large monochrome version of the track waveform.
+///
+/// Used in `.EXT` files.
+#[derive(Debug, PartialEq)]
+#[binread]
+pub struct WaveformDetail {
+    /// Size of a single entry, always 1.
+    #[br(assert(len_entry_bytes == 1))]
+    len_entry_bytes: u32,
+    /// Number of entries in this section.
+    len_entries: u32,
+    /// Unknown field (apparently always `0x00960000`)
+    #[br(assert(unknown == 0x00960000))]
+    unknown: u32,
+    /// Waveform preview column data.
+    ///
+    /// Each entry represents one half-frame of audio data, and there are 75 frames per second,
+    /// so for each second of track audio there are 150 waveform detail entries.
+    #[br(count = len_entries)]
+    pub data: Vec<WaveformPreviewColumn>,
+}
+
+/// Variable-width large monochrome version of the track waveform.
+///
+/// Used in `.EXT` files.
+#[derive(Debug, PartialEq)]
+#[binread]
+pub struct WaveformColorPreview {
+    /// Size of a single entry, always 6.
+    #[br(assert(len_entry_bytes == 6))]
+    len_entry_bytes: u32,
+    /// Number of entries in this section.
+    len_entries: u32,
+    /// Unknown field.
+    unknown: u32,
+    /// Waveform preview column data.
+    ///
+    /// Each entry represents one half-frame of audio data, and there are 75 frames per second,
+    /// so for each second of track audio there are 150 waveform detail entries.
+    #[br(count = len_entries)]
+    pub data: Vec<WaveformColorPreviewColumn>,
+}
+
+/// Variable-width large colored version of the track waveform.
+///
+/// Used in `.EXT` files.
+#[derive(Debug, PartialEq)]
+#[binread]
+pub struct WaveformColorDetail {
+    /// Size of a single entry, always 2.
+    #[br(assert(len_entry_bytes == 2))]
+    len_entry_bytes: u32,
+    /// Number of entries in this section.
+    len_entries: u32,
+    /// Unknown field.
+    unknown: u32,
+    /// Waveform detail column data.
+    #[br(count = len_entries)]
+    pub data: Vec<WaveformColorDetailColumn>,
+}
+
+/// Describes the structure of a sond (Intro, Chrous, Verse, etc.).
+///
+/// Used in `.EXT` files.
+#[derive(Debug, PartialEq)]
+#[binread]
+pub struct SongStructure {
+    /// Size of a single entry, always 24.
+    #[br(assert(len_entry_bytes == 24))]
+    len_entry_bytes: u32,
+    /// Number of entries in this section.
+    len_entries: u16,
+    /// Overall type of phrase structure.
+    pub mood: Mood,
+    /// Unknown field.
+    unknown1: u32,
+    /// Unknown field.
+    unknown2: u16,
+    /// Number of the beat at which the last recognized phrase ends.
+    pub end_beat: u16,
+    /// Unknown field.
+    unknown3: u16,
+    /// Stylistic bank assigned in Lightning Mode.
+    pub bank: Bank,
+    /// Unknown field.
+    unknown4: u8,
+    /// Phrase entry data.
+    #[br(count = len_entries)]
+    pub data: Vec<Phrase>,
+}
+
+/// Unknown content.
+#[derive(Debug, PartialEq)]
+#[binread]
+#[br(import(header: Header))]
+pub struct Unknown {
+    /// Unknown header data.
+    #[br(count = header.remaining_size())]
+    header_data: Vec<u8>,
+    /// Unknown content data.
+    #[br(count = header.content_size())]
+    content_data: Vec<u8>,
 }
 
 /// ANLZ Section.
