@@ -704,9 +704,9 @@ pub enum HeadphonesPreEQ {
 #[brw(repr = u8)]
 pub enum HeadphonesMonoSplit {
     /// Named "MONO SPLIT" in the Rekordbox preferences.
-    MonoSplit = 0x80,
+    MonoSplit = 0x81,
     /// Named "STEREO" in the Rekordbox preferences.
-    Stereo,
+    Stereo = 0x80,
 }
 
 /// Found at "MIXER > DJ SETTING > BEAT FX QUANTIZE" of the "My Settings" page in the
