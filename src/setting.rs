@@ -637,8 +637,6 @@ pub enum PadButtonBrightness {
     Three,
     /// Named "4" in the Rekordbox preferences.
     Four,
-    /// Named "5" in the Rekordbox preferences.
-    Five,
 }
 
 /// Found at "MIXER > DJ SETTING > CH FADER CURVE" of the "My Settings" page in the Rekordbox
