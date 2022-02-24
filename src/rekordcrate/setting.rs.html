@@ -845,8 +845,6 @@
 <span id="844">844</span>
 <span id="845">845</span>
 <span id="846">846</span>
-<span id="847">847</span>
-<span id="848">848</span>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) 2022 Jan Holthuis</span>
 <span class="comment">//</span>
 <span class="comment">// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy</span>
@@ -1181,9 +1179,9 @@
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">JogMode</span> {
     <span class="doccomment">/// Named &quot;VINYL&quot; in the Rekordbox preferences.</span>
-    <span class="ident">Vinyl</span> <span class="op">=</span> <span class="number">0x80</span>,
+    <span class="ident">Vinyl</span> <span class="op">=</span> <span class="number">0x81</span>,
     <span class="doccomment">/// Named &quot;CDJ&quot; in the Rekordbox preferences.</span>
-    <span class="ident">CDJ</span> <span class="op">=</span> <span class="number">0x81</span>,
+    <span class="ident">CDJ</span> <span class="op">=</span> <span class="number">0x80</span>,
 }
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; TEMPO RANGE&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
@@ -1486,8 +1484,6 @@
     <span class="ident">Three</span>,
     <span class="doccomment">/// Named &quot;4&quot; in the Rekordbox preferences.</span>
     <span class="ident">Four</span>,
-    <span class="doccomment">/// Named &quot;5&quot; in the Rekordbox preferences.</span>
-    <span class="ident">Five</span>,
 }
 
 <span class="doccomment">/// Found at &quot;MIXER &gt; DJ SETTING &gt; CH FADER CURVE&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
@@ -1553,9 +1549,9 @@
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">HeadphonesMonoSplit</span> {
     <span class="doccomment">/// Named &quot;MONO SPLIT&quot; in the Rekordbox preferences.</span>
-    <span class="ident">MonoSplit</span> <span class="op">=</span> <span class="number">0x80</span>,
+    <span class="ident">MonoSplit</span> <span class="op">=</span> <span class="number">0x81</span>,
     <span class="doccomment">/// Named &quot;STEREO&quot; in the Rekordbox preferences.</span>
-    <span class="ident">Stereo</span>,
+    <span class="ident">Stereo</span> <span class="op">=</span> <span class="number">0x80</span>,
 }
 
 <span class="doccomment">/// Found at &quot;MIXER &gt; DJ SETTING &gt; BEAT FX QUANTIZE&quot; of the &quot;My Settings&quot; page in the</span>
