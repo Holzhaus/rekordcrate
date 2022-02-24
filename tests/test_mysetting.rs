@@ -24,6 +24,12 @@ macro_rules! read_mysetting {
 }
 
 #[test]
+fn read_mysetting_default() {
+    let data = read_mysetting!("../data/complete_export/empty/PIONEER/MYSETTING.DAT");
+    assert_eq!(data, MySetting::default());
+}
+
+#[test]
 fn read_mysetting_autocuelevel_36() {
     let data = read_mysetting!("../data/mysetting/autocuelevel_36/MYSETTING.DAT");
     assert_eq!(data.auto_cue_level, AutoCueLevel::Minus36dB);

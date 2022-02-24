@@ -24,6 +24,12 @@ macro_rules! read_mysetting2 {
 }
 
 #[test]
+fn read_mysetting2_default() {
+    let data = read_mysetting2!("../data/complete_export/empty/PIONEER/MYSETTING2.DAT");
+    assert_eq!(data, MySetting2::default());
+}
+
+#[test]
 fn read_mysetting2_beatjumpbeatvalue_64() {
     let data = read_mysetting2!("../data/mysetting2/beatjumpbeatvalue_64/MYSETTING2.DAT");
     assert_eq!(data.beat_jump_beat_value, BeatJumpBeatValue::SixtyfourBeat);

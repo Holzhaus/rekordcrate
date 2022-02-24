@@ -24,6 +24,12 @@ macro_rules! read_djmmysetting {
 }
 
 #[test]
+fn read_djmmysetting_default() {
+    let data = read_djmmysetting!("../data/complete_export/empty/PIONEER/DJMMYSETTING.DAT");
+    assert_eq!(data, DJMMySetting::default());
+}
+
+#[test]
 fn read_djmsetting_beatfxquantize_off() {
     let data = read_djmmysetting!("../data/djmmysetting/beatfxquantize_off/DJMMYSETTING.DAT");
     assert_eq!(data.beat_fx_quantize, BeatFXQuantize::Off);
