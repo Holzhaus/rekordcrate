@@ -332,9 +332,9 @@ pub enum AutoCue {
 #[brw(repr = u8)]
 pub enum JogMode {
     /// Named "VINYL" in the Rekordbox preferences.
-    Vinyl = 0x80,
+    Vinyl = 0x81,
     /// Named "CDJ" in the Rekordbox preferences.
-    CDJ = 0x81,
+    CDJ = 0x80,
 }
 
 /// Found at "PLAYER > DJ SETTING > TEMPO RANGE" of the "My Settings" page in the Rekordbox
@@ -637,8 +637,6 @@ pub enum PadButtonBrightness {
     Three,
     /// Named "4" in the Rekordbox preferences.
     Four,
-    /// Named "5" in the Rekordbox preferences.
-    Five,
 }
 
 /// Found at "MIXER > DJ SETTING > CH FADER CURVE" of the "My Settings" page in the Rekordbox
@@ -704,9 +702,9 @@ pub enum HeadphonesPreEQ {
 #[brw(repr = u8)]
 pub enum HeadphonesMonoSplit {
     /// Named "MONO SPLIT" in the Rekordbox preferences.
-    MonoSplit = 0x80,
+    MonoSplit = 0x81,
     /// Named "STEREO" in the Rekordbox preferences.
-    Stereo,
+    Stereo = 0x80,
 }
 
 /// Found at "MIXER > DJ SETTING > BEAT FX QUANTIZE" of the "My Settings" page in the
