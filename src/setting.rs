@@ -37,13 +37,13 @@ pub struct Setting {
     /// | `DJMMYSETTING.DAT` | `PioneerDJ`  |
     /// | `MYSETTING.DAT`    | `PIONEER`    |
     /// | `MYSETTING2.DAT`   | `PIONEER`    |
-    #[brw(pad_size_to = 0x20)]
+    #[brw(pad_size_to = 0x20, assert(brand.len() <= (0x20 - 1)))]
     pub brand: NullString,
     /// Name of the software ("rekordbox").
-    #[brw(pad_size_to = 0x20)]
+    #[brw(pad_size_to = 0x20, assert(software.len() <= (0x20 - 1)))]
     pub software: NullString,
     /// Some kind of version number.
-    #[brw(pad_size_to = 0x20)]
+    #[brw(pad_size_to = 0x20, assert(version.len() <= (0x20 - 1)))]
     pub version: NullString,
     /// Size of the `data` data in bytes.
     len_data: u32,
