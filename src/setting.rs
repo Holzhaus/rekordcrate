@@ -17,11 +17,12 @@
 //!
 //! The exact format still has to be reverse-engineered.
 
-use binrw::{binrw, NullString};
+use binrw::{binrw, io::Cursor, BinWrite, Endian, NullString, WriteOptions};
 
 #[binrw]
 #[derive(Debug, PartialEq)]
 #[brw(little)]
+#[bw(import(no_checksum: bool))]
 /// Represents a setting file.
 pub struct Setting {
     /// Size of the string data field (should be always 96).
@@ -59,11 +60,41 @@ pub struct Setting {
     ///
     /// See <https://reveng.sourceforge.io/crc-catalogue/all.htm#crc.cat.crc-16-xmodem> for
     /// details.
-    // TODO: Make this field temporary and calculate it automatically during serialization.
+    #[br(temp)]
+    #[bw(calc = no_checksum.then(|| 0).unwrap_or_else(|| self.calculate_checksum()))]
     checksum: u16,
     /// Unknown field (apparently always `0000`).
     #[br(assert(unknown == 0))]
     unknown: u16,
+}
+
+impl Setting
+where
+    Setting: BinWrite,
+{
+    /// Calculate the CRC16 checksum.
+    ///
+    /// This is horribly inefficient and basically serializes the whole data structure twice, but
+    /// there seems to be no other way to archieve this.
+    ///
+    /// Upstream issue: https://github.com/jam1garner/binrw/issues/102
+    fn calculate_checksum(&self) -> u16 {
+        let mut data = Vec::<u8>::with_capacity(156);
+        let mut writer = Cursor::new(&mut data);
+        self.write_options(&mut writer, &WriteOptions::new(Endian::Little), (true,))
+            .unwrap();
+        let start = match self.data {
+            // In `DJMMYSETTING.DAT`, the checksum is calculated over all previous bytes, including
+            // the section lengths and string data.
+            SettingData::DJMMySetting(_) => 0,
+            // In all other files`, the checksum is calculated just over the data section which
+            // starts at offset 104,
+            _ => 104,
+        };
+
+        let end = data.len() - 4;
+        crc16::State::<crc16::XMODEM>::calculate(&data[start..end])
+    }
 }
 
 /// Data section of a `*SETTING.DAT` file.

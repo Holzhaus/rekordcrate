@@ -15,6 +15,7 @@ exclude = [".*"]
 nom = "7"
 binrw = "0.8"
 modular-bitfield = "0.11"
+crc16 = "0.4"
 
 [build-dependencies]
 glob = "0.3"
