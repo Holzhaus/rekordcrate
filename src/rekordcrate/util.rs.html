@@ -74,6 +74,17 @@
 <span id="73">73</span>
 <span id="74">74</span>
 <span id="75">75</span>
+<span id="76">76</span>
+<span id="77">77</span>
+<span id="78">78</span>
+<span id="79">79</span>
+<span id="80">80</span>
+<span id="81">81</span>
+<span id="82">82</span>
+<span id="83">83</span>
+<span id="84">84</span>
+<span id="85">85</span>
+<span id="86">86</span>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) 2022 Jan Holthuis</span>
 <span class="comment">//</span>
 <span class="comment">// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy</span>
@@ -84,6 +95,7 @@
 
 <span class="doccomment">//! Common types used in multiple modules.</span>
 
+<span class="kw">use</span> <span class="ident">binrw::binrw</span>;
 <span class="kw">use</span> <span class="ident">nom::error</span>::{<span class="ident">ErrorKind</span>, <span class="ident">ParseError</span>};
 <span class="kw">use</span> <span class="ident">nom::Err</span>;
 <span class="kw">use</span> <span class="ident">nom::IResult</span>;
@@ -94,26 +106,36 @@
     <span class="ident">Err::Error</span>(<span class="ident">nom::error::Error::from_error_kind</span>(<span class="ident">input</span>, <span class="ident">kind</span>))
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
 <span class="doccomment">/// Indexed Color identifiers used for memory cues and tracks.</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">binrw</span>]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">ColorIndex</span> {
     <span class="doccomment">/// No color.</span>
+    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">magic</span> <span class="op">=</span> <span class="number">0u8</span>)]</span>
     <span class="prelude-val">None</span>,
     <span class="doccomment">/// Pink color.</span>
+    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">magic</span> <span class="op">=</span> <span class="number">1u8</span>)]</span>
     <span class="ident">Pink</span>,
     <span class="doccomment">/// Red color.</span>
+    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">magic</span> <span class="op">=</span> <span class="number">2u8</span>)]</span>
     <span class="ident">Red</span>,
     <span class="doccomment">/// Orange color.</span>
+    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">magic</span> <span class="op">=</span> <span class="number">3u8</span>)]</span>
     <span class="ident">Orange</span>,
     <span class="doccomment">/// Yellow color.</span>
+    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">magic</span> <span class="op">=</span> <span class="number">4u8</span>)]</span>
     <span class="ident">Yellow</span>,
     <span class="doccomment">/// Green color.</span>
+    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">magic</span> <span class="op">=</span> <span class="number">5u8</span>)]</span>
     <span class="ident">Green</span>,
     <span class="doccomment">/// Aqua color.</span>
+    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">magic</span> <span class="op">=</span> <span class="number">6u8</span>)]</span>
     <span class="ident">Aqua</span>,
     <span class="doccomment">/// Blue color.</span>
+    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">magic</span> <span class="op">=</span> <span class="number">7u8</span>)]</span>
     <span class="ident">Blue</span>,
     <span class="doccomment">/// Purple color.</span>
+    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">magic</span> <span class="op">=</span> <span class="number">8u8</span>)]</span>
     <span class="ident">Purple</span>,
     <span class="doccomment">/// Unknown color.</span>
     <span class="ident">Unknown</span>(<span class="ident">u16</span>),
