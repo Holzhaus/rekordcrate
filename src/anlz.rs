@@ -176,7 +176,7 @@ pub struct Cue {
     /// Loop status. `4` if this cue is an active loop, `0` otherwise.
     pub status: u32,
     /// Unknown field. Seems to always have the value `0x00100000`.
-    pub unknown1: u32,
+    unknown1: u32,
     /// Somehow used for sorting cues.
     ///
     /// | Value    | Cue    |
@@ -207,21 +207,21 @@ pub struct Cue {
     /// Type of this cue (`2` if this cue is a loop).
     pub cue_type: CueType,
     /// Unknown field. Seems always have the value `0`.
-    pub unknown2: u8,
+    unknown2: u8,
     /// Unknown field. Seems always have the value `0x03E8` (= decimal 1000).
-    pub unknown3: u16,
+    unknown3: u16,
     /// Time in milliseconds after which this cue would occur (at normal playback speed).
     pub time: u32,
     /// Time in milliseconds after which this the loop would jump back to `time` (at normal playback speed).
     pub loop_time: u32,
     /// Unknown field.
-    pub unknown4: u32,
+    unknown4: u32,
     /// Unknown field.
-    pub unknown5: u32,
+    unknown5: u32,
     /// Unknown field.
-    pub unknown6: u32,
+    unknown6: u32,
     /// Unknown field.
-    pub unknown7: u32,
+    unknown7: u32,
 }
 
 /// A memory or hot cue (or loop).
@@ -243,9 +243,9 @@ pub struct ExtendedCue {
     /// Type of this cue (`2` if this cue is a loop).
     pub cue_type: CueType,
     /// Unknown field. Seems always have the value `0`.
-    pub unknown1: u8,
+    unknown1: u8,
     /// Unknown field. Seems always have the value `0x03E8` (= decimal 1000).
-    pub unknown2: u16,
+    unknown2: u16,
     /// Time in milliseconds after which this cue would occur (at normal playback speed).
     pub time: u32,
     /// Time in milliseconds after which this the loop would jump back to `time` (at normal playback speed).
@@ -255,17 +255,17 @@ pub struct ExtendedCue {
     /// Only used by memory cues, hot cues use a different value (see below).
     pub color: ColorIndex,
     /// Unknown field.
-    pub unknown3: u8,
+    unknown3: u8,
     /// Unknown field.
-    pub unknown4: u16,
+    unknown4: u16,
     /// Unknown field.
-    pub unknown5: u32,
+    unknown5: u32,
     /// Represents the loop size numerator (if this is a quantized loop).
     pub loop_numerator: u16,
     /// Represents the loop size denominator (if this is a quantized loop).
     pub loop_denominator: u16,
     /// Length of the comment string in bytes.
-    pub len_comment: u32,
+    len_comment: u32,
     /// An UTF-16BE encoded string, followed by a trailing  `0x0000`.
     #[br(assert((comment.len() as u32 + 1) * 2 == len_comment))]
     pub comment: NullWideString,
@@ -344,15 +344,15 @@ pub struct ExtendedCue {
     /// associated with this hot cue, the value is `(0, 0, 0)`.
     pub hot_cue_color_rgb: (u8, u8, u8),
     /// Unknown field.
-    pub unknown6: u32,
+    unknown6: u32,
     /// Unknown field.
-    pub unknown7: u32,
+    unknown7: u32,
     /// Unknown field.
-    pub unknown8: u32,
+    unknown8: u32,
     /// Unknown field.
-    pub unknown9: u32,
+    unknown9: u32,
     /// Unknown field.
-    pub unknown10: u32,
+    unknown10: u32,
 }
 
 /// Single Column value in a Waveform Preview.
@@ -373,9 +373,10 @@ pub struct WaveformPreviewColumn {
 #[br(big, map = Self::from_bytes)]
 #[bw(big, map = |x: &TinyWaveformPreviewColumn| x.into_bytes())]
 pub struct TinyWaveformPreviewColumn {
+    #[allow(dead_code)]
+    unused: B4,
     /// Height of the Column in pixels.
-    pub unused: B4,
-    pub beight: B4,
+    pub height: B4,
 }
 
 /// Single Column value in a Waveform Color Preview.
@@ -387,9 +388,9 @@ pub struct TinyWaveformPreviewColumn {
 #[brw(big)]
 pub struct WaveformColorPreviewColumn {
     /// Unknown field (somehow encodes the "whiteness").
-    pub unknown1: u8,
+    unknown1: u8,
     /// Unknown field (somehow encodes the "whiteness").
-    pub unknown2: u8,
+    unknown2: u8,
     /// Sound energy in the bottom half of the frequency range (<10 KHz).
     pub energy_bottom_half_freq: u8,
     /// Sound energy in the bottom third of the frequency range.
@@ -415,7 +416,8 @@ pub struct WaveformColorDetailColumn {
     /// Height of the column.
     pub height: B5,
     /// Unknown field
-    pub unknown: B2,
+    #[allow(dead_code)]
+    unknown: B2,
 }
 
 /// Music classification that is used for Lightnight mode and based on rhythm, tempo kick drum and
