@@ -30,7 +30,7 @@ use crate::util::ColorIndex;
 use binrw::{
     binread,
     io::{Read, Seek},
-    BinRead, BinResult, ReadOptions,
+    BinRead, BinResult, NullWideString, ReadOptions,
 };
 use modular_bitfield::prelude::*;
 
@@ -264,8 +264,8 @@ pub struct ExtendedCue {
     /// Length of the comment string in bytes.
     pub len_comment: u32,
     /// An UTF-16BE encoded string, followed by a trailing  `0x0000`.
-    #[br(count = len_comment)]
-    pub comment: Vec<u8>,
+    #[br(assert((comment.len() as u32 + 1) * 2 == len_comment))]
+    pub comment: NullWideString,
     /// Rekordbox hotcue color index.
     ///
     /// | Value  | Color                       |
@@ -642,9 +642,10 @@ pub struct ExtendedCueList {
 pub struct Path {
     /// Length of the path field in bytes.
     len_path: u32,
-    #[br(assert(len_path == header.content_size()), count = len_path)]
+    #[br(assert(len_path == header.content_size()))]
     /// Path of the audio file.
-    pub path: Vec<u8>,
+    #[br(assert((path.len() as u32 + 1) * 2 == len_path))]
+    pub path: NullWideString,
 }
 
 /// Seek information for variable bitrate files (probably).
