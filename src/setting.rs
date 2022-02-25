@@ -26,7 +26,7 @@ use binrw::{binrw, NullString};
 pub struct Setting {
     /// Size of the string data field (should be always 96).
     #[br(assert(len_stringdata == 0x60))]
-    pub len_stringdata: u32,
+    len_stringdata: u32,
     /// Name of the brand.
     ///
     /// The value seems to depend on the kind of file:
@@ -46,7 +46,7 @@ pub struct Setting {
     #[brw(pad_size_to = 0x20)]
     pub version: NullString,
     /// Size of the `data` data in bytes.
-    pub len_data: u32,
+    len_data: u32,
     /// The actual settings data.
     #[br(args(len_data))]
     pub data: SettingData,
@@ -56,10 +56,10 @@ pub struct Setting {
     ///
     /// See <https://reveng.sourceforge.io/crc-catalogue/all.htm#crc.cat.crc-16-xmodem> for
     /// details.
-    pub checksum: u16,
+    checksum: u16,
     /// Unknown field (apparently always `0000`).
     #[br(assert(unknown == 0))]
-    pub unknown: u16,
+    unknown: u16,
 }
 
 /// Data section of a `*SETTING.DAT` file.
