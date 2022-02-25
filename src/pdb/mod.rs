@@ -18,6 +18,8 @@
 //! - <https://github.com/henrybetts/Rekordbox-Decoding>
 //! - <https://github.com/flesniak/python-prodj-link/tree/master/prodj/pdblib>
 
+pub mod string;
+
 use crate::util::{nom_input_error_with_kind, ColorIndex};
 use nom::error::ErrorKind;
 use nom::IResult;

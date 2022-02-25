@@ -84,3 +84,31 @@ impl From<u16> for ColorIndex {
         }
     }
 }
+
+#[cfg(test)]
+pub(in crate) mod testing {
+    use binrw::prelude::*;
+    pub fn test_roundtrip<T>(bin: &[u8], obj: T)
+    where
+        <T as binrw::BinRead>::Args: Default,
+        <T as binrw::BinWrite>::Args: Default,
+        T: BinRead + BinWrite + PartialEq + core::fmt::Debug,
+    {
+        // T->binary
+        let mut writer = binrw::io::Cursor::new(Vec::with_capacity(bin.len()));
+        obj.write_to(&mut writer).unwrap();
+        assert_eq!(bin, writer.get_ref());
+        // T->binary->T
+        writer.set_position(0);
+        let parsed = T::read(&mut writer).unwrap();
+        assert_eq!(obj, parsed);
+        // binary->T
+        let mut cursor = binrw::io::Cursor::new(bin);
+        let parsed = T::read(&mut cursor).unwrap();
+        assert_eq!(obj, parsed);
+        // binary->T->binary
+        writer.set_position(0);
+        parsed.write_to(&mut writer).unwrap();
+        assert_eq!(bin, writer.get_ref());
+    }
+}
