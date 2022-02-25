@@ -59,6 +59,7 @@ pub struct Setting {
     ///
     /// See <https://reveng.sourceforge.io/crc-catalogue/all.htm#crc.cat.crc-16-xmodem> for
     /// details.
+    // TODO: Make this field temporary and calculate it automatically during serialization.
     checksum: u16,
     /// Unknown field (apparently always `0000`).
     #[br(assert(unknown == 0))]
