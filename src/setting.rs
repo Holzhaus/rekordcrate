@@ -71,7 +71,7 @@ pub struct Setting {
 pub enum SettingData {
     /// Payload of a `DEVSETTING.DAT` file (32 bytes).
     #[br(pre_assert(len == 32))]
-    DevSetting(#[br(count = len)] Vec<u8>),
+    DevSetting([u8; 32]),
     /// Payload of a `DJMMYSETTING.DAT` file (52 bytes).
     #[br(pre_assert(len == 52))]
     DJMMySetting(DJMMySetting),
