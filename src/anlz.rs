@@ -573,22 +573,22 @@ pub enum Content {
     ///
     /// Used in `.EXT` files.
     #[brw(pre_assert(header.kind == ContentKind::WaveformDetail))]
-    WaveformDetail(WaveformDetail),
+    WaveformDetail(#[br(args(header.clone()))] WaveformDetail),
     /// Variable-width large monochrome version of the track waveform.
     ///
     /// Used in `.EXT` files.
     #[brw(pre_assert(header.kind == ContentKind::WaveformColorPreview))]
-    WaveformColorPreview(WaveformColorPreview),
+    WaveformColorPreview(#[br(args(header.clone()))] WaveformColorPreview),
     /// Variable-width large colored version of the track waveform.
     ///
     /// Used in `.EXT` files.
     #[brw(pre_assert(header.kind == ContentKind::WaveformColorDetail))]
-    WaveformColorDetail(WaveformColorDetail),
+    WaveformColorDetail(#[br(args(header.clone()))] WaveformColorDetail),
     /// Describes the structure of a sond (Intro, Chrous, Verse, etc.).
     ///
     /// Used in `.EXT` files.
     #[brw(pre_assert(header.kind == ContentKind::SongStructure))]
-    SongStructure(SongStructure),
+    SongStructure(#[br(args(header.clone()))] SongStructure),
     /// Unknown content.
     ///
     /// This allows handling files that contain unknown section types and allows to access later
@@ -656,9 +656,10 @@ pub struct ExtendedCueList {
 #[br(import(header: Header))]
 pub struct Path {
     /// Length of the path field in bytes.
-    len_path: u32,
     #[br(assert(len_path == header.content_size()))]
+    len_path: u32,
     /// Path of the audio file.
+    #[br(assert(len_path == header.content_size()))]
     #[br(assert((path.len() as u32 + 1) * 2 == len_path))]
     pub path: NullWideString,
 }
@@ -681,11 +682,12 @@ pub struct VBR {
 #[br(import(header: Header))]
 pub struct WaveformPreview {
     /// Unknown field.
+    #[br(assert(len_preview == header.content_size()))]
     len_preview: u32,
     /// Unknown field (apparently always `0x00100000`)
     unknown: u32,
     /// Waveform preview column data.
-    #[br(count = header.content_size())]
+    #[br(count = len_preview)]
     pub data: Vec<WaveformPreviewColumn>,
 }
 
@@ -695,11 +697,12 @@ pub struct WaveformPreview {
 #[br(import(header: Header))]
 pub struct TinyWaveformPreview {
     /// Unknown field.
+    #[br(assert(len_preview == header.content_size()))]
     len_preview: u32,
     /// Unknown field (apparently always `0x00100000`)
     unknown: u32,
     /// Waveform preview column data.
-    #[br(count = header.content_size())]
+    #[br(count = len_preview)]
     pub data: Vec<TinyWaveformPreviewColumn>,
 }
 
@@ -708,11 +711,13 @@ pub struct TinyWaveformPreview {
 /// Used in `.EXT` files.
 #[binrw]
 #[derive(Debug, PartialEq)]
+#[br(import(header: Header))]
 pub struct WaveformDetail {
     /// Size of a single entry, always 1.
     #[br(assert(len_entry_bytes == 1))]
     len_entry_bytes: u32,
     /// Number of entries in this section.
+    #[br(assert((len_entry_bytes * len_entries)== header.content_size()))]
     len_entries: u32,
     /// Unknown field (apparently always `0x00960000`)
     #[br(assert(unknown == 0x00960000))]
@@ -730,11 +735,13 @@ pub struct WaveformDetail {
 /// Used in `.EXT` files.
 #[binrw]
 #[derive(Debug, PartialEq)]
+#[br(import(header: Header))]
 pub struct WaveformColorPreview {
     /// Size of a single entry, always 6.
     #[br(assert(len_entry_bytes == 6))]
     len_entry_bytes: u32,
     /// Number of entries in this section.
+    #[br(assert((len_entry_bytes * len_entries) == header.content_size()))]
     len_entries: u32,
     /// Unknown field.
     unknown: u32,
@@ -751,11 +758,13 @@ pub struct WaveformColorPreview {
 /// Used in `.EXT` files.
 #[binrw]
 #[derive(Debug, PartialEq)]
+#[br(import(header: Header))]
 pub struct WaveformColorDetail {
     /// Size of a single entry, always 2.
     #[br(assert(len_entry_bytes == 2))]
     len_entry_bytes: u32,
     /// Number of entries in this section.
+    #[br(assert((len_entry_bytes * len_entries) == header.content_size()))]
     len_entries: u32,
     /// Unknown field.
     unknown: u32,
@@ -769,11 +778,13 @@ pub struct WaveformColorDetail {
 /// Used in `.EXT` files.
 #[binrw]
 #[derive(Debug, PartialEq)]
+#[br(import(header: Header))]
 pub struct SongStructure {
     /// Size of a single entry, always 24.
     #[br(assert(len_entry_bytes == 24))]
     len_entry_bytes: u32,
     /// Number of entries in this section.
+    #[br(assert((len_entry_bytes * (len_entries as u32)) == header.content_size()))]
     len_entries: u16,
     /// Overall type of phrase structure.
     pub mood: Mood,
