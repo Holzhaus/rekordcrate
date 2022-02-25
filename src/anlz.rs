@@ -28,70 +28,70 @@
 
 use crate::util::ColorIndex;
 use binrw::{
-    binread,
+    binrw,
     io::{Read, Seek},
-    BinRead, BinResult, NullWideString, ReadOptions,
+    BinRead, BinResult, BinWrite, NullWideString, ReadOptions,
 };
 use modular_bitfield::prelude::*;
 
 /// The kind of section.
 #[derive(Debug, PartialEq, Clone)]
-#[binread]
-#[br(big)]
+#[binrw]
+#[brw(big)]
 pub enum ContentKind {
     /// File section that contains all other sections.
-    #[br(magic = b"PMAI")]
+    #[brw(magic = b"PMAI")]
     File,
     /// All beats found in the track.
-    #[br(magic = b"PQTZ")]
+    #[brw(magic = b"PQTZ")]
     BeatGrid,
     /// Either memory points and loops or hotcues and hot loops of the track.
     ///
     /// *Note:* Since the release of the Nexus 2 series, there also exists the `ExtendedCueList`
     /// section which can carry additional information.
-    #[br(magic = b"PCOB")]
+    #[brw(magic = b"PCOB")]
     CueList,
     /// Extended version of the `CueList` section (since Nexus 2 series).
-    #[br(magic = b"PCO2")]
+    #[brw(magic = b"PCO2")]
     ExtendedCueList,
     /// Single cue entry inside a `ExtendedCueList` section.
-    #[br(magic = b"PCP2")]
+    #[brw(magic = b"PCP2")]
     ExtendedCue,
     /// Single cue entry inside a `CueList` section.
-    #[br(magic = b"PCPT")]
+    #[brw(magic = b"PCPT")]
     Cue,
     /// File path of the audio file.
-    #[br(magic = b"PPTH")]
+    #[brw(magic = b"PPTH")]
     Path,
     /// Seek information for variable bitrate files.
-    #[br(magic = b"PVBR")]
+    #[brw(magic = b"PVBR")]
     VBR,
     /// Fixed-width monochrome preview of the track waveform.
-    #[br(magic = b"PWAV")]
+    #[brw(magic = b"PWAV")]
     WaveformPreview,
     /// Smaller version of the fixed-width monochrome preview of the track waveform (for the
     /// CDJ-900).
-    #[br(magic = b"PWV2")]
+    #[brw(magic = b"PWV2")]
     TinyWaveformPreview,
     /// Variable-width large monochrome version of the track waveform.
     ///
     /// Used in `.EXT` files.
-    #[br(magic = b"PWV3")]
+    #[brw(magic = b"PWV3")]
     WaveformDetail,
     /// Fixed-width colored version of the track waveform.
     ///
     /// Used in `.EXT` files.
-    #[br(magic = b"PWV4")]
+    #[brw(magic = b"PWV4")]
     WaveformColorPreview,
     /// Variable-width large colored version of the track waveform.
     ///
     /// Used in `.EXT` files.
-    #[br(magic = b"PWV5")]
+    #[brw(magic = b"PWV5")]
     WaveformColorDetail,
     /// Describes the structure of a sond (Intro, Chrous, Verse, etc.).
     ///
     /// Used in `.EXT` files.
-    #[br(magic = b"PSSI")]
+    #[brw(magic = b"PSSI")]
     SongStructure,
     /// Unknown Kind.
     Unknown([u8; 4]),
@@ -99,8 +99,8 @@ pub enum ContentKind {
 
 /// Header of a section that contains type and size information.
 #[derive(Debug, PartialEq, Clone)]
-#[binread]
-#[br(big)]
+#[binrw]
+#[brw(big)]
 pub struct Header {
     /// Kind of content in this item.
     pub kind: ContentKind,
@@ -122,8 +122,8 @@ impl Header {
 
 /// A single beat inside the beat grid.
 #[derive(Debug, PartialEq)]
-#[binread]
-#[br(big)]
+#[binrw]
+#[brw(big)]
 pub struct Beat {
     /// Beat number inside the bar (1-4).
     pub beat_number: u16,
@@ -135,8 +135,8 @@ pub struct Beat {
 
 /// Describes the types of entries found in a Cue List section.
 #[derive(Debug, PartialEq)]
-#[binread]
-#[br(big, repr = u32)]
+#[binrw]
+#[brw(big, repr = u32)]
 pub enum CueListType {
     /// Memory cues or loops.
     MemoryCues = 0,
@@ -146,8 +146,8 @@ pub enum CueListType {
 
 /// Indicates if the cue is point or a loop.
 #[derive(Debug, PartialEq)]
-#[binread]
-#[br(repr = u8)]
+#[binrw]
+#[brw(repr = u8)]
 pub enum CueType {
     /// Cue is a single point.
     Point = 0,
@@ -157,8 +157,8 @@ pub enum CueType {
 
 /// A memory or hot cue (or loop).
 #[derive(Debug, PartialEq)]
-#[binread]
-#[br(big)]
+#[binrw]
+#[brw(big)]
 pub struct Cue {
     /// Cue entry header.
     pub header: Header,
@@ -223,8 +223,8 @@ pub struct Cue {
 
 /// A memory or hot cue (or loop).
 #[derive(Debug, PartialEq)]
-#[binread]
-#[br(big)]
+#[binrw]
+#[brw(big)]
 pub struct ExtendedCue {
     /// Cue entry header.
     pub header: Header,
@@ -354,8 +354,9 @@ pub struct ExtendedCue {
 
 /// Single Column value in a Waveform Preview.
 #[bitfield]
-#[derive(BinRead, Debug, PartialEq)]
+#[derive(BinRead, BinWrite, Debug, PartialEq, Clone, Copy)]
 #[br(big, map = Self::from_bytes)]
+#[bw(big, map = |x: &WaveformPreviewColumn| x.into_bytes())]
 pub struct WaveformPreviewColumn {
     /// Height of the Column in pixels.
     pub height: B5,
@@ -365,8 +366,9 @@ pub struct WaveformPreviewColumn {
 
 /// Single Column value in a Tiny Waveform Preview.
 #[bitfield]
-#[derive(BinRead, Debug, PartialEq)]
+#[derive(BinRead, BinWrite, Debug, PartialEq, Clone, Copy)]
 #[br(big, map = Self::from_bytes)]
+#[bw(big, map = |x: &TinyWaveformPreviewColumn| x.into_bytes())]
 pub struct TinyWaveformPreviewColumn {
     /// Height of the Column in pixels.
     pub unused: B4,
@@ -378,8 +380,8 @@ pub struct TinyWaveformPreviewColumn {
 /// See these the documentation for details:
 /// <https://djl-analysis.deepsymmetry.org/djl-analysis/track_metadata.html#color-preview-analysis>
 #[derive(Debug, PartialEq)]
-#[binread]
-#[br(big)]
+#[binrw]
+#[brw(big)]
 pub struct WaveformColorPreviewColumn {
     /// Unknown field (somehow encodes the "whiteness").
     pub unknown1: u8,
@@ -397,8 +399,9 @@ pub struct WaveformColorPreviewColumn {
 
 /// Single Column value in a Waveform Color Detail section.
 #[bitfield]
-#[derive(BinRead, Debug, PartialEq)]
+#[derive(BinRead, BinWrite, Debug, PartialEq, Clone, Copy)]
 #[br(map = Self::from_bytes)]
+#[bw(big, map = |x: &WaveformColorDetailColumn| x.into_bytes())]
 pub struct WaveformColorDetailColumn {
     /// Red color component.
     pub red: B3,
@@ -415,23 +418,23 @@ pub struct WaveformColorDetailColumn {
 /// Music classification that is used for Lightnight mode and based on rhythm, tempo kick drum and
 /// sound density.
 #[derive(Debug, PartialEq)]
-#[binread]
-#[br(big)]
+#[binrw]
+#[brw(big)]
 pub enum Mood {
     /// Phrase types consist of "Intro", "Up", "Down", "Chorus", and "Outro". Other values in each
     /// phrase entry cause the intro, chorus, and outro phrases to have their labels subdivided
     /// into styes "1" or "2" (for example, "Intro 1"), and "up" is subdivided into style "Up 1",
     /// "Up 2", or "Up 3".
-    #[br(magic = 1u16)]
+    #[brw(magic = 1u16)]
     High,
     /// Phrase types are labeled "Intro", "Verse 1" through "Verse 6", "Chorus", "Bridge", and
     /// "Outro".
-    #[br(magic = 2u16)]
+    #[brw(magic = 2u16)]
     Mid,
     /// Phrase types are labeled "Intro", "Verse 1", "Verse 2", "Chorus", "Bridge", and "Outro".
     /// There are three different phrase type values for each of "Verse 1" and "Verse 2", but
     /// rekordbox makes no distinction between them.
-    #[br(magic = 3u16)]
+    #[brw(magic = 3u16)]
     Low,
     /// Unknown value.
     Unknown(u16),
@@ -439,34 +442,34 @@ pub enum Mood {
 
 /// Stylistic track bank for Lightning mode.
 #[derive(Debug, PartialEq)]
-#[binread]
+#[binrw]
 pub enum Bank {
     /// Default bank variant, treated as `Cool`.
-    #[br(magic = 0u8)]
+    #[brw(magic = 0u8)]
     Default,
     /// "Cool" bank variant.
-    #[br(magic = 1u8)]
+    #[brw(magic = 1u8)]
     Cool,
     /// "Natural" bank variant.
-    #[br(magic = 2u8)]
+    #[brw(magic = 2u8)]
     Natural,
     /// "Hot" bank variant.
-    #[br(magic = 3u8)]
+    #[brw(magic = 3u8)]
     Hot,
     /// "Subtle" bank variant.
-    #[br(magic = 4u8)]
+    #[brw(magic = 4u8)]
     Subtle,
     /// "Warm" bank variant.
-    #[br(magic = 5u8)]
+    #[brw(magic = 5u8)]
     Warm,
     /// "Vivid" bank variant.
-    #[br(magic = 6u8)]
+    #[brw(magic = 6u8)]
     Vivid,
     /// "Club 1" bank variant.
-    #[br(magic = 7u8)]
+    #[brw(magic = 7u8)]
     Club1,
     /// "Club 2" bank variant.
-    #[br(magic = 8u8)]
+    #[brw(magic = 8u8)]
     Club2,
     /// Unknown value.
     Unknown(u8),
@@ -474,8 +477,8 @@ pub enum Bank {
 
 /// A song structure entry that represents a phrase in the track.
 #[derive(Debug, PartialEq)]
-#[binread]
-#[br(big)]
+#[binrw]
+#[brw(big)]
 pub struct Phrase {
     /// Phrase number (starting at 1).
     pub index: u16,
@@ -530,61 +533,61 @@ pub struct Phrase {
 
 /// Section content which differs depending on the section type.
 #[derive(Debug, PartialEq)]
-#[binread]
+#[binrw]
 #[br(import(header: Header))]
 pub enum Content {
     /// All beats in the track.
-    #[br(pre_assert(header.kind == ContentKind::BeatGrid))]
+    #[brw(pre_assert(header.kind == ContentKind::BeatGrid))]
     BeatGrid(BeatGrid),
     /// List of cue points or loops (either hot cues or memory cues).
-    #[br(pre_assert(header.kind == ContentKind::CueList))]
+    #[brw(pre_assert(header.kind == ContentKind::CueList))]
     CueList(CueList),
     /// List of cue points or loops (either hot cues or memory cues, extended version).
     ///
     /// Variation of the original `CueList` that also adds support for more metadata such as
     /// comments and colors. Introduces with the Nexus 2 series players.
-    #[br(pre_assert(header.kind == ContentKind::ExtendedCueList))]
+    #[brw(pre_assert(header.kind == ContentKind::ExtendedCueList))]
     ExtendedCueList(ExtendedCueList),
     /// Path of the audio file that this analysis belongs to.
-    #[br(pre_assert(header.kind == ContentKind::Path))]
+    #[brw(pre_assert(header.kind == ContentKind::Path))]
     Path(#[br(args(header.clone()))] Path),
     /// Seek information for variable bitrate files (probably).
-    #[br(pre_assert(header.kind == ContentKind::VBR))]
+    #[brw(pre_assert(header.kind == ContentKind::VBR))]
     VBR(#[br(args(header.clone()))] VBR),
     /// Fixed-width monochrome preview of the track waveform.
-    #[br(pre_assert(header.kind == ContentKind::WaveformPreview))]
+    #[brw(pre_assert(header.kind == ContentKind::WaveformPreview))]
     WaveformPreview(#[br(args(header.clone()))] WaveformPreview),
     /// Smaller version of the fixed-width monochrome preview of the track waveform.
-    #[br(pre_assert(header.kind == ContentKind::TinyWaveformPreview))]
+    #[brw(pre_assert(header.kind == ContentKind::TinyWaveformPreview))]
     TinyWaveformPreview(#[br(args(header.clone()))] TinyWaveformPreview),
     /// Variable-width large monochrome version of the track waveform.
     ///
     /// Used in `.EXT` files.
-    #[br(pre_assert(header.kind == ContentKind::WaveformDetail))]
+    #[brw(pre_assert(header.kind == ContentKind::WaveformDetail))]
     WaveformDetail(WaveformDetail),
     /// Variable-width large monochrome version of the track waveform.
     ///
     /// Used in `.EXT` files.
-    #[br(pre_assert(header.kind == ContentKind::WaveformColorPreview))]
+    #[brw(pre_assert(header.kind == ContentKind::WaveformColorPreview))]
     WaveformColorPreview(WaveformColorPreview),
     /// Variable-width large colored version of the track waveform.
     ///
     /// Used in `.EXT` files.
-    #[br(pre_assert(header.kind == ContentKind::WaveformColorDetail))]
+    #[brw(pre_assert(header.kind == ContentKind::WaveformColorDetail))]
     WaveformColorDetail(WaveformColorDetail),
     /// Describes the structure of a sond (Intro, Chrous, Verse, etc.).
     ///
     /// Used in `.EXT` files.
-    #[br(pre_assert(header.kind == ContentKind::SongStructure))]
+    #[brw(pre_assert(header.kind == ContentKind::SongStructure))]
     SongStructure(SongStructure),
     /// Unknown content.
-    #[br(pre_assert(matches!(header.kind, ContentKind::Unknown(_))))]
+    #[brw(pre_assert(matches!(header.kind, ContentKind::Unknown(_))))]
     Unknown(#[br(args(header.clone()))] Unknown),
 }
 
 /// All beats in the track.
 #[derive(Debug, PartialEq)]
-#[binread]
+#[binrw]
 pub struct BeatGrid {
     /// Unknown field.
     unknown1: u32,
@@ -601,7 +604,7 @@ pub struct BeatGrid {
 
 /// List of cue points or loops (either hot cues or memory cues).
 #[derive(Debug, PartialEq)]
-#[binread]
+#[binrw]
 pub struct CueList {
     /// The types of cues (memory or hot) that this list contains.
     pub list_type: CueListType,
@@ -621,7 +624,7 @@ pub struct CueList {
 /// Variation of the original `CueList` that also adds support for more metadata such as
 /// comments and colors. Introduces with the Nexus 2 series players.
 #[derive(Debug, PartialEq)]
-#[binread]
+#[binrw]
 pub struct ExtendedCueList {
     /// The types of cues (memory or hot) that this list contains.
     pub list_type: CueListType,
@@ -637,7 +640,7 @@ pub struct ExtendedCueList {
 
 /// Path of the audio file that this analysis belongs to.
 #[derive(Debug, PartialEq)]
-#[binread]
+#[binrw]
 #[br(import(header: Header))]
 pub struct Path {
     /// Length of the path field in bytes.
@@ -650,7 +653,7 @@ pub struct Path {
 
 /// Seek information for variable bitrate files (probably).
 #[derive(Debug, PartialEq)]
-#[binread]
+#[binrw]
 #[br(import(header: Header))]
 pub struct VBR {
     /// Unknown field.
@@ -662,7 +665,7 @@ pub struct VBR {
 
 /// Fixed-width monochrome preview of the track waveform.
 #[derive(Debug, PartialEq)]
-#[binread]
+#[binrw]
 #[br(import(header: Header))]
 pub struct WaveformPreview {
     /// Unknown field.
@@ -676,7 +679,7 @@ pub struct WaveformPreview {
 
 /// Smaller version of the fixed-width monochrome preview of the track waveform.
 #[derive(Debug, PartialEq)]
-#[binread]
+#[binrw]
 #[br(import(header: Header))]
 pub struct TinyWaveformPreview {
     /// Unknown field.
@@ -692,7 +695,7 @@ pub struct TinyWaveformPreview {
 ///
 /// Used in `.EXT` files.
 #[derive(Debug, PartialEq)]
-#[binread]
+#[binrw]
 pub struct WaveformDetail {
     /// Size of a single entry, always 1.
     #[br(assert(len_entry_bytes == 1))]
@@ -714,7 +717,7 @@ pub struct WaveformDetail {
 ///
 /// Used in `.EXT` files.
 #[derive(Debug, PartialEq)]
-#[binread]
+#[binrw]
 pub struct WaveformColorPreview {
     /// Size of a single entry, always 6.
     #[br(assert(len_entry_bytes == 6))]
@@ -735,7 +738,7 @@ pub struct WaveformColorPreview {
 ///
 /// Used in `.EXT` files.
 #[derive(Debug, PartialEq)]
-#[binread]
+#[binrw]
 pub struct WaveformColorDetail {
     /// Size of a single entry, always 2.
     #[br(assert(len_entry_bytes == 2))]
@@ -753,7 +756,7 @@ pub struct WaveformColorDetail {
 ///
 /// Used in `.EXT` files.
 #[derive(Debug, PartialEq)]
-#[binread]
+#[binrw]
 pub struct SongStructure {
     /// Size of a single entry, always 24.
     #[br(assert(len_entry_bytes == 24))]
@@ -781,7 +784,7 @@ pub struct SongStructure {
 
 /// Unknown content.
 #[derive(Debug, PartialEq)]
-#[binread]
+#[binrw]
 #[br(import(header: Header))]
 pub struct Unknown {
     /// Unknown header data.
@@ -794,7 +797,7 @@ pub struct Unknown {
 
 /// ANLZ Section.
 #[derive(Debug, PartialEq)]
-#[binread]
+#[binrw]
 pub struct Section {
     /// The header.
     pub header: Header,
@@ -808,8 +811,8 @@ pub struct Section {
 /// The actual contents are not part of this struct and can parsed on-the-fly by iterating over the
 /// `ANLZ::sections()` method.
 #[derive(Debug, PartialEq)]
-#[binread]
-#[br(big)]
+#[binrw]
+#[brw(big)]
 pub struct ANLZ {
     /// The file header.
     #[br(assert(header.kind == ContentKind::File))]

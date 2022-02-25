@@ -6,4 +6,9 @@ fn anlz_{name}() {{
     let mut reader = Cursor::new(data);
     let anlz = ANLZ::read(&mut reader).expect("failed to parse anlz file");
     println!("{{:#?}}", anlz);
+
+    let mut new_data = Vec::with_capacity(data.len());
+    let mut writer = Cursor::new(&mut new_data);
+    anlz.write_to(&mut writer).expect("failed to write anlz file");
+    assert_eq!(data, new_data);
 }}
