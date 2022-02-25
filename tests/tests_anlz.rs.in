@@ -3,9 +3,12 @@
 fn anlz_{name}() {{
     println!("Parsing file: {filepath}");
     let data = include_bytes!("{filepath}").as_slice();
-    let (input, anlz) = ANLZ::parse(data).expect("failed to parse header");
-    println!("File Header: {{:#?}}", anlz);
-    for (i, section) in anlz.sections(input).enumerate() {{
-        println!("#{{}}: {{:#?}}", i, section);
-    }}
+    let mut reader = Cursor::new(data);
+    let anlz = ANLZ::read(&mut reader).expect("failed to parse anlz file");
+    println!("{{:#?}}", anlz);
+
+    let mut new_data = Vec::with_capacity(data.len());
+    let mut writer = Cursor::new(&mut new_data);
+    anlz.write_to(&mut writer).expect("failed to write anlz file");
+    assert_eq!(data, new_data);
 }}
