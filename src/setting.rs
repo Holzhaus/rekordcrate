@@ -47,6 +47,8 @@ pub struct Setting {
     #[brw(pad_size_to = 0x20, assert(version.len() <= (0x20 - 1)))]
     pub version: NullString,
     /// Size of the `data` data in bytes.
+    #[br(temp)]
+    #[bw(calc = data.size())]
     len_data: u32,
     /// The actual settings data.
     #[br(args(len_data))]
@@ -81,6 +83,17 @@ pub enum SettingData {
     /// Payload of a `MYSETTING2.DAT` file (40 bytes).
     #[br(pre_assert(len == 40))]
     MySetting2(MySetting2),
+}
+
+impl SettingData {
+    fn size(&self) -> u32 {
+        match &self {
+            Self::DevSetting(_) => 32,
+            Self::DJMMySetting(_) => 52,
+            Self::MySetting(_) => 40,
+            Self::MySetting2(_) => 40,
+        }
+    }
 }
 
 /// Payload of a `DJMMYSETTING.DAT` file (52 bytes).
