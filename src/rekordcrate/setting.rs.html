@@ -884,14 +884,14 @@
 
 <span class="kw">use</span> <span class="ident">binrw</span>::{<span class="ident">binrw</span>, <span class="ident">NullString</span>};
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">little</span>)]</span>
 <span class="doccomment">/// Represents a setting file.</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Setting</span> {
     <span class="doccomment">/// Size of the string data field (should be always 96).</span>
     <span class="attribute">#[<span class="ident">br</span>(<span class="ident">assert</span>(<span class="ident">len_stringdata</span> <span class="op">==</span> <span class="number">0x60</span>))]</span>
-    <span class="kw">pub</span> <span class="ident">len_stringdata</span>: <span class="ident">u32</span>,
+    <span class="ident">len_stringdata</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// Name of the brand.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// The value seems to depend on the kind of file:</span>
@@ -911,7 +911,7 @@
     <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">pad_size_to</span> <span class="op">=</span> <span class="number">0x20</span>)]</span>
     <span class="kw">pub</span> <span class="ident">version</span>: <span class="ident">NullString</span>,
     <span class="doccomment">/// Size of the `data` data in bytes.</span>
-    <span class="kw">pub</span> <span class="ident">len_data</span>: <span class="ident">u32</span>,
+    <span class="ident">len_data</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// The actual settings data.</span>
     <span class="attribute">#[<span class="ident">br</span>(<span class="ident">args</span>(<span class="ident">len_data</span>))]</span>
     <span class="kw">pub</span> <span class="ident">data</span>: <span class="ident">SettingData</span>,
@@ -921,15 +921,15 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// See &lt;https://reveng.sourceforge.io/crc-catalogue/all.htm#crc.cat.crc-16-xmodem&gt; for</span>
     <span class="doccomment">/// details.</span>
-    <span class="kw">pub</span> <span class="ident">checksum</span>: <span class="ident">u16</span>,
+    <span class="ident">checksum</span>: <span class="ident">u16</span>,
     <span class="doccomment">/// Unknown field (apparently always `0000`).</span>
     <span class="attribute">#[<span class="ident">br</span>(<span class="ident">assert</span>(<span class="ident">unknown</span> <span class="op">==</span> <span class="number">0</span>))]</span>
-    <span class="kw">pub</span> <span class="ident">unknown</span>: <span class="ident">u16</span>,
+    <span class="ident">unknown</span>: <span class="ident">u16</span>,
 }
 
 <span class="doccomment">/// Data section of a `*SETTING.DAT` file.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">little</span>)]</span>
 <span class="attribute">#[<span class="ident">br</span>(<span class="ident">import</span>(<span class="ident">len</span>: <span class="ident">u32</span>))]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">SettingData</span> {
@@ -948,8 +948,8 @@
 }
 
 <span class="doccomment">/// Payload of a `DJMMYSETTING.DAT` file (52 bytes).</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">little</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">DJMMySetting</span> {
     <span class="doccomment">/// Unknown field.</span>
@@ -986,8 +986,8 @@
 }
 
 <span class="doccomment">/// Payload of a `MYSETTING.DAT` file (40 bytes).</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">little</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">MySetting</span> {
     <span class="doccomment">/// Unknown field.</span>
@@ -1052,8 +1052,8 @@
 }
 
 <span class="doccomment">/// Payload of a `MYSETTING2.DAT` file (40 bytes).</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">little</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">MySetting2</span> {
     <span class="doccomment">/// &quot;VINYL SPEED ADJUST&quot; setting.</span>
@@ -1082,8 +1082,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; PLAY MODE / AUTO PLAY MODE&quot; of the &quot;My Settings&quot; page in the</span>
 <span class="doccomment">/// Rekordbox preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">PlayMode</span> {
     <span class="doccomment">/// Named &quot;CONTINUE / ON&quot; in the Rekordbox preferences.</span>
@@ -1094,8 +1094,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; EJECT/LOAD LOCK&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">EjectLock</span> {
     <span class="doccomment">/// Named &quot;UNLOCK&quot; in the Rekordbox preferences.</span>
@@ -1106,8 +1106,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; NEEDLE LOCK&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">NeedleLock</span> {
     <span class="doccomment">/// Named &quot;UNLOCK&quot; in the Rekordbox preferences.</span>
@@ -1118,8 +1118,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; QUANTIZE BEAT VALUE&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">QuantizeBeatValue</span> {
     <span class="doccomment">/// Named &quot;1/8 Beat&quot; in the Rekordbox preferences.</span>
@@ -1134,8 +1134,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; HOT CUE AUTO LOAD&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">HotCueAutoLoad</span> {
     <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.</span>
@@ -1148,8 +1148,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; HOT CUE COLOR&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">HotCueColor</span> {
     <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.</span>
@@ -1160,8 +1160,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; AUTO CUE LEVEL&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">AutoCueLevel</span> {
     <span class="doccomment">/// Named &quot;-78dB&quot; in the Rekordbox preferences.</span>
@@ -1186,8 +1186,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; TIME MODE&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">TimeMode</span> {
     <span class="doccomment">/// Named &quot;Elapsed&quot; in the Rekordbox preferences.</span>
@@ -1198,8 +1198,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; AUTO CUE&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">AutoCue</span> {
     <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.</span>
@@ -1210,8 +1210,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; JOG MODE&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">JogMode</span> {
     <span class="doccomment">/// Named &quot;VINYL&quot; in the Rekordbox preferences.</span>
@@ -1222,8 +1222,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; TEMPO RANGE&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">TempoRange</span> {
     <span class="doccomment">/// Named &quot;±6&quot; in the Rekordbox preferences.</span>
@@ -1238,8 +1238,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; MASTER TEMPO&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">MasterTempo</span> {
     <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.</span>
@@ -1250,8 +1250,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; QUANTIZE&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">Quantize</span> {
     <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.</span>
@@ -1262,8 +1262,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; SYNC&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">Sync</span> {
     <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.</span>
@@ -1274,8 +1274,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; PHASE METER&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">PhaseMeter</span> {
     <span class="doccomment">/// Named &quot;TYPE 1&quot; in the Rekordbox preferences.</span>
@@ -1286,8 +1286,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; WAVEFORM / PHASE METER&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">Waveform</span> {
     <span class="doccomment">/// Named &quot;WAVEFORM&quot; in the Rekordbox preferences.</span>
@@ -1298,8 +1298,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; WAVEFORM DIVISIONS&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">WaveformDivisions</span> {
     <span class="doccomment">/// Named &quot;TIME SCALE&quot; in the Rekordbox preferences.</span>
@@ -1310,8 +1310,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; VINYL SPEED ADJUST&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">VinylSpeedAdjust</span> {
     <span class="doccomment">/// Named &quot;TOUCH &amp; RELEASE&quot; in the Rekordbox preferences.</span>
@@ -1324,8 +1324,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; BEAT JUMP BEAT VALUE&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">BeatJumpBeatValue</span> {
     <span class="doccomment">/// Named &quot;1/2 BEAT&quot; in the Rekordbox preferences.</span>
@@ -1348,8 +1348,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DISPLAY(LCD) &gt; LANGUAGE&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">Language</span> {
     <span class="doccomment">/// Named &quot;English&quot; in the Rekordbox preferences.</span>
@@ -1392,8 +1392,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DISPLAY(LCD) &gt; LCD BRIGHTNESS&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">LCDBrightness</span> {
     <span class="doccomment">/// Named &quot;1&quot; in the Rekordbox preferences.</span>
@@ -1410,8 +1410,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DISPLAY(LCD) &gt; JOG LCD BRIGHTNESS&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">JogLCDBrightness</span> {
     <span class="doccomment">/// Named &quot;1&quot; in the Rekordbox preferences.</span>
@@ -1428,8 +1428,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DISPLAY(LCD) &gt; JOG DISPLAY MODE&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">JogDisplayMode</span> {
     <span class="doccomment">/// Named &quot;AUTO&quot; in the Rekordbox preferences.</span>
@@ -1444,8 +1444,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DISPLAY(INDICATOR) &gt; SLIP FLASHING&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">SlipFlashing</span> {
     <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.</span>
@@ -1456,8 +1456,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DISPLAY(INDICATOR) &gt; ON AIR DISPLAY&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">OnAirDisplay</span> {
     <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.</span>
@@ -1468,8 +1468,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DISPLAY(INDICATOR) &gt; JOG RING BRIGHTNESS&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">JogRingBrightness</span> {
     <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.</span>
@@ -1482,8 +1482,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DISPLAY(INDICATOR) &gt; JOG RING INDICATOR&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">JogRingIndicator</span> {
     <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.</span>
@@ -1494,8 +1494,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DISPLAY(INDICATOR) &gt; DISC SLOT ILLUMINATION&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">DiscSlotIllumination</span> {
     <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.</span>
@@ -1508,8 +1508,8 @@
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DISPLAY(INDICATOR) &gt; PAD/BUTTON BRIGHTNESS&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">PadButtonBrightness</span> {
     <span class="doccomment">/// Named &quot;1&quot; in the Rekordbox preferences.</span>
@@ -1524,8 +1524,8 @@
 
 <span class="doccomment">/// Found at &quot;MIXER &gt; DJ SETTING &gt; CH FADER CURVE&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">ChannelFaderCurve</span> {
     <span class="doccomment">/// Steep volume raise when the fader is moved near the top.</span>
@@ -1538,8 +1538,8 @@
 
 <span class="doccomment">/// Found at &quot;MIXER &gt; DJ SETTING &gt; CROSSFADER CURVE&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">CrossfaderCurve</span> {
     <span class="doccomment">/// Logarithmic volume raise of the other channel near the edges of the fader.</span>
@@ -1554,8 +1554,8 @@
 
 <span class="doccomment">/// Found at &quot;MIXER &gt; DJ SETTING &gt; CH FADER CURVE (LONG FADER)&quot; of the &quot;My Settings&quot; page in the</span>
 <span class="doccomment">/// Rekordbox preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">ChannelFaderCurveLongFader</span> {
     <span class="doccomment">/// Very steep volume raise when the fader is moved the near the top (e.g. y = x⁵).</span>
@@ -1568,8 +1568,8 @@
 
 <span class="doccomment">/// Found at &quot;MIXER &gt; DJ SETTING &gt; HEADPHONES PRE EQ&quot; of the &quot;My Settings&quot; page in the</span>
 <span class="doccomment">/// Rekordbox preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">HeadphonesPreEQ</span> {
     <span class="doccomment">/// Named &quot;POST EQ&quot; in the Rekordbox preferences.</span>
@@ -1580,8 +1580,8 @@
 
 <span class="doccomment">/// Found at &quot;MIXER &gt; DJ SETTING &gt; HEADPHONES MONO SPLIT&quot; of the &quot;My Settings&quot; page in the</span>
 <span class="doccomment">/// Rekordbox preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">HeadphonesMonoSplit</span> {
     <span class="doccomment">/// Named &quot;MONO SPLIT&quot; in the Rekordbox preferences.</span>
@@ -1592,8 +1592,8 @@
 
 <span class="doccomment">/// Found at &quot;MIXER &gt; DJ SETTING &gt; BEAT FX QUANTIZE&quot; of the &quot;My Settings&quot; page in the</span>
 <span class="doccomment">/// Rekordbox preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">BeatFXQuantize</span> {
     <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.</span>
@@ -1604,8 +1604,8 @@
 
 <span class="doccomment">/// Found at &quot;MIXER &gt; DJ SETTING &gt; MIC LOW CUT&quot; of the &quot;My Settings&quot; page in the</span>
 <span class="doccomment">/// Rekordbox preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">MicLowCut</span> {
     <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.</span>
@@ -1616,8 +1616,8 @@
 
 <span class="doccomment">/// Found at &quot;MIXER &gt; DJ SETTING &gt; TALK OVER MODE&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">TalkOverMode</span> {
     <span class="doccomment">/// Named &quot;ADVANCED&quot; in the Rekordbox preferences.</span>
@@ -1628,8 +1628,8 @@
 
 <span class="doccomment">/// Found at &quot;MIXER &gt; DJ SETTING &gt; TALK OVER LEVEL&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">TalkOverLevel</span> {
     <span class="doccomment">/// Named &quot;-24dB&quot; in the Rekordbox preferences.</span>
@@ -1644,8 +1644,8 @@
 
 <span class="doccomment">/// Found at &quot;MIXER &gt; DJ SETTING &gt; MIDI CH&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">MidiChannel</span> {
     <span class="doccomment">/// Named &quot;1&quot; in the Rekordbox preferences.</span>
@@ -1684,8 +1684,8 @@
 
 <span class="doccomment">/// Found at &quot;MIXER &gt; DJ SETTING &gt; MIDI BUTTON TYPE&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">MidiButtonType</span> {
     <span class="doccomment">/// Named &quot;TOGGLE&quot; in the Rekordbox preferences.</span>
@@ -1696,8 +1696,8 @@
 
 <span class="doccomment">/// Found at &quot;MIXER &gt; BRIGHTNESS &gt; DISPLAY&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">MixerDisplayBrightness</span> {
     <span class="doccomment">/// Named &quot;WHITE&quot; in the Rekordbox preferences.</span>
@@ -1716,8 +1716,8 @@
 
 <span class="doccomment">/// Found at &quot;MIXER &gt; BRIGHTNESS &gt; INDICATOR&quot; of the &quot;My Settings&quot; page in the Rekordbox</span>
 <span class="doccomment">/// preferences.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">MixerIndicatorBrightness</span> {
     <span class="doccomment">/// Named &quot;1&quot; in the Rekordbox preferences.</span>

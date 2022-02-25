@@ -854,6 +854,8 @@
 <span id="853">853</span>
 <span id="854">854</span>
 <span id="855">855</span>
+<span id="856">856</span>
+<span id="857">857</span>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) 2022 Jan Holthuis</span>
 <span class="comment">//</span>
 <span class="comment">// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy</span>
@@ -891,8 +893,8 @@
 <span class="kw">use</span> <span class="ident">modular_bitfield::prelude</span>::<span class="kw-2">*</span>;
 
 <span class="doccomment">/// The kind of section.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Clone</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Clone</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">big</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">ContentKind</span> {
     <span class="doccomment">/// File section that contains all other sections.</span>
@@ -957,8 +959,8 @@
 }
 
 <span class="doccomment">/// Header of a section that contains type and size information.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Clone</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Clone</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">big</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Header</span> {
     <span class="doccomment">/// Kind of content in this item.</span>
@@ -980,8 +982,8 @@
 }
 
 <span class="doccomment">/// A single beat inside the beat grid.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">big</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Beat</span> {
     <span class="doccomment">/// Beat number inside the bar (1-4).</span>
@@ -993,8 +995,8 @@
 }
 
 <span class="doccomment">/// Describes the types of entries found in a Cue List section.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">big</span>, <span class="ident">repr</span> <span class="op">=</span> <span class="ident">u32</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">CueListType</span> {
     <span class="doccomment">/// Memory cues or loops.</span>
@@ -1004,8 +1006,8 @@
 }
 
 <span class="doccomment">/// Indicates if the cue is point or a loop.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">CueType</span> {
     <span class="doccomment">/// Cue is a single point.</span>
@@ -1015,8 +1017,8 @@
 }
 
 <span class="doccomment">/// A memory or hot cue (or loop).</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">big</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Cue</span> {
     <span class="doccomment">/// Cue entry header.</span>
@@ -1032,7 +1034,7 @@
     <span class="doccomment">/// Loop status. `4` if this cue is an active loop, `0` otherwise.</span>
     <span class="kw">pub</span> <span class="ident">status</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// Unknown field. Seems to always have the value `0x00100000`.</span>
-    <span class="kw">pub</span> <span class="ident">unknown1</span>: <span class="ident">u32</span>,
+    <span class="ident">unknown1</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// Somehow used for sorting cues.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// | Value    | Cue    |</span>
@@ -1063,26 +1065,26 @@
     <span class="doccomment">/// Type of this cue (`2` if this cue is a loop).</span>
     <span class="kw">pub</span> <span class="ident">cue_type</span>: <span class="ident">CueType</span>,
     <span class="doccomment">/// Unknown field. Seems always have the value `0`.</span>
-    <span class="kw">pub</span> <span class="ident">unknown2</span>: <span class="ident">u8</span>,
+    <span class="ident">unknown2</span>: <span class="ident">u8</span>,
     <span class="doccomment">/// Unknown field. Seems always have the value `0x03E8` (= decimal 1000).</span>
-    <span class="kw">pub</span> <span class="ident">unknown3</span>: <span class="ident">u16</span>,
+    <span class="ident">unknown3</span>: <span class="ident">u16</span>,
     <span class="doccomment">/// Time in milliseconds after which this cue would occur (at normal playback speed).</span>
     <span class="kw">pub</span> <span class="ident">time</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// Time in milliseconds after which this the loop would jump back to `time` (at normal playback speed).</span>
     <span class="kw">pub</span> <span class="ident">loop_time</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// Unknown field.</span>
-    <span class="kw">pub</span> <span class="ident">unknown4</span>: <span class="ident">u32</span>,
+    <span class="ident">unknown4</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// Unknown field.</span>
-    <span class="kw">pub</span> <span class="ident">unknown5</span>: <span class="ident">u32</span>,
+    <span class="ident">unknown5</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// Unknown field.</span>
-    <span class="kw">pub</span> <span class="ident">unknown6</span>: <span class="ident">u32</span>,
+    <span class="ident">unknown6</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// Unknown field.</span>
-    <span class="kw">pub</span> <span class="ident">unknown7</span>: <span class="ident">u32</span>,
+    <span class="ident">unknown7</span>: <span class="ident">u32</span>,
 }
 
 <span class="doccomment">/// A memory or hot cue (or loop).</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">big</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ExtendedCue</span> {
     <span class="doccomment">/// Cue entry header.</span>
@@ -1099,9 +1101,9 @@
     <span class="doccomment">/// Type of this cue (`2` if this cue is a loop).</span>
     <span class="kw">pub</span> <span class="ident">cue_type</span>: <span class="ident">CueType</span>,
     <span class="doccomment">/// Unknown field. Seems always have the value `0`.</span>
-    <span class="kw">pub</span> <span class="ident">unknown1</span>: <span class="ident">u8</span>,
+    <span class="ident">unknown1</span>: <span class="ident">u8</span>,
     <span class="doccomment">/// Unknown field. Seems always have the value `0x03E8` (= decimal 1000).</span>
-    <span class="kw">pub</span> <span class="ident">unknown2</span>: <span class="ident">u16</span>,
+    <span class="ident">unknown2</span>: <span class="ident">u16</span>,
     <span class="doccomment">/// Time in milliseconds after which this cue would occur (at normal playback speed).</span>
     <span class="kw">pub</span> <span class="ident">time</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// Time in milliseconds after which this the loop would jump back to `time` (at normal playback speed).</span>
@@ -1111,17 +1113,17 @@
     <span class="doccomment">/// Only used by memory cues, hot cues use a different value (see below).</span>
     <span class="kw">pub</span> <span class="ident">color</span>: <span class="ident">ColorIndex</span>,
     <span class="doccomment">/// Unknown field.</span>
-    <span class="kw">pub</span> <span class="ident">unknown3</span>: <span class="ident">u8</span>,
+    <span class="ident">unknown3</span>: <span class="ident">u8</span>,
     <span class="doccomment">/// Unknown field.</span>
-    <span class="kw">pub</span> <span class="ident">unknown4</span>: <span class="ident">u16</span>,
+    <span class="ident">unknown4</span>: <span class="ident">u16</span>,
     <span class="doccomment">/// Unknown field.</span>
-    <span class="kw">pub</span> <span class="ident">unknown5</span>: <span class="ident">u32</span>,
+    <span class="ident">unknown5</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// Represents the loop size numerator (if this is a quantized loop).</span>
     <span class="kw">pub</span> <span class="ident">loop_numerator</span>: <span class="ident">u16</span>,
     <span class="doccomment">/// Represents the loop size denominator (if this is a quantized loop).</span>
     <span class="kw">pub</span> <span class="ident">loop_denominator</span>: <span class="ident">u16</span>,
     <span class="doccomment">/// Length of the comment string in bytes.</span>
-    <span class="kw">pub</span> <span class="ident">len_comment</span>: <span class="ident">u32</span>,
+    <span class="ident">len_comment</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// An UTF-16BE encoded string, followed by a trailing  `0x0000`.</span>
     <span class="attribute">#[<span class="ident">br</span>(<span class="ident">assert</span>((<span class="ident">comment</span>.<span class="ident">len</span>() <span class="kw">as</span> <span class="ident">u32</span> <span class="op">+</span> <span class="number">1</span>) <span class="op">*</span> <span class="number">2</span> <span class="op">==</span> <span class="ident">len_comment</span>))]</span>
     <span class="kw">pub</span> <span class="ident">comment</span>: <span class="ident">NullWideString</span>,
@@ -1200,15 +1202,15 @@
     <span class="doccomment">/// associated with this hot cue, the value is `(0, 0, 0)`.</span>
     <span class="kw">pub</span> <span class="ident">hot_cue_color_rgb</span>: (<span class="ident">u8</span>, <span class="ident">u8</span>, <span class="ident">u8</span>),
     <span class="doccomment">/// Unknown field.</span>
-    <span class="kw">pub</span> <span class="ident">unknown6</span>: <span class="ident">u32</span>,
+    <span class="ident">unknown6</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// Unknown field.</span>
-    <span class="kw">pub</span> <span class="ident">unknown7</span>: <span class="ident">u32</span>,
+    <span class="ident">unknown7</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// Unknown field.</span>
-    <span class="kw">pub</span> <span class="ident">unknown8</span>: <span class="ident">u32</span>,
+    <span class="ident">unknown8</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// Unknown field.</span>
-    <span class="kw">pub</span> <span class="ident">unknown9</span>: <span class="ident">u32</span>,
+    <span class="ident">unknown9</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// Unknown field.</span>
-    <span class="kw">pub</span> <span class="ident">unknown10</span>: <span class="ident">u32</span>,
+    <span class="ident">unknown10</span>: <span class="ident">u32</span>,
 }
 
 <span class="doccomment">/// Single Column value in a Waveform Preview.</span>
@@ -1229,23 +1231,24 @@
 <span class="attribute">#[<span class="ident">br</span>(<span class="ident">big</span>, <span class="ident">map</span> <span class="op">=</span> <span class="ident"><span class="self">Self</span>::from_bytes</span>)]</span>
 <span class="attribute">#[<span class="ident">bw</span>(<span class="ident">big</span>, <span class="ident">map</span> <span class="op">=</span> <span class="op">|</span><span class="ident">x</span>: <span class="kw-2">&amp;</span><span class="ident">TinyWaveformPreviewColumn</span><span class="op">|</span> <span class="ident">x</span>.<span class="ident">into_bytes</span>())]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">TinyWaveformPreviewColumn</span> {
+    <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">dead_code</span>)]</span>
+    <span class="ident">unused</span>: <span class="ident">B4</span>,
     <span class="doccomment">/// Height of the Column in pixels.</span>
-    <span class="kw">pub</span> <span class="ident">unused</span>: <span class="ident">B4</span>,
-    <span class="kw">pub</span> <span class="ident">beight</span>: <span class="ident">B4</span>,
+    <span class="kw">pub</span> <span class="ident">height</span>: <span class="ident">B4</span>,
 }
 
 <span class="doccomment">/// Single Column value in a Waveform Color Preview.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// See these the documentation for details:</span>
 <span class="doccomment">/// &lt;https://djl-analysis.deepsymmetry.org/djl-analysis/track_metadata.html#color-preview-analysis&gt;</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">big</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">WaveformColorPreviewColumn</span> {
     <span class="doccomment">/// Unknown field (somehow encodes the &quot;whiteness&quot;).</span>
-    <span class="kw">pub</span> <span class="ident">unknown1</span>: <span class="ident">u8</span>,
+    <span class="ident">unknown1</span>: <span class="ident">u8</span>,
     <span class="doccomment">/// Unknown field (somehow encodes the &quot;whiteness&quot;).</span>
-    <span class="kw">pub</span> <span class="ident">unknown2</span>: <span class="ident">u8</span>,
+    <span class="ident">unknown2</span>: <span class="ident">u8</span>,
     <span class="doccomment">/// Sound energy in the bottom half of the frequency range (&lt;10 KHz).</span>
     <span class="kw">pub</span> <span class="ident">energy_bottom_half_freq</span>: <span class="ident">u8</span>,
     <span class="doccomment">/// Sound energy in the bottom third of the frequency range.</span>
@@ -1271,13 +1274,14 @@
     <span class="doccomment">/// Height of the column.</span>
     <span class="kw">pub</span> <span class="ident">height</span>: <span class="ident">B5</span>,
     <span class="doccomment">/// Unknown field</span>
-    <span class="kw">pub</span> <span class="ident">unknown</span>: <span class="ident">B2</span>,
+    <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">dead_code</span>)]</span>
+    <span class="ident">unknown</span>: <span class="ident">B2</span>,
 }
 
 <span class="doccomment">/// Music classification that is used for Lightnight mode and based on rhythm, tempo kick drum and</span>
 <span class="doccomment">/// sound density.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">big</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">Mood</span> {
     <span class="doccomment">/// Phrase types consist of &quot;Intro&quot;, &quot;Up&quot;, &quot;Down&quot;, &quot;Chorus&quot;, and &quot;Outro&quot;. Other values in each</span>
@@ -1302,8 +1306,8 @@
 }
 
 <span class="doccomment">/// Stylistic track bank for Lightning mode.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">Bank</span> {
     <span class="doccomment">/// Default bank variant, treated as `Cool`.</span>
     <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">magic</span> <span class="op">=</span> <span class="number">0u8</span>)]</span>
@@ -1339,8 +1343,8 @@
 }
 
 <span class="doccomment">/// A song structure entry that represents a phrase in the track.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">big</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Phrase</span> {
     <span class="doccomment">/// Phrase number (starting at 1).</span>
@@ -1395,8 +1399,8 @@
 }
 
 <span class="doccomment">/// Section content which differs depending on the section type.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">br</span>(<span class="ident">import</span>(<span class="ident">header</span>: <span class="ident">Header</span>))]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">Content</span> {
     <span class="doccomment">/// All beats in the track.</span>
@@ -1452,8 +1456,8 @@
 }
 
 <span class="doccomment">/// All beats in the track.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">BeatGrid</span> {
     <span class="doccomment">/// Unknown field.</span>
     <span class="ident">unknown1</span>: <span class="ident">u32</span>,
@@ -1469,8 +1473,8 @@
 }
 
 <span class="doccomment">/// List of cue points or loops (either hot cues or memory cues).</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">CueList</span> {
     <span class="doccomment">/// The types of cues (memory or hot) that this list contains.</span>
     <span class="kw">pub</span> <span class="ident">list_type</span>: <span class="ident">CueListType</span>,
@@ -1489,8 +1493,8 @@
 <span class="doccomment">///</span>
 <span class="doccomment">/// Variation of the original `CueList` that also adds support for more metadata such as</span>
 <span class="doccomment">/// comments and colors. Introduces with the Nexus 2 series players.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ExtendedCueList</span> {
     <span class="doccomment">/// The types of cues (memory or hot) that this list contains.</span>
     <span class="kw">pub</span> <span class="ident">list_type</span>: <span class="ident">CueListType</span>,
@@ -1505,8 +1509,8 @@
 }
 
 <span class="doccomment">/// Path of the audio file that this analysis belongs to.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">br</span>(<span class="ident">import</span>(<span class="ident">header</span>: <span class="ident">Header</span>))]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Path</span> {
     <span class="doccomment">/// Length of the path field in bytes.</span>
@@ -1518,8 +1522,8 @@
 }
 
 <span class="doccomment">/// Seek information for variable bitrate files (probably).</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">br</span>(<span class="ident">import</span>(<span class="ident">header</span>: <span class="ident">Header</span>))]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">VBR</span> {
     <span class="doccomment">/// Unknown field.</span>
@@ -1530,8 +1534,8 @@
 }
 
 <span class="doccomment">/// Fixed-width monochrome preview of the track waveform.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">br</span>(<span class="ident">import</span>(<span class="ident">header</span>: <span class="ident">Header</span>))]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">WaveformPreview</span> {
     <span class="doccomment">/// Unknown field.</span>
@@ -1544,8 +1548,8 @@
 }
 
 <span class="doccomment">/// Smaller version of the fixed-width monochrome preview of the track waveform.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">br</span>(<span class="ident">import</span>(<span class="ident">header</span>: <span class="ident">Header</span>))]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">TinyWaveformPreview</span> {
     <span class="doccomment">/// Unknown field.</span>
@@ -1560,8 +1564,8 @@
 <span class="doccomment">/// Variable-width large monochrome version of the track waveform.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// Used in `.EXT` files.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">WaveformDetail</span> {
     <span class="doccomment">/// Size of a single entry, always 1.</span>
     <span class="attribute">#[<span class="ident">br</span>(<span class="ident">assert</span>(<span class="ident">len_entry_bytes</span> <span class="op">==</span> <span class="number">1</span>))]</span>
@@ -1582,8 +1586,8 @@
 <span class="doccomment">/// Variable-width large monochrome version of the track waveform.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// Used in `.EXT` files.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">WaveformColorPreview</span> {
     <span class="doccomment">/// Size of a single entry, always 6.</span>
     <span class="attribute">#[<span class="ident">br</span>(<span class="ident">assert</span>(<span class="ident">len_entry_bytes</span> <span class="op">==</span> <span class="number">6</span>))]</span>
@@ -1603,8 +1607,8 @@
 <span class="doccomment">/// Variable-width large colored version of the track waveform.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// Used in `.EXT` files.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">WaveformColorDetail</span> {
     <span class="doccomment">/// Size of a single entry, always 2.</span>
     <span class="attribute">#[<span class="ident">br</span>(<span class="ident">assert</span>(<span class="ident">len_entry_bytes</span> <span class="op">==</span> <span class="number">2</span>))]</span>
@@ -1621,8 +1625,8 @@
 <span class="doccomment">/// Describes the structure of a sond (Intro, Chrous, Verse, etc.).</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// Used in `.EXT` files.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SongStructure</span> {
     <span class="doccomment">/// Size of a single entry, always 24.</span>
     <span class="attribute">#[<span class="ident">br</span>(<span class="ident">assert</span>(<span class="ident">len_entry_bytes</span> <span class="op">==</span> <span class="number">24</span>))]</span>
@@ -1649,8 +1653,8 @@
 }
 
 <span class="doccomment">/// Unknown content.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">br</span>(<span class="ident">import</span>(<span class="ident">header</span>: <span class="ident">Header</span>))]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Unknown</span> {
     <span class="doccomment">/// Unknown header data.</span>
@@ -1662,8 +1666,8 @@
 }
 
 <span class="doccomment">/// ANLZ Section.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Section</span> {
     <span class="doccomment">/// The header.</span>
     <span class="kw">pub</span> <span class="ident">header</span>: <span class="ident">Header</span>,
@@ -1676,8 +1680,8 @@
 <span class="doccomment">///</span>
 <span class="doccomment">/// The actual contents are not part of this struct and can parsed on-the-fly by iterating over the</span>
 <span class="doccomment">/// `ANLZ::sections()` method.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">big</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ANLZ</span> {
     <span class="doccomment">/// The file header.</span>
