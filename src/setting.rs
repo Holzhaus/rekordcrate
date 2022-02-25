@@ -73,128 +73,146 @@ pub enum SettingData {
     DevSetting(#[br(count = len)] Vec<u8>),
     /// Payload of a `DJMMYSETTING.DAT` file (52 bytes).
     #[br(pre_assert(len == 52))]
-    DJMMySetting {
-        /// Unknown field.
-        unknown1: [u8; 12],
-        /// "CH FADER CURVE" setting.
-        channel_fader_curve: ChannelFaderCurve,
-        /// "CROSSFADER CURVE" setting.
-        crossfader_curve: CrossfaderCurve,
-        /// "HEADPHONES PRE EQ" setting.
-        headphones_pre_eq: HeadphonesPreEQ,
-        /// "HEADPHONES MONO SPLIT" setting.
-        headphones_mono_split: HeadphonesMonoSplit,
-        /// "BEAT FX QUANTIZE" setting.
-        beat_fx_quantize: BeatFXQuantize,
-        /// "MIC LOW CUT" setting.
-        mic_low_cut: MicLowCut,
-        /// "TALK OVER MODE" setting.
-        talk_over_mode: TalkOverMode,
-        /// "TALK OVER LEVEL" setting.
-        talk_over_level: TalkOverLevel,
-        /// "MIDI CH" setting.
-        midi_channel: MidiChannel,
-        /// "MIDI BUTTON TYPE" setting.
-        midi_button_type: MidiButtonType,
-        /// "BRIGHTNESS > DISPLAY" setting.
-        display_brightness: MixerDisplayBrightness,
-        /// "BRIGHTNESS > INDICATOR" setting.
-        indicator_brightness: MixerIndicatorBrightness,
-        /// "CH FADER CURVE (LONG FADER)" setting.
-        channel_fader_curve_long_fader: ChannelFaderCurveLongFader,
-        /// Unknown field (apparently always 0).
-        #[br(assert(unknown2 == [0; 27]))]
-        unknown2: [u8; 27],
-    },
+    DJMMySetting(DJMMySetting),
     /// Payload of a `MYSETTING.DAT` file (40 bytes).
     #[br(pre_assert(len == 40))]
-    MySetting {
-        /// Unknown field.
-        unknown1: [u8; 8],
-        /// "ON AIR DISPLAY" setting.
-        on_air_display: OnAirDisplay,
-        /// "LCD BRIGHTNESS" setting.
-        lcd_brightness: LCDBrightness,
-        /// "QUANTIZE" setting.
-        quantize: Quantize,
-        /// "AUTO CUE LEVEL" setting.
-        auto_cue_level: AutoCueLevel,
-        /// "LANGUAGE" setting.
-        language: Language,
-        /// Unknown field.
-        unknown2: u8,
-        /// "JOG RING BRIGHTNESS" setting.
-        jog_ring_brightness: JogRingBrightness,
-        /// "JOG RING INDICATOR" setting.
-        jog_ring_indicator: JogRingIndicator,
-        /// "SLIP FLASHING" setting.
-        slip_flashing: SlipFlashing,
-        /// Unknown field.
-        unknown3: [u8; 3],
-        /// "DISC SLOT ILLUMINATION" setting.
-        disc_slot_illumination: DiscSlotIllumination,
-        /// "EJECT/LOAD LOCK" setting.
-        eject_lock: EjectLock,
-        /// "SYNC" setting.
-        sync: Sync,
-        /// "PLAY MODE / AUTO PLAY MODE" setting.
-        play_mode: PlayMode,
-        /// Quantize Beat Value setting.
-        quantize_beat_value: QuantizeBeatValue,
-        /// "HOT CUE AUTO LOAD" setting.
-        hotcue_autoload: HotCueAutoLoad,
-        /// "HOT CUE COLOR" setting.
-        hotcue_color: HotCueColor,
-        /// Unknown field (apparently always 0).
-        #[br(assert(unknown4 == 0))]
-        unknown4: u16,
-        /// "NEEDLE LOCK" setting.
-        needle_lock: NeedleLock,
-        /// Unknown field (apparently always 0).
-        #[br(assert(unknown5 == 0))]
-        unknown5: u16,
-        /// "TIME MODE" setting.
-        time_mode: TimeMode,
-        /// "TIME MODE" setting.
-        jog_mode: JogMode,
-        /// "AUTO CUE" setting.
-        auto_cue: AutoCue,
-        /// "MASTER TEMPO" setting.
-        master_tempo: MasterTempo,
-        /// "TEMPO RANGE" setting.
-        tempo_range: TempoRange,
-        /// "PHASE METER" setting.
-        phase_meter: PhaseMeter,
-        /// Unknown field (apparently always 0).
-        #[br(assert(unknown6 == 0))]
-        unknown6: u16,
-    },
+    MySetting(MySetting),
     /// Payload of a `MYSETTING2.DAT` file (40 bytes).
     #[br(pre_assert(len == 40))]
-    MySetting2 {
-        /// "VINYL SPEED ADJUST" setting.
-        vinyl_speed_adjust: VinylSpeedAdjust,
-        /// "JOG DISPLAY MODE" setting.
-        jog_display_mode: JogDisplayMode,
-        /// "PAD/BUTTON BRIGHTNESS" setting.
-        pad_button_brightness: PadButtonBrightness,
-        /// "JOG LCD BRIGHTNESS" setting.
-        jog_lcd_brightness: JogLCDBrightness,
-        /// "WAVEFORM DIVISIONS" setting.
-        waveform_divisions: WaveformDivisions,
-        /// Unknown field (apparently always 0).
-        #[br(assert(unknown1 == [0; 5]))]
-        unknown1: [u8; 5],
-        /// "WAVEFORM / PHASE METER" setting.
-        waveform: Waveform,
-        /// Unknown field.
-        unknown2: u8,
-        /// "BEAT JUMP BEAT VALUE" setting.
-        beat_jump_beat_value: BeatJumpBeatValue,
-        /// Unknown field (apparently always 0).
-        #[br(assert(unknown3 == [0; 27]))]
-        unknown3: [u8; 27],
-    },
+    MySetting2(MySetting2),
+}
+
+/// Payload of a `DJMMYSETTING.DAT` file (52 bytes).
+#[derive(Debug, PartialEq)]
+#[binrw]
+#[brw(little)]
+pub struct DJMMySetting {
+    /// Unknown field.
+    unknown1: [u8; 12],
+    /// "CH FADER CURVE" setting.
+    pub channel_fader_curve: ChannelFaderCurve,
+    /// "CROSSFADER CURVE" setting.
+    pub crossfader_curve: CrossfaderCurve,
+    /// "HEADPHONES PRE EQ" setting.
+    pub headphones_pre_eq: HeadphonesPreEQ,
+    /// "HEADPHONES MONO SPLIT" setting.
+    pub headphones_mono_split: HeadphonesMonoSplit,
+    /// "BEAT FX QUANTIZE" setting.
+    pub beat_fx_quantize: BeatFXQuantize,
+    /// "MIC LOW CUT" setting.
+    pub mic_low_cut: MicLowCut,
+    /// "TALK OVER MODE" setting.
+    pub talk_over_mode: TalkOverMode,
+    /// "TALK OVER LEVEL" setting.
+    pub talk_over_level: TalkOverLevel,
+    /// "MIDI CH" setting.
+    pub midi_channel: MidiChannel,
+    /// "MIDI BUTTON TYPE" setting.
+    pub midi_button_type: MidiButtonType,
+    /// "BRIGHTNESS > DISPLAY" setting.
+    pub display_brightness: MixerDisplayBrightness,
+    /// "BRIGHTNESS > INDICATOR" setting.
+    pub indicator_brightness: MixerIndicatorBrightness,
+    /// "CH FADER CURVE (LONG FADER)" setting.
+    pub channel_fader_curve_long_fader: ChannelFaderCurveLongFader,
+    /// Unknown field (apparently always 0).
+    #[br(assert(unknown2 == [0; 27]))]
+    unknown2: [u8; 27],
+}
+
+/// Payload of a `MYSETTING.DAT` file (40 bytes).
+#[derive(Debug, PartialEq)]
+#[binrw]
+#[brw(little)]
+pub struct MySetting {
+    /// Unknown field.
+    unknown1: [u8; 8],
+    /// "ON AIR DISPLAY" setting.
+    pub on_air_display: OnAirDisplay,
+    /// "LCD BRIGHTNESS" setting.
+    pub lcd_brightness: LCDBrightness,
+    /// "QUANTIZE" setting.
+    pub quantize: Quantize,
+    /// "AUTO CUE LEVEL" setting.
+    pub auto_cue_level: AutoCueLevel,
+    /// "LANGUAGE" setting.
+    pub language: Language,
+    /// Unknown field.
+    unknown2: u8,
+    /// "JOG RING BRIGHTNESS" setting.
+    pub jog_ring_brightness: JogRingBrightness,
+    /// "JOG RING INDICATOR" setting.
+    pub jog_ring_indicator: JogRingIndicator,
+    /// "SLIP FLASHING" setting.
+    pub slip_flashing: SlipFlashing,
+    /// Unknown field.
+    unknown3: [u8; 3],
+    /// "DISC SLOT ILLUMINATION" setting.
+    pub disc_slot_illumination: DiscSlotIllumination,
+    /// "EJECT/LOAD LOCK" setting.
+    pub eject_lock: EjectLock,
+    /// "SYNC" setting.
+    pub sync: Sync,
+    /// "PLAY MODE / AUTO PLAY MODE" setting.
+    pub play_mode: PlayMode,
+    /// Quantize Beat Value setting.
+    pub quantize_beat_value: QuantizeBeatValue,
+    /// "HOT CUE AUTO LOAD" setting.
+    pub hotcue_autoload: HotCueAutoLoad,
+    /// "HOT CUE COLOR" setting.
+    pub hotcue_color: HotCueColor,
+    /// Unknown field (apparently always 0).
+    #[br(assert(unknown4 == 0))]
+    unknown4: u16,
+    /// "NEEDLE LOCK" setting.
+    pub needle_lock: NeedleLock,
+    /// Unknown field (apparently always 0).
+    #[br(assert(unknown5 == 0))]
+    unknown5: u16,
+    /// "TIME MODE" setting.
+    pub time_mode: TimeMode,
+    /// "TIME MODE" setting.
+    pub jog_mode: JogMode,
+    /// "AUTO CUE" setting.
+    pub auto_cue: AutoCue,
+    /// "MASTER TEMPO" setting.
+    pub master_tempo: MasterTempo,
+    /// "TEMPO RANGE" setting.
+    pub tempo_range: TempoRange,
+    /// "PHASE METER" setting.
+    pub phase_meter: PhaseMeter,
+    /// Unknown field (apparently always 0).
+    #[br(assert(unknown6 == 0))]
+    unknown6: u16,
+}
+
+/// Payload of a `MYSETTING2.DAT` file (40 bytes).
+#[derive(Debug, PartialEq)]
+#[binrw]
+#[brw(little)]
+pub struct MySetting2 {
+    /// "VINYL SPEED ADJUST" setting.
+    pub vinyl_speed_adjust: VinylSpeedAdjust,
+    /// "JOG DISPLAY MODE" setting.
+    pub jog_display_mode: JogDisplayMode,
+    /// "PAD/BUTTON BRIGHTNESS" setting.
+    pub pad_button_brightness: PadButtonBrightness,
+    /// "JOG LCD BRIGHTNESS" setting.
+    pub jog_lcd_brightness: JogLCDBrightness,
+    /// "WAVEFORM DIVISIONS" setting.
+    pub waveform_divisions: WaveformDivisions,
+    /// Unknown field (apparently always 0).
+    #[br(assert(unknown1 == [0; 5]))]
+    unknown1: [u8; 5],
+    /// "WAVEFORM / PHASE METER" setting.
+    pub waveform: Waveform,
+    /// Unknown field.
+    unknown2: u8,
+    /// "BEAT JUMP BEAT VALUE" setting.
+    pub beat_jump_beat_value: BeatJumpBeatValue,
+    /// Unknown field (apparently always 0).
+    #[br(assert(unknown3 == [0; 27]))]
+    unknown3: [u8; 27],
 }
 
 /// Found at "PLAYER > DJ SETTING > PLAY MODE / AUTO PLAY MODE" of the "My Settings" page in the
