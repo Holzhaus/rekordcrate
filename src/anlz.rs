@@ -94,6 +94,9 @@ pub enum ContentKind {
     #[brw(magic = b"PSSI")]
     SongStructure,
     /// Unknown Kind.
+    ///
+    /// This allows handling files that contain unknown section types and allows to access later
+    /// sections in the file that have a known type instead of failing to parse the whole file.
     Unknown([u8; 4]),
 }
 
@@ -437,6 +440,8 @@ pub enum Mood {
     #[brw(magic = 3u16)]
     Low,
     /// Unknown value.
+    ///
+    /// TODO: Remove this once https://github.com/Holzhaus/rekordcrate/issues/13 has been fixed.
     Unknown(u16),
 }
 
@@ -472,6 +477,8 @@ pub enum Bank {
     #[brw(magic = 8u8)]
     Club2,
     /// Unknown value.
+    ///
+    /// TODO: Remove this once https://github.com/Holzhaus/rekordcrate/issues/13 has been fixed.
     Unknown(u8),
 }
 
@@ -581,6 +588,9 @@ pub enum Content {
     #[brw(pre_assert(header.kind == ContentKind::SongStructure))]
     SongStructure(SongStructure),
     /// Unknown content.
+    ///
+    /// This allows handling files that contain unknown section types and allows to access later
+    /// sections in the file that have a known type instead of failing to parse the whole file.
     #[brw(pre_assert(matches!(header.kind, ContentKind::Unknown(_))))]
     Unknown(#[br(args(header.clone()))] Unknown),
 }
