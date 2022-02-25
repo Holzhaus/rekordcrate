@@ -25,7 +25,8 @@ use binrw::{binrw, NullString};
 /// Represents a setting file.
 pub struct Setting {
     /// Size of the string data field (should be always 96).
-    #[br(assert(len_stringdata == 0x60))]
+    #[br(temp, assert(len_stringdata == 0x60))]
+    #[bw(calc = 0x60)]
     len_stringdata: u32,
     /// Name of the brand.
     ///
