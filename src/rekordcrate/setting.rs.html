@@ -845,6 +845,24 @@
 <span id="844">844</span>
 <span id="845">845</span>
 <span id="846">846</span>
+<span id="847">847</span>
+<span id="848">848</span>
+<span id="849">849</span>
+<span id="850">850</span>
+<span id="851">851</span>
+<span id="852">852</span>
+<span id="853">853</span>
+<span id="854">854</span>
+<span id="855">855</span>
+<span id="856">856</span>
+<span id="857">857</span>
+<span id="858">858</span>
+<span id="859">859</span>
+<span id="860">860</span>
+<span id="861">861</span>
+<span id="862">862</span>
+<span id="863">863</span>
+<span id="864">864</span>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) 2022 Jan Holthuis</span>
 <span class="comment">//</span>
 <span class="comment">// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy</span>
@@ -920,128 +938,146 @@
     <span class="ident">DevSetting</span>(<span class="attribute">#[<span class="ident">br</span>(<span class="ident">count</span> <span class="op">=</span> <span class="ident">len</span>)]</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>),
     <span class="doccomment">/// Payload of a `DJMMYSETTING.DAT` file (52 bytes).</span>
     <span class="attribute">#[<span class="ident">br</span>(<span class="ident">pre_assert</span>(<span class="ident">len</span> <span class="op">==</span> <span class="number">52</span>))]</span>
-    <span class="ident">DJMMySetting</span> {
-        <span class="doccomment">/// Unknown field.</span>
-        <span class="ident">unknown1</span>: [<span class="ident">u8</span>; <span class="number">12</span>],
-        <span class="doccomment">/// &quot;CH FADER CURVE&quot; setting.</span>
-        <span class="ident">channel_fader_curve</span>: <span class="ident">ChannelFaderCurve</span>,
-        <span class="doccomment">/// &quot;CROSSFADER CURVE&quot; setting.</span>
-        <span class="ident">crossfader_curve</span>: <span class="ident">CrossfaderCurve</span>,
-        <span class="doccomment">/// &quot;HEADPHONES PRE EQ&quot; setting.</span>
-        <span class="ident">headphones_pre_eq</span>: <span class="ident">HeadphonesPreEQ</span>,
-        <span class="doccomment">/// &quot;HEADPHONES MONO SPLIT&quot; setting.</span>
-        <span class="ident">headphones_mono_split</span>: <span class="ident">HeadphonesMonoSplit</span>,
-        <span class="doccomment">/// &quot;BEAT FX QUANTIZE&quot; setting.</span>
-        <span class="ident">beat_fx_quantize</span>: <span class="ident">BeatFXQuantize</span>,
-        <span class="doccomment">/// &quot;MIC LOW CUT&quot; setting.</span>
-        <span class="ident">mic_low_cut</span>: <span class="ident">MicLowCut</span>,
-        <span class="doccomment">/// &quot;TALK OVER MODE&quot; setting.</span>
-        <span class="ident">talk_over_mode</span>: <span class="ident">TalkOverMode</span>,
-        <span class="doccomment">/// &quot;TALK OVER LEVEL&quot; setting.</span>
-        <span class="ident">talk_over_level</span>: <span class="ident">TalkOverLevel</span>,
-        <span class="doccomment">/// &quot;MIDI CH&quot; setting.</span>
-        <span class="ident">midi_channel</span>: <span class="ident">MidiChannel</span>,
-        <span class="doccomment">/// &quot;MIDI BUTTON TYPE&quot; setting.</span>
-        <span class="ident">midi_button_type</span>: <span class="ident">MidiButtonType</span>,
-        <span class="doccomment">/// &quot;BRIGHTNESS &gt; DISPLAY&quot; setting.</span>
-        <span class="ident">display_brightness</span>: <span class="ident">MixerDisplayBrightness</span>,
-        <span class="doccomment">/// &quot;BRIGHTNESS &gt; INDICATOR&quot; setting.</span>
-        <span class="ident">indicator_brightness</span>: <span class="ident">MixerIndicatorBrightness</span>,
-        <span class="doccomment">/// &quot;CH FADER CURVE (LONG FADER)&quot; setting.</span>
-        <span class="ident">channel_fader_curve_long_fader</span>: <span class="ident">ChannelFaderCurveLongFader</span>,
-        <span class="doccomment">/// Unknown field (apparently always 0).</span>
-        <span class="attribute">#[<span class="ident">br</span>(<span class="ident">assert</span>(<span class="ident">unknown2</span> <span class="op">==</span> [<span class="number">0</span>; <span class="number">27</span>]</span>))]
-        <span class="ident">unknown2</span>: [<span class="ident">u8</span>; <span class="number">27</span>],
-    },
+    <span class="ident">DJMMySetting</span>(<span class="ident">DJMMySetting</span>),
     <span class="doccomment">/// Payload of a `MYSETTING.DAT` file (40 bytes).</span>
     <span class="attribute">#[<span class="ident">br</span>(<span class="ident">pre_assert</span>(<span class="ident">len</span> <span class="op">==</span> <span class="number">40</span>))]</span>
-    <span class="ident">MySetting</span> {
-        <span class="doccomment">/// Unknown field.</span>
-        <span class="ident">unknown1</span>: [<span class="ident">u8</span>; <span class="number">8</span>],
-        <span class="doccomment">/// &quot;ON AIR DISPLAY&quot; setting.</span>
-        <span class="ident">on_air_display</span>: <span class="ident">OnAirDisplay</span>,
-        <span class="doccomment">/// &quot;LCD BRIGHTNESS&quot; setting.</span>
-        <span class="ident">lcd_brightness</span>: <span class="ident">LCDBrightness</span>,
-        <span class="doccomment">/// &quot;QUANTIZE&quot; setting.</span>
-        <span class="ident">quantize</span>: <span class="ident">Quantize</span>,
-        <span class="doccomment">/// &quot;AUTO CUE LEVEL&quot; setting.</span>
-        <span class="ident">auto_cue_level</span>: <span class="ident">AutoCueLevel</span>,
-        <span class="doccomment">/// &quot;LANGUAGE&quot; setting.</span>
-        <span class="ident">language</span>: <span class="ident">Language</span>,
-        <span class="doccomment">/// Unknown field.</span>
-        <span class="ident">unknown2</span>: <span class="ident">u8</span>,
-        <span class="doccomment">/// &quot;JOG RING BRIGHTNESS&quot; setting.</span>
-        <span class="ident">jog_ring_brightness</span>: <span class="ident">JogRingBrightness</span>,
-        <span class="doccomment">/// &quot;JOG RING INDICATOR&quot; setting.</span>
-        <span class="ident">jog_ring_indicator</span>: <span class="ident">JogRingIndicator</span>,
-        <span class="doccomment">/// &quot;SLIP FLASHING&quot; setting.</span>
-        <span class="ident">slip_flashing</span>: <span class="ident">SlipFlashing</span>,
-        <span class="doccomment">/// Unknown field.</span>
-        <span class="ident">unknown3</span>: [<span class="ident">u8</span>; <span class="number">3</span>],
-        <span class="doccomment">/// &quot;DISC SLOT ILLUMINATION&quot; setting.</span>
-        <span class="ident">disc_slot_illumination</span>: <span class="ident">DiscSlotIllumination</span>,
-        <span class="doccomment">/// &quot;EJECT/LOAD LOCK&quot; setting.</span>
-        <span class="ident">eject_lock</span>: <span class="ident">EjectLock</span>,
-        <span class="doccomment">/// &quot;SYNC&quot; setting.</span>
-        <span class="ident">sync</span>: <span class="ident">Sync</span>,
-        <span class="doccomment">/// &quot;PLAY MODE / AUTO PLAY MODE&quot; setting.</span>
-        <span class="ident">play_mode</span>: <span class="ident">PlayMode</span>,
-        <span class="doccomment">/// Quantize Beat Value setting.</span>
-        <span class="ident">quantize_beat_value</span>: <span class="ident">QuantizeBeatValue</span>,
-        <span class="doccomment">/// &quot;HOT CUE AUTO LOAD&quot; setting.</span>
-        <span class="ident">hotcue_autoload</span>: <span class="ident">HotCueAutoLoad</span>,
-        <span class="doccomment">/// &quot;HOT CUE COLOR&quot; setting.</span>
-        <span class="ident">hotcue_color</span>: <span class="ident">HotCueColor</span>,
-        <span class="doccomment">/// Unknown field (apparently always 0).</span>
-        <span class="attribute">#[<span class="ident">br</span>(<span class="ident">assert</span>(<span class="ident">unknown4</span> <span class="op">==</span> <span class="number">0</span>))]</span>
-        <span class="ident">unknown4</span>: <span class="ident">u16</span>,
-        <span class="doccomment">/// &quot;NEEDLE LOCK&quot; setting.</span>
-        <span class="ident">needle_lock</span>: <span class="ident">NeedleLock</span>,
-        <span class="doccomment">/// Unknown field (apparently always 0).</span>
-        <span class="attribute">#[<span class="ident">br</span>(<span class="ident">assert</span>(<span class="ident">unknown5</span> <span class="op">==</span> <span class="number">0</span>))]</span>
-        <span class="ident">unknown5</span>: <span class="ident">u16</span>,
-        <span class="doccomment">/// &quot;TIME MODE&quot; setting.</span>
-        <span class="ident">time_mode</span>: <span class="ident">TimeMode</span>,
-        <span class="doccomment">/// &quot;TIME MODE&quot; setting.</span>
-        <span class="ident">jog_mode</span>: <span class="ident">JogMode</span>,
-        <span class="doccomment">/// &quot;AUTO CUE&quot; setting.</span>
-        <span class="ident">auto_cue</span>: <span class="ident">AutoCue</span>,
-        <span class="doccomment">/// &quot;MASTER TEMPO&quot; setting.</span>
-        <span class="ident">master_tempo</span>: <span class="ident">MasterTempo</span>,
-        <span class="doccomment">/// &quot;TEMPO RANGE&quot; setting.</span>
-        <span class="ident">tempo_range</span>: <span class="ident">TempoRange</span>,
-        <span class="doccomment">/// &quot;PHASE METER&quot; setting.</span>
-        <span class="ident">phase_meter</span>: <span class="ident">PhaseMeter</span>,
-        <span class="doccomment">/// Unknown field (apparently always 0).</span>
-        <span class="attribute">#[<span class="ident">br</span>(<span class="ident">assert</span>(<span class="ident">unknown6</span> <span class="op">==</span> <span class="number">0</span>))]</span>
-        <span class="ident">unknown6</span>: <span class="ident">u16</span>,
-    },
+    <span class="ident">MySetting</span>(<span class="ident">MySetting</span>),
     <span class="doccomment">/// Payload of a `MYSETTING2.DAT` file (40 bytes).</span>
     <span class="attribute">#[<span class="ident">br</span>(<span class="ident">pre_assert</span>(<span class="ident">len</span> <span class="op">==</span> <span class="number">40</span>))]</span>
-    <span class="ident">MySetting2</span> {
-        <span class="doccomment">/// &quot;VINYL SPEED ADJUST&quot; setting.</span>
-        <span class="ident">vinyl_speed_adjust</span>: <span class="ident">VinylSpeedAdjust</span>,
-        <span class="doccomment">/// &quot;JOG DISPLAY MODE&quot; setting.</span>
-        <span class="ident">jog_display_mode</span>: <span class="ident">JogDisplayMode</span>,
-        <span class="doccomment">/// &quot;PAD/BUTTON BRIGHTNESS&quot; setting.</span>
-        <span class="ident">pad_button_brightness</span>: <span class="ident">PadButtonBrightness</span>,
-        <span class="doccomment">/// &quot;JOG LCD BRIGHTNESS&quot; setting.</span>
-        <span class="ident">jog_lcd_brightness</span>: <span class="ident">JogLCDBrightness</span>,
-        <span class="doccomment">/// &quot;WAVEFORM DIVISIONS&quot; setting.</span>
-        <span class="ident">waveform_divisions</span>: <span class="ident">WaveformDivisions</span>,
-        <span class="doccomment">/// Unknown field (apparently always 0).</span>
-        <span class="attribute">#[<span class="ident">br</span>(<span class="ident">assert</span>(<span class="ident">unknown1</span> <span class="op">==</span> [<span class="number">0</span>; <span class="number">5</span>]</span>))]
-        <span class="ident">unknown1</span>: [<span class="ident">u8</span>; <span class="number">5</span>],
-        <span class="doccomment">/// &quot;WAVEFORM / PHASE METER&quot; setting.</span>
-        <span class="ident">waveform</span>: <span class="ident">Waveform</span>,
-        <span class="doccomment">/// Unknown field.</span>
-        <span class="ident">unknown2</span>: <span class="ident">u8</span>,
-        <span class="doccomment">/// &quot;BEAT JUMP BEAT VALUE&quot; setting.</span>
-        <span class="ident">beat_jump_beat_value</span>: <span class="ident">BeatJumpBeatValue</span>,
-        <span class="doccomment">/// Unknown field (apparently always 0).</span>
-        <span class="attribute">#[<span class="ident">br</span>(<span class="ident">assert</span>(<span class="ident">unknown3</span> <span class="op">==</span> [<span class="number">0</span>; <span class="number">27</span>]</span>))]
-        <span class="ident">unknown3</span>: [<span class="ident">u8</span>; <span class="number">27</span>],
-    },
+    <span class="ident">MySetting2</span>(<span class="ident">MySetting2</span>),
+}
+
+<span class="doccomment">/// Payload of a `DJMMYSETTING.DAT` file (52 bytes).</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">brw</span>(<span class="ident">little</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">DJMMySetting</span> {
+    <span class="doccomment">/// Unknown field.</span>
+    <span class="ident">unknown1</span>: [<span class="ident">u8</span>; <span class="number">12</span>],
+    <span class="doccomment">/// &quot;CH FADER CURVE&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">channel_fader_curve</span>: <span class="ident">ChannelFaderCurve</span>,
+    <span class="doccomment">/// &quot;CROSSFADER CURVE&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">crossfader_curve</span>: <span class="ident">CrossfaderCurve</span>,
+    <span class="doccomment">/// &quot;HEADPHONES PRE EQ&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">headphones_pre_eq</span>: <span class="ident">HeadphonesPreEQ</span>,
+    <span class="doccomment">/// &quot;HEADPHONES MONO SPLIT&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">headphones_mono_split</span>: <span class="ident">HeadphonesMonoSplit</span>,
+    <span class="doccomment">/// &quot;BEAT FX QUANTIZE&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">beat_fx_quantize</span>: <span class="ident">BeatFXQuantize</span>,
+    <span class="doccomment">/// &quot;MIC LOW CUT&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">mic_low_cut</span>: <span class="ident">MicLowCut</span>,
+    <span class="doccomment">/// &quot;TALK OVER MODE&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">talk_over_mode</span>: <span class="ident">TalkOverMode</span>,
+    <span class="doccomment">/// &quot;TALK OVER LEVEL&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">talk_over_level</span>: <span class="ident">TalkOverLevel</span>,
+    <span class="doccomment">/// &quot;MIDI CH&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">midi_channel</span>: <span class="ident">MidiChannel</span>,
+    <span class="doccomment">/// &quot;MIDI BUTTON TYPE&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">midi_button_type</span>: <span class="ident">MidiButtonType</span>,
+    <span class="doccomment">/// &quot;BRIGHTNESS &gt; DISPLAY&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">display_brightness</span>: <span class="ident">MixerDisplayBrightness</span>,
+    <span class="doccomment">/// &quot;BRIGHTNESS &gt; INDICATOR&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">indicator_brightness</span>: <span class="ident">MixerIndicatorBrightness</span>,
+    <span class="doccomment">/// &quot;CH FADER CURVE (LONG FADER)&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">channel_fader_curve_long_fader</span>: <span class="ident">ChannelFaderCurveLongFader</span>,
+    <span class="doccomment">/// Unknown field (apparently always 0).</span>
+    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">assert</span>(<span class="ident">unknown2</span> <span class="op">==</span> [<span class="number">0</span>; <span class="number">27</span>]</span>))]
+    <span class="ident">unknown2</span>: [<span class="ident">u8</span>; <span class="number">27</span>],
+}
+
+<span class="doccomment">/// Payload of a `MYSETTING.DAT` file (40 bytes).</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">brw</span>(<span class="ident">little</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">MySetting</span> {
+    <span class="doccomment">/// Unknown field.</span>
+    <span class="ident">unknown1</span>: [<span class="ident">u8</span>; <span class="number">8</span>],
+    <span class="doccomment">/// &quot;ON AIR DISPLAY&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">on_air_display</span>: <span class="ident">OnAirDisplay</span>,
+    <span class="doccomment">/// &quot;LCD BRIGHTNESS&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">lcd_brightness</span>: <span class="ident">LCDBrightness</span>,
+    <span class="doccomment">/// &quot;QUANTIZE&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">quantize</span>: <span class="ident">Quantize</span>,
+    <span class="doccomment">/// &quot;AUTO CUE LEVEL&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">auto_cue_level</span>: <span class="ident">AutoCueLevel</span>,
+    <span class="doccomment">/// &quot;LANGUAGE&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">language</span>: <span class="ident">Language</span>,
+    <span class="doccomment">/// Unknown field.</span>
+    <span class="ident">unknown2</span>: <span class="ident">u8</span>,
+    <span class="doccomment">/// &quot;JOG RING BRIGHTNESS&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">jog_ring_brightness</span>: <span class="ident">JogRingBrightness</span>,
+    <span class="doccomment">/// &quot;JOG RING INDICATOR&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">jog_ring_indicator</span>: <span class="ident">JogRingIndicator</span>,
+    <span class="doccomment">/// &quot;SLIP FLASHING&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">slip_flashing</span>: <span class="ident">SlipFlashing</span>,
+    <span class="doccomment">/// Unknown field.</span>
+    <span class="ident">unknown3</span>: [<span class="ident">u8</span>; <span class="number">3</span>],
+    <span class="doccomment">/// &quot;DISC SLOT ILLUMINATION&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">disc_slot_illumination</span>: <span class="ident">DiscSlotIllumination</span>,
+    <span class="doccomment">/// &quot;EJECT/LOAD LOCK&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">eject_lock</span>: <span class="ident">EjectLock</span>,
+    <span class="doccomment">/// &quot;SYNC&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">sync</span>: <span class="ident">Sync</span>,
+    <span class="doccomment">/// &quot;PLAY MODE / AUTO PLAY MODE&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">play_mode</span>: <span class="ident">PlayMode</span>,
+    <span class="doccomment">/// Quantize Beat Value setting.</span>
+    <span class="kw">pub</span> <span class="ident">quantize_beat_value</span>: <span class="ident">QuantizeBeatValue</span>,
+    <span class="doccomment">/// &quot;HOT CUE AUTO LOAD&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">hotcue_autoload</span>: <span class="ident">HotCueAutoLoad</span>,
+    <span class="doccomment">/// &quot;HOT CUE COLOR&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">hotcue_color</span>: <span class="ident">HotCueColor</span>,
+    <span class="doccomment">/// Unknown field (apparently always 0).</span>
+    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">assert</span>(<span class="ident">unknown4</span> <span class="op">==</span> <span class="number">0</span>))]</span>
+    <span class="ident">unknown4</span>: <span class="ident">u16</span>,
+    <span class="doccomment">/// &quot;NEEDLE LOCK&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">needle_lock</span>: <span class="ident">NeedleLock</span>,
+    <span class="doccomment">/// Unknown field (apparently always 0).</span>
+    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">assert</span>(<span class="ident">unknown5</span> <span class="op">==</span> <span class="number">0</span>))]</span>
+    <span class="ident">unknown5</span>: <span class="ident">u16</span>,
+    <span class="doccomment">/// &quot;TIME MODE&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">time_mode</span>: <span class="ident">TimeMode</span>,
+    <span class="doccomment">/// &quot;TIME MODE&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">jog_mode</span>: <span class="ident">JogMode</span>,
+    <span class="doccomment">/// &quot;AUTO CUE&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">auto_cue</span>: <span class="ident">AutoCue</span>,
+    <span class="doccomment">/// &quot;MASTER TEMPO&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">master_tempo</span>: <span class="ident">MasterTempo</span>,
+    <span class="doccomment">/// &quot;TEMPO RANGE&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">tempo_range</span>: <span class="ident">TempoRange</span>,
+    <span class="doccomment">/// &quot;PHASE METER&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">phase_meter</span>: <span class="ident">PhaseMeter</span>,
+    <span class="doccomment">/// Unknown field (apparently always 0).</span>
+    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">assert</span>(<span class="ident">unknown6</span> <span class="op">==</span> <span class="number">0</span>))]</span>
+    <span class="ident">unknown6</span>: <span class="ident">u16</span>,
+}
+
+<span class="doccomment">/// Payload of a `MYSETTING2.DAT` file (40 bytes).</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">brw</span>(<span class="ident">little</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">MySetting2</span> {
+    <span class="doccomment">/// &quot;VINYL SPEED ADJUST&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">vinyl_speed_adjust</span>: <span class="ident">VinylSpeedAdjust</span>,
+    <span class="doccomment">/// &quot;JOG DISPLAY MODE&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">jog_display_mode</span>: <span class="ident">JogDisplayMode</span>,
+    <span class="doccomment">/// &quot;PAD/BUTTON BRIGHTNESS&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">pad_button_brightness</span>: <span class="ident">PadButtonBrightness</span>,
+    <span class="doccomment">/// &quot;JOG LCD BRIGHTNESS&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">jog_lcd_brightness</span>: <span class="ident">JogLCDBrightness</span>,
+    <span class="doccomment">/// &quot;WAVEFORM DIVISIONS&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">waveform_divisions</span>: <span class="ident">WaveformDivisions</span>,
+    <span class="doccomment">/// Unknown field (apparently always 0).</span>
+    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">assert</span>(<span class="ident">unknown1</span> <span class="op">==</span> [<span class="number">0</span>; <span class="number">5</span>]</span>))]
+    <span class="ident">unknown1</span>: [<span class="ident">u8</span>; <span class="number">5</span>],
+    <span class="doccomment">/// &quot;WAVEFORM / PHASE METER&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">waveform</span>: <span class="ident">Waveform</span>,
+    <span class="doccomment">/// Unknown field.</span>
+    <span class="ident">unknown2</span>: <span class="ident">u8</span>,
+    <span class="doccomment">/// &quot;BEAT JUMP BEAT VALUE&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">beat_jump_beat_value</span>: <span class="ident">BeatJumpBeatValue</span>,
+    <span class="doccomment">/// Unknown field (apparently always 0).</span>
+    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">assert</span>(<span class="ident">unknown3</span> <span class="op">==</span> [<span class="number">0</span>; <span class="number">27</span>]</span>))]
+    <span class="ident">unknown3</span>: [<span class="ident">u8</span>; <span class="number">27</span>],
 }
 
 <span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; PLAY MODE / AUTO PLAY MODE&quot; of the &quot;My Settings&quot; page in the</span>
