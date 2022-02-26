@@ -816,6 +816,12 @@ pub struct SongStructure {
     #[br(assert((len_entry_bytes * (len_entries as u32)) == header.content_size()))]
     #[bw(calc = phrases.len() as u16)]
     len_entries: u16,
+    /// Indicates if the remaining parts of the song structure section are encryped.
+    ///
+    /// This is a virtual field and not actually present in the file.
+    #[br(restore_position, map = |raw_mood: u16| (raw_mood ^ ((0xCB + len_entries) << 8 | (0xE1 + len_entries))) <= 3)]
+    #[bw(ignore)]
+    is_encrypted: bool,
     /// Overall type of phrase structure.
     pub mood: Mood,
     /// Unknown field.
