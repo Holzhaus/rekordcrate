@@ -26,11 +26,11 @@
 
 #![allow(clippy::must_use_candidate)]
 
-use crate::util::ColorIndex;
+use crate::{util::ColorIndex, xor::XorStream};
 use binrw::{
     binrw,
-    io::{Read, Seek},
-    BinRead, BinResult, BinWrite, NullWideString, ReadOptions,
+    io::{Read, Seek, Write},
+    BinRead, BinResult, BinWrite, NullWideString, ReadOptions, WriteOptions,
 };
 use modular_bitfield::prelude::*;
 
@@ -823,7 +823,8 @@ pub struct SongStructure {
     #[bw(ignore)]
     is_encrypted: bool,
     /// Song structure data.
-    #[br(args(len_entries))]
+    #[br(args(is_encrypted, len_entries), parse_with = SongStructureData::read_encrypted)]
+    #[bw(args(*is_encrypted, len_entries), write_with = SongStructureData::write_encrypted)]
     data: SongStructureData,
 }
 
@@ -852,6 +853,54 @@ pub struct SongStructureData {
     /// Phrase entry data.
     #[br(count = len_entries)]
     pub phrases: Vec<Phrase>,
+}
+
+impl SongStructureData {
+    const KEY_DATA: [u8; 19] = [
+        0xCB, 0xE1, 0xEE, 0xFA, 0xE5, 0xEE, 0xAD, 0xEE, 0xE9, 0xD2, 0xE9, 0xEB, 0xE1, 0xE9, 0xF3,
+        0xE8, 0xE9, 0xF4, 0xE1,
+    ];
+
+    /// Returns an iterator over the key bytes (RB6+).
+    fn get_key(len_entries: u16) -> impl Iterator<Item = u8> {
+        Self::KEY_DATA.into_iter().map(move |x: u8| -> u8 {
+            let value = u16::from(x) + len_entries;
+            (value % 256) as u8
+        })
+    }
+
+    /// Read a [`SongStructureData`] section that may be encrypted, depending on the `is_encrypted`
+    /// value.
+    fn read_encrypted<R: Read + Seek>(
+        reader: &mut R,
+        options: &ReadOptions,
+        (is_encrypted, len_entries): (bool, u16),
+    ) -> BinResult<Self> {
+        if is_encrypted {
+            let key: Vec<u8> = Self::get_key(len_entries).collect();
+            let mut xor_reader = XorStream::with_key(reader, key);
+            Self::read_options(&mut xor_reader, options, (len_entries,))
+        } else {
+            Self::read_options(reader, options, (len_entries,))
+        }
+    }
+
+    /// Write a [`SongStructureData`] section that may be encrypted, depending on the
+    /// `is_encrypted` value.
+    fn write_encrypted<W: Write + Seek>(
+        &self,
+        writer: &mut W,
+        options: &WriteOptions,
+        (is_encrypted, len_entries): (bool, u16),
+    ) -> BinResult<()> {
+        if is_encrypted {
+            let key: Vec<u8> = Self::get_key(len_entries).collect();
+            let mut xor_writer = XorStream::with_key(writer, key);
+            self.write_options(&mut xor_writer, options, ())
+        } else {
+            self.write_options(writer, options, ())
+        }
+    }
 }
 
 /// Unknown content.
