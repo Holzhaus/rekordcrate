@@ -780,7 +780,7 @@ pub struct WaveformColorDetail {
     pub data: Vec<WaveformColorDetailColumn>,
 }
 
-/// Describes the structure of a sond (Intro, Chrous, Verse, etc.).
+/// Describes the structure of a song (Intro, Chrous, Verse, etc.).
 ///
 /// Used in `.EXT` files.
 #[binrw]
