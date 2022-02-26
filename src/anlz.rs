@@ -814,7 +814,7 @@ pub struct SongStructure {
     /// Number of entries in this section.
     #[br(temp)]
     #[br(assert((len_entry_bytes * (len_entries as u32)) == header.content_size()))]
-    #[bw(calc = phrases.len() as u16)]
+    #[bw(calc = data.phrases.len() as u16)]
     len_entries: u16,
     /// Indicates if the remaining parts of the song structure section are encryped.
     ///
@@ -822,6 +822,19 @@ pub struct SongStructure {
     #[br(restore_position, map = |raw_mood: u16| (raw_mood ^ ((0xCB + len_entries) << 8 | (0xE1 + len_entries))) <= 3)]
     #[bw(ignore)]
     is_encrypted: bool,
+    /// Song structure data.
+    #[br(args(len_entries))]
+    data: SongStructureData,
+}
+
+/// The data part of the [`SongStructure`] section that may be encrypted (RB6+).
+///
+/// See the documentation for details:
+/// - <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#song-structure-tag>
+#[binrw]
+#[derive(Debug, PartialEq)]
+#[br(import(len_entries: u16))]
+pub struct SongStructureData {
     /// Overall type of phrase structure.
     pub mood: Mood,
     /// Unknown field.
