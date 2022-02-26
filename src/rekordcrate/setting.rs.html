@@ -863,6 +863,21 @@
 <span id="862">862</span>
 <span id="863">863</span>
 <span id="864">864</span>
+<span id="865">865</span>
+<span id="866">866</span>
+<span id="867">867</span>
+<span id="868">868</span>
+<span id="869">869</span>
+<span id="870">870</span>
+<span id="871">871</span>
+<span id="872">872</span>
+<span id="873">873</span>
+<span id="874">874</span>
+<span id="875">875</span>
+<span id="876">876</span>
+<span id="877">877</span>
+<span id="878">878</span>
+<span id="879">879</span>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) 2022 Jan Holthuis</span>
 <span class="comment">//</span>
 <span class="comment">// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy</span>
@@ -890,7 +905,8 @@
 <span class="doccomment">/// Represents a setting file.</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Setting</span> {
     <span class="doccomment">/// Size of the string data field (should be always 96).</span>
-    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">assert</span>(<span class="ident">len_stringdata</span> <span class="op">==</span> <span class="number">0x60</span>))]</span>
+    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">temp</span>, <span class="ident">assert</span>(<span class="ident">len_stringdata</span> <span class="op">==</span> <span class="number">0x60</span>))]</span>
+    <span class="attribute">#[<span class="ident">bw</span>(<span class="ident">calc</span> <span class="op">=</span> <span class="number">0x60</span>)]</span>
     <span class="ident">len_stringdata</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// Name of the brand.</span>
     <span class="doccomment">///</span>
@@ -902,15 +918,17 @@
     <span class="doccomment">/// | `DJMMYSETTING.DAT` | `PioneerDJ`  |</span>
     <span class="doccomment">/// | `MYSETTING.DAT`    | `PIONEER`    |</span>
     <span class="doccomment">/// | `MYSETTING2.DAT`   | `PIONEER`    |</span>
-    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">pad_size_to</span> <span class="op">=</span> <span class="number">0x20</span>)]</span>
+    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">pad_size_to</span> <span class="op">=</span> <span class="number">0x20</span>, <span class="ident">assert</span>(<span class="ident">brand</span>.<span class="ident">len</span>() <span class="op">&lt;</span><span class="op">=</span> (<span class="number">0x20</span> <span class="op">-</span> <span class="number">1</span>)))]</span>
     <span class="kw">pub</span> <span class="ident">brand</span>: <span class="ident">NullString</span>,
     <span class="doccomment">/// Name of the software (&quot;rekordbox&quot;).</span>
-    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">pad_size_to</span> <span class="op">=</span> <span class="number">0x20</span>)]</span>
+    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">pad_size_to</span> <span class="op">=</span> <span class="number">0x20</span>, <span class="ident">assert</span>(<span class="ident">software</span>.<span class="ident">len</span>() <span class="op">&lt;</span><span class="op">=</span> (<span class="number">0x20</span> <span class="op">-</span> <span class="number">1</span>)))]</span>
     <span class="kw">pub</span> <span class="ident">software</span>: <span class="ident">NullString</span>,
     <span class="doccomment">/// Some kind of version number.</span>
-    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">pad_size_to</span> <span class="op">=</span> <span class="number">0x20</span>)]</span>
+    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">pad_size_to</span> <span class="op">=</span> <span class="number">0x20</span>, <span class="ident">assert</span>(<span class="ident">version</span>.<span class="ident">len</span>() <span class="op">&lt;</span><span class="op">=</span> (<span class="number">0x20</span> <span class="op">-</span> <span class="number">1</span>)))]</span>
     <span class="kw">pub</span> <span class="ident">version</span>: <span class="ident">NullString</span>,
     <span class="doccomment">/// Size of the `data` data in bytes.</span>
+    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">temp</span>)]</span>
+    <span class="attribute">#[<span class="ident">bw</span>(<span class="ident">calc</span> <span class="op">=</span> <span class="ident">data</span>.<span class="ident">size</span>())]</span>
     <span class="ident">len_data</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// The actual settings data.</span>
     <span class="attribute">#[<span class="ident">br</span>(<span class="ident">args</span>(<span class="ident">len_data</span>))]</span>
@@ -921,6 +939,7 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// See &lt;https://reveng.sourceforge.io/crc-catalogue/all.htm#crc.cat.crc-16-xmodem&gt; for</span>
     <span class="doccomment">/// details.</span>
+    <span class="comment">// TODO: Make this field temporary and calculate it automatically during serialization.</span>
     <span class="ident">checksum</span>: <span class="ident">u16</span>,
     <span class="doccomment">/// Unknown field (apparently always `0000`).</span>
     <span class="attribute">#[<span class="ident">br</span>(<span class="ident">assert</span>(<span class="ident">unknown</span> <span class="op">==</span> <span class="number">0</span>))]</span>
@@ -935,7 +954,7 @@
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">SettingData</span> {
     <span class="doccomment">/// Payload of a `DEVSETTING.DAT` file (32 bytes).</span>
     <span class="attribute">#[<span class="ident">br</span>(<span class="ident">pre_assert</span>(<span class="ident">len</span> <span class="op">==</span> <span class="number">32</span>))]</span>
-    <span class="ident">DevSetting</span>(<span class="attribute">#[<span class="ident">br</span>(<span class="ident">count</span> <span class="op">=</span> <span class="ident">len</span>)]</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>),
+    <span class="ident">DevSetting</span>([<span class="ident">u8</span>; <span class="number">32</span>]),
     <span class="doccomment">/// Payload of a `DJMMYSETTING.DAT` file (52 bytes).</span>
     <span class="attribute">#[<span class="ident">br</span>(<span class="ident">pre_assert</span>(<span class="ident">len</span> <span class="op">==</span> <span class="number">52</span>))]</span>
     <span class="ident">DJMMySetting</span>(<span class="ident">DJMMySetting</span>),
@@ -945,6 +964,17 @@
     <span class="doccomment">/// Payload of a `MYSETTING2.DAT` file (40 bytes).</span>
     <span class="attribute">#[<span class="ident">br</span>(<span class="ident">pre_assert</span>(<span class="ident">len</span> <span class="op">==</span> <span class="number">40</span>))]</span>
     <span class="ident">MySetting2</span>(<span class="ident">MySetting2</span>),
+}
+
+<span class="kw">impl</span> <span class="ident">SettingData</span> {
+    <span class="kw">fn</span> <span class="ident">size</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">u32</span> {
+        <span class="kw">match</span> <span class="kw-2">&amp;</span><span class="self">self</span> {
+            <span class="ident"><span class="self">Self</span>::DevSetting</span>(<span class="kw">_</span>) =&gt; <span class="number">32</span>,
+            <span class="ident"><span class="self">Self</span>::DJMMySetting</span>(<span class="kw">_</span>) =&gt; <span class="number">52</span>,
+            <span class="ident"><span class="self">Self</span>::MySetting</span>(<span class="kw">_</span>) =&gt; <span class="number">40</span>,
+            <span class="ident"><span class="self">Self</span>::MySetting2</span>(<span class="kw">_</span>) =&gt; <span class="number">40</span>,
+        }
+    }
 }
 
 <span class="doccomment">/// Payload of a `DJMMYSETTING.DAT` file (52 bytes).</span>
