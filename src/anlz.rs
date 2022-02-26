@@ -426,64 +426,45 @@ pub struct WaveformColorDetailColumn {
 /// sound density.
 #[binrw]
 #[derive(Debug, PartialEq)]
-#[brw(big)]
+#[brw(big, repr = u16)]
 pub enum Mood {
     /// Phrase types consist of "Intro", "Up", "Down", "Chorus", and "Outro". Other values in each
     /// phrase entry cause the intro, chorus, and outro phrases to have their labels subdivided
     /// into styes "1" or "2" (for example, "Intro 1"), and "up" is subdivided into style "Up 1",
     /// "Up 2", or "Up 3".
-    #[brw(magic = 1u16)]
-    High,
+    High = 1,
     /// Phrase types are labeled "Intro", "Verse 1" through "Verse 6", "Chorus", "Bridge", and
     /// "Outro".
-    #[brw(magic = 2u16)]
     Mid,
     /// Phrase types are labeled "Intro", "Verse 1", "Verse 2", "Chorus", "Bridge", and "Outro".
     /// There are three different phrase type values for each of "Verse 1" and "Verse 2", but
     /// rekordbox makes no distinction between them.
-    #[brw(magic = 3u16)]
     Low,
-    /// Unknown value.
-    ///
-    /// TODO: Remove this once https://github.com/Holzhaus/rekordcrate/issues/13 has been fixed.
-    Unknown(u16),
 }
 
 /// Stylistic track bank for Lightning mode.
 #[binrw]
 #[derive(Debug, PartialEq)]
+#[brw(repr = u8)]
 pub enum Bank {
     /// Default bank variant, treated as `Cool`.
-    #[brw(magic = 0u8)]
-    Default,
+    Default = 0,
     /// "Cool" bank variant.
-    #[brw(magic = 1u8)]
     Cool,
     /// "Natural" bank variant.
-    #[brw(magic = 2u8)]
     Natural,
     /// "Hot" bank variant.
-    #[brw(magic = 3u8)]
     Hot,
     /// "Subtle" bank variant.
-    #[brw(magic = 4u8)]
     Subtle,
     /// "Warm" bank variant.
-    #[brw(magic = 5u8)]
     Warm,
     /// "Vivid" bank variant.
-    #[brw(magic = 6u8)]
     Vivid,
     /// "Club 1" bank variant.
-    #[brw(magic = 7u8)]
     Club1,
     /// "Club 2" bank variant.
-    #[brw(magic = 8u8)]
     Club2,
-    /// Unknown value.
-    ///
-    /// TODO: Remove this once https://github.com/Holzhaus/rekordcrate/issues/13 has been fixed.
-    Unknown(u8),
 }
 
 /// A song structure entry that represents a phrase in the track.
