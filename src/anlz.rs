@@ -814,7 +814,7 @@ pub struct SongStructure {
     /// Number of entries in this section.
     #[br(temp)]
     #[br(assert((len_entry_bytes * (len_entries as u32)) == header.content_size()))]
-    #[bw(calc = data.len() as u16)]
+    #[bw(calc = phrases.len() as u16)]
     len_entries: u16,
     /// Overall type of phrase structure.
     pub mood: Mood,
@@ -832,7 +832,7 @@ pub struct SongStructure {
     unknown4: u8,
     /// Phrase entry data.
     #[br(count = len_entries)]
-    pub data: Vec<Phrase>,
+    pub phrases: Vec<Phrase>,
 }
 
 /// Unknown content.
