@@ -819,7 +819,7 @@ pub struct SongStructure {
     /// Indicates if the remaining parts of the song structure section are encryped.
     ///
     /// This is a virtual field and not actually present in the file.
-    #[br(restore_position, map = |raw_mood: u16| (raw_mood ^ ((0xCB + len_entries) << 8 | (0xE1 + len_entries))) <= 3)]
+    #[br(restore_position, map = |raw_mood: [u8; 2]| SongStructureData::check_if_encrypted(raw_mood, len_entries))]
     #[bw(ignore)]
     is_encrypted: bool,
     /// Song structure data.
@@ -867,6 +867,19 @@ impl SongStructureData {
             let value = u16::from(x) + len_entries;
             (value % 256) as u8
         })
+    }
+
+    /// Returns `true` if the [`SongStructureData`] is encrypted.
+    ///
+    /// The method tries to decrypt the `raw_mood` field and checking if the result is valid.
+    fn check_if_encrypted(raw_mood: [u8; 2], len_entries: u16) -> bool {
+        let buffer: Vec<u8> = raw_mood
+            .iter()
+            .zip(Self::get_key(len_entries).take(2))
+            .map(|(byte, key)| byte ^ key)
+            .collect();
+        let mut reader = binrw::io::Cursor::new(buffer);
+        Mood::read(&mut reader).is_ok()
     }
 
     /// Read a [`SongStructureData`] section that may be encrypted, depending on the `is_encrypted`
