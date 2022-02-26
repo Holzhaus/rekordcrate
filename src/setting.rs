@@ -25,7 +25,8 @@ use binrw::{binrw, NullString};
 /// Represents a setting file.
 pub struct Setting {
     /// Size of the string data field (should be always 96).
-    #[br(assert(len_stringdata == 0x60))]
+    #[br(temp, assert(len_stringdata == 0x60))]
+    #[bw(calc = 0x60)]
     len_stringdata: u32,
     /// Name of the brand.
     ///
@@ -37,15 +38,17 @@ pub struct Setting {
     /// | `DJMMYSETTING.DAT` | `PioneerDJ`  |
     /// | `MYSETTING.DAT`    | `PIONEER`    |
     /// | `MYSETTING2.DAT`   | `PIONEER`    |
-    #[brw(pad_size_to = 0x20)]
+    #[brw(pad_size_to = 0x20, assert(brand.len() <= (0x20 - 1)))]
     pub brand: NullString,
     /// Name of the software ("rekordbox").
-    #[brw(pad_size_to = 0x20)]
+    #[brw(pad_size_to = 0x20, assert(software.len() <= (0x20 - 1)))]
     pub software: NullString,
     /// Some kind of version number.
-    #[brw(pad_size_to = 0x20)]
+    #[brw(pad_size_to = 0x20, assert(version.len() <= (0x20 - 1)))]
     pub version: NullString,
     /// Size of the `data` data in bytes.
+    #[br(temp)]
+    #[bw(calc = data.size())]
     len_data: u32,
     /// The actual settings data.
     #[br(args(len_data))]
@@ -56,6 +59,7 @@ pub struct Setting {
     ///
     /// See <https://reveng.sourceforge.io/crc-catalogue/all.htm#crc.cat.crc-16-xmodem> for
     /// details.
+    // TODO: Make this field temporary and calculate it automatically during serialization.
     checksum: u16,
     /// Unknown field (apparently always `0000`).
     #[br(assert(unknown == 0))]
@@ -70,7 +74,7 @@ pub struct Setting {
 pub enum SettingData {
     /// Payload of a `DEVSETTING.DAT` file (32 bytes).
     #[br(pre_assert(len == 32))]
-    DevSetting(#[br(count = len)] Vec<u8>),
+    DevSetting([u8; 32]),
     /// Payload of a `DJMMYSETTING.DAT` file (52 bytes).
     #[br(pre_assert(len == 52))]
     DJMMySetting(DJMMySetting),
@@ -80,6 +84,17 @@ pub enum SettingData {
     /// Payload of a `MYSETTING2.DAT` file (40 bytes).
     #[br(pre_assert(len == 40))]
     MySetting2(MySetting2),
+}
+
+impl SettingData {
+    fn size(&self) -> u32 {
+        match &self {
+            Self::DevSetting(_) => 32,
+            Self::DJMMySetting(_) => 52,
+            Self::MySetting(_) => 40,
+            Self::MySetting2(_) => 40,
+        }
+    }
 }
 
 /// Payload of a `DJMMYSETTING.DAT` file (52 bytes).
