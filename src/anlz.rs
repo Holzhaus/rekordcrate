@@ -26,11 +26,11 @@
 
 #![allow(clippy::must_use_candidate)]
 
-use crate::util::ColorIndex;
+use crate::{util::ColorIndex, xor::XorStream};
 use binrw::{
     binrw,
-    io::{Read, Seek},
-    BinRead, BinResult, BinWrite, NullWideString, ReadOptions,
+    io::{Read, Seek, Write},
+    BinRead, BinResult, BinWrite, NullWideString, ReadOptions, WriteOptions,
 };
 use modular_bitfield::prelude::*;
 
@@ -426,64 +426,45 @@ pub struct WaveformColorDetailColumn {
 /// sound density.
 #[binrw]
 #[derive(Debug, PartialEq)]
-#[brw(big)]
+#[brw(big, repr = u16)]
 pub enum Mood {
     /// Phrase types consist of "Intro", "Up", "Down", "Chorus", and "Outro". Other values in each
     /// phrase entry cause the intro, chorus, and outro phrases to have their labels subdivided
     /// into styes "1" or "2" (for example, "Intro 1"), and "up" is subdivided into style "Up 1",
     /// "Up 2", or "Up 3".
-    #[brw(magic = 1u16)]
-    High,
+    High = 1,
     /// Phrase types are labeled "Intro", "Verse 1" through "Verse 6", "Chorus", "Bridge", and
     /// "Outro".
-    #[brw(magic = 2u16)]
     Mid,
     /// Phrase types are labeled "Intro", "Verse 1", "Verse 2", "Chorus", "Bridge", and "Outro".
     /// There are three different phrase type values for each of "Verse 1" and "Verse 2", but
     /// rekordbox makes no distinction between them.
-    #[brw(magic = 3u16)]
     Low,
-    /// Unknown value.
-    ///
-    /// TODO: Remove this once https://github.com/Holzhaus/rekordcrate/issues/13 has been fixed.
-    Unknown(u16),
 }
 
 /// Stylistic track bank for Lightning mode.
 #[binrw]
 #[derive(Debug, PartialEq)]
+#[brw(repr = u8)]
 pub enum Bank {
     /// Default bank variant, treated as `Cool`.
-    #[brw(magic = 0u8)]
-    Default,
+    Default = 0,
     /// "Cool" bank variant.
-    #[brw(magic = 1u8)]
     Cool,
     /// "Natural" bank variant.
-    #[brw(magic = 2u8)]
     Natural,
     /// "Hot" bank variant.
-    #[brw(magic = 3u8)]
     Hot,
     /// "Subtle" bank variant.
-    #[brw(magic = 4u8)]
     Subtle,
     /// "Warm" bank variant.
-    #[brw(magic = 5u8)]
     Warm,
     /// "Vivid" bank variant.
-    #[brw(magic = 6u8)]
     Vivid,
     /// "Club 1" bank variant.
-    #[brw(magic = 7u8)]
     Club1,
     /// "Club 2" bank variant.
-    #[brw(magic = 8u8)]
     Club2,
-    /// Unknown value.
-    ///
-    /// TODO: Remove this once https://github.com/Holzhaus/rekordcrate/issues/13 has been fixed.
-    Unknown(u8),
 }
 
 /// A song structure entry that represents a phrase in the track.
@@ -799,7 +780,7 @@ pub struct WaveformColorDetail {
     pub data: Vec<WaveformColorDetailColumn>,
 }
 
-/// Describes the structure of a sond (Intro, Chrous, Verse, etc.).
+/// Describes the structure of a song (Intro, Chrous, Verse, etc.).
 ///
 /// Used in `.EXT` files.
 #[binrw]
@@ -814,14 +795,28 @@ pub struct SongStructure {
     /// Number of entries in this section.
     #[br(temp)]
     #[br(assert((len_entry_bytes * (len_entries as u32)) == header.content_size()))]
-    #[bw(calc = phrases.len() as u16)]
+    #[bw(calc = data.phrases.len() as u16)]
     len_entries: u16,
     /// Indicates if the remaining parts of the song structure section are encryped.
     ///
     /// This is a virtual field and not actually present in the file.
-    #[br(restore_position, map = |raw_mood: u16| (raw_mood ^ ((0xCB + len_entries) << 8 | (0xE1 + len_entries))) <= 3)]
+    #[br(restore_position, map = |raw_mood: [u8; 2]| SongStructureData::check_if_encrypted(raw_mood, len_entries))]
     #[bw(ignore)]
     is_encrypted: bool,
+    /// Song structure data.
+    #[br(args(is_encrypted, len_entries), parse_with = SongStructureData::read_encrypted)]
+    #[bw(args(*is_encrypted, len_entries), write_with = SongStructureData::write_encrypted)]
+    data: SongStructureData,
+}
+
+/// The data part of the [`SongStructure`] section that may be encrypted (RB6+).
+///
+/// See the documentation for details:
+/// - <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#song-structure-tag>
+#[binrw]
+#[derive(Debug, PartialEq)]
+#[br(import(len_entries: u16))]
+pub struct SongStructureData {
     /// Overall type of phrase structure.
     pub mood: Mood,
     /// Unknown field.
@@ -839,6 +834,67 @@ pub struct SongStructure {
     /// Phrase entry data.
     #[br(count = len_entries)]
     pub phrases: Vec<Phrase>,
+}
+
+impl SongStructureData {
+    const KEY_DATA: [u8; 19] = [
+        0xCB, 0xE1, 0xEE, 0xFA, 0xE5, 0xEE, 0xAD, 0xEE, 0xE9, 0xD2, 0xE9, 0xEB, 0xE1, 0xE9, 0xF3,
+        0xE8, 0xE9, 0xF4, 0xE1,
+    ];
+
+    /// Returns an iterator over the key bytes (RB6+).
+    fn get_key(len_entries: u16) -> impl Iterator<Item = u8> {
+        Self::KEY_DATA.into_iter().map(move |x: u8| -> u8 {
+            let value = u16::from(x) + len_entries;
+            (value % 256) as u8
+        })
+    }
+
+    /// Returns `true` if the [`SongStructureData`] is encrypted.
+    ///
+    /// The method tries to decrypt the `raw_mood` field and checking if the result is valid.
+    fn check_if_encrypted(raw_mood: [u8; 2], len_entries: u16) -> bool {
+        let buffer: Vec<u8> = raw_mood
+            .iter()
+            .zip(Self::get_key(len_entries).take(2))
+            .map(|(byte, key)| byte ^ key)
+            .collect();
+        let mut reader = binrw::io::Cursor::new(buffer);
+        Mood::read(&mut reader).is_ok()
+    }
+
+    /// Read a [`SongStructureData`] section that may be encrypted, depending on the `is_encrypted`
+    /// value.
+    fn read_encrypted<R: Read + Seek>(
+        reader: &mut R,
+        options: &ReadOptions,
+        (is_encrypted, len_entries): (bool, u16),
+    ) -> BinResult<Self> {
+        if is_encrypted {
+            let key: Vec<u8> = Self::get_key(len_entries).collect();
+            let mut xor_reader = XorStream::with_key(reader, key);
+            Self::read_options(&mut xor_reader, options, (len_entries,))
+        } else {
+            Self::read_options(reader, options, (len_entries,))
+        }
+    }
+
+    /// Write a [`SongStructureData`] section that may be encrypted, depending on the
+    /// `is_encrypted` value.
+    fn write_encrypted<W: Write + Seek>(
+        &self,
+        writer: &mut W,
+        options: &WriteOptions,
+        (is_encrypted, len_entries): (bool, u16),
+    ) -> BinResult<()> {
+        if is_encrypted {
+            let key: Vec<u8> = Self::get_key(len_entries).collect();
+            let mut xor_writer = XorStream::with_key(writer, key);
+            self.write_options(&mut xor_writer, options, ())
+        } else {
+            self.write_options(writer, options, ())
+        }
+    }
 }
 
 /// Unknown content.
