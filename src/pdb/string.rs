@@ -263,6 +263,24 @@ mod test {
     }
 
     #[test]
+    fn too_long_string() {
+        // construct super long string containing just "AAAAAAA"...
+        const TOO_LARGE_STR_SIZE: usize = (u16::MAX as usize) + 1;
+        const INIT_CHAR: char = 'A';
+        const _: () = assert!(INIT_CHAR.is_ascii());
+        const HUMONGOUS_ARRAY: [u8; TOO_LARGE_STR_SIZE] = [INIT_CHAR as u8; TOO_LARGE_STR_SIZE];
+
+        // Since we already know that the string only contains ascii at compile time,
+        // we could probably skip the validation, but that requires unsafe code which I'd consider overkill.
+        let humongous_string = String::from_utf8(HUMONGOUS_ARRAY.to_vec()).unwrap();
+
+        assert_eq!(
+            DeviceSQLString::new(humongous_string).unwrap_err(),
+            StringError::TooLong
+        );
+    }
+
+    #[test]
     fn isrc_edge_case() -> Result<(), StringError> {
         let serialized = [
             0x90, 0x12, 0x00, 0x00, 0x03, 0x47, 0x42, 0x41, 0x59, 0x45, 0x36, 0x37, 0x30, 0x30,
@@ -273,6 +291,12 @@ mod test {
             DeviceSQLString::new_isrc("GBAYE6700149".to_string())?,
         );
         test_roundtrip(&[0x3], DeviceSQLString::new_isrc("".to_string())?);
+
+        assert_eq!(
+            DeviceSQLString::new_isrc("non-conforming garbage".to_string()).unwrap_err(),
+            StringError::InvalidISRC
+        );
+
         Ok(())
     }
 }
