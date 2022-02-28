@@ -15,6 +15,19 @@ use binrw::{binrw, NullString};
 
 const MAX_SHORTSTR_SIZE: usize = ((u8::MAX >> 1) - 1) as usize;
 
+/// Error Objects occurring when dealing with [DeviceSQLString]'s
+#[derive(Debug, PartialEq, Copy, Clone)]
+#[non_exhaustive]
+pub enum StringError {
+    /// String being handled was too long for DeviceSQL
+    TooLong,
+    /// Creating of ISRC String was unsuccessful because the string was not
+    /// containing a valid ISRC string specifier
+    InvalidISRC,
+    /// String encoding Error (invalid UTF-8/16)
+    Encoding,
+}
+
 /// Encapsulates the intrinsics of the format used by DeviceSQL strings
 ///
 /// Once A [`DeviceSQLString`] has been constructed, there is no way to change it.
@@ -23,7 +36,7 @@ const MAX_SHORTSTR_SIZE: usize = ((u8::MAX >> 1) - 1) as usize;
 /// # pub fn main() -> binrw::BinResult<()> {
 /// use rekordcrate::pdb::string::DeviceSQLString;
 /// use binrw::{BinWrite, BinRead};
-/// let string = DeviceSQLString::new("foo".to_owned());
+/// let string = DeviceSQLString::new("foo".to_owned()).unwrap();
 /// let binary = vec![0x9, 0x66, 0x6F, 0x6F];
 ///
 /// let mut writer = binrw::io::Cursor::new(vec![]);
@@ -41,28 +54,27 @@ const MAX_SHORTSTR_SIZE: usize = ((u8::MAX >> 1) - 1) as usize;
 pub struct DeviceSQLString(DeviceSQLStringImpl);
 impl DeviceSQLString {
     /// Initializes a [`DeviceSQLString`] from a plain Rust [`std::string::String`]
-    #[must_use]
-    pub fn new(string: String) -> Self {
+    pub fn new(string: String) -> Result<Self, StringError> {
         let len = string.len();
         let only_ascii = string.is_ascii();
         if only_ascii && len <= MAX_SHORTSTR_SIZE {
-            Self(DeviceSQLStringImpl::ShortASCII {
+            Ok(Self(DeviceSQLStringImpl::ShortASCII {
                 content: string.into_bytes(),
-            })
+            }))
         } else if len <= (i16::MAX as usize) {
             if only_ascii {
-                Self(DeviceSQLStringImpl::Long {
+                Ok(Self(DeviceSQLStringImpl::Long {
                     content: LongBody::Ascii(string.into_bytes()),
-                })
+                }))
             } else {
-                Self(DeviceSQLStringImpl::Long {
+                Ok(Self(DeviceSQLStringImpl::Long {
                     // note: The DeviceSQL database may only support UCS-2 so
                     // we might need to do some additional filtering here
                     content: LongBody::Ucs2le(string.encode_utf16().collect()),
-                })
+                }))
             }
         } else {
-            todo!()
+            Err(StringError::TooLong)
         }
     }
 
@@ -72,39 +84,39 @@ impl DeviceSQLString {
     /// where it serializes strings containing a tracks ISRC (International
     /// Standard Recording Code) in an unexpected format, if this is desired,
     /// use this constructor function instead of [`DeviceSQLString::new`].
-    #[must_use]
-    pub fn new_isrc(string: String) -> Self {
+    pub fn new_isrc(string: String) -> Result<Self, StringError> {
         if string.is_empty() {
-            return Self::empty();
+            return Ok(Self::empty());
         }
-        let len = string.len();
         // basic validation taken from
         // https://isrc.ifpi.org/downloads/ISRC_Bulletin-2015-01.pdf
-        debug_assert!(string.is_ascii());
-        debug_assert_eq!(len, 12);
-        Self(DeviceSQLStringImpl::Long {
+        if string.len() != 12 || !string.is_ascii() {
+            return Err(StringError::InvalidISRC);
+        }
+        Ok(Self(DeviceSQLStringImpl::Long {
             content: LongBody::Isrc(NullString::from_string(string)),
-        })
+        }))
     }
 
     /// Extract the Rust string from the DeviceSQLString.
     ///
     /// Consumes itself in the process.
-    #[must_use]
-    pub fn into_string(self) -> String {
+    pub fn into_string(self) -> Result<String, StringError> {
         match self.0 {
             DeviceSQLStringImpl::ShortASCII { content: vec, .. }
             | DeviceSQLStringImpl::Long {
                 content: LongBody::Ascii(vec),
                 ..
-            } => String::from_utf8(vec).expect("invalid string"),
+            } => String::from_utf8(vec).map_err(|_| StringError::Encoding),
             DeviceSQLStringImpl::Long {
                 content: LongBody::Isrc(str),
                 ..
-            } => str.into_string(),
+            } => str
+                .into_string_lossless()
+                .map_err(|_| StringError::Encoding),
             DeviceSQLStringImpl::Long {
                 content: LongBody::Ucs2le(vec),
-            } => String::from_utf16(&vec).expect("invalid UTF16 string"),
+            } => String::from_utf16(&vec).map_err(|_| StringError::Encoding),
         }
     }
 
@@ -146,7 +158,7 @@ enum DeviceSQLStringImpl {
         flags: u8,
 
         #[br(temp)]
-        #[bw(calc = content.byte_count() + 4)]
+        #[bw(calc = content.byte_count().unwrap() + 4)]
         length: u16,
 
         #[brw(magic(0u8))] // padding
@@ -174,7 +186,7 @@ enum LongBody {
 }
 
 impl LongBody {
-    pub fn byte_count(&self) -> u16 {
+    pub fn byte_count(&self) -> Result<u16, StringError> {
         match self {
             // ISRC offset is compensating for trailing nullbyte + 0x3 magic byte.
             Self::Isrc(null_str) => null_str.len() + 2,
@@ -182,7 +194,7 @@ impl LongBody {
             Self::Ucs2le(buf) => (buf.len() * 2),
         }
         .try_into()
-        .unwrap()
+        .map_err(|_| StringError::TooLong)
     }
     pub fn flags(&self) -> u8 {
         match self {
@@ -204,20 +216,22 @@ mod test {
     use crate::util::testing::test_roundtrip;
 
     #[test]
-    fn default_string() {
+    fn default_string() -> Result<(), StringError> {
         test_roundtrip(&[0x3], DeviceSQLString::default());
+        Ok(())
     }
 
     #[test]
-    fn short_ascii_string() {
+    fn short_ascii_string() -> Result<(), StringError> {
         test_roundtrip(
             &[0x9, 0x66, 0x6F, 0x6F],
-            DeviceSQLString::new("foo".to_owned()),
+            DeviceSQLString::new("foo".to_owned())?,
         );
+        Ok(())
     }
 
     #[test]
-    fn long_ascii_string() {
+    fn long_ascii_string() -> Result<(), StringError> {
         let long_string = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliqu";
         let long_string_serialized = [
             0x40, 0x83, 0x00, 0x00, 0x4C, 0x6F, 0x72, 0x65, 0x6D, 0x20, 0x69, 0x70, 0x73, 0x75,
@@ -233,29 +247,32 @@ mod test {
         ];
         test_roundtrip(
             &long_string_serialized,
-            DeviceSQLString::new(long_string.to_owned()),
+            DeviceSQLString::new(long_string.to_owned())?,
         );
+        Ok(())
     }
 
     #[test]
-    fn non_ascii() {
+    fn non_ascii() -> Result<(), StringError> {
         let serialized = [
             0x90, 0x14, 0x00, 0x00, 0x49, 0x00, 0x20, 0x00, 0x64, 0x27, 0x20, 0x00, 0x52, 0x00,
             0x75, 0x00, 0x73, 0x00, 0x74, 0x00,
         ];
-        test_roundtrip(&serialized, DeviceSQLString::new("I ❤ Rust".to_string()))
+        test_roundtrip(&serialized, DeviceSQLString::new("I ❤ Rust".to_string())?);
+        Ok(())
     }
 
     #[test]
-    fn isrc_edge_case() {
+    fn isrc_edge_case() -> Result<(), StringError> {
         let serialized = [
             0x90, 0x12, 0x00, 0x00, 0x03, 0x47, 0x42, 0x41, 0x59, 0x45, 0x36, 0x37, 0x30, 0x30,
             0x31, 0x34, 0x39, 0x00,
         ];
         test_roundtrip(
             &serialized,
-            DeviceSQLString::new_isrc("GBAYE6700149".to_string()),
+            DeviceSQLString::new_isrc("GBAYE6700149".to_string())?,
         );
-        test_roundtrip(&[0x3], DeviceSQLString::new_isrc("".to_string()));
+        test_roundtrip(&[0x3], DeviceSQLString::new_isrc("".to_string())?);
+        Ok(())
     }
 }
