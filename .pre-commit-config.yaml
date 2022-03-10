@@ -50,3 +50,7 @@ repos:
       -D,
       warnings,
     ]
+- repo: https://github.com/Holzhaus/sourceheaders
+  rev: bf6c583d7d76d9c5e0de7e6ab00f7e7452c3f9f6
+  hooks:
+  - id: sourceheaders
