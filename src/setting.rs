@@ -16,6 +16,11 @@
 //! curve, etc.
 //!
 //! The exact format still has to be reverse-engineered.
+//!
+//! # Defaults
+//!
+//! The `SettingData` structs implement the `Default` trait and allows you to create objects that
+//! use the same default values as found in Rekordbox 6.6.1.
 
 use binrw::{binrw, NullString};
 
@@ -135,6 +140,30 @@ pub struct DJMMySetting {
     unknown2: [u8; 27],
 }
 
+impl Default for DJMMySetting {
+    fn default() -> Self {
+        Self {
+            unknown1: [
+                0x78, 0x56, 0x34, 0x12, 0x01, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0x00,
+            ],
+            channel_fader_curve: ChannelFaderCurve::default(),
+            crossfader_curve: CrossfaderCurve::default(),
+            headphones_pre_eq: HeadphonesPreEQ::default(),
+            headphones_mono_split: HeadphonesMonoSplit::default(),
+            beat_fx_quantize: BeatFXQuantize::default(),
+            mic_low_cut: MicLowCut::default(),
+            talk_over_mode: TalkOverMode::default(),
+            talk_over_level: TalkOverLevel::default(),
+            midi_channel: MidiChannel::default(),
+            midi_button_type: MidiButtonType::default(),
+            display_brightness: MixerDisplayBrightness::default(),
+            indicator_brightness: MixerIndicatorBrightness::default(),
+            channel_fader_curve_long_fader: ChannelFaderCurveLongFader::default(),
+            unknown2: [0; 27],
+        }
+    }
+}
+
 /// Payload of a `MYSETTING.DAT` file (40 bytes).
 #[binrw]
 #[derive(Debug, PartialEq)]
@@ -201,6 +230,41 @@ pub struct MySetting {
     unknown6: u16,
 }
 
+impl Default for MySetting {
+    fn default() -> Self {
+        Self {
+            unknown1: [0x78, 0x56, 0x34, 0x12, 0x02, 0x00, 0x00, 0x00],
+            on_air_display: OnAirDisplay::default(),
+            lcd_brightness: LCDBrightness::default(),
+            quantize: Quantize::default(),
+            auto_cue_level: AutoCueLevel::default(),
+            language: Language::default(),
+            unknown2: 0x01,
+            jog_ring_brightness: JogRingBrightness::default(),
+            jog_ring_indicator: JogRingIndicator::default(),
+            slip_flashing: SlipFlashing::default(),
+            unknown3: [0x01, 0x01, 0x01],
+            disc_slot_illumination: DiscSlotIllumination::default(),
+            eject_lock: EjectLock::default(),
+            sync: Sync::default(),
+            play_mode: PlayMode::default(),
+            quantize_beat_value: QuantizeBeatValue::default(),
+            hotcue_autoload: HotCueAutoLoad::default(),
+            hotcue_color: HotCueColor::default(),
+            unknown4: 0x0000,
+            needle_lock: NeedleLock::default(),
+            unknown5: 0x0000,
+            time_mode: TimeMode::default(),
+            jog_mode: JogMode::default(),
+            auto_cue: AutoCue::default(),
+            master_tempo: MasterTempo::default(),
+            tempo_range: TempoRange::default(),
+            phase_meter: PhaseMeter::default(),
+            unknown6: 0x0000,
+        }
+    }
+}
+
 /// Payload of a `MYSETTING2.DAT` file (40 bytes).
 #[binrw]
 #[derive(Debug, PartialEq)]
@@ -230,6 +294,23 @@ pub struct MySetting2 {
     unknown3: [u8; 27],
 }
 
+impl Default for MySetting2 {
+    fn default() -> Self {
+        Self {
+            vinyl_speed_adjust: VinylSpeedAdjust::default(),
+            jog_display_mode: JogDisplayMode::default(),
+            pad_button_brightness: PadButtonBrightness::default(),
+            jog_lcd_brightness: JogLCDBrightness::default(),
+            waveform_divisions: WaveformDivisions::default(),
+            unknown1: [0; 5],
+            waveform: Waveform::default(),
+            unknown2: 0x81,
+            beat_jump_beat_value: BeatJumpBeatValue::default(),
+            unknown3: [0; 27],
+        }
+    }
+}
+
 /// Found at "PLAYER > DJ SETTING > PLAY MODE / AUTO PLAY MODE" of the "My Settings" page in the
 /// Rekordbox preferences.
 #[binrw]
@@ -240,6 +321,12 @@ pub enum PlayMode {
     Continue = 0x80,
     /// Named "SINGLE / OFF" in the Rekordbox preferences.
     Single,
+}
+
+impl Default for PlayMode {
+    fn default() -> Self {
+        Self::Single
+    }
 }
 
 /// Found at "PLAYER > DJ SETTING > EJECT/LOAD LOCK" of the "My Settings" page in the Rekordbox
@@ -254,6 +341,12 @@ pub enum EjectLock {
     Lock,
 }
 
+impl Default for EjectLock {
+    fn default() -> Self {
+        Self::Unlock
+    }
+}
+
 /// Found at "PLAYER > DJ SETTING > NEEDLE LOCK" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -264,6 +357,12 @@ pub enum NeedleLock {
     Unlock = 0x80,
     /// Named "LOCK" in the Rekordbox preferences.
     Lock,
+}
+
+impl Default for NeedleLock {
+    fn default() -> Self {
+        Self::Lock
+    }
 }
 
 /// Found at "PLAYER > DJ SETTING > QUANTIZE BEAT VALUE" of the "My Settings" page in the Rekordbox
@@ -282,6 +381,12 @@ pub enum QuantizeBeatValue {
     FullBeat = 0x80,
 }
 
+impl Default for QuantizeBeatValue {
+    fn default() -> Self {
+        Self::FullBeat
+    }
+}
+
 /// Found at "PLAYER > DJ SETTING > HOT CUE AUTO LOAD" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -296,6 +401,12 @@ pub enum HotCueAutoLoad {
     On = 0x81,
 }
 
+impl Default for HotCueAutoLoad {
+    fn default() -> Self {
+        Self::On
+    }
+}
+
 /// Found at "PLAYER > DJ SETTING > HOT CUE COLOR" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -306,6 +417,12 @@ pub enum HotCueColor {
     Off = 0x80,
     /// Named "On" in the Rekordbox preferences.
     On,
+}
+
+impl Default for HotCueColor {
+    fn default() -> Self {
+        Self::Off
+    }
 }
 
 /// Found at "PLAYER > DJ SETTING > AUTO CUE LEVEL" of the "My Settings" page in the Rekordbox
@@ -334,6 +451,12 @@ pub enum AutoCueLevel {
     Memory = 0x88,
 }
 
+impl Default for AutoCueLevel {
+    fn default() -> Self {
+        Self::Memory
+    }
+}
+
 /// Found at "PLAYER > DJ SETTING > TIME MODE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -344,6 +467,12 @@ pub enum TimeMode {
     Elapsed = 0x80,
     /// Named "REMAIN" in the Rekordbox preferences.
     Remain,
+}
+
+impl Default for TimeMode {
+    fn default() -> Self {
+        Self::Remain
+    }
 }
 
 /// Found at "PLAYER > DJ SETTING > AUTO CUE" of the "My Settings" page in the Rekordbox
@@ -358,6 +487,12 @@ pub enum AutoCue {
     On,
 }
 
+impl Default for AutoCue {
+    fn default() -> Self {
+        Self::On
+    }
+}
+
 /// Found at "PLAYER > DJ SETTING > JOG MODE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -368,6 +503,12 @@ pub enum JogMode {
     Vinyl = 0x81,
     /// Named "CDJ" in the Rekordbox preferences.
     CDJ = 0x80,
+}
+
+impl Default for JogMode {
+    fn default() -> Self {
+        Self::Vinyl
+    }
 }
 
 /// Found at "PLAYER > DJ SETTING > TEMPO RANGE" of the "My Settings" page in the Rekordbox
@@ -386,6 +527,12 @@ pub enum TempoRange {
     Wide,
 }
 
+impl Default for TempoRange {
+    fn default() -> Self {
+        Self::TenPercent
+    }
+}
+
 /// Found at "PLAYER > DJ SETTING > MASTER TEMPO" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -396,6 +543,12 @@ pub enum MasterTempo {
     Off = 0x80,
     /// Named "ON" in the Rekordbox preferences.
     On,
+}
+
+impl Default for MasterTempo {
+    fn default() -> Self {
+        Self::Off
+    }
 }
 
 /// Found at "PLAYER > DJ SETTING > QUANTIZE" of the "My Settings" page in the Rekordbox
@@ -410,6 +563,12 @@ pub enum Quantize {
     On,
 }
 
+impl Default for Quantize {
+    fn default() -> Self {
+        Self::On
+    }
+}
+
 /// Found at "PLAYER > DJ SETTING > SYNC" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -420,6 +579,12 @@ pub enum Sync {
     Off = 0x80,
     /// Named "ON" in the Rekordbox preferences.
     On,
+}
+
+impl Default for Sync {
+    fn default() -> Self {
+        Self::Off
+    }
 }
 
 /// Found at "PLAYER > DJ SETTING > PHASE METER" of the "My Settings" page in the Rekordbox
@@ -434,6 +599,12 @@ pub enum PhaseMeter {
     Type2,
 }
 
+impl Default for PhaseMeter {
+    fn default() -> Self {
+        Self::Type1
+    }
+}
+
 /// Found at "PLAYER > DJ SETTING > WAVEFORM / PHASE METER" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -444,6 +615,12 @@ pub enum Waveform {
     Waveform = 0x80,
     /// Named "PHASE METER" in the Rekordbox preferences.
     PhaseMeter,
+}
+
+impl Default for Waveform {
+    fn default() -> Self {
+        Self::Waveform
+    }
 }
 
 /// Found at "PLAYER > DJ SETTING > WAVEFORM DIVISIONS" of the "My Settings" page in the Rekordbox
@@ -458,6 +635,12 @@ pub enum WaveformDivisions {
     Phrase,
 }
 
+impl Default for WaveformDivisions {
+    fn default() -> Self {
+        Self::Phrase
+    }
+}
+
 /// Found at "PLAYER > DJ SETTING > VINYL SPEED ADJUST" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -470,6 +653,12 @@ pub enum VinylSpeedAdjust {
     Touch,
     /// Named "RELEASE" in the Rekordbox preferences.
     Release,
+}
+
+impl Default for VinylSpeedAdjust {
+    fn default() -> Self {
+        Self::Touch
+    }
 }
 
 /// Found at "PLAYER > DJ SETTING > BEAT JUMP BEAT VALUE" of the "My Settings" page in the Rekordbox
@@ -494,6 +683,12 @@ pub enum BeatJumpBeatValue {
     ThirtytwoBeat,
     /// Named "64 BEAT" in the Rekordbox preferences.
     SixtyfourBeat,
+}
+
+impl Default for BeatJumpBeatValue {
+    fn default() -> Self {
+        Self::SixteenBeat
+    }
 }
 
 /// Found at "PLAYER > DISPLAY(LCD) > LANGUAGE" of the "My Settings" page in the Rekordbox
@@ -540,6 +735,12 @@ pub enum Language {
     Turkish,
 }
 
+impl Default for Language {
+    fn default() -> Self {
+        Self::English
+    }
+}
+
 /// Found at "PLAYER > DISPLAY(LCD) > LCD BRIGHTNESS" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -556,6 +757,12 @@ pub enum LCDBrightness {
     Four,
     /// Named "5" in the Rekordbox preferences.
     Five,
+}
+
+impl Default for LCDBrightness {
+    fn default() -> Self {
+        Self::Three
+    }
 }
 
 /// Found at "PLAYER > DISPLAY(LCD) > JOG LCD BRIGHTNESS" of the "My Settings" page in the Rekordbox
@@ -576,6 +783,12 @@ pub enum JogLCDBrightness {
     Five,
 }
 
+impl Default for JogLCDBrightness {
+    fn default() -> Self {
+        Self::Three
+    }
+}
+
 /// Found at "PLAYER > DISPLAY(LCD) > JOG DISPLAY MODE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -592,6 +805,12 @@ pub enum JogDisplayMode {
     Artwork,
 }
 
+impl Default for JogDisplayMode {
+    fn default() -> Self {
+        Self::Auto
+    }
+}
+
 /// Found at "PLAYER > DISPLAY(INDICATOR) > SLIP FLASHING" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -604,6 +823,12 @@ pub enum SlipFlashing {
     On,
 }
 
+impl Default for SlipFlashing {
+    fn default() -> Self {
+        Self::On
+    }
+}
+
 /// Found at "PLAYER > DISPLAY(INDICATOR) > ON AIR DISPLAY" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -614,6 +839,12 @@ pub enum OnAirDisplay {
     Off = 0x80,
     /// Named "ON" in the Rekordbox preferences.
     On,
+}
+
+impl Default for OnAirDisplay {
+    fn default() -> Self {
+        Self::On
+    }
 }
 
 /// Found at "PLAYER > DISPLAY(INDICATOR) > JOG RING BRIGHTNESS" of the "My Settings" page in the Rekordbox
@@ -630,6 +861,12 @@ pub enum JogRingBrightness {
     Bright,
 }
 
+impl Default for JogRingBrightness {
+    fn default() -> Self {
+        Self::Bright
+    }
+}
+
 /// Found at "PLAYER > DISPLAY(INDICATOR) > JOG RING INDICATOR" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -640,6 +877,12 @@ pub enum JogRingIndicator {
     Off = 0x80,
     /// Named "ON" in the Rekordbox preferences.
     On,
+}
+
+impl Default for JogRingIndicator {
+    fn default() -> Self {
+        Self::On
+    }
 }
 
 /// Found at "PLAYER > DISPLAY(INDICATOR) > DISC SLOT ILLUMINATION" of the "My Settings" page in the Rekordbox
@@ -654,6 +897,12 @@ pub enum DiscSlotIllumination {
     Dark,
     /// Named "2 (Bright)" in the Rekordbox preferences.
     Bright,
+}
+
+impl Default for DiscSlotIllumination {
+    fn default() -> Self {
+        Self::Bright
+    }
 }
 
 /// Found at "PLAYER > DISPLAY(INDICATOR) > PAD/BUTTON BRIGHTNESS" of the "My Settings" page in the Rekordbox
@@ -672,6 +921,12 @@ pub enum PadButtonBrightness {
     Four,
 }
 
+impl Default for PadButtonBrightness {
+    fn default() -> Self {
+        Self::Three
+    }
+}
+
 /// Found at "MIXER > DJ SETTING > CH FADER CURVE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -684,6 +939,12 @@ pub enum ChannelFaderCurve {
     Linear,
     /// Steep volume raise when the fader is moved near the bottom.
     SteepBottom,
+}
+
+impl Default for ChannelFaderCurve {
+    fn default() -> Self {
+        Self::Linear
+    }
 }
 
 /// Found at "MIXER > DJ SETTING > CROSSFADER CURVE" of the "My Settings" page in the Rekordbox
@@ -702,6 +963,12 @@ pub enum CrossfaderCurve {
     FastCut,
 }
 
+impl Default for CrossfaderCurve {
+    fn default() -> Self {
+        Self::FastCut
+    }
+}
+
 /// Found at "MIXER > DJ SETTING > CH FADER CURVE (LONG FADER)" of the "My Settings" page in the
 /// Rekordbox preferences.
 #[binrw]
@@ -716,6 +983,12 @@ pub enum ChannelFaderCurveLongFader {
     Linear,
 }
 
+impl Default for ChannelFaderCurveLongFader {
+    fn default() -> Self {
+        Self::Exponential
+    }
+}
+
 /// Found at "MIXER > DJ SETTING > HEADPHONES PRE EQ" of the "My Settings" page in the
 /// Rekordbox preferences.
 #[binrw]
@@ -726,6 +999,12 @@ pub enum HeadphonesPreEQ {
     PostEQ = 0x80,
     /// Named "PRE EQ" in the Rekordbox preferences.
     PreEQ,
+}
+
+impl Default for HeadphonesPreEQ {
+    fn default() -> Self {
+        Self::PostEQ
+    }
 }
 
 /// Found at "MIXER > DJ SETTING > HEADPHONES MONO SPLIT" of the "My Settings" page in the
@@ -740,6 +1019,12 @@ pub enum HeadphonesMonoSplit {
     Stereo = 0x80,
 }
 
+impl Default for HeadphonesMonoSplit {
+    fn default() -> Self {
+        Self::Stereo
+    }
+}
+
 /// Found at "MIXER > DJ SETTING > BEAT FX QUANTIZE" of the "My Settings" page in the
 /// Rekordbox preferences.
 #[binrw]
@@ -750,6 +1035,12 @@ pub enum BeatFXQuantize {
     Off = 0x80,
     /// Named "ON" in the Rekordbox preferences.
     On,
+}
+
+impl Default for BeatFXQuantize {
+    fn default() -> Self {
+        Self::On
+    }
 }
 
 /// Found at "MIXER > DJ SETTING > MIC LOW CUT" of the "My Settings" page in the
@@ -764,6 +1055,12 @@ pub enum MicLowCut {
     On,
 }
 
+impl Default for MicLowCut {
+    fn default() -> Self {
+        Self::On
+    }
+}
+
 /// Found at "MIXER > DJ SETTING > TALK OVER MODE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -774,6 +1071,12 @@ pub enum TalkOverMode {
     Advanced = 0x80,
     /// Named "NORMAL" in the Rekordbox preferences.
     Normal,
+}
+
+impl Default for TalkOverMode {
+    fn default() -> Self {
+        Self::Advanced
+    }
 }
 
 /// Found at "MIXER > DJ SETTING > TALK OVER LEVEL" of the "My Settings" page in the Rekordbox
@@ -790,6 +1093,12 @@ pub enum TalkOverLevel {
     Minus12dB,
     /// Named "-6dB" in the Rekordbox preferences.
     Minus6dB,
+}
+
+impl Default for TalkOverLevel {
+    fn default() -> Self {
+        Self::Minus18dB
+    }
 }
 
 /// Found at "MIXER > DJ SETTING > MIDI CH" of the "My Settings" page in the Rekordbox
@@ -832,6 +1141,12 @@ pub enum MidiChannel {
     Sixteen,
 }
 
+impl Default for MidiChannel {
+    fn default() -> Self {
+        Self::One
+    }
+}
+
 /// Found at "MIXER > DJ SETTING > MIDI BUTTON TYPE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -842,6 +1157,12 @@ pub enum MidiButtonType {
     Toggle = 0x80,
     /// Named "TRIGGER" in the Rekordbox preferences.
     Trigger,
+}
+
+impl Default for MidiButtonType {
+    fn default() -> Self {
+        Self::Toggle
+    }
 }
 
 /// Found at "MIXER > BRIGHTNESS > DISPLAY" of the "My Settings" page in the Rekordbox
@@ -864,6 +1185,12 @@ pub enum MixerDisplayBrightness {
     Five,
 }
 
+impl Default for MixerDisplayBrightness {
+    fn default() -> Self {
+        Self::Five
+    }
+}
+
 /// Found at "MIXER > BRIGHTNESS > INDICATOR" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
@@ -876,4 +1203,10 @@ pub enum MixerIndicatorBrightness {
     Two,
     /// Named "3" in the Rekordbox preferences.
     Three,
+}
+
+impl Default for MixerIndicatorBrightness {
+    fn default() -> Self {
+        Self::Three
+    }
 }
