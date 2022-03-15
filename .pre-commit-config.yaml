@@ -54,3 +54,7 @@ repos:
   rev: bf6c583d7d76d9c5e0de7e6ab00f7e7452c3f9f6
   hooks:
   - id: sourceheaders
+- repo: https://github.com/jorisroovers/gitlint
+  rev: v0.17.0
+  hooks:
+  - id: gitlint

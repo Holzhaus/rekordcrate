@@ -1,0 +1,14 @@
+[general]
+# Allow commit messaged without body.
+ignore=body-is-missing
+# Enforce conventional commit message-style
+contrib=contrib-title-conventional-commits
+
+[contrib-title-conventional-commits]
+# Specify allowed commit types. For details see: https://www.conventionalcommits.org/
+types=fix,feat,chore,docs,style,refactor,perf,test,revert,ci,build
+
+[ignore-body-lines]
+# Indented lines are ignored (they may be longer than body-line-length for
+# example).
+regex=^    (.*)
