@@ -58,3 +58,9 @@ fn read_devsetting_overviewwaveformtype_full() {
         OverviewWaveformType::FullWaveform
     );
 }
+
+#[test]
+fn read_devsetting_keydisplayformat_alphanumeric() {
+    let data = read_devsetting!("../data/devsetting/keydisplayformat-alphanumeric/DEVSETTING.DAT");
+    assert_eq!(data.key_display_format, KeyDisplayFormat::Alphanumeric);
+}

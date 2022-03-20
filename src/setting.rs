@@ -145,7 +145,9 @@ pub struct DevSetting {
     /// "Waveform color" setting.
     pub waveform_color: WaveformColor,
     /// Unknown field.
-    unknown2: [u8; 2],
+    unknown2: u8,
+    /// "Key display format" setting.
+    pub key_display_format: KeyDisplayFormat,
     /// "Waveform Current Position" setting.
     pub waveform_current_position: WaveformCurrentPosition,
     /// Unknown field.
@@ -159,7 +161,8 @@ impl Default for DevSetting {
             unknown1: [0x78, 0x56, 0x34, 0x12, 0x01, 0x00, 0x00, 0x00, 0x01],
             overview_waveform_type: OverviewWaveformType::default(),
             waveform_color: WaveformColor::default(),
-            unknown2: [0x01; 2],
+            key_display_format: KeyDisplayFormat::default(),
+            unknown2: 0x01,
             waveform_current_position: WaveformCurrentPosition::default(),
             unknown3: [0x00; 18],
         }
@@ -1331,5 +1334,24 @@ pub enum OverviewWaveformType {
 impl Default for OverviewWaveformType {
     fn default() -> Self {
         Self::HalfWaveform
+    }
+}
+
+/// The key display format displayed on the CDJ.
+///
+/// Found on the "General" page in the Rekordbox preferences.
+#[binrw]
+#[derive(Debug, PartialEq)]
+#[brw(repr = u8)]
+pub enum KeyDisplayFormat {
+    /// Named "Classic" in the Rekordbox preferences.
+    Classic = 0x01,
+    /// Named "Alphanumeric" in the Rekordbox preferences.
+    Alphanumeric,
+}
+
+impl Default for KeyDisplayFormat {
+    fn default() -> Self {
+        Self::Classic
     }
 }
