@@ -49,3 +49,12 @@ fn read_devsetting_waveformcurrentposition_left() {
         WaveformCurrentPosition::Left
     );
 }
+
+#[test]
+fn read_devsetting_overviewwaveformtype_full() {
+    let data = read_devsetting!("../data/devsetting/overviewwaveformtype-full/DEVSETTING.DAT");
+    assert_eq!(
+        data.overview_waveform_type,
+        OverviewWaveformType::FullWaveform
+    );
+}

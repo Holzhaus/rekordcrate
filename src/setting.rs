@@ -139,7 +139,9 @@ impl SettingData {
 #[brw(little)]
 pub struct DevSetting {
     /// Unknown field.
-    unknown1: [u8; 10],
+    unknown1: [u8; 9],
+    /// "Type of the overview Waveform" setting.
+    pub overview_waveform_type: OverviewWaveformType,
     /// "Waveform color" setting.
     pub waveform_color: WaveformColor,
     /// Unknown field.
@@ -154,7 +156,8 @@ pub struct DevSetting {
 impl Default for DevSetting {
     fn default() -> Self {
         Self {
-            unknown1: [0x78, 0x56, 0x34, 0x12, 0x01, 0x00, 0x00, 0x00, 0x01, 0x01],
+            unknown1: [0x78, 0x56, 0x34, 0x12, 0x01, 0x00, 0x00, 0x00, 0x01],
+            overview_waveform_type: OverviewWaveformType::default(),
             waveform_color: WaveformColor::default(),
             unknown2: [0x01; 2],
             waveform_current_position: WaveformCurrentPosition::default(),
@@ -1309,5 +1312,24 @@ pub enum WaveformCurrentPosition {
 impl Default for WaveformCurrentPosition {
     fn default() -> Self {
         Self::Center
+    }
+}
+
+/// Type of the Overview Waveform displayed on the CDJ.
+///
+/// Found on the "General" page in the Rekordbox preferences.
+#[binrw]
+#[derive(Debug, PartialEq)]
+#[brw(repr = u8)]
+pub enum OverviewWaveformType {
+    /// Named "Half Waveform" in the Rekordbox preferences.
+    HalfWaveform = 0x01,
+    /// Named "Full Waveform" in the Rekordbox preferences.
+    FullWaveform,
+}
+
+impl Default for OverviewWaveformType {
+    fn default() -> Self {
+        Self::HalfWaveform
     }
 }
