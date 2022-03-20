@@ -110,7 +110,7 @@ where
 pub enum SettingData {
     /// Payload of a `DEVSETTING.DAT` file (32 bytes).
     #[br(pre_assert(len == 32))]
-    DevSetting([u8; 32]),
+    DevSetting(DevSetting),
     /// Payload of a `DJMMYSETTING.DAT` file (52 bytes).
     #[br(pre_assert(len == 52))]
     DJMMySetting(DJMMySetting),
@@ -129,6 +129,29 @@ impl SettingData {
             Self::DJMMySetting(_) => 52,
             Self::MySetting(_) => 40,
             Self::MySetting2(_) => 40,
+        }
+    }
+}
+
+/// Payload of a `DEVSETTING.DAT` file (32 bytes).
+#[binrw]
+#[derive(Debug, PartialEq)]
+#[brw(little)]
+pub struct DevSetting {
+    /// Unknown field.
+    unknown1: [u8; 14],
+    /// Unknown field.
+    #[br(assert(unknown2 == [0x00; 18]))]
+    unknown2: [u8; 18],
+}
+
+impl Default for DevSetting {
+    fn default() -> Self {
+        Self {
+            unknown1: [
+                0x78, 0x56, 0x34, 0x12, 0x01, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+            ],
+            unknown2: [0x00; 18],
         }
     }
 }
