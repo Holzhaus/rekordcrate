@@ -139,19 +139,23 @@ impl SettingData {
 #[brw(little)]
 pub struct DevSetting {
     /// Unknown field.
-    unknown1: [u8; 14],
+    unknown1: [u8; 10],
+    /// "Waveform color" setting.
+    pub waveform_color: WaveformColor,
     /// Unknown field.
-    #[br(assert(unknown2 == [0x00; 18]))]
-    unknown2: [u8; 18],
+    unknown2: [u8; 3],
+    /// Unknown field.
+    #[br(assert(unknown3 == [0x00; 18]))]
+    unknown3: [u8; 18],
 }
 
 impl Default for DevSetting {
     fn default() -> Self {
         Self {
-            unknown1: [
-                0x78, 0x56, 0x34, 0x12, 0x01, 0x00, 0x00, 0x00, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
-            ],
-            unknown2: [0x00; 18],
+            unknown1: [0x78, 0x56, 0x34, 0x12, 0x01, 0x00, 0x00, 0x00, 0x01, 0x01],
+            waveform_color: WaveformColor::default(),
+            unknown2: [0x01; 3],
+            unknown3: [0x00; 18],
         }
     }
 }
@@ -1262,5 +1266,26 @@ pub enum MixerIndicatorBrightness {
 impl Default for MixerIndicatorBrightness {
     fn default() -> Self {
         Self::Three
+    }
+}
+
+/// Waveform color displayed on the CDJ.
+///
+/// Found on the "General" page in the Rekordbox preferences.
+#[binrw]
+#[derive(Debug, PartialEq)]
+#[brw(repr = u8)]
+pub enum WaveformColor {
+    /// Named "BLUE" in the Rekordbox preferences.
+    Blue = 0x01,
+    /// Named "RGB" in the Rekordbox preferences.
+    Rgb = 0x03,
+    /// Named "3Band" in the Rekordbox preferences.
+    TriBand = 0x04,
+}
+
+impl Default for WaveformColor {
+    fn default() -> Self {
+        Self::Blue
     }
 }

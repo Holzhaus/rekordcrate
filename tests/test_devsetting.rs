@@ -28,3 +28,15 @@ fn read_devsetting_default() {
     let data = read_devsetting!("../data/complete_export/empty/PIONEER/DEVSETTING.DAT");
     assert_eq!(data, DevSetting::default());
 }
+
+#[test]
+fn read_devsetting_waveformcolor_rgb() {
+    let data = read_devsetting!("../data/devsetting/waveformcolor-rgb/DEVSETTING.DAT");
+    assert_eq!(data.waveform_color, WaveformColor::Rgb);
+}
+
+#[test]
+fn read_devsetting_waveformcolor_3band() {
+    let data = read_devsetting!("../data/devsetting/waveformcolor-3band/DEVSETTING.DAT");
+    assert_eq!(data.waveform_color, WaveformColor::TriBand);
+}
