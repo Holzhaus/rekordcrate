@@ -40,3 +40,12 @@ fn read_devsetting_waveformcolor_3band() {
     let data = read_devsetting!("../data/devsetting/waveformcolor-3band/DEVSETTING.DAT");
     assert_eq!(data.waveform_color, WaveformColor::TriBand);
 }
+
+#[test]
+fn read_devsetting_waveformcurrentposition_left() {
+    let data = read_devsetting!("../data/devsetting/waveformcurrentposition-left/DEVSETTING.DAT");
+    assert_eq!(
+        data.waveform_current_position,
+        WaveformCurrentPosition::Left
+    );
+}

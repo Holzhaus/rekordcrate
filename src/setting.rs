@@ -143,7 +143,9 @@ pub struct DevSetting {
     /// "Waveform color" setting.
     pub waveform_color: WaveformColor,
     /// Unknown field.
-    unknown2: [u8; 3],
+    unknown2: [u8; 2],
+    /// "Waveform Current Position" setting.
+    pub waveform_current_position: WaveformCurrentPosition,
     /// Unknown field.
     #[br(assert(unknown3 == [0x00; 18]))]
     unknown3: [u8; 18],
@@ -154,7 +156,8 @@ impl Default for DevSetting {
         Self {
             unknown1: [0x78, 0x56, 0x34, 0x12, 0x01, 0x00, 0x00, 0x00, 0x01, 0x01],
             waveform_color: WaveformColor::default(),
-            unknown2: [0x01; 3],
+            unknown2: [0x01; 2],
+            waveform_current_position: WaveformCurrentPosition::default(),
             unknown3: [0x00; 18],
         }
     }
@@ -1287,5 +1290,24 @@ pub enum WaveformColor {
 impl Default for WaveformColor {
     fn default() -> Self {
         Self::Blue
+    }
+}
+
+/// Waveform Current Position displayed on the CDJ.
+///
+/// Found on the "General" page in the Rekordbox preferences.
+#[binrw]
+#[derive(Debug, PartialEq)]
+#[brw(repr = u8)]
+pub enum WaveformCurrentPosition {
+    /// Named "LEFT" in the Rekordbox preferences.
+    Left = 0x02,
+    /// Named "CENTER" in the Rekordbox preferences.
+    Center = 0x01,
+}
+
+impl Default for WaveformCurrentPosition {
+    fn default() -> Self {
+        Self::Center
     }
 }
