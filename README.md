@@ -22,6 +22,12 @@ directory) can be viewed using the `rekordcrate-anlz` binary:
 
     $ cargo run --bin rekordcrate-anlz -- data/complete_export/demo_tracks/PIONEER/USBANLZ/P016/0000875E/ANLZ0000.DAT
 
+The `rekordcrate-setting` binary displays the contents of `*SETTING.DAT` files
+(`DEVSETTING.DAT`, `DJMMYSETTING.DAT`, `MYSETTING.DAT` and `MYSETTING2.DAT`
+files in the `PIONEER` directory):
+
+    $ cargo run --bin rekordcrate-setting -- data/complete_export/demo_tracks/PIONEER/MYSETTING.DAT
+
 ## FAQ
 
 ### Is this software affiliated with Pioneer Corp. or its related companies?
