@@ -22,40 +22,56 @@ pub mod string;
 
 use crate::pdb::string::DeviceSQLString;
 use crate::util::{nom_input_error_with_kind, ColorIndex};
+use binrw::binrw;
 use nom::error::ErrorKind;
 use nom::IResult;
 use std::num::TryFromIntError;
 
 /// The type of pages found inside a `Table`.
-#[derive(Debug)]
+#[binrw]
+#[derive(Debug, PartialEq, Clone)]
+#[brw(little)]
 pub enum PageType {
     /// Holds rows of track metadata, such as title, artist, genre, artwork ID, playing time, etc.
+    #[brw(magic = 0u32)]
     Tracks,
     /// Holds rows of musical genres, for reference by tracks and searching.
+    #[brw(magic = 1u32)]
     Genres,
     /// Holds rows of artists, for reference by tracks and searching.
+    #[brw(magic = 2u32)]
     Artists,
     /// Holds rows of albums, for reference by tracks and searching.
+    #[brw(magic = 3u32)]
     Albums,
     /// Holds rows of music labels, for reference by tracks and searching.
+    #[brw(magic = 4u32)]
     Labels,
     /// Holds rows of musical keys, for reference by tracks, searching, and key matching.
+    #[brw(magic = 5u32)]
     Keys,
     /// Holds rows of color labels, for reference  by tracks and searching.
+    #[brw(magic = 6u32)]
     Colors,
     /// Holds rows that describe the hierarchical tree structure of available playlists and folders
     /// grouping them.
+    #[brw(magic = 7u32)]
     PlaylistTree,
     /// Holds rows that links tracks to playlists, in the right order.
+    #[brw(magic = 8u32)]
     PlaylistEntries,
     /// Holds rows of history playlists, i.e. playlists that are recorded every time the device is
     /// mounted by a player.
+    #[brw(magic = 11u32)]
     HistoryPlaylists,
     /// Holds rows that links tracks to history playlists, in the right order.
+    #[brw(magic = 12u32)]
     HistoryEntries,
     /// Holds rows pointing to album artwork images.
+    #[brw(magic = 13u32)]
     Artwork,
     /// Holds information used by rekordbox to synchronize history playlists (not yet studied).
+    #[brw(magic = 19u32)]
     History,
     /// Unknown Page type.
     Unknown(u32),
@@ -88,7 +104,9 @@ impl PageType {
 
 /// Points to a table page and can be used to calculate the page's file offset by multiplying it
 /// with the page size (found in the file header).
+#[binrw]
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
+#[brw(little)]
 pub struct PageIndex(pub u32);
 
 impl PageIndex {
@@ -141,7 +159,9 @@ impl std::iter::FusedIterator for PageIndexIterator<'_> {}
 
 /// Tables are linked lists of pages containing rows of a single type, which are organized
 /// into groups.
-#[derive(Debug)]
+#[binrw]
+#[derive(Debug, PartialEq, Clone)]
+#[brw(little)]
 pub struct Table {
     /// Identifies the type of rows that this table contains.
     pub page_type: PageType,
@@ -186,13 +206,23 @@ impl Table {
     }
 }
 
-#[derive(Debug)]
 /// The PDB header structure, including the list of tables.
+#[binrw]
+#[derive(Debug, PartialEq, Clone)]
+#[brw(little)]
 pub struct Header {
+    /// Unknown purpose, perhaps an unoriginal signature, seems to always have the value 0.
+    #[br(temp, assert(unknown1 == 0))]
+    #[bw(calc = 0u32)]
+    unknown1: u32,
     /// Size of a single page in bytes.
     ///
     /// The byte offset of a page can be calculated by multiplying a page index with this value.
     pub page_size: u32,
+    /// Number of tables.
+    #[br(temp)]
+    #[bw(calc = tables.len().try_into().expect("too many tables"))]
+    num_tables: u32,
     /// Unknown field, not used as any `empty_candidate`, points past end of file.
     #[allow(dead_code)]
     next_unused_page: PageIndex,
@@ -201,7 +231,12 @@ pub struct Header {
     unknown: u32,
     /// Always incremented by at least one, sometimes by two or three.
     pub sequence: u32,
+    /// The gap seems to be always zero.
+    #[br(temp, assert(gap == 0))]
+    #[bw(calc = 0u32)]
+    gap: u32,
     /// Each table is a linked list of pages containing rows of a particular type.
+    #[br(count = num_tables)]
     pub tables: Vec<Table>,
 }
 
@@ -253,12 +288,14 @@ impl Header {
     }
 }
 
-#[derive(Debug)]
 /// A table page.
 ///
 /// Each page consists of a header that contains information about the type, number of rows, etc.,
 /// followed by the data section that holds the row data. Each row needs to be located using an
 /// offset found in the page footer at the end of the page.
+#[binrw]
+#[derive(Debug, PartialEq, Clone)]
+#[brw(little)]
 pub struct Page {
     /// Index of the page.
     ///
@@ -460,10 +497,12 @@ impl Page {
     }
 }
 
-#[derive(Debug)]
 /// An offset which points to a row in the table, whose actual presence is controlled by one of the
 /// bits in `row_present_flags`. This instance allows the row itself to be lazily loaded, unless it
 /// is not present, in which case there is no content to be loaded.
+#[binrw]
+#[derive(Debug, PartialEq, Clone)]
+#[brw(little)]
 pub struct RowOffset(u16);
 
 #[derive(Debug)]
