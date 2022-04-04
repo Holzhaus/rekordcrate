@@ -20,8 +20,8 @@ pub fn nom_input_error_with_kind(input: &[u8], kind: ErrorKind) -> Err<nom::erro
 }
 
 /// Indexed Color identifiers used for memory cues and tracks.
-#[derive(Debug, PartialEq)]
 #[binrw]
+#[derive(Debug, PartialEq, Clone)]
 pub enum ColorIndex {
     /// No color.
     #[brw(magic = 0u8)]

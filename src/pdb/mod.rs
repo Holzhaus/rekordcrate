@@ -22,10 +22,18 @@ pub mod string;
 
 use crate::pdb::string::DeviceSQLString;
 use crate::util::{nom_input_error_with_kind, ColorIndex};
-use binrw::binrw;
+use binrw::{binrw, BinResult, FilePtr16, ReadOptions};
 use nom::error::ErrorKind;
 use nom::IResult;
+use std::io::{Read, Seek};
 use std::num::TryFromIntError;
+
+/// Do not read anything, but the return the current stream position of `reader`.
+fn current_offset<R: Read + Seek>(reader: &mut R, _: &ReadOptions, _: ()) -> BinResult<u64> {
+    Ok(reader
+        .stream_position()
+        .expect("failed to retrieve stream position"))
+}
 
 /// The type of pages found inside a `Table`.
 #[binrw]
@@ -538,7 +546,6 @@ impl RowGroup {
 impl DeviceSQLString {
     fn parse(input: &[u8]) -> IResult<&[u8], DeviceSQLString> {
         use binrw::BinRead;
-        use std::io::Seek;
         let mut buf = std::io::Cursor::new(&input);
         let string =
             Self::read(&mut buf).map_err(|_| nom_input_error_with_kind(input, ErrorKind::Fail))?;
@@ -552,15 +559,19 @@ impl DeviceSQLString {
     }
 }
 
+/// A table row contains the actual data.
+#[binrw]
+#[derive(Debug, PartialEq, Clone)]
+#[brw(little)]
+#[br(import(page_type: PageType))]
 // The large enum size is unfortunate, but since users of this library will probably use iterators
 // to consume the results on demand, we can live with this. The alternative of using a `Box` would
 // require a heap allocation per row, which is arguably worse. Hence, the warning is disabled for
 // this enum.
 #[allow(clippy::large_enum_variant)]
-#[derive(Debug)]
-/// A table rows contains the actual data
 pub enum Row {
     /// Contains the album name, along with an ID of the corresponding artist.
+    #[br(pre_assert(page_type == PageType::Albums))]
     Album {
         /// Unknown field, usually `80 00`.
         unknown1: u16,
@@ -580,6 +591,7 @@ pub enum Row {
         name: DeviceSQLString,
     },
     /// Contains the artist name and ID.
+    #[br(pre_assert(page_type == PageType::Artists))]
     Artist {
         /// Determines if the `name` string is located at the 8-bit offset (0x60) or the 16-bit offset (0x64).
         subtype: u16,
@@ -589,10 +601,18 @@ pub enum Row {
         id: u32,
         /// Unknown field.
         unknown1: u8,
+        /// One-byte name offset used if `subtype` is `0x60`.
+        ofs_name_near: u8,
+        /// Two-byte name offset used if `subtype` is `0x64`.
+        ///
+        /// In that case, the value of `ofs_name_near` is ignored
+        #[br(if(subtype == 0x64))]
+        ofs_name_far: Option<u16>,
         /// Name of this artist.
         name: DeviceSQLString,
     },
     /// Contains the artwork path and ID.
+    #[br(pre_assert(page_type == PageType::Artwork))]
     Artwork {
         /// ID of this row.
         id: u32,
@@ -600,6 +620,7 @@ pub enum Row {
         path: DeviceSQLString,
     },
     /// Contains numeric color ID
+    #[br(pre_assert(page_type == PageType::Colors))]
     Color {
         /// Unknown field.
         unknown1: u32,
@@ -613,6 +634,7 @@ pub enum Row {
         name: DeviceSQLString,
     },
     /// Represents a musical genre.
+    #[br(pre_assert(page_type == PageType::Genres))]
     Genre {
         /// ID of this row.
         id: u32,
@@ -620,6 +642,7 @@ pub enum Row {
         name: DeviceSQLString,
     },
     /// Represents a history playlist.
+    #[br(pre_assert(page_type == PageType::HistoryPlaylists))]
     HistoryPlaylist {
         /// ID of this row.
         id: u32,
@@ -627,6 +650,7 @@ pub enum Row {
         name: DeviceSQLString,
     },
     /// Represents a history playlist.
+    #[br(pre_assert(page_type == PageType::HistoryEntries))]
     HistoryEntry {
         /// ID of the track played at this position in the playlist.
         track_id: u32,
@@ -636,6 +660,7 @@ pub enum Row {
         entry_index: u32,
     },
     /// Represents a musical key.
+    #[br(pre_assert(page_type == PageType::Keys))]
     Key {
         /// ID of this row.
         id: u32,
@@ -645,6 +670,7 @@ pub enum Row {
         name: DeviceSQLString,
     },
     /// Represents a record label.
+    #[br(pre_assert(page_type == PageType::Labels))]
     Label {
         /// ID of this row.
         id: u32,
@@ -652,6 +678,7 @@ pub enum Row {
         name: DeviceSQLString,
     },
     /// Represents a node in the playlist tree (either a folder or a playlist).
+    #[br(pre_assert(page_type == PageType::PlaylistTree))]
     PlaylistTreeNode {
         /// ID of parent row of this row (which means that the parent is a folder).
         parent_id: u32,
@@ -667,6 +694,7 @@ pub enum Row {
         name: DeviceSQLString,
     },
     /// Represents a track entry in a playlist.
+    #[br(pre_assert(page_type == PageType::PlaylistEntries))]
     PlaylistEntry {
         /// Position within the playlist.
         entry_index: u32,
@@ -676,7 +704,11 @@ pub enum Row {
         playlist_id: u32,
     },
     /// Contains the album name, along with an ID of the corresponding artist.
+    #[br(pre_assert(page_type == PageType::Tracks))]
     Track {
+        #[br(temp, parse_with = current_offset)]
+        #[bw(ignore)]
+        base_offset: u64,
         /// Unknown field, usually `24 00`.
         unknown1: u16,
         /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
@@ -740,49 +772,71 @@ pub enum Row {
         /// Unknown field (alternating "2" and "3"?).
         unknown7: u16,
         /// International Standard Recording Code (ISRC), in mangled format.
+        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
         isrc: DeviceSQLString,
         /// Unknown string field.
+        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
         unknown_string1: DeviceSQLString,
         /// Unknown string field.
+        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
         unknown_string2: DeviceSQLString,
         /// Unknown string field.
+        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
         unknown_string3: DeviceSQLString,
         /// Unknown string field.
+        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
         unknown_string4: DeviceSQLString,
         /// Unknown string field (named by [@flesniak](https://github.com/flesniak)).
+        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
         message: DeviceSQLString,
         /// Probably describes whether the track is public on kuvo.com (?). Value is either "ON" or empty string.
+        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
         kuvo_public: DeviceSQLString,
         /// Determines if hotcues should be autoloaded. Value is either "ON" or empty string.
+        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
         autoload_hotcues: DeviceSQLString,
         /// Unknown string field.
+        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
         unknown_string5: DeviceSQLString,
         /// Unknown string field (usually empty).
+        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
         unknown_string6: DeviceSQLString,
         /// Date when the track was added to the Rekordbox collection.
+        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
         date_added: DeviceSQLString,
         /// Date when the track was released.
+        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
         release_date: DeviceSQLString,
         /// Name of the remix (if any).
+        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
         mix_name: DeviceSQLString,
         /// Unknown string field (usually empty).
+        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
         unknown_string7: DeviceSQLString,
         /// File path of the track analysis file.
+        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
         analyze_path: DeviceSQLString,
         /// Date when the track analysis was performed.
+        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
         analyze_date: DeviceSQLString,
         /// Track comment.
+        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
         comment: DeviceSQLString,
         /// Track title.
+        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
         title: DeviceSQLString,
         /// Unknown string field (usually empty).
+        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
         unknown_string8: DeviceSQLString,
         /// Name of the file.
+        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
         filename: DeviceSQLString,
         /// Path of the file.
+        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
         file_path: DeviceSQLString,
     },
     /// The row format (and also its size) is unknown, which means it can't be parsed.
+    #[br(pre_assert(matches!(page_type, PageType::History | PageType::Unknown(_))))]
     Unknown,
 }
 
@@ -846,12 +900,14 @@ impl Row {
         let (input, id) = nom::number::complete::le_u32(input)?;
         let (input, unknown1) = nom::number::complete::u8(input)?;
         let (input, ofs_name_near) = nom::number::complete::u8(input)?;
+        let mut ofs_name_far: Option<u16> = None;
         let (input, name) = if subtype == 0x60 {
             let (_, text) = DeviceSQLString::parse(&row_data[usize::from(ofs_name_near)..])?;
             (input, text)
         } else {
-            let (input, ofs_name_far) = nom::number::complete::le_u16(row_data)?;
-            let (_, text) = DeviceSQLString::parse(&row_data[usize::from(ofs_name_far)..])?;
+            let (input, ofs_name) = nom::number::complete::le_u16(row_data)?;
+            ofs_name_far = Some(ofs_name);
+            let (_, text) = DeviceSQLString::parse(&row_data[usize::from(ofs_name)..])?;
             (input, text)
         };
 
@@ -862,6 +918,8 @@ impl Row {
                 index_shift,
                 id,
                 unknown1,
+                ofs_name_near,
+                ofs_name_far,
                 name,
             },
         ))
