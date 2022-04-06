@@ -139,12 +139,14 @@ impl SettingData {
 #[brw(little)]
 pub struct DevSetting {
     /// Unknown field.
+    #[br(assert(unknown1 == [0x78, 0x56, 0x34, 0x12, 0x01, 0x00, 0x00, 0x00, 0x01]))]
     unknown1: [u8; 9],
     /// "Type of the overview Waveform" setting.
     pub overview_waveform_type: OverviewWaveformType,
     /// "Waveform color" setting.
     pub waveform_color: WaveformColor,
     /// Unknown field.
+    #[br(assert(unknown2 == 0x01))]
     unknown2: u8,
     /// "Key display format" setting.
     pub key_display_format: KeyDisplayFormat,
