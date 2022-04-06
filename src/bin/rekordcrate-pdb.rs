@@ -6,25 +6,29 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-use rekordcrate::pdb::{Header, RowGroup};
+use binrw::BinRead;
+use rekordcrate::pdb::{Header, Page, RowGroup};
+use std::io::{Seek, SeekFrom};
 
 fn main() {
     let path = std::env::args().nth(1).expect("no path given");
     let data = std::fs::read(&path).expect("failed to read file");
-    let (_, header) = Header::parse(&data).expect("failed to parse header");
+    let mut reader = std::fs::File::open(&path).expect("failed to open file");
+    let header = Header::read(&mut reader).expect("failed to parse pdb file");
 
     println!("{:#?}", header);
 
     for (i, table) in header.tables.iter().enumerate() {
         println!("Table {}: {:?}", i, table.page_type);
         for page_index in table.page_indices(&header, &data) {
-            let (_, page) = header
-                .page(&data, &page_index)
-                .expect("failed to parse page");
+            let page_offset = header.page_offset(&page_index);
+            reader
+                .seek(SeekFrom::Start(page_offset))
+                .expect("failed to seek to page offset");
+            let page = Page::read(&mut reader).expect("failed to parse page");
             println!("  {:?}", page);
             assert_eq!(page.page_index, page_index);
-            let page_offset = header.page_offset(&page_index).unwrap();
-            let page_data = &data[page_offset..];
+            let page_data = &data[page_offset.try_into().unwrap()..];
             page.row_groups(page_data, header.page_size)
                 .for_each(|row_group| {
                     println!("    {:?}", row_group);

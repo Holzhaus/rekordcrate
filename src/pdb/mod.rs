@@ -26,7 +26,6 @@ use binrw::{binrw, BinResult, FilePtr16, ReadOptions};
 use nom::error::ErrorKind;
 use nom::IResult;
 use std::io::{Read, Seek};
-use std::num::TryFromIntError;
 
 /// Do not read anything, but the return the current stream position of `reader`.
 fn current_offset<R: Read + Seek>(reader: &mut R, _: &ReadOptions, _: ()) -> BinResult<u64> {
@@ -282,14 +281,16 @@ impl Header {
     }
 
     /// Returns the offset for the given `page_index`, relative to the start of the PDB file.
-    pub fn page_offset(&self, PageIndex(page_index): &PageIndex) -> Result<usize, TryFromIntError> {
-        (page_index * self.page_size).try_into()
+    #[must_use]
+    pub fn page_offset(&self, PageIndex(page_index): &PageIndex) -> u64 {
+        (page_index * self.page_size).into()
     }
 
     /// Parses and returns a page from the original data slice.
     pub fn page<'a>(&self, input: &'a [u8], page_index: &PageIndex) -> IResult<&'a [u8], Page> {
-        let position = self
+        let position: usize = self
             .page_offset(page_index)
+            .try_into()
             .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
         let (data, page) = Page::parse(&input[position..])?;
         Ok((data, page))
@@ -303,7 +304,7 @@ impl Header {
 /// offset found in the page footer at the end of the page.
 #[binrw]
 #[derive(Debug, PartialEq, Clone)]
-#[brw(little)]
+#[brw(little, magic = 0u32)]
 pub struct Page {
     /// Index of the page.
     ///

@@ -15,7 +15,7 @@ fn pdb_{name}() {{
                 .expect("failed to parse page");
             println!("  {{:?}}", page);
             assert_eq!(page.page_index, page_index);
-            let page_offset = header.page_offset(&page_index).unwrap();
+            let page_offset: usize = header.page_offset(&page_index).try_into().unwrap();
             let page_data = &data[page_offset..];
             page.row_groups(page_data, header.page_size)
                 .for_each(|row_group| {{
