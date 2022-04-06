@@ -110,7 +110,7 @@ where
 pub enum SettingData {
     /// Payload of a `DEVSETTING.DAT` file (32 bytes).
     #[br(pre_assert(len == 32))]
-    DevSetting([u8; 32]),
+    DevSetting(DevSetting),
     /// Payload of a `DJMMYSETTING.DAT` file (52 bytes).
     #[br(pre_assert(len == 52))]
     DJMMySetting(DJMMySetting),
@@ -129,6 +129,44 @@ impl SettingData {
             Self::DJMMySetting(_) => 52,
             Self::MySetting(_) => 40,
             Self::MySetting2(_) => 40,
+        }
+    }
+}
+
+/// Payload of a `DEVSETTING.DAT` file (32 bytes).
+#[binrw]
+#[derive(Debug, PartialEq)]
+#[brw(little)]
+pub struct DevSetting {
+    /// Unknown field.
+    #[br(assert(unknown1 == [0x78, 0x56, 0x34, 0x12, 0x01, 0x00, 0x00, 0x00, 0x01]))]
+    unknown1: [u8; 9],
+    /// "Type of the overview Waveform" setting.
+    pub overview_waveform_type: OverviewWaveformType,
+    /// "Waveform color" setting.
+    pub waveform_color: WaveformColor,
+    /// Unknown field.
+    #[br(assert(unknown2 == 0x01))]
+    unknown2: u8,
+    /// "Key display format" setting.
+    pub key_display_format: KeyDisplayFormat,
+    /// "Waveform Current Position" setting.
+    pub waveform_current_position: WaveformCurrentPosition,
+    /// Unknown field.
+    #[br(assert(unknown3 == [0x00; 18]))]
+    unknown3: [u8; 18],
+}
+
+impl Default for DevSetting {
+    fn default() -> Self {
+        Self {
+            unknown1: [0x78, 0x56, 0x34, 0x12, 0x01, 0x00, 0x00, 0x00, 0x01],
+            overview_waveform_type: OverviewWaveformType::default(),
+            waveform_color: WaveformColor::default(),
+            key_display_format: KeyDisplayFormat::default(),
+            unknown2: 0x01,
+            waveform_current_position: WaveformCurrentPosition::default(),
+            unknown3: [0x00; 18],
         }
     }
 }
@@ -1239,5 +1277,83 @@ pub enum MixerIndicatorBrightness {
 impl Default for MixerIndicatorBrightness {
     fn default() -> Self {
         Self::Three
+    }
+}
+
+/// Waveform color displayed on the CDJ.
+///
+/// Found on the "General" page in the Rekordbox preferences.
+#[binrw]
+#[derive(Debug, PartialEq)]
+#[brw(repr = u8)]
+pub enum WaveformColor {
+    /// Named "BLUE" in the Rekordbox preferences.
+    Blue = 0x01,
+    /// Named "RGB" in the Rekordbox preferences.
+    Rgb = 0x03,
+    /// Named "3Band" in the Rekordbox preferences.
+    TriBand = 0x04,
+}
+
+impl Default for WaveformColor {
+    fn default() -> Self {
+        Self::Blue
+    }
+}
+
+/// Waveform Current Position displayed on the CDJ.
+///
+/// Found on the "General" page in the Rekordbox preferences.
+#[binrw]
+#[derive(Debug, PartialEq)]
+#[brw(repr = u8)]
+pub enum WaveformCurrentPosition {
+    /// Named "LEFT" in the Rekordbox preferences.
+    Left = 0x02,
+    /// Named "CENTER" in the Rekordbox preferences.
+    Center = 0x01,
+}
+
+impl Default for WaveformCurrentPosition {
+    fn default() -> Self {
+        Self::Center
+    }
+}
+
+/// Type of the Overview Waveform displayed on the CDJ.
+///
+/// Found on the "General" page in the Rekordbox preferences.
+#[binrw]
+#[derive(Debug, PartialEq)]
+#[brw(repr = u8)]
+pub enum OverviewWaveformType {
+    /// Named "Half Waveform" in the Rekordbox preferences.
+    HalfWaveform = 0x01,
+    /// Named "Full Waveform" in the Rekordbox preferences.
+    FullWaveform,
+}
+
+impl Default for OverviewWaveformType {
+    fn default() -> Self {
+        Self::HalfWaveform
+    }
+}
+
+/// The key display format displayed on the CDJ.
+///
+/// Found on the "General" page in the Rekordbox preferences.
+#[binrw]
+#[derive(Debug, PartialEq)]
+#[brw(repr = u8)]
+pub enum KeyDisplayFormat {
+    /// Named "Classic" in the Rekordbox preferences.
+    Classic = 0x01,
+    /// Named "Alphanumeric" in the Rekordbox preferences.
+    Alphanumeric,
+}
+
+impl Default for KeyDisplayFormat {
+    fn default() -> Self {
+        Self::Classic
     }
 }
