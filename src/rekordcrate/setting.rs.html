@@ -1243,6 +1243,122 @@
 <span id="1241">1241</span>
 <span id="1242">1242</span>
 <span id="1243">1243</span>
+<span id="1244">1244</span>
+<span id="1245">1245</span>
+<span id="1246">1246</span>
+<span id="1247">1247</span>
+<span id="1248">1248</span>
+<span id="1249">1249</span>
+<span id="1250">1250</span>
+<span id="1251">1251</span>
+<span id="1252">1252</span>
+<span id="1253">1253</span>
+<span id="1254">1254</span>
+<span id="1255">1255</span>
+<span id="1256">1256</span>
+<span id="1257">1257</span>
+<span id="1258">1258</span>
+<span id="1259">1259</span>
+<span id="1260">1260</span>
+<span id="1261">1261</span>
+<span id="1262">1262</span>
+<span id="1263">1263</span>
+<span id="1264">1264</span>
+<span id="1265">1265</span>
+<span id="1266">1266</span>
+<span id="1267">1267</span>
+<span id="1268">1268</span>
+<span id="1269">1269</span>
+<span id="1270">1270</span>
+<span id="1271">1271</span>
+<span id="1272">1272</span>
+<span id="1273">1273</span>
+<span id="1274">1274</span>
+<span id="1275">1275</span>
+<span id="1276">1276</span>
+<span id="1277">1277</span>
+<span id="1278">1278</span>
+<span id="1279">1279</span>
+<span id="1280">1280</span>
+<span id="1281">1281</span>
+<span id="1282">1282</span>
+<span id="1283">1283</span>
+<span id="1284">1284</span>
+<span id="1285">1285</span>
+<span id="1286">1286</span>
+<span id="1287">1287</span>
+<span id="1288">1288</span>
+<span id="1289">1289</span>
+<span id="1290">1290</span>
+<span id="1291">1291</span>
+<span id="1292">1292</span>
+<span id="1293">1293</span>
+<span id="1294">1294</span>
+<span id="1295">1295</span>
+<span id="1296">1296</span>
+<span id="1297">1297</span>
+<span id="1298">1298</span>
+<span id="1299">1299</span>
+<span id="1300">1300</span>
+<span id="1301">1301</span>
+<span id="1302">1302</span>
+<span id="1303">1303</span>
+<span id="1304">1304</span>
+<span id="1305">1305</span>
+<span id="1306">1306</span>
+<span id="1307">1307</span>
+<span id="1308">1308</span>
+<span id="1309">1309</span>
+<span id="1310">1310</span>
+<span id="1311">1311</span>
+<span id="1312">1312</span>
+<span id="1313">1313</span>
+<span id="1314">1314</span>
+<span id="1315">1315</span>
+<span id="1316">1316</span>
+<span id="1317">1317</span>
+<span id="1318">1318</span>
+<span id="1319">1319</span>
+<span id="1320">1320</span>
+<span id="1321">1321</span>
+<span id="1322">1322</span>
+<span id="1323">1323</span>
+<span id="1324">1324</span>
+<span id="1325">1325</span>
+<span id="1326">1326</span>
+<span id="1327">1327</span>
+<span id="1328">1328</span>
+<span id="1329">1329</span>
+<span id="1330">1330</span>
+<span id="1331">1331</span>
+<span id="1332">1332</span>
+<span id="1333">1333</span>
+<span id="1334">1334</span>
+<span id="1335">1335</span>
+<span id="1336">1336</span>
+<span id="1337">1337</span>
+<span id="1338">1338</span>
+<span id="1339">1339</span>
+<span id="1340">1340</span>
+<span id="1341">1341</span>
+<span id="1342">1342</span>
+<span id="1343">1343</span>
+<span id="1344">1344</span>
+<span id="1345">1345</span>
+<span id="1346">1346</span>
+<span id="1347">1347</span>
+<span id="1348">1348</span>
+<span id="1349">1349</span>
+<span id="1350">1350</span>
+<span id="1351">1351</span>
+<span id="1352">1352</span>
+<span id="1353">1353</span>
+<span id="1354">1354</span>
+<span id="1355">1355</span>
+<span id="1356">1356</span>
+<span id="1357">1357</span>
+<span id="1358">1358</span>
+<span id="1359">1359</span>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) 2022 Jan Holthuis</span>
 <span class="comment">//</span>
 <span class="comment">// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy</span>
@@ -1355,7 +1471,7 @@
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">SettingData</span> {
     <span class="doccomment">/// Payload of a `DEVSETTING.DAT` file (32 bytes).</span>
     <span class="attribute">#[<span class="ident">br</span>(<span class="ident">pre_assert</span>(<span class="ident">len</span> <span class="op">==</span> <span class="number">32</span>))]</span>
-    <span class="ident">DevSetting</span>([<span class="ident">u8</span>; <span class="number">32</span>]),
+    <span class="ident">DevSetting</span>(<span class="ident">DevSetting</span>),
     <span class="doccomment">/// Payload of a `DJMMYSETTING.DAT` file (52 bytes).</span>
     <span class="attribute">#[<span class="ident">br</span>(<span class="ident">pre_assert</span>(<span class="ident">len</span> <span class="op">==</span> <span class="number">52</span>))]</span>
     <span class="ident">DJMMySetting</span>(<span class="ident">DJMMySetting</span>),
@@ -1374,6 +1490,44 @@
             <span class="ident"><span class="self">Self</span>::DJMMySetting</span>(<span class="kw">_</span>) =&gt; <span class="number">52</span>,
             <span class="ident"><span class="self">Self</span>::MySetting</span>(<span class="kw">_</span>) =&gt; <span class="number">40</span>,
             <span class="ident"><span class="self">Self</span>::MySetting2</span>(<span class="kw">_</span>) =&gt; <span class="number">40</span>,
+        }
+    }
+}
+
+<span class="doccomment">/// Payload of a `DEVSETTING.DAT` file (32 bytes).</span>
+<span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">brw</span>(<span class="ident">little</span>)]</span>
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">DevSetting</span> {
+    <span class="doccomment">/// Unknown field.</span>
+    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">assert</span>(<span class="ident">unknown1</span> <span class="op">==</span> [<span class="number">0x78</span>, <span class="number">0x56</span>, <span class="number">0x34</span>, <span class="number">0x12</span>, <span class="number">0x01</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x01</span>]</span>))]
+    <span class="ident">unknown1</span>: [<span class="ident">u8</span>; <span class="number">9</span>],
+    <span class="doccomment">/// &quot;Type of the overview Waveform&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">overview_waveform_type</span>: <span class="ident">OverviewWaveformType</span>,
+    <span class="doccomment">/// &quot;Waveform color&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">waveform_color</span>: <span class="ident">WaveformColor</span>,
+    <span class="doccomment">/// Unknown field.</span>
+    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">assert</span>(<span class="ident">unknown2</span> <span class="op">==</span> <span class="number">0x01</span>))]</span>
+    <span class="ident">unknown2</span>: <span class="ident">u8</span>,
+    <span class="doccomment">/// &quot;Key display format&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">key_display_format</span>: <span class="ident">KeyDisplayFormat</span>,
+    <span class="doccomment">/// &quot;Waveform Current Position&quot; setting.</span>
+    <span class="kw">pub</span> <span class="ident">waveform_current_position</span>: <span class="ident">WaveformCurrentPosition</span>,
+    <span class="doccomment">/// Unknown field.</span>
+    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">assert</span>(<span class="ident">unknown3</span> <span class="op">==</span> [<span class="number">0x00</span>; <span class="number">18</span>]</span>))]
+    <span class="ident">unknown3</span>: [<span class="ident">u8</span>; <span class="number">18</span>],
+}
+
+<span class="kw">impl</span> <span class="ident">Default</span> <span class="kw">for</span> <span class="ident">DevSetting</span> {
+    <span class="kw">fn</span> <span class="ident">default</span>() -&gt; <span class="self">Self</span> {
+        <span class="self">Self</span> {
+            <span class="ident">unknown1</span>: [<span class="number">0x78</span>, <span class="number">0x56</span>, <span class="number">0x34</span>, <span class="number">0x12</span>, <span class="number">0x01</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x01</span>],
+            <span class="ident">overview_waveform_type</span>: <span class="ident">OverviewWaveformType::default</span>(),
+            <span class="ident">waveform_color</span>: <span class="ident">WaveformColor::default</span>(),
+            <span class="ident">key_display_format</span>: <span class="ident">KeyDisplayFormat::default</span>(),
+            <span class="ident">unknown2</span>: <span class="number">0x01</span>,
+            <span class="ident">waveform_current_position</span>: <span class="ident">WaveformCurrentPosition::default</span>(),
+            <span class="ident">unknown3</span>: [<span class="number">0x00</span>; <span class="number">18</span>],
         }
     }
 }
@@ -2484,6 +2638,84 @@
 <span class="kw">impl</span> <span class="ident">Default</span> <span class="kw">for</span> <span class="ident">MixerIndicatorBrightness</span> {
     <span class="kw">fn</span> <span class="ident">default</span>() -&gt; <span class="self">Self</span> {
         <span class="ident"><span class="self">Self</span>::Three</span>
+    }
+}
+
+<span class="doccomment">/// Waveform color displayed on the CDJ.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Found on the &quot;General&quot; page in the Rekordbox preferences.</span>
+<span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
+<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">WaveformColor</span> {
+    <span class="doccomment">/// Named &quot;BLUE&quot; in the Rekordbox preferences.</span>
+    <span class="ident">Blue</span> <span class="op">=</span> <span class="number">0x01</span>,
+    <span class="doccomment">/// Named &quot;RGB&quot; in the Rekordbox preferences.</span>
+    <span class="ident">Rgb</span> <span class="op">=</span> <span class="number">0x03</span>,
+    <span class="doccomment">/// Named &quot;3Band&quot; in the Rekordbox preferences.</span>
+    <span class="ident">TriBand</span> <span class="op">=</span> <span class="number">0x04</span>,
+}
+
+<span class="kw">impl</span> <span class="ident">Default</span> <span class="kw">for</span> <span class="ident">WaveformColor</span> {
+    <span class="kw">fn</span> <span class="ident">default</span>() -&gt; <span class="self">Self</span> {
+        <span class="ident"><span class="self">Self</span>::Blue</span>
+    }
+}
+
+<span class="doccomment">/// Waveform Current Position displayed on the CDJ.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Found on the &quot;General&quot; page in the Rekordbox preferences.</span>
+<span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
+<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">WaveformCurrentPosition</span> {
+    <span class="doccomment">/// Named &quot;LEFT&quot; in the Rekordbox preferences.</span>
+    <span class="ident">Left</span> <span class="op">=</span> <span class="number">0x02</span>,
+    <span class="doccomment">/// Named &quot;CENTER&quot; in the Rekordbox preferences.</span>
+    <span class="ident">Center</span> <span class="op">=</span> <span class="number">0x01</span>,
+}
+
+<span class="kw">impl</span> <span class="ident">Default</span> <span class="kw">for</span> <span class="ident">WaveformCurrentPosition</span> {
+    <span class="kw">fn</span> <span class="ident">default</span>() -&gt; <span class="self">Self</span> {
+        <span class="ident"><span class="self">Self</span>::Center</span>
+    }
+}
+
+<span class="doccomment">/// Type of the Overview Waveform displayed on the CDJ.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Found on the &quot;General&quot; page in the Rekordbox preferences.</span>
+<span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
+<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">OverviewWaveformType</span> {
+    <span class="doccomment">/// Named &quot;Half Waveform&quot; in the Rekordbox preferences.</span>
+    <span class="ident">HalfWaveform</span> <span class="op">=</span> <span class="number">0x01</span>,
+    <span class="doccomment">/// Named &quot;Full Waveform&quot; in the Rekordbox preferences.</span>
+    <span class="ident">FullWaveform</span>,
+}
+
+<span class="kw">impl</span> <span class="ident">Default</span> <span class="kw">for</span> <span class="ident">OverviewWaveformType</span> {
+    <span class="kw">fn</span> <span class="ident">default</span>() -&gt; <span class="self">Self</span> {
+        <span class="ident"><span class="self">Self</span>::HalfWaveform</span>
+    }
+}
+
+<span class="doccomment">/// The key display format displayed on the CDJ.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// Found on the &quot;General&quot; page in the Rekordbox preferences.</span>
+<span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">brw</span>(<span class="ident">repr</span> <span class="op">=</span> <span class="ident">u8</span>)]</span>
+<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">KeyDisplayFormat</span> {
+    <span class="doccomment">/// Named &quot;Classic&quot; in the Rekordbox preferences.</span>
+    <span class="ident">Classic</span> <span class="op">=</span> <span class="number">0x01</span>,
+    <span class="doccomment">/// Named &quot;Alphanumeric&quot; in the Rekordbox preferences.</span>
+    <span class="ident">Alphanumeric</span>,
+}
+
+<span class="kw">impl</span> <span class="ident">Default</span> <span class="kw">for</span> <span class="ident">KeyDisplayFormat</span> {
+    <span class="kw">fn</span> <span class="ident">default</span>() -&gt; <span class="self">Self</span> {
+        <span class="ident"><span class="self">Self</span>::Classic</span>
     }
 }
 </code></pre></div>
