@@ -12,7 +12,6 @@ use std::io::{Seek, SeekFrom};
 
 fn main() {
     let path = std::env::args().nth(1).expect("no path given");
-    let data = std::fs::read(&path).expect("failed to read file");
     let mut reader = std::fs::File::open(&path).expect("failed to open file");
     let header = Header::read(&mut reader).expect("failed to parse pdb file");
 
@@ -20,16 +19,17 @@ fn main() {
 
     for (i, table) in header.tables.iter().enumerate() {
         println!("Table {}: {:?}", i, table.page_type);
-        for page_index in table.page_indices(&header, &data) {
-            let page_offset = header.page_offset(&page_index);
-            reader
-                .seek(SeekFrom::Start(page_offset))
-                .expect("failed to seek to page offset");
-            let page =
-                Page::read_options(&mut reader, &ReadOptions::default(), (header.page_size,))
-                    .expect("failed to parse page");
+        for page in header
+            .read_pages(
+                &mut reader,
+                &ReadOptions::default(),
+                (&table.first_page, &table.last_page),
+            )
+            .unwrap()
+            .into_iter()
+        {
+            let page_offset = header.page_offset(&page.page_index);
             println!("  {:?}", page);
-            assert_eq!(page.page_index, page_index);
             page.row_groups.iter().for_each(|row_group| {
                 println!("    {:?}", row_group);
                 for &RowOffset(row_offset) in row_group.present_rows() {

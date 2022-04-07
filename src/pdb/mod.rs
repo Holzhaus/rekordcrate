@@ -295,6 +295,34 @@ impl Header {
         let (data, page) = Page::parse(&input[position..])?;
         Ok((data, page))
     }
+
+    /// Returns pages for the given Table.
+    pub fn read_pages<R: Read + Seek>(
+        &self,
+        reader: &mut R,
+        ro: &ReadOptions,
+        args: (&PageIndex, &PageIndex),
+    ) -> BinResult<Vec<Page>> {
+        let (first_page, last_page) = args;
+
+        let mut pages = vec![];
+        let mut page_index = first_page.clone();
+        loop {
+            let page_offset = self.page_offset(&page_index);
+            reader
+                .seek(SeekFrom::Start(page_offset))
+                .expect("failed to seek to page offset");
+            let page = Page::read_options(reader, ro, (self.page_size,))?;
+            let is_last_page = &page.page_index == last_page;
+            page_index = page.next_page.clone();
+            pages.push(page);
+
+            if is_last_page {
+                break;
+            }
+        }
+        Ok(pages)
+    }
 }
 
 /// A table page.
