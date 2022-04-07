@@ -395,7 +395,8 @@ pub struct Page {
 }
 
 impl Page {
-    const HEADER_SIZE: usize = 0x28;
+    /// Size of the page header in bytes.
+    pub const HEADER_SIZE: usize = 0x28;
 
     /// Parse the row groups at the end of the page.
     fn parse_row_groups<R: Read + Seek>(
@@ -566,7 +567,7 @@ impl Page {
 #[binrw]
 #[derive(Debug, PartialEq, Clone)]
 #[brw(little)]
-pub struct RowOffset(u16);
+pub struct RowOffset(pub u16);
 
 /// A group of row indices, which are built backwards from the end of the page. Holds up to sixteen
 /// row offsets, along with a bit mask that indicates whether each row is actually present in the
