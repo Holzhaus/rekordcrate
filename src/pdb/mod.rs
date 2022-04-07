@@ -629,7 +629,7 @@ pub enum Row {
         /// Numeric color ID
         color: ColorIndex,
         /// Unknown field.
-        unknown3: u8,
+        unknown3: u16,
         /// User-defined name of the color.
         name: DeviceSQLString,
     },
@@ -898,8 +898,8 @@ impl Row {
     fn parse_color(input: &[u8]) -> IResult<&[u8], Row> {
         let (input, unknown1) = nom::number::complete::le_u32(input)?;
         let (input, unknown2) = nom::number::complete::u8(input)?;
-        let (input, color) = ColorIndex::parse_u16(input)?;
-        let (input, unknown3) = nom::number::complete::u8(input)?;
+        let (input, color) = ColorIndex::parse(input)?;
+        let (input, unknown3) = nom::number::complete::le_u16(input)?;
         let (input, name) = DeviceSQLString::parse(input)?;
         Ok((
             input,
@@ -1021,7 +1021,7 @@ impl Row {
         let (input, sample_depth) = nom::number::complete::le_u16(input)?;
         let (input, duration) = nom::number::complete::le_u16(input)?;
         let (input, unknown5) = nom::number::complete::le_u16(input)?;
-        let (input, color) = ColorIndex::parse_u8(input)?;
+        let (input, color) = ColorIndex::parse(input)?;
         let (input, rating) = nom::number::complete::u8(input)?;
         let (input, unknown6) = nom::number::complete::le_u16(input)?;
         let (input, unknown7) = nom::number::complete::le_u16(input)?;
