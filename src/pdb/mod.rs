@@ -247,7 +247,7 @@ impl Header {
         let position = self
             .page_offset(page_index)
             .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
-        let (data, page) = Page::parse(&input[position..], self.page_size)?;
+        let (data, page) = Page::parse(&input[position..])?;
         Ok((data, page))
     }
 }
@@ -324,22 +324,13 @@ pub struct Page {
     /// > always 0, except 1 for history pages, num entries for strange pages?"
     #[allow(dead_code)]
     unknown7: u16,
-    /// Unknown field.
-    ///
-    /// In contrast to the other fields, this is part of the footer, at the last two bytes of the
-    /// page.
-    #[allow(dead_code)]
-    unknown8: u16,
 }
 
 impl Page {
     const HEADER_SIZE: usize = 0x28;
 
     /// Parses a page of a PDB file.
-    fn parse(page_data: &[u8], page_size: u32) -> IResult<&[u8], Page> {
-        let page_end = usize::try_from(page_size)
-            .map_err(|_| nom_input_error_with_kind(page_data, ErrorKind::TooLarge))?;
-
+    fn parse(page_data: &[u8]) -> IResult<&[u8], Page> {
         // Signature (?)
         let (input, _) = nom::bytes::complete::tag(b"\0\0\0\0")(page_data)?;
         let (input, page_index) = PageIndex::parse(input)?;
@@ -358,8 +349,6 @@ impl Page {
         let (input, unknown6) = nom::number::complete::le_u16(input)?;
         let (input, unknown7) = nom::number::complete::le_u16(input)?;
 
-        let (_, unknown8) = nom::number::complete::le_u16(&page_data[..page_end - 2])?;
-
         let page = Page {
             page_index,
             page_type,
@@ -376,7 +365,6 @@ impl Page {
             num_rows_large,
             unknown6,
             unknown7,
-            unknown8,
         };
 
         Ok((input, page))
