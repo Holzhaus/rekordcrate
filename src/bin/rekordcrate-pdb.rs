@@ -6,8 +6,8 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-use binrw::BinRead;
-use rekordcrate::pdb::{Header, Page, RowGroup};
+use binrw::{BinRead, ReadOptions};
+use rekordcrate::pdb::{Header, Page};
 use std::io::{Seek, SeekFrom};
 
 fn main() {
@@ -25,19 +25,19 @@ fn main() {
             reader
                 .seek(SeekFrom::Start(page_offset))
                 .expect("failed to seek to page offset");
-            let page = Page::read(&mut reader).expect("failed to parse page");
+            let page =
+                Page::read_options(&mut reader, &ReadOptions::default(), (header.page_size,))
+                    .expect("failed to parse page");
             println!("  {:?}", page);
             assert_eq!(page.page_index, page_index);
             let page_data = &data[page_offset.try_into().unwrap()..];
-            page.row_groups(page_data, header.page_size)
-                .for_each(|row_group| {
-                    println!("    {:?}", row_group);
-                    let RowGroup(row_offsets) = row_group;
-                    for row_offset in row_offsets {
-                        let (_, row) = page.row(page_data, &row_offset).unwrap();
-                        println!("      {:?}", row);
-                    }
-                })
+            page.row_groups.iter().for_each(|row_group| {
+                println!("    {:?}", row_group);
+                for row_offset in row_group.present_rows() {
+                    let (_, row) = page.row(page_data, row_offset).unwrap();
+                    println!("      {:?}", row);
+                }
+            })
         }
     }
 }

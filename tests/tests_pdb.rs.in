@@ -17,12 +17,11 @@ fn pdb_{name}() {{
             assert_eq!(page.page_index, page_index);
             let page_offset: usize = header.page_offset(&page_index).try_into().unwrap();
             let page_data = &data[page_offset..];
-            page.row_groups(page_data, header.page_size)
+            page.get_row_groups(page_data, header.page_size)
                 .for_each(|row_group| {{
                     println!("    {{:?}}", row_group);
-                    let RowGroup(row_offsets) = row_group;
-                    for row_offset in row_offsets {{
-                        let (_, row) = page.row(page_data, &row_offset).unwrap();
+                    for row_offset in row_group.present_rows() {{
+                        let (_, row) = page.row(page_data, row_offset).unwrap();
                         println!("      {{:?}}", row);
                     }}
                 }})

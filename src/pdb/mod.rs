@@ -22,7 +22,7 @@ pub mod string;
 
 use crate::pdb::string::DeviceSQLString;
 use crate::util::{nom_input_error_with_kind, ColorIndex};
-use binrw::{binrw, BinResult, FilePtr16, ReadOptions};
+use binrw::{binrw, io::SeekFrom, BinRead, BinResult, FilePtr16, ReadOptions};
 use nom::error::ErrorKind;
 use nom::IResult;
 use std::io::{Read, Seek};
@@ -305,6 +305,7 @@ impl Header {
 #[binrw]
 #[derive(Debug, PartialEq, Clone)]
 #[brw(little, magic = 0u32)]
+#[br(import(page_size: u32))]
 pub struct Page {
     /// Index of the page.
     ///
@@ -371,10 +372,62 @@ pub struct Page {
     /// > always 0, except 1 for history pages, num entries for strange pages?"
     #[allow(dead_code)]
     unknown7: u16,
+
+    #[br(temp)]
+    #[bw(ignore)]
+    #[br(calc = if num_rows_large > num_rows_small.into() && num_rows_large != 0x1fff { num_rows_large } else { num_rows_small.into() })]
+    num_rows: u16,
+
+    #[br(temp)]
+    #[bw(ignore)]
+    #[br(calc = if num_rows > 0 { (num_rows - 1) / RowGroup::MAX_ROW_COUNT + 1 } else { 0 })]
+    num_row_groups: u16,
+
+    #[br(temp)]
+    #[bw(ignore)]
+    #[br(calc = SeekFrom::Current(i64::from(page_size) - i64::try_from(Self::HEADER_SIZE).unwrap() - i64::from(num_rows) * 2 - i64::from(num_row_groups) * 4))]
+    row_groups_offset: SeekFrom,
+
+    /// Row groups belonging to this page.
+    #[br(seek_before(row_groups_offset), restore_position)]
+    #[br(parse_with = Self::parse_row_groups, args(num_rows, num_row_groups))]
+    pub row_groups: Vec<RowGroup>,
 }
 
 impl Page {
     const HEADER_SIZE: usize = 0x28;
+
+    /// Parse the row groups at the end of the page.
+    fn parse_row_groups<R: Read + Seek>(
+        reader: &mut R,
+        ro: &ReadOptions,
+        args: (u16, u16),
+    ) -> BinResult<Vec<RowGroup>> {
+        let (num_rows, num_row_groups) = args;
+        if num_row_groups == 0 {
+            return Ok(vec![]);
+        }
+
+        let mut row_groups = Vec::with_capacity(num_row_groups.into());
+
+        // Calculate number of rows in last row group
+        let mut num_rows_in_last_row_group = num_rows % RowGroup::MAX_ROW_COUNT;
+        if num_rows_in_last_row_group == 0 {
+            num_rows_in_last_row_group = RowGroup::MAX_ROW_COUNT;
+        }
+
+        // Read last row group
+        let row_group = RowGroup::read_options(reader, ro, (num_rows_in_last_row_group,))?;
+        row_groups.push(row_group);
+
+        // Read remaining row groups
+        for _ in 1..num_row_groups {
+            let row_group = RowGroup::read_options(reader, ro, (RowGroup::MAX_ROW_COUNT,))?;
+            row_groups.insert(0, row_group);
+        }
+
+        Ok(row_groups)
+    }
 
     /// Parses a page of a PDB file.
     fn parse(page_data: &[u8]) -> IResult<&[u8], Page> {
@@ -412,6 +465,7 @@ impl Page {
             num_rows_large,
             unknown6,
             unknown7,
+            row_groups: vec![],
         };
 
         Ok((input, page))
@@ -472,7 +526,7 @@ impl Page {
     }
 
     /// The rows groups found in this page.
-    pub fn row_groups<'a>(
+    pub fn get_row_groups<'a>(
         &'a self,
         page_data: &'a [u8],
         page_size: u32,
@@ -514,11 +568,22 @@ impl Page {
 #[brw(little)]
 pub struct RowOffset(u16);
 
-#[derive(Debug)]
 /// A group of row indices, which are built backwards from the end of the page. Holds up to sixteen
 /// row offsets, along with a bit mask that indicates whether each row is actually present in the
 /// table.
-pub struct RowGroup(pub Vec<RowOffset>);
+#[binrw]
+#[derive(Debug, PartialEq, Clone)]
+#[brw(little)]
+#[br(import(num_rows: u16))]
+pub struct RowGroup {
+    #[br(count = num_rows)]
+    rows: Vec<RowOffset>,
+    row_presence_flags: u16,
+    /// Unknown field, probably padding.
+    #[br(temp)]
+    #[bw(calc = 0)]
+    padding: u16,
+}
 
 impl RowGroup {
     const MAX_ROW_COUNT: u16 = 16;
@@ -526,27 +591,35 @@ impl RowGroup {
     fn parse(input: &[u8], num_rows: usize) -> IResult<&[u8], RowGroup> {
         let (input, rows) = nom::multi::count(nom::number::complete::le_u16, num_rows)(input)?;
         let (input, row_presence_flags) = nom::number::complete::le_u16(input)?;
+        let rows = rows.into_iter().map(RowOffset).collect();
 
-        let rows_filtered = rows
-            .into_iter()
+        Ok((
+            input,
+            RowGroup {
+                rows,
+                row_presence_flags,
+            },
+        ))
+    }
+
+    /// Return the ordered list of row offsets that are actually present.
+    pub fn present_rows(&self) -> impl Iterator<Item = &RowOffset> {
+        self.rows
+            .iter()
             .rev()
             .enumerate()
-            .filter_map(|(i, index)| {
-                if (row_presence_flags & (1 << i)) != 0 {
-                    Some(RowOffset(index))
+            .filter_map(|(i, offset)| {
+                if (self.row_presence_flags & (1 << i)) != 0 {
+                    Some(offset)
                 } else {
                     None
                 }
             })
-            .collect();
-
-        Ok((input, RowGroup(rows_filtered)))
     }
 }
 
 impl DeviceSQLString {
     fn parse(input: &[u8]) -> IResult<&[u8], DeviceSQLString> {
-        use binrw::BinRead;
         let mut buf = std::io::Cursor::new(&input);
         let string =
             Self::read(&mut buf).map_err(|_| nom_input_error_with_kind(input, ErrorKind::Fail))?;
