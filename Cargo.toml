@@ -12,7 +12,6 @@ edition = "2021"
 exclude = [".*"]
 
 [dependencies]
-nom = "7"
 binrw = "0.8"
 modular-bitfield = "0.11"
 crc16 = "0.4"
