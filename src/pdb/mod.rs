@@ -21,10 +21,8 @@
 pub mod string;
 
 use crate::pdb::string::DeviceSQLString;
-use crate::util::{nom_input_error_with_kind, ColorIndex};
+use crate::util::ColorIndex;
 use binrw::{binrw, io::SeekFrom, BinRead, BinResult, FilePtr16, ReadOptions};
-use nom::error::ErrorKind;
-use nom::IResult;
 use std::io::{Read, Seek};
 
 /// Do not read anything, but the return the current stream position of `reader`.
@@ -84,85 +82,12 @@ pub enum PageType {
     Unknown(u32),
 }
 
-impl PageType {
-    fn parse(input: &[u8]) -> IResult<&[u8], PageType> {
-        let (input, page_type_id) = nom::number::complete::le_u32(input)?;
-
-        let page_type = match page_type_id {
-            0 => PageType::Tracks,
-            1 => PageType::Genres,
-            2 => PageType::Artists,
-            3 => PageType::Albums,
-            4 => PageType::Labels,
-            5 => PageType::Keys,
-            6 => PageType::Colors,
-            7 => PageType::PlaylistTree,
-            8 => PageType::PlaylistEntries,
-            11 => PageType::HistoryPlaylists,
-            12 => PageType::HistoryEntries,
-            13 => PageType::Artwork,
-            19 => PageType::History,
-            x => PageType::Unknown(x),
-        };
-
-        Ok((input, page_type))
-    }
-}
-
 /// Points to a table page and can be used to calculate the page's file offset by multiplying it
 /// with the page size (found in the file header).
 #[binrw]
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 #[brw(little)]
 pub struct PageIndex(pub u32);
-
-impl PageIndex {
-    fn parse(input: &[u8]) -> IResult<&[u8], PageIndex> {
-        let (input, index) = nom::number::complete::le_u32(input)?;
-        Ok((input, PageIndex(index)))
-    }
-}
-
-struct PageIndexIterator<'a> {
-    current_page_index: Option<PageIndex>,
-    table: &'a Table,
-    header: &'a Header,
-    data: &'a [u8],
-}
-
-impl<'a> PageIndexIterator<'a> {
-    pub fn new(table: &'a Table, header: &'a Header, data: &'a [u8]) -> Self {
-        Self {
-            current_page_index: Some(table.first_page.clone()),
-            table,
-            header,
-            data,
-        }
-    }
-}
-
-impl<'a> Iterator for PageIndexIterator<'a> {
-    type Item = PageIndex;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let item = self.current_page_index.clone();
-        self.current_page_index = self
-            .current_page_index
-            .as_ref()
-            .filter(|current_page_index| (current_page_index != &&self.table.last_page))
-            .and_then(|current_page_index| {
-                let (_, current_page) = self.header.page(self.data, current_page_index).ok()?;
-                let next_page_index = current_page.next_page;
-                Some(next_page_index)
-            });
-
-        item
-    }
-}
-
-// TODO check if this makes sense, when new pages are added, this might not be
-// true
-impl std::iter::FusedIterator for PageIndexIterator<'_> {}
 
 /// Tables are linked lists of pages containing rows of a single type, which are organized
 /// into groups.
@@ -183,34 +108,6 @@ pub struct Table {
     pub first_page: PageIndex,
     /// Index of the last page that belongs to this table.
     pub last_page: PageIndex,
-}
-
-impl Table {
-    fn parse(input: &[u8]) -> IResult<&[u8], Table> {
-        let (input, page_type) = PageType::parse(input)?;
-        let (input, empty_candidate) = nom::number::complete::le_u32(input)?;
-        let (input, first_page) = PageIndex::parse(input)?;
-        let (input, last_page) = PageIndex::parse(input)?;
-
-        Ok((
-            input,
-            Table {
-                page_type,
-                empty_candidate,
-                first_page,
-                last_page,
-            },
-        ))
-    }
-
-    /// An iterator that yields all page indices belonging to this table.
-    pub fn page_indices<'a>(
-        &'a self,
-        header: &'a Header,
-        data: &'a [u8],
-    ) -> impl Iterator<Item = PageIndex> + 'a {
-        PageIndexIterator::new(self, header, data)
-    }
 }
 
 /// The PDB header structure, including the list of tables.
@@ -248,52 +145,10 @@ pub struct Header {
 }
 
 impl Header {
-    /// Parse the header of a PDB file.
-    pub fn parse(input: &[u8]) -> IResult<&[u8], Header> {
-        // Unknown purpose, perhaps an unoriginal signature, seems to always have the value 0.
-        let (input, _) = nom::bytes::complete::tag(b"\0\0\0\0")(input)?;
-
-        let (input, page_size) = nom::number::complete::le_u32(input)?;
-        let (input, num_tables) = nom::number::complete::le_u32(input)?;
-        let table_count = usize::try_from(num_tables)
-            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
-
-        let (input, next_unused_page) = PageIndex::parse(input)?;
-        let (input, unknown) = nom::number::complete::le_u32(input)?;
-        let (input, sequence) = nom::number::complete::le_u32(input)?;
-
-        // Gap
-        let (input, _) = nom::bytes::complete::tag(b"\0\0\0\0")(input)?;
-
-        // Tables
-        let (input, tables) = nom::multi::count(Table::parse, table_count)(input)?;
-
-        Ok((
-            input,
-            Header {
-                page_size,
-                next_unused_page,
-                sequence,
-                unknown,
-                tables,
-            },
-        ))
-    }
-
     /// Returns the offset for the given `page_index`, relative to the start of the PDB file.
     #[must_use]
     pub fn page_offset(&self, PageIndex(page_index): &PageIndex) -> u64 {
         (page_index * self.page_size).into()
-    }
-
-    /// Parses and returns a page from the original data slice.
-    pub fn page<'a>(&self, input: &'a [u8], page_index: &PageIndex) -> IResult<&'a [u8], Page> {
-        let position: usize = self
-            .page_offset(page_index)
-            .try_into()
-            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
-        let (data, page) = Page::parse(&input[position..])?;
-        Ok((data, page))
     }
 
     /// Returns pages for the given Table.
@@ -458,48 +313,6 @@ impl Page {
         Ok(row_groups)
     }
 
-    /// Parses a page of a PDB file.
-    fn parse(page_data: &[u8]) -> IResult<&[u8], Page> {
-        // Signature (?)
-        let (input, _) = nom::bytes::complete::tag(b"\0\0\0\0")(page_data)?;
-        let (input, page_index) = PageIndex::parse(input)?;
-        let (input, page_type) = PageType::parse(input)?;
-        let (input, next_page) = PageIndex::parse(input)?;
-        let (input, unknown1) = nom::number::complete::le_u32(input)?;
-        let (input, unknown2) = nom::number::complete::le_u32(input)?;
-        let (input, num_rows_small) = nom::number::complete::u8(input)?;
-        let (input, unknown3) = nom::number::complete::u8(input)?;
-        let (input, unknown4) = nom::number::complete::u8(input)?;
-        let (input, page_flags) = nom::number::complete::u8(input)?;
-        let (input, free_size) = nom::number::complete::le_u16(input)?;
-        let (input, used_size) = nom::number::complete::le_u16(input)?;
-        let (input, unknown5) = nom::number::complete::le_u16(input)?;
-        let (input, num_rows_large) = nom::number::complete::le_u16(input)?;
-        let (input, unknown6) = nom::number::complete::le_u16(input)?;
-        let (input, unknown7) = nom::number::complete::le_u16(input)?;
-
-        let page = Page {
-            page_index,
-            page_type,
-            next_page,
-            unknown1,
-            unknown2,
-            num_rows_small,
-            unknown3,
-            unknown4,
-            page_flags,
-            free_size,
-            used_size,
-            unknown5,
-            num_rows_large,
-            unknown6,
-            unknown7,
-            row_groups: vec![],
-        };
-
-        Ok((input, page))
-    }
-
     #[must_use]
     /// Returns `true` if the page actually contains row data.
     pub fn has_data(&self) -> bool {
@@ -531,62 +344,6 @@ impl Page {
             0
         }
     }
-
-    /// The number of row groups that are present in the index. Each group can hold up to sixteen
-    /// rows. All but the final one will hold sixteen rows.
-    fn row_group_counts(&self) -> impl Iterator<Item = u16> + '_ {
-        let num_groups = if self.has_data() {
-            self.num_row_groups()
-        } else {
-            0u16
-        };
-        (0..num_groups).map(move |i| {
-            if (i + 1) == num_groups {
-                let num = self.num_rows() % RowGroup::MAX_ROW_COUNT;
-                if num == 0 {
-                    RowGroup::MAX_ROW_COUNT
-                } else {
-                    num
-                }
-            } else {
-                RowGroup::MAX_ROW_COUNT
-            }
-        })
-    }
-
-    /// The rows groups found in this page.
-    pub fn get_row_groups<'a>(
-        &'a self,
-        page_data: &'a [u8],
-        page_size: u32,
-    ) -> impl Iterator<Item = RowGroup> + 'a {
-        let row_groups_offset = usize::try_from(page_size).unwrap();
-        self.row_group_counts()
-            .map(usize::try_from)
-            .map(Result::unwrap)
-            .scan(row_groups_offset, |offset, num_rows_in_group| {
-                *offset -= num_rows_in_group * 2 + 4;
-                Some((*offset, num_rows_in_group))
-            })
-            .map(|(offset, num_rows_in_group)| {
-                let (_, row_group) =
-                    RowGroup::parse(&page_data[offset..], num_rows_in_group).unwrap();
-                row_group
-            })
-    }
-
-    /// Get the page row from the `page_data` slice.
-    pub fn row<'a>(
-        &self,
-        page_data: &'a [u8],
-        &RowOffset(row_offset): &RowOffset,
-    ) -> IResult<&'a [u8], Row> {
-        let row_offset = usize::try_from(row_offset)
-            .map_err(|_| nom_input_error_with_kind(page_data, ErrorKind::TooLarge))?;
-        let offset = Self::HEADER_SIZE + row_offset;
-        let (input, row) = Row::parse(&page_data[offset..], &self.page_type)?;
-        Ok((input, row))
-    }
 }
 
 /// An offset which points to a row in the table, whose actual presence is controlled by one of the
@@ -617,20 +374,6 @@ pub struct RowGroup {
 impl RowGroup {
     const MAX_ROW_COUNT: u16 = 16;
 
-    fn parse(input: &[u8], num_rows: usize) -> IResult<&[u8], RowGroup> {
-        let (input, rows) = nom::multi::count(nom::number::complete::le_u16, num_rows)(input)?;
-        let (input, row_presence_flags) = nom::number::complete::le_u16(input)?;
-        let rows = rows.into_iter().map(RowOffset).collect();
-
-        Ok((
-            input,
-            RowGroup {
-                rows,
-                row_presence_flags,
-            },
-        ))
-    }
-
     /// Return the ordered list of row offsets that are actually present.
     pub fn present_rows(&self) -> impl Iterator<Item = &RowOffset> {
         self.rows
@@ -644,21 +387,6 @@ impl RowGroup {
                     None
                 }
             })
-    }
-}
-
-impl DeviceSQLString {
-    fn parse(input: &[u8]) -> IResult<&[u8], DeviceSQLString> {
-        let mut buf = std::io::Cursor::new(&input);
-        let string =
-            Self::read(&mut buf).map_err(|_| nom_input_error_with_kind(input, ErrorKind::Fail))?;
-        let position: usize = buf
-            .stream_position()
-            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::LengthValue))?
-            .try_into()
-            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
-        let new_input = &input[position..];
-        Ok((new_input, string))
     }
 }
 
@@ -941,310 +669,4 @@ pub enum Row {
     /// The row format (and also its size) is unknown, which means it can't be parsed.
     #[br(pre_assert(matches!(page_type, PageType::History | PageType::Unknown(_))))]
     Unknown,
-}
-
-impl Row {
-    fn parse<'a>(input: &'a [u8], page_type: &PageType) -> IResult<&'a [u8], Row> {
-        match page_type {
-            PageType::Albums => Row::parse_album(input),
-            PageType::Artists => Row::parse_artist(input),
-            PageType::Artwork => Row::parse_artwork(input),
-            PageType::Colors => Row::parse_color(input),
-            PageType::PlaylistTree => Row::parse_playlist_tree_node(input),
-            PageType::PlaylistEntries => Row::parse_playlist_entry(input),
-            PageType::Genres => Row::parse_genre(input),
-            PageType::HistoryPlaylists => Row::parse_history_playlist(input),
-            PageType::HistoryEntries => Row::parse_history_entry(input),
-            PageType::Keys => Row::parse_key(input),
-            PageType::Labels => Row::parse_label(input),
-            PageType::Tracks => Row::parse_track(input),
-            _ => Ok((input, Row::Unknown)),
-        }
-    }
-
-    fn parse_string_offset<'a>(
-        input: &'a [u8],
-        row_data: &'a [u8],
-    ) -> IResult<&'a [u8], DeviceSQLString> {
-        let (input, offset) = nom::number::complete::le_u16(input)?;
-        let (_, text) = DeviceSQLString::parse(&row_data[usize::from(offset)..])?;
-        Ok((input, text))
-    }
-
-    fn parse_album(row_data: &[u8]) -> IResult<&[u8], Row> {
-        let (input, unknown1) = nom::number::complete::le_u16(row_data)?;
-        let (input, index_shift) = nom::number::complete::le_u16(input)?;
-        let (input, unknown2) = nom::number::complete::le_u32(input)?;
-        let (input, artist_id) = nom::number::complete::le_u32(input)?;
-        let (input, id) = nom::number::complete::le_u32(input)?;
-        let (input, unknown3) = nom::number::complete::le_u32(input)?;
-        let (input, unknown4) = nom::number::complete::u8(input)?;
-        let (input, offset) = nom::number::complete::u8(input)?;
-        let (_, name) = DeviceSQLString::parse(&row_data[usize::from(offset)..])?;
-
-        Ok((
-            input,
-            Row::Album {
-                unknown1,
-                index_shift,
-                unknown2,
-                artist_id,
-                id,
-                unknown3,
-                unknown4,
-                name,
-            },
-        ))
-    }
-
-    fn parse_artist(row_data: &[u8]) -> IResult<&[u8], Row> {
-        let (input, subtype) = nom::number::complete::le_u16(row_data)?;
-        let (input, index_shift) = nom::number::complete::le_u16(input)?;
-        let (input, id) = nom::number::complete::le_u32(input)?;
-        let (input, unknown1) = nom::number::complete::u8(input)?;
-        let (input, ofs_name_near) = nom::number::complete::u8(input)?;
-        let mut ofs_name_far: Option<u16> = None;
-        let (input, name) = if subtype == 0x60 {
-            let (_, text) = DeviceSQLString::parse(&row_data[usize::from(ofs_name_near)..])?;
-            (input, text)
-        } else {
-            let (input, ofs_name) = nom::number::complete::le_u16(row_data)?;
-            ofs_name_far = Some(ofs_name);
-            let (_, text) = DeviceSQLString::parse(&row_data[usize::from(ofs_name)..])?;
-            (input, text)
-        };
-
-        Ok((
-            input,
-            Row::Artist {
-                subtype,
-                index_shift,
-                id,
-                unknown1,
-                ofs_name_near,
-                ofs_name_far,
-                name,
-            },
-        ))
-    }
-
-    fn parse_artwork(row_data: &[u8]) -> IResult<&[u8], Row> {
-        let (input, id) = nom::number::complete::le_u32(row_data)?;
-        let (input, path) = DeviceSQLString::parse(input)?;
-
-        Ok((input, Row::Artwork { id, path }))
-    }
-
-    fn parse_color(input: &[u8]) -> IResult<&[u8], Row> {
-        let (input, unknown1) = nom::number::complete::le_u32(input)?;
-        let (input, unknown2) = nom::number::complete::u8(input)?;
-        let (input, color) = ColorIndex::parse(input)?;
-        let (input, unknown3) = nom::number::complete::le_u16(input)?;
-        let (input, name) = DeviceSQLString::parse(input)?;
-        Ok((
-            input,
-            Row::Color {
-                unknown1,
-                unknown2,
-                color,
-                unknown3,
-                name,
-            },
-        ))
-    }
-
-    fn parse_genre(row_data: &[u8]) -> IResult<&[u8], Row> {
-        let (input, id) = nom::number::complete::le_u32(row_data)?;
-        let (input, name) = DeviceSQLString::parse(input)?;
-
-        Ok((input, Row::Genre { id, name }))
-    }
-
-    fn parse_history_playlist(row_data: &[u8]) -> IResult<&[u8], Row> {
-        let (input, id) = nom::number::complete::le_u32(row_data)?;
-        let (input, name) = DeviceSQLString::parse(input)?;
-
-        Ok((input, Row::HistoryPlaylist { id, name }))
-    }
-
-    fn parse_history_entry(row_data: &[u8]) -> IResult<&[u8], Row> {
-        let (input, track_id) = nom::number::complete::le_u32(row_data)?;
-        let (input, playlist_id) = nom::number::complete::le_u32(input)?;
-        let (input, entry_index) = nom::number::complete::le_u32(input)?;
-
-        Ok((
-            input,
-            Row::HistoryEntry {
-                track_id,
-                playlist_id,
-                entry_index,
-            },
-        ))
-    }
-
-    fn parse_key(row_data: &[u8]) -> IResult<&[u8], Row> {
-        let (input, id) = nom::number::complete::le_u32(row_data)?;
-        let (input, id2) = nom::number::complete::le_u32(input)?;
-        let (input, name) = DeviceSQLString::parse(input)?;
-
-        Ok((input, Row::Key { id, id2, name }))
-    }
-
-    fn parse_label(row_data: &[u8]) -> IResult<&[u8], Row> {
-        let (input, id) = nom::number::complete::le_u32(row_data)?;
-        let (input, name) = DeviceSQLString::parse(input)?;
-
-        Ok((input, Row::Label { id, name }))
-    }
-
-    fn parse_playlist_tree_node(row_data: &[u8]) -> IResult<&[u8], Row> {
-        let (input, parent_id) = nom::number::complete::le_u32(row_data)?;
-        let (input, unknown) = nom::number::complete::le_u32(input)?;
-        let (input, sort_order) = nom::number::complete::le_u32(input)?;
-        let (input, id) = nom::number::complete::le_u32(input)?;
-        let (input, node_is_folder) = nom::number::complete::le_u32(input)?;
-        let (input, name) = DeviceSQLString::parse(input)?;
-
-        Ok((
-            input,
-            Row::PlaylistTreeNode {
-                parent_id,
-                unknown,
-                sort_order,
-                id,
-                node_is_folder,
-                name,
-            },
-        ))
-    }
-
-    fn parse_playlist_entry(row_data: &[u8]) -> IResult<&[u8], Row> {
-        let (input, entry_index) = nom::number::complete::le_u32(row_data)?;
-        let (input, track_id) = nom::number::complete::le_u32(input)?;
-        let (input, playlist_id) = nom::number::complete::le_u32(input)?;
-
-        Ok((
-            input,
-            Row::PlaylistEntry {
-                entry_index,
-                track_id,
-                playlist_id,
-            },
-        ))
-    }
-
-    fn parse_track(row_data: &[u8]) -> IResult<&[u8], Row> {
-        let (input, unknown1) = nom::number::complete::le_u16(row_data)?;
-        let (input, index_shift) = nom::number::complete::le_u16(input)?;
-        let (input, bitmask) = nom::number::complete::le_u32(input)?;
-        let (input, sample_rate) = nom::number::complete::le_u32(input)?;
-        let (input, composer_id) = nom::number::complete::le_u32(input)?;
-        let (input, file_size) = nom::number::complete::le_u32(input)?;
-        let (input, unknown2) = nom::number::complete::le_u32(input)?;
-        let (input, unknown3) = nom::number::complete::le_u16(input)?;
-        let (input, unknown4) = nom::number::complete::le_u16(input)?;
-        let (input, artwork_id) = nom::number::complete::le_u32(input)?;
-        let (input, key_id) = nom::number::complete::le_u32(input)?;
-        let (input, orig_artist_id) = nom::number::complete::le_u32(input)?;
-        let (input, label_id) = nom::number::complete::le_u32(input)?;
-        let (input, remixer_id) = nom::number::complete::le_u32(input)?;
-        let (input, bitrate) = nom::number::complete::le_u32(input)?;
-        let (input, track_number) = nom::number::complete::le_u32(input)?;
-        let (input, tempo) = nom::number::complete::le_u32(input)?;
-        let (input, genre_id) = nom::number::complete::le_u32(input)?;
-        let (input, album_id) = nom::number::complete::le_u32(input)?;
-        let (input, artist_id) = nom::number::complete::le_u32(input)?;
-        let (input, id) = nom::number::complete::le_u32(input)?;
-        let (input, disc_number) = nom::number::complete::le_u16(input)?;
-        let (input, play_count) = nom::number::complete::le_u16(input)?;
-        let (input, year) = nom::number::complete::le_u16(input)?;
-        let (input, sample_depth) = nom::number::complete::le_u16(input)?;
-        let (input, duration) = nom::number::complete::le_u16(input)?;
-        let (input, unknown5) = nom::number::complete::le_u16(input)?;
-        let (input, color) = ColorIndex::parse(input)?;
-        let (input, rating) = nom::number::complete::u8(input)?;
-        let (input, unknown6) = nom::number::complete::le_u16(input)?;
-        let (input, unknown7) = nom::number::complete::le_u16(input)?;
-
-        // String offsets
-        let (input, isrc) = Self::parse_string_offset(input, row_data)?;
-        let (input, unknown_string1) = Self::parse_string_offset(input, row_data)?;
-        let (input, unknown_string2) = Self::parse_string_offset(input, row_data)?;
-        let (input, unknown_string3) = Self::parse_string_offset(input, row_data)?;
-        let (input, unknown_string4) = Self::parse_string_offset(input, row_data)?;
-        let (input, message) = Self::parse_string_offset(input, row_data)?;
-        let (input, kuvo_public) = Self::parse_string_offset(input, row_data)?;
-        let (input, autoload_hotcues) = Self::parse_string_offset(input, row_data)?;
-        let (input, unknown_string5) = Self::parse_string_offset(input, row_data)?;
-        let (input, unknown_string6) = Self::parse_string_offset(input, row_data)?;
-        let (input, date_added) = Self::parse_string_offset(input, row_data)?;
-        let (input, release_date) = Self::parse_string_offset(input, row_data)?;
-        let (input, mix_name) = Self::parse_string_offset(input, row_data)?;
-        let (input, unknown_string7) = Self::parse_string_offset(input, row_data)?;
-        let (input, analyze_path) = Self::parse_string_offset(input, row_data)?;
-        let (input, analyze_date) = Self::parse_string_offset(input, row_data)?;
-        let (input, comment) = Self::parse_string_offset(input, row_data)?;
-        let (input, title) = Self::parse_string_offset(input, row_data)?;
-        let (input, unknown_string8) = Self::parse_string_offset(input, row_data)?;
-        let (input, filename) = Self::parse_string_offset(input, row_data)?;
-        let (input, file_path) = Self::parse_string_offset(input, row_data)?;
-
-        Ok((
-            input,
-            Row::Track {
-                unknown1,
-                index_shift,
-                bitmask,
-                sample_rate,
-                composer_id,
-                file_size,
-                unknown2,
-                unknown3,
-                unknown4,
-                artwork_id,
-                key_id,
-                orig_artist_id,
-                label_id,
-                remixer_id,
-                bitrate,
-                track_number,
-                tempo,
-                genre_id,
-                album_id,
-                artist_id,
-                id,
-                disc_number,
-                play_count,
-                year,
-                sample_depth,
-                duration,
-                unknown5,
-                color,
-                rating,
-                unknown6,
-                unknown7,
-                isrc,
-                unknown_string1,
-                unknown_string2,
-                unknown_string3,
-                unknown_string4,
-                message,
-                kuvo_public,
-                autoload_hotcues,
-                unknown_string5,
-                unknown_string6,
-                date_added,
-                release_date,
-                mix_name,
-                unknown_string7,
-                analyze_path,
-                analyze_date,
-                comment,
-                title,
-                unknown_string8,
-                filename,
-                file_path,
-            },
-        ))
-    }
 }
