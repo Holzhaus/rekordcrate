@@ -32,7 +32,7 @@ fn current_offset<R: Read + Seek>(reader: &mut R, _: &ReadOptions, _: ()) -> Bin
 
 /// The type of pages found inside a `Table`.
 #[binrw]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Copy)]
 #[brw(little)]
 pub enum PageType {
     /// Holds rows of track metadata, such as title, artist, genre, artwork ID, playing time, etc.
@@ -187,7 +187,7 @@ impl Header {
 /// **Note: The `Page` struct is currently not writable, because row offsets are not taken into
 /// account and rows are not serialized correctly yet.**
 #[binread]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq)]
 #[br(little, magic = 0u32)]
 #[br(import(page_size: u32))]
 pub struct Page {
@@ -274,25 +274,31 @@ pub struct Page {
     ///
     /// **Note:** This is a virtual field and not actually read from the file.
     #[br(temp)]
-    #[br(calc = SeekFrom::Current(i64::from(page_size) - i64::try_from(Self::HEADER_SIZE).unwrap() - i64::from(num_rows) * 2 - i64::from(num_row_groups) * 4))]
+    #[br(calc = SeekFrom::Current(i64::from(page_size) - i64::from(Self::HEADER_SIZE) - i64::from(num_rows) * 2 - i64::from(num_row_groups) * 4))]
     row_groups_offset: SeekFrom,
+    /// The offset at which the row data for this page are located.
+    ///
+    /// **Note:** This is a virtual field and not actually read from the file.
+    #[br(temp)]
+    #[br(calc = (page_index.0 * page_size + Self::HEADER_SIZE).into())]
+    page_heap_offset: u64,
     /// Row groups belonging to this page.
     #[br(seek_before(row_groups_offset), restore_position)]
-    #[br(parse_with = Self::parse_row_groups, args(num_rows, num_row_groups))]
+    #[br(parse_with = Self::parse_row_groups, args(page_type, page_heap_offset, num_rows, num_row_groups))]
     pub row_groups: Vec<RowGroup>,
 }
 
 impl Page {
     /// Size of the page header in bytes.
-    pub const HEADER_SIZE: usize = 0x28;
+    pub const HEADER_SIZE: u32 = 0x28;
 
     /// Parse the row groups at the end of the page.
     fn parse_row_groups<R: Read + Seek>(
         reader: &mut R,
         ro: &ReadOptions,
-        args: (u16, u16),
+        args: (PageType, u64, u16, u16),
     ) -> BinResult<Vec<RowGroup>> {
-        let (num_rows, num_row_groups) = args;
+        let (page_type, page_heap_offset, num_rows, num_row_groups) = args;
         if num_row_groups == 0 {
             return Ok(vec![]);
         }
@@ -306,12 +312,20 @@ impl Page {
         }
 
         // Read last row group
-        let row_group = RowGroup::read_options(reader, ro, (num_rows_in_last_row_group,))?;
+        let row_group = RowGroup::read_options(
+            reader,
+            ro,
+            (page_type, page_heap_offset, num_rows_in_last_row_group),
+        )?;
         row_groups.push(row_group);
 
         // Read remaining row groups
         for _ in 1..num_row_groups {
-            let row_group = RowGroup::read_options(reader, ro, (RowGroup::MAX_ROW_COUNT,))?;
+            let row_group = RowGroup::read_options(
+                reader,
+                ro,
+                (page_type, page_heap_offset, RowGroup::MAX_ROW_COUNT),
+            )?;
             row_groups.insert(0, row_group);
         }
 
@@ -353,24 +367,19 @@ impl Page {
     }
 }
 
-/// An offset which points to a row in the table, whose actual presence is controlled by one of the
-/// bits in `row_present_flags`. This instance allows the row itself to be lazily loaded, unless it
-/// is not present, in which case there is no content to be loaded.
-#[binrw]
-#[derive(Debug, PartialEq, Clone)]
-#[brw(little)]
-pub struct RowOffset(pub u16);
-
 /// A group of row indices, which are built backwards from the end of the page. Holds up to sixteen
 /// row offsets, along with a bit mask that indicates whether each row is actually present in the
 /// table.
-#[binrw]
-#[derive(Debug, PartialEq, Clone)]
+#[binread]
+#[derive(Debug, PartialEq)]
 #[brw(little)]
-#[br(import(num_rows: u16))]
+#[br(import(page_type: PageType, page_heap_offset: u64, num_rows: u16))]
 pub struct RowGroup {
-    #[br(count = num_rows)]
-    rows: Vec<RowOffset>,
+    /// An offset which points to a row in the table, whose actual presence is controlled by one of the
+    /// bits in `row_present_flags`. This instance allows the row itself to be lazily loaded, unless it
+    /// is not present, in which case there is no content to be loaded.
+    #[br(offset = page_heap_offset, args { count: num_rows.into(), inner: (page_type,) })]
+    rows: Vec<FilePtr16<Row>>,
     row_presence_flags: u16,
     /// Unknown field, probably padding.
     ///
@@ -382,14 +391,14 @@ impl RowGroup {
     const MAX_ROW_COUNT: u16 = 16;
 
     /// Return the ordered list of row offsets that are actually present.
-    pub fn present_rows(&self) -> impl Iterator<Item = &RowOffset> {
+    pub fn present_rows(&self) -> impl Iterator<Item = &Row> {
         self.rows
             .iter()
             .rev()
             .enumerate()
-            .filter_map(|(i, offset)| {
+            .filter_map(|(i, row_offset)| {
                 if (self.row_presence_flags & (1 << i)) != 0 {
-                    Some(offset)
+                    row_offset.value.as_ref()
                 } else {
                     None
                 }
