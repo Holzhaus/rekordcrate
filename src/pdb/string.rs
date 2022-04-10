@@ -12,6 +12,7 @@
 //! See <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/exports.html#devicesql-strings>
 
 use binrw::{binrw, NullString};
+use std::fmt;
 
 const MAX_SHORTSTR_SIZE: usize = ((u8::MAX >> 1) - 1) as usize;
 
@@ -49,7 +50,7 @@ pub enum StringError {
 /// # Ok(())
 /// # }
 /// ```
-#[derive(Debug, PartialEq)]
+#[derive(PartialEq, Clone)]
 #[binrw]
 pub struct DeviceSQLString(DeviceSQLStringImpl);
 impl DeviceSQLString {
@@ -131,11 +132,21 @@ impl DeviceSQLString {
     }
 }
 
+impl fmt::Debug for DeviceSQLString {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let value = self
+            .clone()
+            .into_string()
+            .unwrap_or_else(|_| "<string error>".to_string());
+        fmt.debug_tuple("DeviceSQLString").field(&value).finish()
+    }
+}
+
 /// A String encapsulating how DeviceSQL VARCHAR's are structured
 ///
 /// This implementation forces them to be immutable for now
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 enum DeviceSQLStringImpl {
     /// Short-String optimization case
     ShortASCII {
@@ -168,7 +179,7 @@ enum DeviceSQLStringImpl {
 }
 
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 #[br(import(flags: u8, len: u16))]
 enum LongBody {
     // Ordering is important otherwise, UCS2LE strings could be parsed

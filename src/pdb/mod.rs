@@ -20,6 +20,7 @@
 
 pub mod string;
 
+use crate::pdb::string::DeviceSQLString;
 use crate::util::{nom_input_error_with_kind, ColorIndex};
 use nom::error::ErrorKind;
 use nom::IResult;
@@ -495,81 +496,20 @@ impl RowGroup {
     }
 }
 
-#[derive(Debug)]
-/// A string.
-pub enum DeviceSQLString {
-    /// A short ASCII encoded string (max 126 characters).
-    ShortASCII(String),
-    /// A long ASCII encoded string (max 65535 characters).
-    LongASCII(String),
-    /// A long UTF-16 little-endian encoded string (max 32767 characters).
-    LongUTF16LE(String),
-    /// A ShortASCII variant that is needed to workaround the special ISRC string
-    /// NOTE: the serialized string is a null-terminated C-String
-    ISRCASCII(String),
-}
-
 impl DeviceSQLString {
     fn parse(input: &[u8]) -> IResult<&[u8], DeviceSQLString> {
-        let (_, length_and_kind) = nom::number::complete::u8(input)?;
-        match length_and_kind {
-            0x40 => Self::parse_long_ascii(input),
-            0x90 => nom::branch::alt((Self::parse_isrc_string, Self::parse_long_utf16le))(input),
-            _ => Self::parse_short_ascii(input),
-        }
-    }
-
-    fn parse_short_ascii(input: &[u8]) -> IResult<&[u8], DeviceSQLString> {
-        let (input, mangled_length) = nom::number::complete::u8(input)?;
-        let length = ((mangled_length - 1) / 2) - 1;
-        let (input, data) = nom::bytes::complete::take(length)(input)?;
-        std::str::from_utf8(data).map_or_else(
-            |_| Err(nom_input_error_with_kind(input, ErrorKind::Char)),
-            |text| Ok((input, Self::ShortASCII(text.to_owned()))),
-        )
-    }
-
-    fn parse_isrc_string(input: &[u8]) -> IResult<&[u8], DeviceSQLString> {
-        let (input, _) = nom::bytes::complete::tag(b"\x90")(input)?;
-        let (input, length) = nom::number::complete::le_u16(input)?;
-        let (input, _) = nom::bytes::complete::tag(b"\x00\x03")(input)?;
-        let (input, data) = nom::bytes::complete::take(length - 5)(input)?;
-        std::str::from_utf8(data).map_or_else(
-            |_| Err(nom_input_error_with_kind(input, ErrorKind::Char)),
-            |text| Ok((input, Self::ISRCASCII(text.to_owned()))),
-        )
-    }
-
-    fn parse_long_ascii(input: &[u8]) -> IResult<&[u8], DeviceSQLString> {
-        let (input, _) = nom::bytes::complete::tag(b"\x40")(input)?;
-        let (input, length) = nom::number::complete::le_u16(input)?;
-        let (input, _) = nom::bytes::complete::tag(b"\x00")(input)?;
-
-        let str_length = usize::from(length - 4);
-        let (input, data) = nom::bytes::complete::take(str_length)(input)?;
-
-        std::str::from_utf8(data).map_or_else(
-            |_| Err(nom_input_error_with_kind(input, ErrorKind::Char)),
-            |text| Ok((input, Self::LongASCII(text.to_owned()))),
-        )
-    }
-
-    fn parse_long_utf16le(input: &[u8]) -> IResult<&[u8], DeviceSQLString> {
-        let (input, _) = nom::bytes::complete::tag(b"\x90")(input)?;
-        let (input, length) = nom::number::complete::le_u16(input)?;
-        let (input, _) = nom::bytes::complete::tag(b"\x00")(input)?;
-
-        // The length is in bytes, UTF-16 code points are always 2 bytes wide,
-        // so a valid length must be even.
-        debug_assert_eq!(length % 2, 0);
-
-        let str_length = usize::from(length - 4) / 2;
-        let (input, data) = nom::multi::count(nom::number::complete::le_u16, str_length)(input)?;
-
-        String::from_utf16(&data).map_or_else(
-            |_| Err(nom_input_error_with_kind(input, ErrorKind::Char)),
-            |text| Ok((input, Self::LongUTF16LE(text))),
-        )
+        use binrw::BinRead;
+        use std::io::Seek;
+        let mut buf = std::io::Cursor::new(&input);
+        let string =
+            Self::read(&mut buf).map_err(|_| nom_input_error_with_kind(input, ErrorKind::Fail))?;
+        let position: usize = buf
+            .stream_position()
+            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::LengthValue))?
+            .try_into()
+            .map_err(|_| nom_input_error_with_kind(input, ErrorKind::TooLarge))?;
+        let new_input = &input[position..];
+        Ok((new_input, string))
     }
 }
 
