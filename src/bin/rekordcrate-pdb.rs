@@ -28,7 +28,7 @@ fn main() {
             .unwrap()
             .into_iter()
         {
-            let page_offset = header.page_offset(&page.page_index);
+            let page_offset = page.page_index.offset(header.page_size);
             println!("  {:?}", page);
             page.row_groups.iter().for_each(|row_group| {
                 println!("    {:?}", row_group);

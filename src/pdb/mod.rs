@@ -87,7 +87,15 @@ pub enum PageType {
 #[binrw]
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 #[brw(little)]
-pub struct PageIndex(pub u32);
+pub struct PageIndex(u32);
+
+impl PageIndex {
+    /// Calculate the absolute file offset of the page in the PDB file for the given `page_size`.
+    #[must_use]
+    pub fn offset(&self, page_size: u32) -> u64 {
+        u64::from(self.0) * u64::from(page_size)
+    }
+}
 
 /// Tables are linked lists of pages containing rows of a single type, which are organized
 /// into groups.
@@ -145,12 +153,6 @@ pub struct Header {
 }
 
 impl Header {
-    /// Returns the offset for the given `page_index`, relative to the start of the PDB file.
-    #[must_use]
-    pub fn page_offset(&self, PageIndex(page_index): &PageIndex) -> u64 {
-        (page_index * self.page_size).into()
-    }
-
     /// Returns pages for the given Table.
     pub fn read_pages<R: Read + Seek>(
         &self,
@@ -163,9 +165,9 @@ impl Header {
         let mut pages = vec![];
         let mut page_index = first_page.clone();
         loop {
-            let page_offset = self.page_offset(&page_index);
+            let page_offset = SeekFrom::Start(page_index.offset(self.page_size));
             reader
-                .seek(SeekFrom::Start(page_offset))
+                .seek(page_offset)
                 .expect("failed to seek to page offset");
             let page = Page::read_options(reader, ro, (self.page_size,))?;
             let is_last_page = &page.page_index == last_page;
