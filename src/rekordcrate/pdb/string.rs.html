@@ -302,6 +302,17 @@
 <span id="300">300</span>
 <span id="301">301</span>
 <span id="302">302</span>
+<span id="303">303</span>
+<span id="304">304</span>
+<span id="305">305</span>
+<span id="306">306</span>
+<span id="307">307</span>
+<span id="308">308</span>
+<span id="309">309</span>
+<span id="310">310</span>
+<span id="311">311</span>
+<span id="312">312</span>
+<span id="313">313</span>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) 2022 Nikolaus Einhauser</span>
 <span class="comment">//</span>
 <span class="comment">// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy</span>
@@ -316,6 +327,7 @@
 <span class="doccomment">//! See &lt;https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/exports.html#devicesql-strings&gt;</span>
 
 <span class="kw">use</span> <span class="ident">binrw</span>::{<span class="ident">binrw</span>, <span class="ident">NullString</span>};
+<span class="kw">use</span> <span class="ident">std::fmt</span>;
 
 <span class="kw">const</span> <span class="ident">MAX_SHORTSTR_SIZE</span>: <span class="ident">usize</span> <span class="op">=</span> ((<span class="ident">u8::MAX</span> <span class="op">&gt;</span><span class="op">&gt;</span> <span class="number">1</span>) <span class="op">-</span> <span class="number">1</span>) <span class="kw">as</span> <span class="ident">usize</span>;
 
@@ -353,7 +365,7 @@
 <span class="doccomment">/// # Ok(())</span>
 <span class="doccomment">/// # }</span>
 <span class="doccomment">/// ```</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">PartialEq</span>, <span class="ident">Clone</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">DeviceSQLString</span>(<span class="ident">DeviceSQLStringImpl</span>);
 <span class="kw">impl</span> <span class="ident">DeviceSQLString</span> {
@@ -435,11 +447,21 @@
     }
 }
 
+<span class="kw">impl</span> <span class="ident">fmt::Debug</span> <span class="kw">for</span> <span class="ident">DeviceSQLString</span> {
+    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">fmt</span>: <span class="kw-2">&amp;mut</span> <span class="ident">fmt::Formatter</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>) -&gt; <span class="ident">fmt::Result</span> {
+        <span class="kw">let</span> <span class="ident">value</span> <span class="op">=</span> <span class="self">self</span>
+            .<span class="ident">clone</span>()
+            .<span class="ident">into_string</span>()
+            .<span class="ident">unwrap_or_else</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="string">&quot;&lt;string error&gt;&quot;</span>.<span class="ident">to_string</span>());
+        <span class="ident">fmt</span>.<span class="ident">debug_tuple</span>(<span class="string">&quot;DeviceSQLString&quot;</span>).<span class="ident">field</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>).<span class="ident">finish</span>()
+    }
+}
+
 <span class="doccomment">/// A String encapsulating how DeviceSQL VARCHAR&#39;s are structured</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// This implementation forces them to be immutable for now</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Clone</span>)]</span>
 <span class="kw">enum</span> <span class="ident">DeviceSQLStringImpl</span> {
     <span class="doccomment">/// Short-String optimization case</span>
     <span class="ident">ShortASCII</span> {
@@ -472,7 +494,7 @@
 }
 
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Clone</span>)]</span>
 <span class="attribute">#[<span class="ident">br</span>(<span class="ident">import</span>(<span class="ident">flags</span>: <span class="ident">u8</span>, <span class="ident">len</span>: <span class="ident">u16</span>))]</span>
 <span class="kw">enum</span> <span class="ident">LongBody</span> {
     <span class="comment">// Ordering is important otherwise, UCS2LE strings could be parsed</span>
