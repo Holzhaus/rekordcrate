@@ -1621,7 +1621,7 @@
         <span class="doccomment">/// Numeric color ID</span>
         <span class="ident">color</span>: <span class="ident">ColorIndex</span>,
         <span class="doccomment">/// Unknown field.</span>
-        <span class="ident">unknown3</span>: <span class="ident">u8</span>,
+        <span class="ident">unknown3</span>: <span class="ident">u16</span>,
         <span class="doccomment">/// User-defined name of the color.</span>
         <span class="ident">name</span>: <span class="ident">DeviceSQLString</span>,
     },
@@ -1890,8 +1890,8 @@
     <span class="kw">fn</span> <span class="ident">parse_color</span>(<span class="ident">input</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) -&gt; <span class="ident">IResult</span><span class="op">&lt;</span><span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="ident">Row</span><span class="op">&gt;</span> {
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">unknown1</span>) <span class="op">=</span> <span class="ident">nom::number::complete::le_u32</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">unknown2</span>) <span class="op">=</span> <span class="ident">nom::number::complete::u8</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
-        <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">color</span>) <span class="op">=</span> <span class="ident">ColorIndex::parse_u16</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
-        <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">unknown3</span>) <span class="op">=</span> <span class="ident">nom::number::complete::u8</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
+        <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">color</span>) <span class="op">=</span> <span class="ident">ColorIndex::parse</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
+        <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">unknown3</span>) <span class="op">=</span> <span class="ident">nom::number::complete::le_u16</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">name</span>) <span class="op">=</span> <span class="ident">DeviceSQLString::parse</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>((
             <span class="ident">input</span>,
@@ -2013,7 +2013,7 @@
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">sample_depth</span>) <span class="op">=</span> <span class="ident">nom::number::complete::le_u16</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">duration</span>) <span class="op">=</span> <span class="ident">nom::number::complete::le_u16</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">unknown5</span>) <span class="op">=</span> <span class="ident">nom::number::complete::le_u16</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
-        <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">color</span>) <span class="op">=</span> <span class="ident">ColorIndex::parse_u8</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
+        <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">color</span>) <span class="op">=</span> <span class="ident">ColorIndex::parse</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">rating</span>) <span class="op">=</span> <span class="ident">nom::number::complete::u8</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">unknown6</span>) <span class="op">=</span> <span class="ident">nom::number::complete::le_u16</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">input</span>, <span class="ident">unknown7</span>) <span class="op">=</span> <span class="ident">nom::number::complete::le_u16</span>(<span class="ident">input</span>)<span class="question-mark">?</span>;
