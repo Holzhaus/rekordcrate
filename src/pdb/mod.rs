@@ -397,6 +397,318 @@ impl RowGroup {
     }
 }
 
+/// Contains the album name, along with an ID of the corresponding artist.
+#[binrw]
+#[derive(Debug, PartialEq, Clone)]
+#[brw(little)]
+pub struct Album {
+    /// Unknown field, usually `80 00`.
+    unknown1: u16,
+    /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
+    index_shift: u16,
+    /// Unknown field.
+    unknown2: u32,
+    /// ID of the artist row associated with this row.
+    artist_id: u32,
+    /// ID of this row.
+    id: u32,
+    /// Unknown field.
+    unknown3: u32,
+    /// Unknown field.
+    unknown4: u8,
+    /// Byte offset of the album name string, relative to the start of this row.
+    name: DeviceSQLString,
+}
+
+/// Contains the artist name and ID.
+#[binread]
+#[derive(Debug, PartialEq, Clone)]
+#[brw(little)]
+pub struct Artist {
+    /// Position of start of this row (needed of offset calculations).
+    ///
+    /// **Note:** This is a virtual field and not actually read from the file.
+    #[br(temp, parse_with = current_offset)]
+    base_offset: u64,
+    /// Determines if the `name` string is located at the 8-bit offset (0x60) or the 16-bit offset (0x64).
+    subtype: u16,
+    /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
+    index_shift: u16,
+    /// ID of this row.
+    id: u32,
+    /// Unknown field.
+    unknown1: u8,
+    /// One-byte name offset used if `subtype` is `0x60`.
+    ofs_name_near: u8,
+    /// Two-byte name offset used if `subtype` is `0x64`.
+    ///
+    /// In that case, the value of `ofs_name_near` is ignored
+    #[br(if(subtype == 0x64))]
+    ofs_name_far: Option<u16>,
+    /// Actual name offset to use for reading the DeviceSQLString.
+    ///
+    /// **Note:** This is a virtual field and not actually read from the file.
+    #[br(temp, calc = ofs_name_far.unwrap_or_else(|| ofs_name_near.into()).into())]
+    ofs_name: u64,
+    /// Name of this artist.
+    #[br(seek_before = SeekFrom::Start(base_offset + ofs_name), restore_position)]
+    name: DeviceSQLString,
+}
+
+/// Contains the artwork path and ID.
+#[binrw]
+#[derive(Debug, PartialEq, Clone)]
+#[brw(little)]
+pub struct Artwork {
+    /// ID of this row.
+    id: u32,
+    /// Path to the album art file.
+    path: DeviceSQLString,
+}
+
+/// Contains numeric color ID
+#[binrw]
+#[derive(Debug, PartialEq, Clone)]
+#[brw(little)]
+pub struct Color {
+    /// Unknown field.
+    unknown1: u32,
+    /// Unknown field.
+    unknown2: u8,
+    /// Numeric color ID
+    color: ColorIndex,
+    /// Unknown field.
+    unknown3: u16,
+    /// User-defined name of the color.
+    name: DeviceSQLString,
+}
+
+/// Represents a musical genre.
+#[binrw]
+#[derive(Debug, PartialEq, Clone)]
+#[brw(little)]
+pub struct Genre {
+    /// ID of this row.
+    id: u32,
+    /// Name of the genre.
+    name: DeviceSQLString,
+}
+
+/// Represents a history playlist.
+#[binrw]
+#[derive(Debug, PartialEq, Clone)]
+#[brw(little)]
+pub struct HistoryPlaylist {
+    /// ID of this row.
+    id: u32,
+    /// Name of the playlist.
+    name: DeviceSQLString,
+}
+
+/// Represents a history playlist.
+#[binrw]
+#[derive(Debug, PartialEq, Clone)]
+#[brw(little)]
+pub struct HistoryEntry {
+    /// ID of the track played at this position in the playlist.
+    track_id: u32,
+    /// ID of the history playlist.
+    playlist_id: u32,
+    /// Position within the playlist.
+    entry_index: u32,
+}
+
+/// Represents a musical key.
+#[binrw]
+#[derive(Debug, PartialEq, Clone)]
+#[brw(little)]
+pub struct Key {
+    /// ID of this row.
+    id: u32,
+    /// Apparently a second copy of the row ID.
+    id2: u32,
+    /// Name of the key.
+    name: DeviceSQLString,
+}
+
+/// Represents a record label.
+#[binrw]
+#[derive(Debug, PartialEq, Clone)]
+#[brw(little)]
+pub struct Label {
+    /// ID of this row.
+    id: u32,
+    /// Name of the record label.
+    name: DeviceSQLString,
+}
+
+/// Represents a node in the playlist tree (either a folder or a playlist).
+#[binrw]
+#[derive(Debug, PartialEq, Clone)]
+#[brw(little)]
+pub struct PlaylistTreeNode {
+    /// ID of parent row of this row (which means that the parent is a folder).
+    parent_id: u32,
+    /// Unknown field.
+    unknown: u32,
+    /// ID of this row.
+    id: u32,
+    /// Sort order indicastor.
+    sort_order: u32,
+    /// Indicates if the node is a folder. Non-zero if it's a leaf node, i.e. a playlist.
+    node_is_folder: u32,
+    /// Name of this node, as shown when navigating the menu.
+    name: DeviceSQLString,
+}
+/// Represents a track entry in a playlist.
+#[binrw]
+#[derive(Debug, PartialEq, Clone)]
+#[brw(little)]
+pub struct PlaylistEntry {
+    /// Position within the playlist.
+    entry_index: u32,
+    /// ID of the track played at this position in the playlist.
+    track_id: u32,
+    /// ID of the history playlist.
+    playlist_id: u32,
+}
+/// Contains the album name, along with an ID of the corresponding artist.
+#[binread]
+#[derive(Debug, PartialEq, Clone)]
+#[brw(little)]
+pub struct Track {
+    /// Position of start of this row (needed of offset calculations).
+    ///
+    /// **Note:** This is a virtual field and not actually read from the file.
+    #[br(temp, parse_with = current_offset)]
+    base_offset: u64,
+    /// Unknown field, usually `24 00`.
+    unknown1: u16,
+    /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
+    index_shift: u16,
+    /// Unknown field, called `bitmask` by [@flesniak](https://github.com/flesniak).
+    bitmask: u32,
+    /// Sample Rate in Hz.
+    sample_rate: u32,
+    /// Composer of this track as artist row ID (non-zero if set).
+    composer_id: u32,
+    /// File size in bytes.
+    file_size: u32,
+    /// Unknown field (maybe another ID?)
+    unknown2: u32,
+    /// Unknown field ("always 19048?" according to [@flesniak](https://github.com/flesniak))
+    unknown3: u16,
+    /// Unknown field ("always 30967?" according to [@flesniak](https://github.com/flesniak))
+    unknown4: u16,
+    /// Artwork row ID for the cover art (non-zero if set),
+    artwork_id: u32,
+    /// Key row ID for the cover art (non-zero if set).
+    key_id: u32,
+    /// Artist row ID of the original performer (non-zero if set).
+    orig_artist_id: u32,
+    /// Label row ID of the original performer (non-zero if set).
+    label_id: u32,
+    /// Artist row ID of the remixer (non-zero if set).
+    remixer_id: u32,
+    /// Bitrate of the track.
+    bitrate: u32,
+    /// Track number of the track.
+    track_number: u32,
+    /// Track tempo in centi-BPM (= 1/100 BPM).
+    tempo: u32,
+    /// Genre row ID for this track (non-zero if set).
+    genre_id: u32,
+    /// Album row ID for this track (non-zero if set).
+    album_id: u32,
+    /// Artist row ID for this track (non-zero if set).
+    artist_id: u32,
+    /// Row ID of this track (non-zero if set).
+    id: u32,
+    /// Disc number of this track (non-zero if set).
+    disc_number: u16,
+    /// Number of times this track was played.
+    play_count: u16,
+    /// Year this track was released.
+    year: u16,
+    /// Bits per sample of the track aduio file.
+    sample_depth: u16,
+    /// Playback duration of this track in seconds (at normal speed).
+    duration: u16,
+    /// Unknown field, apparently always "29".
+    unknown5: u16,
+    /// Color row ID for this track (non-zero if set).
+    color: ColorIndex,
+    /// User rating of this track (0 to 5 starts).
+    rating: u8,
+    /// Unknown field, apparently always "1".
+    unknown6: u16,
+    /// Unknown field (alternating "2" and "3"?).
+    unknown7: u16,
+    /// International Standard Recording Code (ISRC), in mangled format.
+    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
+    isrc: DeviceSQLString,
+    /// Unknown string field.
+    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
+    unknown_string1: DeviceSQLString,
+    /// Unknown string field.
+    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
+    unknown_string2: DeviceSQLString,
+    /// Unknown string field.
+    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
+    unknown_string3: DeviceSQLString,
+    /// Unknown string field.
+    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
+    unknown_string4: DeviceSQLString,
+    /// Unknown string field (named by [@flesniak](https://github.com/flesniak)).
+    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
+    message: DeviceSQLString,
+    /// Probably describes whether the track is public on kuvo.com (?). Value is either "ON" or empty string.
+    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
+    kuvo_public: DeviceSQLString,
+    /// Determines if hotcues should be autoloaded. Value is either "ON" or empty string.
+    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
+    autoload_hotcues: DeviceSQLString,
+    /// Unknown string field.
+    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
+    unknown_string5: DeviceSQLString,
+    /// Unknown string field (usually empty).
+    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
+    unknown_string6: DeviceSQLString,
+    /// Date when the track was added to the Rekordbox collection.
+    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
+    date_added: DeviceSQLString,
+    /// Date when the track was released.
+    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
+    release_date: DeviceSQLString,
+    /// Name of the remix (if any).
+    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
+    mix_name: DeviceSQLString,
+    /// Unknown string field (usually empty).
+    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
+    unknown_string7: DeviceSQLString,
+    /// File path of the track analysis file.
+    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
+    analyze_path: DeviceSQLString,
+    /// Date when the track analysis was performed.
+    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
+    analyze_date: DeviceSQLString,
+    /// Track comment.
+    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
+    comment: DeviceSQLString,
+    /// Track title.
+    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
+    title: DeviceSQLString,
+    /// Unknown string field (usually empty).
+    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
+    unknown_string8: DeviceSQLString,
+    /// Name of the file.
+    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
+    filename: DeviceSQLString,
+    /// Path of the file.
+    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
+    file_path: DeviceSQLString,
+}
+
 /// A table row contains the actual data.
 #[binread]
 #[derive(Debug, PartialEq, Clone)]
@@ -410,282 +722,40 @@ impl RowGroup {
 pub enum Row {
     /// Contains the album name, along with an ID of the corresponding artist.
     #[br(pre_assert(page_type == PageType::Albums))]
-    Album {
-        /// Unknown field, usually `80 00`.
-        unknown1: u16,
-        /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
-        index_shift: u16,
-        /// Unknown field.
-        unknown2: u32,
-        /// ID of the artist row associated with this row.
-        artist_id: u32,
-        /// ID of this row.
-        id: u32,
-        /// Unknown field.
-        unknown3: u32,
-        /// Unknown field.
-        unknown4: u8,
-        /// Byte offset of the album name string, relative to the start of this row.
-        name: DeviceSQLString,
-    },
+    Album(Album),
     /// Contains the artist name and ID.
     #[br(pre_assert(page_type == PageType::Artists))]
-    Artist {
-        /// Position of start of this row (needed of offset calculations).
-        ///
-        /// **Note:** This is a virtual field and not actually read from the file.
-        #[br(temp, parse_with = current_offset)]
-        base_offset: u64,
-        /// Determines if the `name` string is located at the 8-bit offset (0x60) or the 16-bit offset (0x64).
-        subtype: u16,
-        /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
-        index_shift: u16,
-        /// ID of this row.
-        id: u32,
-        /// Unknown field.
-        unknown1: u8,
-        /// One-byte name offset used if `subtype` is `0x60`.
-        ofs_name_near: u8,
-        /// Two-byte name offset used if `subtype` is `0x64`.
-        ///
-        /// In that case, the value of `ofs_name_near` is ignored
-        #[br(if(subtype == 0x64))]
-        ofs_name_far: Option<u16>,
-        /// Actual name offset to use for reading the DeviceSQLString.
-        ///
-        /// **Note:** This is a virtual field and not actually read from the file.
-        #[br(temp, calc = ofs_name_far.unwrap_or_else(|| ofs_name_near.into()).into())]
-        ofs_name: u64,
-        /// Name of this artist.
-        #[br(seek_before = SeekFrom::Start(base_offset + ofs_name), restore_position)]
-        name: DeviceSQLString,
-    },
+    Artist(Artist),
     /// Contains the artwork path and ID.
     #[br(pre_assert(page_type == PageType::Artwork))]
-    Artwork {
-        /// ID of this row.
-        id: u32,
-        /// Path to the album art file.
-        path: DeviceSQLString,
-    },
+    Artwork(Artwork),
     /// Contains numeric color ID
     #[br(pre_assert(page_type == PageType::Colors))]
-    Color {
-        /// Unknown field.
-        unknown1: u32,
-        /// Unknown field.
-        unknown2: u8,
-        /// Numeric color ID
-        color: ColorIndex,
-        /// Unknown field.
-        unknown3: u16,
-        /// User-defined name of the color.
-        name: DeviceSQLString,
-    },
+    Color(Color),
     /// Represents a musical genre.
     #[br(pre_assert(page_type == PageType::Genres))]
-    Genre {
-        /// ID of this row.
-        id: u32,
-        /// Name of the genre.
-        name: DeviceSQLString,
-    },
+    Genre(Genre),
     /// Represents a history playlist.
     #[br(pre_assert(page_type == PageType::HistoryPlaylists))]
-    HistoryPlaylist {
-        /// ID of this row.
-        id: u32,
-        /// Name of the playlist.
-        name: DeviceSQLString,
-    },
+    HistoryPlaylist(HistoryPlaylist),
     /// Represents a history playlist.
     #[br(pre_assert(page_type == PageType::HistoryEntries))]
-    HistoryEntry {
-        /// ID of the track played at this position in the playlist.
-        track_id: u32,
-        /// ID of the history playlist.
-        playlist_id: u32,
-        /// Position within the playlist.
-        entry_index: u32,
-    },
+    HistoryEntry(HistoryEntry),
     /// Represents a musical key.
     #[br(pre_assert(page_type == PageType::Keys))]
-    Key {
-        /// ID of this row.
-        id: u32,
-        /// Apparently a second copy of the row ID.
-        id2: u32,
-        /// Name of the key.
-        name: DeviceSQLString,
-    },
+    Key(Key),
     /// Represents a record label.
     #[br(pre_assert(page_type == PageType::Labels))]
-    Label {
-        /// ID of this row.
-        id: u32,
-        /// Name of the record label.
-        name: DeviceSQLString,
-    },
+    Label(Label),
     /// Represents a node in the playlist tree (either a folder or a playlist).
     #[br(pre_assert(page_type == PageType::PlaylistTree))]
-    PlaylistTreeNode {
-        /// ID of parent row of this row (which means that the parent is a folder).
-        parent_id: u32,
-        /// Unknown field.
-        unknown: u32,
-        /// ID of this row.
-        id: u32,
-        /// Sort order indicastor.
-        sort_order: u32,
-        /// Indicates if the node is a folder. Non-zero if it's a leaf node, i.e. a playlist.
-        node_is_folder: u32,
-        /// Name of this node, as shown when navigating the menu.
-        name: DeviceSQLString,
-    },
+    PlaylistTreeNode(PlaylistTreeNode),
     /// Represents a track entry in a playlist.
     #[br(pre_assert(page_type == PageType::PlaylistEntries))]
-    PlaylistEntry {
-        /// Position within the playlist.
-        entry_index: u32,
-        /// ID of the track played at this position in the playlist.
-        track_id: u32,
-        /// ID of the history playlist.
-        playlist_id: u32,
-    },
+    PlaylistEntry(PlaylistEntry),
     /// Contains the album name, along with an ID of the corresponding artist.
     #[br(pre_assert(page_type == PageType::Tracks))]
-    Track {
-        /// Position of start of this row (needed of offset calculations).
-        ///
-        /// **Note:** This is a virtual field and not actually read from the file.
-        #[br(temp, parse_with = current_offset)]
-        base_offset: u64,
-        /// Unknown field, usually `24 00`.
-        unknown1: u16,
-        /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
-        index_shift: u16,
-        /// Unknown field, called `bitmask` by [@flesniak](https://github.com/flesniak).
-        bitmask: u32,
-        /// Sample Rate in Hz.
-        sample_rate: u32,
-        /// Composer of this track as artist row ID (non-zero if set).
-        composer_id: u32,
-        /// File size in bytes.
-        file_size: u32,
-        /// Unknown field (maybe another ID?)
-        unknown2: u32,
-        /// Unknown field ("always 19048?" according to [@flesniak](https://github.com/flesniak))
-        unknown3: u16,
-        /// Unknown field ("always 30967?" according to [@flesniak](https://github.com/flesniak))
-        unknown4: u16,
-        /// Artwork row ID for the cover art (non-zero if set),
-        artwork_id: u32,
-        /// Key row ID for the cover art (non-zero if set).
-        key_id: u32,
-        /// Artist row ID of the original performer (non-zero if set).
-        orig_artist_id: u32,
-        /// Label row ID of the original performer (non-zero if set).
-        label_id: u32,
-        /// Artist row ID of the remixer (non-zero if set).
-        remixer_id: u32,
-        /// Bitrate of the track.
-        bitrate: u32,
-        /// Track number of the track.
-        track_number: u32,
-        /// Track tempo in centi-BPM (= 1/100 BPM).
-        tempo: u32,
-        /// Genre row ID for this track (non-zero if set).
-        genre_id: u32,
-        /// Album row ID for this track (non-zero if set).
-        album_id: u32,
-        /// Artist row ID for this track (non-zero if set).
-        artist_id: u32,
-        /// Row ID of this track (non-zero if set).
-        id: u32,
-        /// Disc number of this track (non-zero if set).
-        disc_number: u16,
-        /// Number of times this track was played.
-        play_count: u16,
-        /// Year this track was released.
-        year: u16,
-        /// Bits per sample of the track aduio file.
-        sample_depth: u16,
-        /// Playback duration of this track in seconds (at normal speed).
-        duration: u16,
-        /// Unknown field, apparently always "29".
-        unknown5: u16,
-        /// Color row ID for this track (non-zero if set).
-        color: ColorIndex,
-        /// User rating of this track (0 to 5 starts).
-        rating: u8,
-        /// Unknown field, apparently always "1".
-        unknown6: u16,
-        /// Unknown field (alternating "2" and "3"?).
-        unknown7: u16,
-        /// International Standard Recording Code (ISRC), in mangled format.
-        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-        isrc: DeviceSQLString,
-        /// Unknown string field.
-        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-        unknown_string1: DeviceSQLString,
-        /// Unknown string field.
-        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-        unknown_string2: DeviceSQLString,
-        /// Unknown string field.
-        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-        unknown_string3: DeviceSQLString,
-        /// Unknown string field.
-        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-        unknown_string4: DeviceSQLString,
-        /// Unknown string field (named by [@flesniak](https://github.com/flesniak)).
-        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-        message: DeviceSQLString,
-        /// Probably describes whether the track is public on kuvo.com (?). Value is either "ON" or empty string.
-        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-        kuvo_public: DeviceSQLString,
-        /// Determines if hotcues should be autoloaded. Value is either "ON" or empty string.
-        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-        autoload_hotcues: DeviceSQLString,
-        /// Unknown string field.
-        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-        unknown_string5: DeviceSQLString,
-        /// Unknown string field (usually empty).
-        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-        unknown_string6: DeviceSQLString,
-        /// Date when the track was added to the Rekordbox collection.
-        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-        date_added: DeviceSQLString,
-        /// Date when the track was released.
-        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-        release_date: DeviceSQLString,
-        /// Name of the remix (if any).
-        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-        mix_name: DeviceSQLString,
-        /// Unknown string field (usually empty).
-        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-        unknown_string7: DeviceSQLString,
-        /// File path of the track analysis file.
-        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-        analyze_path: DeviceSQLString,
-        /// Date when the track analysis was performed.
-        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-        analyze_date: DeviceSQLString,
-        /// Track comment.
-        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-        comment: DeviceSQLString,
-        /// Track title.
-        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-        title: DeviceSQLString,
-        /// Unknown string field (usually empty).
-        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-        unknown_string8: DeviceSQLString,
-        /// Name of the file.
-        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-        filename: DeviceSQLString,
-        /// Path of the file.
-        #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-        file_path: DeviceSQLString,
-    },
+    Track(Track),
     /// The row format (and also its size) is unknown, which means it can't be parsed.
     #[br(pre_assert(matches!(page_type, PageType::History | PageType::Unknown(_))))]
     Unknown,
