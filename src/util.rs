@@ -56,15 +56,9 @@ pub enum ColorIndex {
 
 impl ColorIndex {
     /// Parse an 8-bit color index from an input slice.
-    pub fn parse_u8(input: &[u8]) -> IResult<&[u8], Self> {
+    pub fn parse(input: &[u8]) -> IResult<&[u8], Self> {
         let (input, color_id) = nom::number::complete::u8(input)?;
         Ok((input, Self::from(u16::from(color_id))))
-    }
-
-    /// Parse a 16-bit color index from an input slice.
-    pub fn parse_u16(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, color_id) = nom::number::complete::le_u16(input)?;
-        Ok((input, Self::from(color_id)))
     }
 }
 
