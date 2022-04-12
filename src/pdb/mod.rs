@@ -262,6 +262,8 @@ pub struct Page {
     num_rows: u16,
 
     #[br(temp)]
+    // TODO: Use `num_rows.div_ceil(RowGroup::MAX_ROW_COUNT)` here when it becomes available
+    // (currently nightly-only, see https://github.com/rust-lang/rust/issues/88581).
     #[br(calc = if num_rows > 0 { (num_rows - 1) / RowGroup::MAX_ROW_COUNT + 1 } else { 0 })]
     num_row_groups: u16,
 
@@ -336,6 +338,8 @@ impl Page {
     /// have been flagged as missing by the row group.
     pub fn num_row_groups(&self) -> u16 {
         let num_rows = self.num_rows();
+        // TODO: Use `num_rows.div_ceil(RowGroup::MAX_ROW_COUNT)` here when it becomes available
+        // (currently nightly-only, see https://github.com/rust-lang/rust/issues/88581).
         if num_rows > 0 {
             (num_rows - 1) / RowGroup::MAX_ROW_COUNT + 1
         } else {
