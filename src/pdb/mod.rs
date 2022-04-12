@@ -551,7 +551,6 @@ pub enum Row {
     #[br(pre_assert(page_type == PageType::Tracks))]
     Track {
         #[br(temp, parse_with = current_offset)]
-        #[bw(ignore)]
         base_offset: u64,
         /// Unknown field, usually `24 00`.
         unknown1: u16,
