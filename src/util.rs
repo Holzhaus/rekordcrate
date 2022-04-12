@@ -41,25 +41,6 @@ pub enum ColorIndex {
     /// Purple color.
     #[brw(magic = 8u8)]
     Purple,
-    /// Unknown color.
-    Unknown(u16),
-}
-
-impl From<u16> for ColorIndex {
-    fn from(color_id: u16) -> Self {
-        match color_id {
-            0 => Self::None,
-            1 => Self::Pink,
-            2 => Self::Red,
-            3 => Self::Orange,
-            4 => Self::Yellow,
-            5 => Self::Green,
-            6 => Self::Aqua,
-            7 => Self::Blue,
-            8 => Self::Purple,
-            x => Self::Unknown(x),
-        }
-    }
 }
 
 #[cfg(test)]
