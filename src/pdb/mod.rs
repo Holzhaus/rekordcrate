@@ -164,9 +164,7 @@ impl Header {
         let mut page_index = first_page.clone();
         loop {
             let page_offset = SeekFrom::Start(page_index.offset(self.page_size));
-            reader
-                .seek(page_offset)
-                .expect("failed to seek to page offset");
+            reader.seek(page_offset).map_err(binrw::Error::Io)?;
             let page = Page::read_options(reader, ro, (self.page_size,))?;
             let is_last_page = &page.page_index == last_page;
             page_index = page.next_page.clone();
