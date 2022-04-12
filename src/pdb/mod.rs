@@ -256,21 +256,26 @@ pub struct Page {
     /// > always 0, except 1 for history pages, num entries for strange pages?"
     #[allow(dead_code)]
     unknown7: u16,
-
+    /// Number of rows in this page.
+    ///
+    /// **Note:** This is a virtual field and not actually read from the file.
     #[br(temp)]
     #[br(calc = if num_rows_large > num_rows_small.into() && num_rows_large != 0x1fff { num_rows_large } else { num_rows_small.into() })]
     num_rows: u16,
-
+    /// Number of rows groups in this page.
+    ///
+    /// **Note:** This is a virtual field and not actually read from the file.
     #[br(temp)]
     // TODO: Use `num_rows.div_ceil(RowGroup::MAX_ROW_COUNT)` here when it becomes available
     // (currently nightly-only, see https://github.com/rust-lang/rust/issues/88581).
     #[br(calc = if num_rows > 0 { (num_rows - 1) / RowGroup::MAX_ROW_COUNT + 1 } else { 0 })]
     num_row_groups: u16,
-
+    /// The offset at which row groups for this page are located.
+    ///
+    /// **Note:** This is a virtual field and not actually read from the file.
     #[br(temp)]
     #[br(calc = SeekFrom::Current(i64::from(page_size) - i64::try_from(Self::HEADER_SIZE).unwrap() - i64::from(num_rows) * 2 - i64::from(num_row_groups) * 4))]
     row_groups_offset: SeekFrom,
-
     /// Row groups belonging to this page.
     #[br(seek_before(row_groups_offset), restore_position)]
     #[br(parse_with = Self::parse_row_groups, args(num_rows, num_row_groups))]
@@ -550,6 +555,9 @@ pub enum Row {
     /// Contains the album name, along with an ID of the corresponding artist.
     #[br(pre_assert(page_type == PageType::Tracks))]
     Track {
+        /// Position of start of this row (needed of offset calculations).
+        ///
+        /// **Note:** This is a virtual field and not actually read from the file.
         #[br(temp, parse_with = current_offset)]
         base_offset: u64,
         /// Unknown field, usually `24 00`.
