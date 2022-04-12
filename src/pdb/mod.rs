@@ -22,7 +22,7 @@ pub mod string;
 
 use crate::pdb::string::DeviceSQLString;
 use crate::util::ColorIndex;
-use binrw::{binrw, io::SeekFrom, BinRead, BinResult, FilePtr16, ReadOptions};
+use binrw::{binread, binrw, io::SeekFrom, BinRead, BinResult, FilePtr16, ReadOptions};
 use std::io::{Read, Seek};
 
 /// Do not read anything, but the return the current stream position of `reader`.
@@ -187,9 +187,12 @@ impl Header {
 /// Each page consists of a header that contains information about the type, number of rows, etc.,
 /// followed by the data section that holds the row data. Each row needs to be located using an
 /// offset found in the page footer at the end of the page.
-#[binrw]
+///
+/// **Note: The `Page` struct is currently not writable, because row offsets are not taken into
+/// account and rows are not serialized correctly yet.**
+#[binread]
 #[derive(Debug, PartialEq, Clone)]
-#[brw(little, magic = 0u32)]
+#[br(little, magic = 0u32)]
 #[br(import(page_size: u32))]
 pub struct Page {
     /// Index of the page.
@@ -259,17 +262,14 @@ pub struct Page {
     unknown7: u16,
 
     #[br(temp)]
-    #[bw(ignore)]
     #[br(calc = if num_rows_large > num_rows_small.into() && num_rows_large != 0x1fff { num_rows_large } else { num_rows_small.into() })]
     num_rows: u16,
 
     #[br(temp)]
-    #[bw(ignore)]
     #[br(calc = if num_rows > 0 { (num_rows - 1) / RowGroup::MAX_ROW_COUNT + 1 } else { 0 })]
     num_row_groups: u16,
 
     #[br(temp)]
-    #[bw(ignore)]
     #[br(calc = SeekFrom::Current(i64::from(page_size) - i64::try_from(Self::HEADER_SIZE).unwrap() - i64::from(num_rows) * 2 - i64::from(num_row_groups) * 4))]
     row_groups_offset: SeekFrom,
 
@@ -393,9 +393,9 @@ impl RowGroup {
 }
 
 /// A table row contains the actual data.
-#[binrw]
+#[binread]
 #[derive(Debug, PartialEq, Clone)]
-#[brw(little)]
+#[br(little)]
 #[br(import(page_type: PageType))]
 // The large enum size is unfortunate, but since users of this library will probably use iterators
 // to consume the results on demand, we can live with this. The alternative of using a `Box` would
