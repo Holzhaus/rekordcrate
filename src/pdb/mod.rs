@@ -426,6 +426,11 @@ pub enum Row {
     /// Contains the artist name and ID.
     #[br(pre_assert(page_type == PageType::Artists))]
     Artist {
+        /// Position of start of this row (needed of offset calculations).
+        ///
+        /// **Note:** This is a virtual field and not actually read from the file.
+        #[br(temp, parse_with = current_offset)]
+        base_offset: u64,
         /// Determines if the `name` string is located at the 8-bit offset (0x60) or the 16-bit offset (0x64).
         subtype: u16,
         /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
@@ -441,7 +446,13 @@ pub enum Row {
         /// In that case, the value of `ofs_name_near` is ignored
         #[br(if(subtype == 0x64))]
         ofs_name_far: Option<u16>,
+        /// Actual name offset to use for reading the DeviceSQLString.
+        ///
+        /// **Note:** This is a virtual field and not actually read from the file.
+        #[br(temp, calc = ofs_name_far.unwrap_or_else(|| ofs_name_near.into()).into())]
+        ofs_name: u64,
         /// Name of this artist.
+        #[br(seek_before = SeekFrom::Start(base_offset + ofs_name), restore_position)]
         name: DeviceSQLString,
     },
     /// Contains the artwork path and ID.
