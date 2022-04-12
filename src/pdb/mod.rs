@@ -27,9 +27,7 @@ use std::io::{Read, Seek};
 
 /// Do not read anything, but the return the current stream position of `reader`.
 fn current_offset<R: Read + Seek>(reader: &mut R, _: &ReadOptions, _: ()) -> BinResult<u64> {
-    Ok(reader
-        .stream_position()
-        .expect("failed to retrieve stream position"))
+    reader.stream_position().map_err(binrw::Error::Io)
 }
 
 /// The type of pages found inside a `Table`.
