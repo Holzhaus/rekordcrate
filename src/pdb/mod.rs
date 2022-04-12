@@ -368,9 +368,9 @@ pub struct RowGroup {
     rows: Vec<RowOffset>,
     row_presence_flags: u16,
     /// Unknown field, probably padding.
-    #[br(temp)]
-    #[bw(calc = 0)]
-    padding: u16,
+    ///
+    /// Apparently this is not always zero, so it might also be something different.
+    unknown: u16,
 }
 
 impl RowGroup {
