@@ -6,34 +6,48 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-use rekordcrate::pdb::{Header, RowGroup};
+use binrw::{BinRead, ReadOptions};
+use rekordcrate::pdb::{Header, Page, Row, RowOffset};
+use std::io::{Seek, SeekFrom};
 
 fn main() {
     let path = std::env::args().nth(1).expect("no path given");
-    let data = std::fs::read(&path).expect("failed to read file");
-    let (_, header) = Header::parse(&data).expect("failed to parse header");
+    let mut reader = std::fs::File::open(&path).expect("failed to open file");
+    let header = Header::read(&mut reader).expect("failed to parse pdb file");
 
     println!("{:#?}", header);
 
     for (i, table) in header.tables.iter().enumerate() {
         println!("Table {}: {:?}", i, table.page_type);
-        for page_index in table.page_indices(&header, &data) {
-            let (_, page) = header
-                .page(&data, &page_index)
-                .expect("failed to parse page");
+        for page in header
+            .read_pages(
+                &mut reader,
+                &ReadOptions::default(),
+                (&table.first_page, &table.last_page),
+            )
+            .unwrap()
+            .into_iter()
+        {
+            let page_offset = page.page_index.offset(header.page_size);
             println!("  {:?}", page);
-            assert_eq!(page.page_index, page_index);
-            let page_offset = header.page_offset(&page_index).unwrap();
-            let page_data = &data[page_offset..];
-            page.row_groups(page_data, header.page_size)
-                .for_each(|row_group| {
-                    println!("    {:?}", row_group);
-                    let RowGroup(row_offsets) = row_group;
-                    for row_offset in row_offsets {
-                        let (_, row) = page.row(page_data, &row_offset).unwrap();
-                        println!("      {:?}", row);
-                    }
-                })
+            page.row_groups.iter().for_each(|row_group| {
+                println!("    {:?}", row_group);
+                for &RowOffset(row_offset) in row_group.present_rows() {
+                    let abs_offset: u64 = page_offset
+                        + u64::try_from(Page::HEADER_SIZE).unwrap()
+                        + u64::from(row_offset);
+                    reader
+                        .seek(SeekFrom::Start(abs_offset))
+                        .expect("failed to seek to row offset");
+                    let row = Row::read_options(
+                        &mut reader,
+                        &ReadOptions::default(),
+                        (page.page_type.clone(),),
+                    )
+                    .expect("failed to parse row");
+                    println!("      {:?}", row);
+                }
+            })
         }
     }
 }

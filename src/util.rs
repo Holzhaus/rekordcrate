@@ -9,19 +9,10 @@
 //! Common types used in multiple modules.
 
 use binrw::binrw;
-use nom::error::{ErrorKind, ParseError};
-use nom::Err;
-use nom::IResult;
-
-#[must_use]
-/// Convenience method that returns a nom parse error with the given `ErrorKind`.
-pub fn nom_input_error_with_kind(input: &[u8], kind: ErrorKind) -> Err<nom::error::Error<&[u8]>> {
-    Err::Error(nom::error::Error::from_error_kind(input, kind))
-}
 
 /// Indexed Color identifiers used for memory cues and tracks.
-#[derive(Debug, PartialEq)]
 #[binrw]
+#[derive(Debug, PartialEq, Clone)]
 pub enum ColorIndex {
     /// No color.
     #[brw(magic = 0u8)]
@@ -50,33 +41,6 @@ pub enum ColorIndex {
     /// Purple color.
     #[brw(magic = 8u8)]
     Purple,
-    /// Unknown color.
-    Unknown(u16),
-}
-
-impl ColorIndex {
-    /// Parse an 8-bit color index from an input slice.
-    pub fn parse(input: &[u8]) -> IResult<&[u8], Self> {
-        let (input, color_id) = nom::number::complete::u8(input)?;
-        Ok((input, Self::from(u16::from(color_id))))
-    }
-}
-
-impl From<u16> for ColorIndex {
-    fn from(color_id: u16) -> Self {
-        match color_id {
-            0 => Self::None,
-            1 => Self::Pink,
-            2 => Self::Red,
-            3 => Self::Orange,
-            4 => Self::Yellow,
-            5 => Self::Green,
-            6 => Self::Aqua,
-            7 => Self::Blue,
-            8 => Self::Purple,
-            x => Self::Unknown(x),
-        }
-    }
 }
 
 #[cfg(test)]
