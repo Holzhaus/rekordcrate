@@ -280,7 +280,7 @@ pub struct Page {
     ///
     /// **Note:** This is a virtual field and not actually read from the file.
     #[br(temp)]
-    #[br(calc = (page_index.0 * page_size + Self::HEADER_SIZE).into())]
+    #[br(calc = page_index.offset(page_size) + u64::from(Self::HEADER_SIZE))]
     page_heap_offset: u64,
     /// Row groups belonging to this page.
     #[br(seek_before(row_groups_offset), restore_position)]
