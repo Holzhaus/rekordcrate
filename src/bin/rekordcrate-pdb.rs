@@ -7,8 +7,7 @@
 // SPDX-License-Identifier: MPL-2.0
 
 use binrw::{BinRead, ReadOptions};
-use rekordcrate::pdb::{Header, Page, Row, RowOffset};
-use std::io::{Seek, SeekFrom};
+use rekordcrate::pdb::Header;
 
 fn main() {
     let path = std::env::args().nth(1).expect("no path given");
@@ -28,23 +27,10 @@ fn main() {
             .unwrap()
             .into_iter()
         {
-            let page_offset = page.page_index.offset(header.page_size);
             println!("  {:?}", page);
             page.row_groups.iter().for_each(|row_group| {
                 println!("    {:?}", row_group);
-                for &RowOffset(row_offset) in row_group.present_rows() {
-                    let abs_offset: u64 = page_offset
-                        + u64::try_from(Page::HEADER_SIZE).unwrap()
-                        + u64::from(row_offset);
-                    reader
-                        .seek(SeekFrom::Start(abs_offset))
-                        .expect("failed to seek to row offset");
-                    let row = Row::read_options(
-                        &mut reader,
-                        &ReadOptions::default(),
-                        (page.page_type.clone(),),
-                    )
-                    .expect("failed to parse row");
+                for row in row_group.present_rows() {
                     println!("      {:?}", row);
                 }
             })
