@@ -769,3 +769,179 @@ pub enum Row {
     #[br(pre_assert(matches!(page_type, PageType::History | PageType::Unknown(_))))]
     Unknown,
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::util::testing::test_roundtrip;
+
+    #[test]
+    fn empty_header() {
+        let header = Header {
+            page_size: 4096,
+            next_unused_page: PageIndex(1),
+            unknown: 0,
+            sequence: 1,
+            tables: vec![],
+        };
+        test_roundtrip(
+            &[
+                0, 0, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
+            ],
+            header,
+        );
+    }
+
+    #[test]
+    fn demo_tracks_header() {
+        let header = Header {
+            page_size: 4096,
+            next_unused_page: PageIndex(51),
+            unknown: 5,
+            sequence: 34,
+            tables: [
+                Table {
+                    page_type: PageType::Tracks,
+                    empty_candidate: 47,
+                    first_page: PageIndex(1),
+                    last_page: PageIndex(2),
+                },
+                Table {
+                    page_type: PageType::Genres,
+                    empty_candidate: 4,
+                    first_page: PageIndex(3),
+                    last_page: PageIndex(3),
+                },
+                Table {
+                    page_type: PageType::Artists,
+                    empty_candidate: 49,
+                    first_page: PageIndex(5),
+                    last_page: PageIndex(6),
+                },
+                Table {
+                    page_type: PageType::Albums,
+                    empty_candidate: 8,
+                    first_page: PageIndex(7),
+                    last_page: PageIndex(7),
+                },
+                Table {
+                    page_type: PageType::Labels,
+                    empty_candidate: 50,
+                    first_page: PageIndex(9),
+                    last_page: PageIndex(10),
+                },
+                Table {
+                    page_type: PageType::Keys,
+                    empty_candidate: 46,
+                    first_page: PageIndex(11),
+                    last_page: PageIndex(12),
+                },
+                Table {
+                    page_type: PageType::Colors,
+                    empty_candidate: 42,
+                    first_page: PageIndex(13),
+                    last_page: PageIndex(14),
+                },
+                Table {
+                    page_type: PageType::PlaylistTree,
+                    empty_candidate: 16,
+                    first_page: PageIndex(15),
+                    last_page: PageIndex(15),
+                },
+                Table {
+                    page_type: PageType::PlaylistEntries,
+                    empty_candidate: 18,
+                    first_page: PageIndex(17),
+                    last_page: PageIndex(17),
+                },
+                Table {
+                    page_type: PageType::Unknown(9),
+                    empty_candidate: 20,
+                    first_page: PageIndex(19),
+                    last_page: PageIndex(19),
+                },
+                Table {
+                    page_type: PageType::Unknown(10),
+                    empty_candidate: 22,
+                    first_page: PageIndex(21),
+                    last_page: PageIndex(21),
+                },
+                Table {
+                    page_type: PageType::HistoryPlaylists,
+                    empty_candidate: 24,
+                    first_page: PageIndex(23),
+                    last_page: PageIndex(23),
+                },
+                Table {
+                    page_type: PageType::HistoryEntries,
+                    empty_candidate: 26,
+                    first_page: PageIndex(25),
+                    last_page: PageIndex(25),
+                },
+                Table {
+                    page_type: PageType::Artwork,
+                    empty_candidate: 28,
+                    first_page: PageIndex(27),
+                    last_page: PageIndex(27),
+                },
+                Table {
+                    page_type: PageType::Unknown(14),
+                    empty_candidate: 30,
+                    first_page: PageIndex(29),
+                    last_page: PageIndex(29),
+                },
+                Table {
+                    page_type: PageType::Unknown(15),
+                    empty_candidate: 32,
+                    first_page: PageIndex(31),
+                    last_page: PageIndex(31),
+                },
+                Table {
+                    page_type: PageType::Unknown(16),
+                    empty_candidate: 43,
+                    first_page: PageIndex(33),
+                    last_page: PageIndex(34),
+                },
+                Table {
+                    page_type: PageType::Unknown(17),
+                    empty_candidate: 44,
+                    first_page: PageIndex(35),
+                    last_page: PageIndex(36),
+                },
+                Table {
+                    page_type: PageType::Unknown(18),
+                    empty_candidate: 45,
+                    first_page: PageIndex(37),
+                    last_page: PageIndex(38),
+                },
+                Table {
+                    page_type: PageType::History,
+                    empty_candidate: 48,
+                    first_page: PageIndex(39),
+                    last_page: PageIndex(41),
+                },
+            ]
+            .to_vec(),
+        };
+
+        test_roundtrip(
+            &[
+                0, 0, 0, 0, 0, 16, 0, 0, 20, 0, 0, 0, 51, 0, 0, 0, 5, 0, 0, 0, 34, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 47, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 1, 0, 0, 0, 4, 0, 0, 0, 3,
+                0, 0, 0, 3, 0, 0, 0, 2, 0, 0, 0, 49, 0, 0, 0, 5, 0, 0, 0, 6, 0, 0, 0, 3, 0, 0, 0,
+                8, 0, 0, 0, 7, 0, 0, 0, 7, 0, 0, 0, 4, 0, 0, 0, 50, 0, 0, 0, 9, 0, 0, 0, 10, 0, 0,
+                0, 5, 0, 0, 0, 46, 0, 0, 0, 11, 0, 0, 0, 12, 0, 0, 0, 6, 0, 0, 0, 42, 0, 0, 0, 13,
+                0, 0, 0, 14, 0, 0, 0, 7, 0, 0, 0, 16, 0, 0, 0, 15, 0, 0, 0, 15, 0, 0, 0, 8, 0, 0,
+                0, 18, 0, 0, 0, 17, 0, 0, 0, 17, 0, 0, 0, 9, 0, 0, 0, 20, 0, 0, 0, 19, 0, 0, 0, 19,
+                0, 0, 0, 10, 0, 0, 0, 22, 0, 0, 0, 21, 0, 0, 0, 21, 0, 0, 0, 11, 0, 0, 0, 24, 0, 0,
+                0, 23, 0, 0, 0, 23, 0, 0, 0, 12, 0, 0, 0, 26, 0, 0, 0, 25, 0, 0, 0, 25, 0, 0, 0,
+                13, 0, 0, 0, 28, 0, 0, 0, 27, 0, 0, 0, 27, 0, 0, 0, 14, 0, 0, 0, 30, 0, 0, 0, 29,
+                0, 0, 0, 29, 0, 0, 0, 15, 0, 0, 0, 32, 0, 0, 0, 31, 0, 0, 0, 31, 0, 0, 0, 16, 0, 0,
+                0, 43, 0, 0, 0, 33, 0, 0, 0, 34, 0, 0, 0, 17, 0, 0, 0, 44, 0, 0, 0, 35, 0, 0, 0,
+                36, 0, 0, 0, 18, 0, 0, 0, 45, 0, 0, 0, 37, 0, 0, 0, 38, 0, 0, 0, 19, 0, 0, 0, 48,
+                0, 0, 0, 39, 0, 0, 0, 41, 0, 0, 0,
+            ],
+            header,
+        );
+    }
+}
