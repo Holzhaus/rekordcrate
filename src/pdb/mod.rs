@@ -818,7 +818,7 @@ impl BinWrite for Track {
 }
 
 /// A table row contains the actual data.
-#[binread]
+#[binrw]
 #[derive(Debug, PartialEq, Clone)]
 #[br(little)]
 #[br(import(page_type: PageType))]
