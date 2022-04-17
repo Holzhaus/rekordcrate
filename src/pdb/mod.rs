@@ -430,15 +430,10 @@ pub struct Album {
 }
 
 /// Contains the artist name and ID.
-#[binread]
+#[binrw]
 #[derive(Debug, PartialEq, Clone)]
 #[brw(little)]
 pub struct Artist {
-    /// Position of start of this row (needed of offset calculations).
-    ///
-    /// **Note:** This is a virtual field and not actually read from the file.
-    #[br(temp, parse_with = current_offset)]
-    base_offset: u64,
     /// Determines if the `name` string is located at the 8-bit offset (0x60) or the 16-bit offset (0x64).
     subtype: u16,
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
@@ -454,14 +449,18 @@ pub struct Artist {
     /// In that case, the value of `ofs_name_near` is ignored
     #[br(if(subtype == 0x64))]
     ofs_name_far: Option<u16>,
-    /// Actual name offset to use for reading the DeviceSQLString.
-    ///
-    /// **Note:** This is a virtual field and not actually read from the file.
-    #[br(temp, calc = ofs_name_far.unwrap_or_else(|| ofs_name_near.into()).into())]
-    ofs_name: u64,
     /// Name of this artist.
-    #[br(seek_before = SeekFrom::Start(base_offset + ofs_name), restore_position)]
+    #[br(seek_before = Artist::calculate_name_seek(ofs_name_near, &ofs_name_far))]
+    #[bw(seek_before = Artist::calculate_name_seek(*ofs_name_near, ofs_name_far))]
+    #[brw(restore_position)]
     name: DeviceSQLString,
+}
+
+impl Artist {
+    fn calculate_name_seek(ofs_near: u8, ofs_far: &Option<u16>) -> SeekFrom {
+        let offset: u16 = ofs_far.map_or_else(|| ofs_near.into(), |v| v - 2) - 10;
+        SeekFrom::Current(offset.into())
+    }
 }
 
 /// Contains the artwork path and ID.
@@ -942,6 +941,26 @@ mod test {
                 0, 0, 0, 39, 0, 0, 0, 41, 0, 0, 0,
             ],
             header,
+        );
+    }
+
+    #[test]
+    fn artist_row() {
+        let row = Artist {
+            subtype: 96,
+            index_shift: 32,
+            id: 1,
+            unknown1: 3,
+            ofs_name_near: 10,
+            ofs_name_far: None,
+            name: DeviceSQLString::new("Loopmasters".to_string()).unwrap(),
+        };
+        test_roundtrip(
+            &[
+                96, 0, 32, 0, 1, 0, 0, 0, 3, 10, 25, 76, 111, 111, 112, 109, 97, 115, 116, 101,
+                114, 115,
+            ],
+            row,
         );
     }
 
