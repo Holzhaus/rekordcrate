@@ -410,9 +410,9 @@ impl RowGroup {
 }
 
 /// Contains the album name, along with an ID of the corresponding artist.
-#[binread]
+#[binrw]
 #[derive(Debug, PartialEq, Clone)]
-#[br(little)]
+#[brw(little)]
 pub struct Album {
     /// Position of start of this row (needed of offset calculations).
     ///
@@ -831,7 +831,7 @@ impl BinWrite for Track {
 }
 
 /// A table row contains the actual data.
-#[binread]
+#[binrw]
 #[derive(Debug, PartialEq, Clone)]
 #[br(little)]
 #[br(import(page_type: PageType))]
