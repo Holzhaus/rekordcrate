@@ -22,8 +22,11 @@ pub mod string;
 
 use crate::pdb::string::DeviceSQLString;
 use crate::util::ColorIndex;
-use binrw::{binread, binrw, io::SeekFrom, BinRead, BinResult, FilePtr16, ReadOptions};
-use std::io::{Read, Seek};
+use binrw::{
+    binread, binrw,
+    io::{Read, Seek, SeekFrom, Write},
+    BinRead, BinResult, BinWrite, FilePtr16, ReadOptions, WriteOptions,
+};
 
 /// Do not read anything, but the return the current stream position of `reader`.
 fn current_offset<R: Read + Seek>(reader: &mut R, _: &ReadOptions, _: ()) -> BinResult<u64> {
@@ -583,7 +586,7 @@ pub struct PlaylistEntry {
 /// Contains the album name, along with an ID of the corresponding artist.
 #[binread]
 #[derive(Debug, PartialEq, Clone)]
-#[brw(little)]
+#[br(little)]
 pub struct Track {
     /// Position of start of this row (needed of offset calculations).
     ///
@@ -715,6 +718,101 @@ pub struct Track {
     /// Path of the file.
     #[br(offset = base_offset, parse_with = FilePtr16::parse)]
     file_path: DeviceSQLString,
+}
+
+impl BinWrite for Track {
+    type Args = ();
+
+    fn write_options<W: Write + Seek>(
+        &self,
+        writer: &mut W,
+        options: &WriteOptions,
+        _args: Self::Args,
+    ) -> BinResult<()> {
+        let base_position = writer.stream_position()?;
+        self.unknown1.write_options(writer, options, ())?;
+        self.index_shift.write_options(writer, options, ())?;
+        self.bitmask.write_options(writer, options, ())?;
+        self.sample_rate.write_options(writer, options, ())?;
+        self.composer_id.write_options(writer, options, ())?;
+        self.file_size.write_options(writer, options, ())?;
+        self.unknown2.write_options(writer, options, ())?;
+        self.unknown3.write_options(writer, options, ())?;
+        self.unknown4.write_options(writer, options, ())?;
+        self.artwork_id.write_options(writer, options, ())?;
+        self.key_id.write_options(writer, options, ())?;
+        self.orig_artist_id.write_options(writer, options, ())?;
+        self.label_id.write_options(writer, options, ())?;
+        self.remixer_id.write_options(writer, options, ())?;
+        self.bitrate.write_options(writer, options, ())?;
+        self.track_number.write_options(writer, options, ())?;
+        self.tempo.write_options(writer, options, ())?;
+        self.genre_id.write_options(writer, options, ())?;
+        self.album_id.write_options(writer, options, ())?;
+        self.artist_id.write_options(writer, options, ())?;
+        self.id.write_options(writer, options, ())?;
+        self.disc_number.write_options(writer, options, ())?;
+        self.play_count.write_options(writer, options, ())?;
+        self.year.write_options(writer, options, ())?;
+        self.sample_depth.write_options(writer, options, ())?;
+        self.duration.write_options(writer, options, ())?;
+        self.unknown5.write_options(writer, options, ())?;
+        self.color.write_options(writer, options, ())?;
+        self.rating.write_options(writer, options, ())?;
+        self.unknown6.write_options(writer, options, ())?;
+        self.unknown7.write_options(writer, options, ())?;
+
+        let start_of_string_section = writer.stream_position()?;
+        debug_assert_eq!(start_of_string_section - base_position, 0x5e);
+
+        // Skip offsets, because we want to write the actual strings first.
+        let mut string_offsets = [0u16; 21];
+        writer.seek(SeekFrom::Current(0x2a))?;
+        for (i, string) in [
+            &self.isrc,
+            &self.unknown_string1,
+            &self.unknown_string2,
+            &self.unknown_string3,
+            &self.unknown_string4,
+            &self.message,
+            &self.kuvo_public,
+            &self.autoload_hotcues,
+            &self.unknown_string5,
+            &self.unknown_string6,
+            &self.date_added,
+            &self.release_date,
+            &self.mix_name,
+            &self.unknown_string7,
+            &self.analyze_path,
+            &self.analyze_date,
+            &self.comment,
+            &self.title,
+            &self.unknown_string8,
+            &self.filename,
+            &self.file_path,
+        ]
+        .into_iter()
+        .enumerate()
+        {
+            let current_position = writer.stream_position()?;
+            let offset: u16 = current_position
+                .checked_sub(base_position)
+                .and_then(|v| u16::try_from(v).ok())
+                .ok_or_else(|| binrw::Error::AssertFail {
+                    pos: 0,
+                    message: "Wraparound while calculating row offset".to_string(),
+                })?;
+            string_offsets[i] = offset;
+            string.write_options(writer, options, ())?;
+        }
+
+        let end_of_row = writer.stream_position()?;
+        writer.seek(SeekFrom::Start(start_of_string_section))?;
+        string_offsets.write_options(writer, options, ())?;
+        writer.seek(SeekFrom::Start(end_of_row))?;
+
+        Ok(())
+    }
 }
 
 /// A table row contains the actual data.
@@ -941,6 +1039,91 @@ mod test {
                 0, 0, 0, 39, 0, 0, 0, 41, 0, 0, 0,
             ],
             header,
+        );
+    }
+
+    #[test]
+    fn track_row() {
+        let row = Track {
+            unknown1: 36,
+            index_shift: 160,
+            bitmask: 788224,
+            sample_rate: 44100,
+            composer_id: 0,
+            file_size: 6899624,
+            unknown2: 214020570,
+            unknown3: 64128,
+            unknown4: 1511,
+            artwork_id: 0,
+            key_id: 5,
+            orig_artist_id: 0,
+            label_id: 1,
+            remixer_id: 0,
+            bitrate: 320,
+            track_number: 0,
+            tempo: 12800,
+            genre_id: 0,
+            album_id: 0,
+            artist_id: 1,
+            id: 1,
+            disc_number: 0,
+            play_count: 0,
+            year: 0,
+            sample_depth: 16,
+            duration: 172,
+            unknown5: 41,
+            color: ColorIndex::None,
+            rating: 0,
+            unknown6: 1,
+            unknown7: 3,
+            isrc: DeviceSQLString::new("".to_string()).unwrap(),
+            unknown_string1: DeviceSQLString::new("".to_string()).unwrap(),
+            unknown_string2: DeviceSQLString::new("3".to_string()).unwrap(),
+            unknown_string3: DeviceSQLString::new("3".to_string()).unwrap(),
+            unknown_string4: DeviceSQLString::new("".to_string()).unwrap(),
+            message: DeviceSQLString::new("".to_string()).unwrap(),
+            kuvo_public: DeviceSQLString::new("".to_string()).unwrap(),
+            autoload_hotcues: DeviceSQLString::new("ON".to_string()).unwrap(),
+            unknown_string5: DeviceSQLString::new("".to_string()).unwrap(),
+            unknown_string6: DeviceSQLString::new("".to_string()).unwrap(),
+            date_added: DeviceSQLString::new("2018-05-25".to_string()).unwrap(),
+            release_date: DeviceSQLString::new("".to_string()).unwrap(),
+            mix_name: DeviceSQLString::new("".to_string()).unwrap(),
+            unknown_string7: DeviceSQLString::new("".to_string()).unwrap(),
+            analyze_path: DeviceSQLString::new(
+                "/PIONEER/USBANLZ/P016/0000875E/ANLZ0000.DAT".to_string(),
+            )
+            .unwrap(),
+            analyze_date: DeviceSQLString::new("2022-02-02".to_string()).unwrap(),
+            comment: DeviceSQLString::new("Tracks by www.loopmasters.com".to_string()).unwrap(),
+            title: DeviceSQLString::new("Demo Track 1".to_string()).unwrap(),
+            unknown_string8: DeviceSQLString::new("".to_string()).unwrap(),
+            filename: DeviceSQLString::new("Demo Track 1.mp3".to_string()).unwrap(),
+            file_path: DeviceSQLString::new(
+                "/Contents/Loopmasters/UnknownAlbum/Demo Track 1.mp3".to_string(),
+            )
+            .unwrap(),
+        };
+        test_roundtrip(
+            &[
+                36, 0, 160, 0, 0, 7, 12, 0, 68, 172, 0, 0, 0, 0, 0, 0, 168, 71, 105, 0, 218, 177,
+                193, 12, 128, 250, 231, 5, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
+                0, 64, 1, 0, 0, 0, 0, 0, 0, 0, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 16, 0, 172, 0, 41, 0, 0, 0, 1, 0, 3, 0, 136, 0, 137, 0,
+                138, 0, 140, 0, 142, 0, 143, 0, 144, 0, 145, 0, 148, 0, 149, 0, 150, 0, 161, 0,
+                162, 0, 163, 0, 164, 0, 208, 0, 219, 0, 249, 0, 6, 1, 7, 1, 24, 1, 3, 3, 5, 51, 5,
+                51, 3, 3, 3, 7, 79, 78, 3, 3, 23, 50, 48, 49, 56, 45, 48, 53, 45, 50, 53, 3, 3, 3,
+                89, 47, 80, 73, 79, 78, 69, 69, 82, 47, 85, 83, 66, 65, 78, 76, 90, 47, 80, 48, 49,
+                54, 47, 48, 48, 48, 48, 56, 55, 53, 69, 47, 65, 78, 76, 90, 48, 48, 48, 48, 46, 68,
+                65, 84, 23, 50, 48, 50, 50, 45, 48, 50, 45, 48, 50, 61, 84, 114, 97, 99, 107, 115,
+                32, 98, 121, 32, 119, 119, 119, 46, 108, 111, 111, 112, 109, 97, 115, 116, 101,
+                114, 115, 46, 99, 111, 109, 27, 68, 101, 109, 111, 32, 84, 114, 97, 99, 107, 32,
+                49, 3, 35, 68, 101, 109, 111, 32, 84, 114, 97, 99, 107, 32, 49, 46, 109, 112, 51,
+                105, 47, 67, 111, 110, 116, 101, 110, 116, 115, 47, 76, 111, 111, 112, 109, 97,
+                115, 116, 101, 114, 115, 47, 85, 110, 107, 110, 111, 119, 110, 65, 108, 98, 117,
+                109, 47, 68, 101, 109, 111, 32, 84, 114, 97, 99, 107, 32, 49, 46, 109, 112, 51,
+            ],
+            row,
         );
     }
 
