@@ -944,4 +944,40 @@ mod test {
             header,
         );
     }
+
+    #[test]
+    fn label_row() {
+        let row = Label {
+            id: 1,
+            name: DeviceSQLString::new("Loopmasters".to_string()).unwrap(),
+        };
+        test_roundtrip(
+            &[
+                1, 0, 0, 0, 25, 76, 111, 111, 112, 109, 97, 115, 116, 101, 114, 115,
+            ],
+            row,
+        );
+    }
+
+    #[test]
+    fn key_row() {
+        let row = Key {
+            id: 1,
+            id2: 1,
+            name: DeviceSQLString::new("Dm".to_string()).unwrap(),
+        };
+        test_roundtrip(&[1, 0, 0, 0, 1, 0, 0, 0, 7, 68, 109], row);
+    }
+
+    #[test]
+    fn color_row() {
+        let row = Color {
+            unknown1: 0,
+            unknown2: 1,
+            color: ColorIndex::Pink,
+            unknown3: 0,
+            name: DeviceSQLString::new("Pink".to_string()).unwrap(),
+        };
+        test_roundtrip(&[0, 0, 0, 0, 1, 1, 0, 0, 11, 80, 105, 110, 107], row);
+    }
 }
