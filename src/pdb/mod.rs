@@ -25,7 +25,7 @@ use crate::util::ColorIndex;
 use binrw::{
     binread, binrw,
     io::{Read, Seek, SeekFrom, Write},
-    BinRead, BinResult, BinWrite, FilePtr16, ReadOptions, WriteOptions,
+    BinRead, BinResult, BinWrite, Endian, FilePtr16, ReadOptions, WriteOptions,
 };
 
 /// Do not read anything, but the return the current stream position of `reader`.
@@ -729,6 +729,8 @@ impl BinWrite for Track {
         options: &WriteOptions,
         _args: Self::Args,
     ) -> BinResult<()> {
+        let options = &options.clone().with_endian(Endian::Little);
+
         let base_position = writer.stream_position()?;
         self.unknown1.write_options(writer, options, ())?;
         self.index_shift.write_options(writer, options, ())?;
