@@ -87,6 +87,7 @@ pub(crate) mod testing {
         let mut writer = binrw::io::Cursor::new(Vec::with_capacity(bin.len()));
         obj.write_options(&mut writer, &write_opts, write_args.clone())
             .unwrap();
+        assert_eq!(bin.len(), writer.get_ref().len());
         assert_eq!(bin, writer.get_ref());
         // T->binary->T
         writer.set_position(0);
@@ -101,6 +102,7 @@ pub(crate) mod testing {
         parsed
             .write_options(&mut writer, &write_opts, write_args)
             .unwrap();
+        assert_eq!(bin.len(), writer.get_ref().len());
         assert_eq!(bin, writer.get_ref());
     }
 
