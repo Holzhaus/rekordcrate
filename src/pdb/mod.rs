@@ -799,7 +799,7 @@ impl BinWrite for Track {
                 .checked_sub(base_position)
                 .and_then(|v| u16::try_from(v).ok())
                 .ok_or_else(|| binrw::Error::AssertFail {
-                    pos: 0,
+                    pos: current_position,
                     message: "Wraparound while calculating row offset".to_string(),
                 })?;
             string_offsets[i] = offset;
