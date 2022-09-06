@@ -35,7 +35,7 @@ fn current_offset<R: Read + Seek>(reader: &mut R, _: &ReadOptions, _: ()) -> Bin
 
 /// The type of pages found inside a `Table`.
 #[binrw]
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[brw(little)]
 pub enum PageType {
     /// Holds rows of track metadata, such as title, artist, genre, artwork ID, playing time, etc.
@@ -86,7 +86,7 @@ pub enum PageType {
 /// Points to a table page and can be used to calculate the page's file offset by multiplying it
 /// with the page size (found in the file header).
 #[binrw]
-#[derive(Clone, Debug, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
 #[brw(little)]
 pub struct PageIndex(u32);
 
@@ -101,7 +101,7 @@ impl PageIndex {
 /// Tables are linked lists of pages containing rows of a single type, which are organized
 /// into groups.
 #[binrw]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 pub struct Table {
     /// Identifies the type of rows that this table contains.
@@ -121,7 +121,7 @@ pub struct Table {
 
 /// The PDB header structure, including the list of tables.
 #[binrw]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 pub struct Header {
     /// Unknown purpose, perhaps an unoriginal signature, seems to always have the value 0.
@@ -518,7 +518,7 @@ pub struct HistoryPlaylist {
 
 /// Represents a history playlist.
 #[binrw]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 pub struct HistoryEntry {
     /// ID of the track played at this position in the playlist.
@@ -573,7 +573,7 @@ pub struct PlaylistTreeNode {
 }
 /// Represents a track entry in a playlist.
 #[binrw]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 pub struct PlaylistEntry {
     /// Position within the playlist.

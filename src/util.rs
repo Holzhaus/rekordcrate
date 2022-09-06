@@ -12,7 +12,7 @@ use binrw::binrw;
 
 /// Indexed Color identifiers used for memory cues and tracks.
 #[binrw]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum ColorIndex {
     /// No color.
     #[brw(magic = 0u8)]
@@ -44,7 +44,7 @@ pub enum ColorIndex {
 }
 
 #[cfg(test)]
-pub(in crate) mod testing {
+pub(crate) mod testing {
     use binrw::prelude::*;
     pub fn test_roundtrip<T>(bin: &[u8], obj: T)
     where

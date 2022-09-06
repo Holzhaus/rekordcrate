@@ -104,7 +104,7 @@ where
 
 /// Data section of a `*SETTING.DAT` file.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(little)]
 #[br(import(len: u32))]
 pub enum SettingData {
@@ -135,7 +135,7 @@ impl SettingData {
 
 /// Payload of a `DEVSETTING.DAT` file (32 bytes).
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(little)]
 pub struct DevSetting {
     /// Unknown field.
@@ -173,7 +173,7 @@ impl Default for DevSetting {
 
 /// Payload of a `DJMMYSETTING.DAT` file (52 bytes).
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(little)]
 pub struct DJMMySetting {
     /// Unknown field.
@@ -235,7 +235,7 @@ impl Default for DJMMySetting {
 
 /// Payload of a `MYSETTING.DAT` file (40 bytes).
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(little)]
 pub struct MySetting {
     /// Unknown field.
@@ -336,7 +336,7 @@ impl Default for MySetting {
 
 /// Payload of a `MYSETTING2.DAT` file (40 bytes).
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(little)]
 pub struct MySetting2 {
     /// "VINYL SPEED ADJUST" setting.
@@ -383,7 +383,7 @@ impl Default for MySetting2 {
 /// Found at "PLAYER > DJ SETTING > PLAY MODE / AUTO PLAY MODE" of the "My Settings" page in the
 /// Rekordbox preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum PlayMode {
     /// Named "CONTINUE / ON" in the Rekordbox preferences.
@@ -401,7 +401,7 @@ impl Default for PlayMode {
 /// Found at "PLAYER > DJ SETTING > EJECT/LOAD LOCK" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum EjectLock {
     /// Named "UNLOCK" in the Rekordbox preferences.
@@ -419,7 +419,7 @@ impl Default for EjectLock {
 /// Found at "PLAYER > DJ SETTING > NEEDLE LOCK" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum NeedleLock {
     /// Named "UNLOCK" in the Rekordbox preferences.
@@ -437,7 +437,7 @@ impl Default for NeedleLock {
 /// Found at "PLAYER > DJ SETTING > QUANTIZE BEAT VALUE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum QuantizeBeatValue {
     /// Named "1/8 Beat" in the Rekordbox preferences.
@@ -459,7 +459,7 @@ impl Default for QuantizeBeatValue {
 /// Found at "PLAYER > DJ SETTING > HOT CUE AUTO LOAD" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum HotCueAutoLoad {
     /// Named "OFF" in the Rekordbox preferences.
@@ -479,7 +479,7 @@ impl Default for HotCueAutoLoad {
 /// Found at "PLAYER > DJ SETTING > HOT CUE COLOR" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum HotCueColor {
     /// Named "OFF" in the Rekordbox preferences.
@@ -497,7 +497,7 @@ impl Default for HotCueColor {
 /// Found at "PLAYER > DJ SETTING > AUTO CUE LEVEL" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum AutoCueLevel {
     /// Named "-78dB" in the Rekordbox preferences.
@@ -529,7 +529,7 @@ impl Default for AutoCueLevel {
 /// Found at "PLAYER > DJ SETTING > TIME MODE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum TimeMode {
     /// Named "Elapsed" in the Rekordbox preferences.
@@ -547,7 +547,7 @@ impl Default for TimeMode {
 /// Found at "PLAYER > DJ SETTING > AUTO CUE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum AutoCue {
     /// Named "OFF" in the Rekordbox preferences.
@@ -565,7 +565,7 @@ impl Default for AutoCue {
 /// Found at "PLAYER > DJ SETTING > JOG MODE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum JogMode {
     /// Named "VINYL" in the Rekordbox preferences.
@@ -583,7 +583,7 @@ impl Default for JogMode {
 /// Found at "PLAYER > DJ SETTING > TEMPO RANGE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum TempoRange {
     /// Named "±6" in the Rekordbox preferences.
@@ -605,7 +605,7 @@ impl Default for TempoRange {
 /// Found at "PLAYER > DJ SETTING > MASTER TEMPO" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum MasterTempo {
     /// Named "OFF" in the Rekordbox preferences.
@@ -623,7 +623,7 @@ impl Default for MasterTempo {
 /// Found at "PLAYER > DJ SETTING > QUANTIZE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum Quantize {
     /// Named "OFF" in the Rekordbox preferences.
@@ -641,7 +641,7 @@ impl Default for Quantize {
 /// Found at "PLAYER > DJ SETTING > SYNC" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum Sync {
     /// Named "OFF" in the Rekordbox preferences.
@@ -659,7 +659,7 @@ impl Default for Sync {
 /// Found at "PLAYER > DJ SETTING > PHASE METER" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum PhaseMeter {
     /// Named "TYPE 1" in the Rekordbox preferences.
@@ -677,7 +677,7 @@ impl Default for PhaseMeter {
 /// Found at "PLAYER > DJ SETTING > WAVEFORM / PHASE METER" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum Waveform {
     /// Named "WAVEFORM" in the Rekordbox preferences.
@@ -695,7 +695,7 @@ impl Default for Waveform {
 /// Found at "PLAYER > DJ SETTING > WAVEFORM DIVISIONS" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum WaveformDivisions {
     /// Named "TIME SCALE" in the Rekordbox preferences.
@@ -713,7 +713,7 @@ impl Default for WaveformDivisions {
 /// Found at "PLAYER > DJ SETTING > VINYL SPEED ADJUST" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum VinylSpeedAdjust {
     /// Named "TOUCH & RELEASE" in the Rekordbox preferences.
@@ -733,7 +733,7 @@ impl Default for VinylSpeedAdjust {
 /// Found at "PLAYER > DJ SETTING > BEAT JUMP BEAT VALUE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum BeatJumpBeatValue {
     /// Named "1/2 BEAT" in the Rekordbox preferences.
@@ -763,7 +763,7 @@ impl Default for BeatJumpBeatValue {
 /// Found at "PLAYER > DISPLAY(LCD) > LANGUAGE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum Language {
     /// Named "English" in the Rekordbox preferences.
@@ -813,7 +813,7 @@ impl Default for Language {
 /// Found at "PLAYER > DISPLAY(LCD) > LCD BRIGHTNESS" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum LCDBrightness {
     /// Named "1" in the Rekordbox preferences.
@@ -837,7 +837,7 @@ impl Default for LCDBrightness {
 /// Found at "PLAYER > DISPLAY(LCD) > JOG LCD BRIGHTNESS" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum JogLCDBrightness {
     /// Named "1" in the Rekordbox preferences.
@@ -861,7 +861,7 @@ impl Default for JogLCDBrightness {
 /// Found at "PLAYER > DISPLAY(LCD) > JOG DISPLAY MODE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum JogDisplayMode {
     /// Named "AUTO" in the Rekordbox preferences.
@@ -883,7 +883,7 @@ impl Default for JogDisplayMode {
 /// Found at "PLAYER > DISPLAY(INDICATOR) > SLIP FLASHING" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum SlipFlashing {
     /// Named "OFF" in the Rekordbox preferences.
@@ -901,7 +901,7 @@ impl Default for SlipFlashing {
 /// Found at "PLAYER > DISPLAY(INDICATOR) > ON AIR DISPLAY" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum OnAirDisplay {
     /// Named "OFF" in the Rekordbox preferences.
@@ -919,7 +919,7 @@ impl Default for OnAirDisplay {
 /// Found at "PLAYER > DISPLAY(INDICATOR) > JOG RING BRIGHTNESS" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum JogRingBrightness {
     /// Named "OFF" in the Rekordbox preferences.
@@ -939,7 +939,7 @@ impl Default for JogRingBrightness {
 /// Found at "PLAYER > DISPLAY(INDICATOR) > JOG RING INDICATOR" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum JogRingIndicator {
     /// Named "OFF" in the Rekordbox preferences.
@@ -957,7 +957,7 @@ impl Default for JogRingIndicator {
 /// Found at "PLAYER > DISPLAY(INDICATOR) > DISC SLOT ILLUMINATION" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum DiscSlotIllumination {
     /// Named "OFF" in the Rekordbox preferences.
@@ -977,7 +977,7 @@ impl Default for DiscSlotIllumination {
 /// Found at "PLAYER > DISPLAY(INDICATOR) > PAD/BUTTON BRIGHTNESS" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum PadButtonBrightness {
     /// Named "1" in the Rekordbox preferences.
@@ -999,7 +999,7 @@ impl Default for PadButtonBrightness {
 /// Found at "MIXER > DJ SETTING > CH FADER CURVE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum ChannelFaderCurve {
     /// Steep volume raise when the fader is moved near the top.
@@ -1019,7 +1019,7 @@ impl Default for ChannelFaderCurve {
 /// Found at "MIXER > DJ SETTING > CROSSFADER CURVE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum CrossfaderCurve {
     /// Logarithmic volume raise of the other channel near the edges of the fader.
@@ -1041,7 +1041,7 @@ impl Default for CrossfaderCurve {
 /// Found at "MIXER > DJ SETTING > CH FADER CURVE (LONG FADER)" of the "My Settings" page in the
 /// Rekordbox preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum ChannelFaderCurveLongFader {
     /// Very steep volume raise when the fader is moved the near the top (e.g. y = x⁵).
@@ -1061,7 +1061,7 @@ impl Default for ChannelFaderCurveLongFader {
 /// Found at "MIXER > DJ SETTING > HEADPHONES PRE EQ" of the "My Settings" page in the
 /// Rekordbox preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum HeadphonesPreEQ {
     /// Named "POST EQ" in the Rekordbox preferences.
@@ -1079,7 +1079,7 @@ impl Default for HeadphonesPreEQ {
 /// Found at "MIXER > DJ SETTING > HEADPHONES MONO SPLIT" of the "My Settings" page in the
 /// Rekordbox preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum HeadphonesMonoSplit {
     /// Named "MONO SPLIT" in the Rekordbox preferences.
@@ -1097,7 +1097,7 @@ impl Default for HeadphonesMonoSplit {
 /// Found at "MIXER > DJ SETTING > BEAT FX QUANTIZE" of the "My Settings" page in the
 /// Rekordbox preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum BeatFXQuantize {
     /// Named "OFF" in the Rekordbox preferences.
@@ -1115,7 +1115,7 @@ impl Default for BeatFXQuantize {
 /// Found at "MIXER > DJ SETTING > MIC LOW CUT" of the "My Settings" page in the
 /// Rekordbox preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum MicLowCut {
     /// Named "OFF" in the Rekordbox preferences.
@@ -1133,7 +1133,7 @@ impl Default for MicLowCut {
 /// Found at "MIXER > DJ SETTING > TALK OVER MODE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum TalkOverMode {
     /// Named "ADVANCED" in the Rekordbox preferences.
@@ -1151,7 +1151,7 @@ impl Default for TalkOverMode {
 /// Found at "MIXER > DJ SETTING > TALK OVER LEVEL" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum TalkOverLevel {
     /// Named "-24dB" in the Rekordbox preferences.
@@ -1173,7 +1173,7 @@ impl Default for TalkOverLevel {
 /// Found at "MIXER > DJ SETTING > MIDI CH" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum MidiChannel {
     /// Named "1" in the Rekordbox preferences.
@@ -1219,7 +1219,7 @@ impl Default for MidiChannel {
 /// Found at "MIXER > DJ SETTING > MIDI BUTTON TYPE" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum MidiButtonType {
     /// Named "TOGGLE" in the Rekordbox preferences.
@@ -1237,7 +1237,7 @@ impl Default for MidiButtonType {
 /// Found at "MIXER > BRIGHTNESS > DISPLAY" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum MixerDisplayBrightness {
     /// Named "WHITE" in the Rekordbox preferences.
@@ -1263,7 +1263,7 @@ impl Default for MixerDisplayBrightness {
 /// Found at "MIXER > BRIGHTNESS > INDICATOR" of the "My Settings" page in the Rekordbox
 /// preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum MixerIndicatorBrightness {
     /// Named "1" in the Rekordbox preferences.
@@ -1284,7 +1284,7 @@ impl Default for MixerIndicatorBrightness {
 ///
 /// Found on the "General" page in the Rekordbox preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum WaveformColor {
     /// Named "BLUE" in the Rekordbox preferences.
@@ -1305,7 +1305,7 @@ impl Default for WaveformColor {
 ///
 /// Found on the "General" page in the Rekordbox preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum WaveformCurrentPosition {
     /// Named "LEFT" in the Rekordbox preferences.
@@ -1324,7 +1324,7 @@ impl Default for WaveformCurrentPosition {
 ///
 /// Found on the "General" page in the Rekordbox preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum OverviewWaveformType {
     /// Named "Half Waveform" in the Rekordbox preferences.
@@ -1343,7 +1343,7 @@ impl Default for OverviewWaveformType {
 ///
 /// Found on the "General" page in the Rekordbox preferences.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum KeyDisplayFormat {
     /// Named "Classic" in the Rekordbox preferences.
