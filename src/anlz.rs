@@ -36,7 +36,7 @@ use modular_bitfield::prelude::*;
 
 /// The kind of section.
 #[binrw]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(big)]
 pub enum ContentKind {
     /// File section that contains all other sections.
@@ -102,7 +102,7 @@ pub enum ContentKind {
 
 /// Header of a section that contains type and size information.
 #[binrw]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(big)]
 pub struct Header {
     /// Kind of content in this item.
@@ -125,7 +125,7 @@ impl Header {
 
 /// A single beat inside the beat grid.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(big)]
 pub struct Beat {
     /// Beat number inside the bar (1-4).
@@ -138,7 +138,7 @@ pub struct Beat {
 
 /// Describes the types of entries found in a Cue List section.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(big, repr = u32)]
 pub enum CueListType {
     /// Memory cues or loops.
@@ -149,7 +149,7 @@ pub enum CueListType {
 
 /// Indicates if the cue is point or a loop.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum CueType {
     /// Cue is a single point.
@@ -160,7 +160,7 @@ pub enum CueType {
 
 /// A memory or hot cue (or loop).
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(big)]
 pub struct Cue {
     /// Cue entry header.
@@ -359,7 +359,7 @@ pub struct ExtendedCue {
 
 /// Single Column value in a Waveform Preview.
 #[bitfield]
-#[derive(BinRead, BinWrite, Debug, PartialEq, Clone, Copy)]
+#[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy)]
 #[br(big, map = Self::from_bytes)]
 #[bw(big, map = |x: &WaveformPreviewColumn| x.into_bytes())]
 pub struct WaveformPreviewColumn {
@@ -371,7 +371,7 @@ pub struct WaveformPreviewColumn {
 
 /// Single Column value in a Tiny Waveform Preview.
 #[bitfield]
-#[derive(BinRead, BinWrite, Debug, PartialEq, Clone, Copy)]
+#[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy)]
 #[br(big, map = Self::from_bytes)]
 #[bw(big, map = |x: &TinyWaveformPreviewColumn| x.into_bytes())]
 pub struct TinyWaveformPreviewColumn {
@@ -386,7 +386,7 @@ pub struct TinyWaveformPreviewColumn {
 /// See these the documentation for details:
 /// <https://djl-analysis.deepsymmetry.org/djl-analysis/track_metadata.html#color-preview-analysis>
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(big)]
 pub struct WaveformColorPreviewColumn {
     /// Unknown field (somehow encodes the "whiteness").
@@ -405,7 +405,7 @@ pub struct WaveformColorPreviewColumn {
 
 /// Single Column value in a Waveform Color Detail section.
 #[bitfield]
-#[derive(BinRead, BinWrite, Debug, PartialEq, Clone, Copy)]
+#[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy)]
 #[br(map = Self::from_bytes)]
 #[bw(big, map = |x: &WaveformColorDetailColumn| x.into_bytes())]
 pub struct WaveformColorDetailColumn {
@@ -425,7 +425,7 @@ pub struct WaveformColorDetailColumn {
 /// Music classification that is used for Lightnight mode and based on rhythm, tempo kick drum and
 /// sound density.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(big, repr = u16)]
 pub enum Mood {
     /// Phrase types consist of "Intro", "Up", "Down", "Chorus", and "Outro". Other values in each
@@ -444,7 +444,7 @@ pub enum Mood {
 
 /// Stylistic track bank for Lightning mode.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(repr = u8)]
 pub enum Bank {
     /// Default bank variant, treated as `Cool`.
@@ -469,7 +469,7 @@ pub enum Bank {
 
 /// A song structure entry that represents a phrase in the track.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(big)]
 pub struct Phrase {
     /// Phrase number (starting at 1).
@@ -582,7 +582,7 @@ pub enum Content {
 
 /// All beats in the track.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct BeatGrid {
     /// Unknown field.
     unknown1: u32,
@@ -601,7 +601,7 @@ pub struct BeatGrid {
 
 /// List of cue points or loops (either hot cues or memory cues).
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct CueList {
     /// The types of cues (memory or hot) that this list contains.
     pub list_type: CueListType,
@@ -657,7 +657,7 @@ pub struct Path {
 
 /// Seek information for variable bitrate files (probably).
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[br(import(header: Header))]
 pub struct VBR {
     /// Unknown field.
@@ -669,7 +669,7 @@ pub struct VBR {
 
 /// Fixed-width monochrome preview of the track waveform.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[br(import(header: Header))]
 pub struct WaveformPreview {
     /// Unknown field.
@@ -686,7 +686,7 @@ pub struct WaveformPreview {
 
 /// Smaller version of the fixed-width monochrome preview of the track waveform.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[br(import(header: Header))]
 pub struct TinyWaveformPreview {
     /// Unknown field.
@@ -705,7 +705,7 @@ pub struct TinyWaveformPreview {
 ///
 /// Used in `.EXT` files.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[br(import(header: Header))]
 pub struct WaveformDetail {
     /// Size of a single entry, always 1.
@@ -733,7 +733,7 @@ pub struct WaveformDetail {
 ///
 /// Used in `.EXT` files.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[br(import(header: Header))]
 pub struct WaveformColorPreview {
     /// Size of a single entry, always 6.
@@ -760,7 +760,7 @@ pub struct WaveformColorPreview {
 ///
 /// Used in `.EXT` files.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[br(import(header: Header))]
 pub struct WaveformColorDetail {
     /// Size of a single entry, always 2.
@@ -784,7 +784,7 @@ pub struct WaveformColorDetail {
 ///
 /// Used in `.EXT` files.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[br(import(header: Header))]
 pub struct SongStructure {
     /// Size of a single entry, always 24.
@@ -814,7 +814,7 @@ pub struct SongStructure {
 /// See the documentation for details:
 /// - <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#song-structure-tag>
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[br(import(len_entries: u16))]
 pub struct SongStructureData {
     /// Overall type of phrase structure.
@@ -899,7 +899,7 @@ impl SongStructureData {
 
 /// Unknown content.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[br(import(header: Header))]
 pub struct Unknown {
     /// Unknown header data.

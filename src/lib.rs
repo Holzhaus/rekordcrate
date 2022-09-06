@@ -27,4 +27,4 @@ pub mod anlz;
 pub mod pdb;
 pub mod setting;
 pub mod util;
-pub(in crate) mod xor;
+pub(crate) mod xor;

@@ -17,7 +17,7 @@ use std::fmt;
 const MAX_SHORTSTR_SIZE: usize = ((u8::MAX >> 1) - 1) as usize;
 
 /// Error Objects occurring when dealing with [DeviceSQLString]'s
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[non_exhaustive]
 pub enum StringError {
     /// String being handled was too long for DeviceSQL
