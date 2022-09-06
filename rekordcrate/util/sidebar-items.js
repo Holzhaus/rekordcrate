@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["ColorIndex","Indexed Color identifiers used for memory cues and tracks."]]});
+window.SIDEBAR_ITEMS = {"enum":[["ColorIndex","Indexed Color identifiers used for memory cues and tracks."]]};

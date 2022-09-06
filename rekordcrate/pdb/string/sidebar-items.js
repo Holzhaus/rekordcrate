@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["StringError","Error Objects occurring when dealing with [DeviceSQLString]’s"]],"struct":[["DeviceSQLString","Encapsulates the intrinsics of the format used by DeviceSQL strings"]]});
+window.SIDEBAR_ITEMS = {"enum":[["StringError","Error Objects occurring when dealing with [DeviceSQLString]’s"]],"struct":[["DeviceSQLString","Encapsulates the intrinsics of the format used by DeviceSQL strings"]]};
