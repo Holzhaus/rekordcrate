@@ -202,7 +202,7 @@ impl LongBody {
             // ISRC offset is compensating for trailing nullbyte + 0x3 magic byte.
             Self::Isrc(null_str) => null_str.len() + 2,
             Self::Ascii(buf) => buf.len(),
-            Self::Ucs2le(buf) => (buf.len() * 2),
+            Self::Ucs2le(buf) => buf.len() * 2,
         }
         .try_into()
         .map_err(|_| StringError::TooLong)
