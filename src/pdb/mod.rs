@@ -20,8 +20,10 @@
 
 pub mod string;
 
+use std::convert::TryInto;
+
 use crate::pdb::string::DeviceSQLString;
-use crate::util::ColorIndex;
+use crate::util::{align_by, ColorIndex};
 use binrw::{
     binread, binrw,
     io::{Read, Seek, SeekFrom, Write},
@@ -485,7 +487,7 @@ impl RowGroup {
         options: &WriteOptions,
         args: (u64, u64),
     ) -> binrw::BinResult<u64> {
-        let options = options.with_endian(Endian::Little);
+        debug_assert_eq!(options.endian(), Endian::Little);
 
         let (page_offset, relative_row_offset) = args;
 
@@ -499,12 +501,20 @@ impl RowGroup {
         // Write rows
         let mut offset = page_offset + relative_row_offset;
         for row in &self.rows {
+            let alignment = row
+                .get_alignment()
+                .ok_or_else(|| binrw::Error::AssertFail {
+                    pos: offset,
+                    message: "Unexpected Row Alignment".to_string(),
+                })?
+                .get();
             // Write row offset
             let row_offset: u16 = offset
                 .checked_sub(page_offset)
+                .map(|offset| align_by(alignment, offset))
                 .and_then(|v| u16::try_from(v).ok())
                 .ok_or_else(|| binrw::Error::AssertFail {
-                    pos: 0,
+                    pos: offset,
                     message: "Wraparound while calculating row offset".to_string(),
                 })?;
             row_offset.write_options(writer, &options, ())?;
@@ -1026,6 +1036,35 @@ pub enum Row {
     /// The row format (and also its size) is unknown, which means it can't be parsed.
     #[br(pre_assert(matches!(page_type, PageType::History | PageType::Unknown(_))))]
     Unknown,
+}
+
+impl Row {
+    #[must_use]
+    const fn get_alignment(&self) -> Option<std::num::NonZeroU64> {
+        use crate::pdb::Row::*;
+        use std::mem::align_of;
+        use std::num::NonZeroU64;
+        // unfortunately I couldn't find any less copy-pastey way of doing this
+        // without unnecessarily complex macros.
+        const fn type_to_opt_align<T>(_: &T) -> Option<NonZeroU64> {
+            NonZeroU64::new(align_of::<T>() as u64)
+        }
+        match &self {
+            Album(r) => type_to_opt_align(r),
+            Artist(r) => type_to_opt_align(r),
+            Artwork(r) => type_to_opt_align(r),
+            Color(r) => type_to_opt_align(r),
+            Genre(r) => type_to_opt_align(r),
+            HistoryPlaylist(r) => type_to_opt_align(r),
+            HistoryEntry(r) => type_to_opt_align(r),
+            Key(r) => type_to_opt_align(r),
+            Label(r) => type_to_opt_align(r),
+            PlaylistTreeNode(r) => type_to_opt_align(r),
+            PlaylistEntry(r) => type_to_opt_align(r),
+            Track(r) => type_to_opt_align(r),
+            Unknown => None,
+        }
+    }
 }
 
 #[cfg(test)]
