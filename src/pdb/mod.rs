@@ -25,7 +25,7 @@ use crate::util::ColorIndex;
 use binrw::{
     binread, binrw,
     io::{Read, Seek, SeekFrom, Write},
-    BinRead, BinResult, BinWrite, Endian, FilePtr16, ReadOptions, WriteOptions,
+    BinRead, BinResult, BinWrite, Endian, FilePtr16, FilePtr8, ReadOptions, WriteOptions,
 };
 
 /// Do not read anything, but the return the current stream position of `reader`.
@@ -410,10 +410,16 @@ impl RowGroup {
 }
 
 /// Contains the album name, along with an ID of the corresponding artist.
-#[binrw]
+#[binread]
 #[derive(Debug, PartialEq, Clone)]
-#[brw(little)]
+#[br(little)]
 pub struct Album {
+    /// Position of start of this row (needed of offset calculations).
+    ///
+    /// **Note:** This is a virtual field and not actually read from the file.
+    #[br(temp, parse_with = current_offset)]
+    #[bw(ignore)]
+    base_offset: u64,
     /// Unknown field, usually `80 00`.
     unknown1: u16,
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
@@ -428,7 +434,8 @@ pub struct Album {
     unknown3: u32,
     /// Unknown field.
     unknown4: u8,
-    /// Byte offset of the album name string, relative to the start of this row.
+    /// Album name String
+    #[br(offset = base_offset, parse_with = FilePtr8::parse)]
     name: DeviceSQLString,
 }
 
