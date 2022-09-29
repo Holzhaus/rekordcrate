@@ -45,16 +45,19 @@ pub enum ColorIndex {
 
 #[cfg(test)]
 pub(crate) mod testing {
-    use binrw::prelude::*;
+    use binrw::{
+        meta::{ReadEndian, WriteEndian},
+        prelude::*,
+    };
     pub fn test_roundtrip<T>(bin: &[u8], obj: T)
     where
         <T as binrw::BinRead>::Args: Default,
         <T as binrw::BinWrite>::Args: Default,
-        T: BinRead + BinWrite + PartialEq + core::fmt::Debug,
+        T: BinRead + BinWrite + PartialEq + core::fmt::Debug + ReadEndian + WriteEndian,
     {
         // T->binary
         let mut writer = binrw::io::Cursor::new(Vec::with_capacity(bin.len()));
-        obj.write_to(&mut writer).unwrap();
+        obj.write(&mut writer).unwrap();
         assert_eq!(bin, writer.get_ref());
         // T->binary->T
         writer.set_position(0);
@@ -66,7 +69,7 @@ pub(crate) mod testing {
         assert_eq!(obj, parsed);
         // binary->T->binary
         writer.set_position(0);
-        parsed.write_to(&mut writer).unwrap();
+        parsed.write(&mut writer).unwrap();
         assert_eq!(bin, writer.get_ref());
     }
 }

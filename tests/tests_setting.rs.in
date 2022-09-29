@@ -9,6 +9,6 @@ fn setting_{name}() {{
 
     let mut new_data = Vec::with_capacity(data.len());
     let mut writer = Cursor::new(&mut new_data);
-    setting.write_to(&mut writer).expect("failed to write setting file");
+    setting.write(&mut writer).expect("failed to write setting file");
     assert_eq!(data, new_data);
 }}

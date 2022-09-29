@@ -720,6 +720,12 @@ pub struct Track {
     file_path: DeviceSQLString,
 }
 
+// #[bw(little)] on #[binread] types does
+// not seem to work so we manually define the endianness here.
+impl binrw::meta::WriteEndian for Track {
+    const ENDIAN: binrw::meta::EndianKind = binrw::meta::EndianKind::Endian(Endian::Little);
+}
+
 impl BinWrite for Track {
     type Args = ();
 
@@ -729,7 +735,7 @@ impl BinWrite for Track {
         options: &WriteOptions,
         _args: Self::Args,
     ) -> BinResult<()> {
-        let options = &options.clone().with_endian(Endian::Little);
+        debug_assert!(options.endian() == Endian::Little);
 
         let base_position = writer.stream_position()?;
         self.unknown1.write_options(writer, options, ())?;

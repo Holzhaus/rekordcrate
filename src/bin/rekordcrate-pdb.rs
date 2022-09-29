@@ -21,7 +21,7 @@ fn main() {
         for page in header
             .read_pages(
                 &mut reader,
-                &ReadOptions::default(),
+                &ReadOptions::new(binrw::Endian::NATIVE),
                 (&table.first_page, &table.last_page),
             )
             .unwrap()

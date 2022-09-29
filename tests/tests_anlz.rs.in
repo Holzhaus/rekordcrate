@@ -9,6 +9,6 @@ fn anlz_{name}() {{
 
     let mut new_data = Vec::with_capacity(data.len());
     let mut writer = Cursor::new(&mut new_data);
-    anlz.write_to(&mut writer).expect("failed to write anlz file");
+    anlz.write(&mut writer).expect("failed to write anlz file");
     assert_eq!(data, new_data);
 }}
