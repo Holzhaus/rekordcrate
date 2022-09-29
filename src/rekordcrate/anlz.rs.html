@@ -1186,7 +1186,7 @@
 
 <span class="doccomment">/// A memory or hot cue (or loop).</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">big</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ExtendedCue</span> {
     <span class="doccomment">/// Cue entry header.</span>
@@ -1485,58 +1485,58 @@
 
 <span class="doccomment">/// Section content which differs depending on the section type.</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>)]</span>
 <span class="attribute">#[<span class="ident">br</span>(<span class="ident">import</span>(<span class="ident">header</span>: <span class="ident">Header</span>))]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">Content</span> {
     <span class="doccomment">/// All beats in the track.</span>
-    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">pre_assert</span>(<span class="ident">header</span>.<span class="ident">kind</span> <span class="op">==</span> <span class="ident">ContentKind::BeatGrid</span>))]</span>
+    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">pre_assert</span>(<span class="ident">header</span>.<span class="ident">kind</span> <span class="op">==</span> <span class="ident">ContentKind::BeatGrid</span>))]</span>
     <span class="ident">BeatGrid</span>(<span class="ident">BeatGrid</span>),
     <span class="doccomment">/// List of cue points or loops (either hot cues or memory cues).</span>
-    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">pre_assert</span>(<span class="ident">header</span>.<span class="ident">kind</span> <span class="op">==</span> <span class="ident">ContentKind::CueList</span>))]</span>
+    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">pre_assert</span>(<span class="ident">header</span>.<span class="ident">kind</span> <span class="op">==</span> <span class="ident">ContentKind::CueList</span>))]</span>
     <span class="ident">CueList</span>(<span class="ident">CueList</span>),
     <span class="doccomment">/// List of cue points or loops (either hot cues or memory cues, extended version).</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// Variation of the original `CueList` that also adds support for more metadata such as</span>
     <span class="doccomment">/// comments and colors. Introduces with the Nexus 2 series players.</span>
-    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">pre_assert</span>(<span class="ident">header</span>.<span class="ident">kind</span> <span class="op">==</span> <span class="ident">ContentKind::ExtendedCueList</span>))]</span>
+    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">pre_assert</span>(<span class="ident">header</span>.<span class="ident">kind</span> <span class="op">==</span> <span class="ident">ContentKind::ExtendedCueList</span>))]</span>
     <span class="ident">ExtendedCueList</span>(<span class="ident">ExtendedCueList</span>),
     <span class="doccomment">/// Path of the audio file that this analysis belongs to.</span>
-    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">pre_assert</span>(<span class="ident">header</span>.<span class="ident">kind</span> <span class="op">==</span> <span class="ident">ContentKind::Path</span>))]</span>
+    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">pre_assert</span>(<span class="ident">header</span>.<span class="ident">kind</span> <span class="op">==</span> <span class="ident">ContentKind::Path</span>))]</span>
     <span class="ident">Path</span>(<span class="attribute">#[<span class="ident">br</span>(<span class="ident">args</span>(<span class="ident">header</span>.<span class="ident">clone</span>()))]</span> <span class="ident">Path</span>),
     <span class="doccomment">/// Seek information for variable bitrate files (probably).</span>
-    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">pre_assert</span>(<span class="ident">header</span>.<span class="ident">kind</span> <span class="op">==</span> <span class="ident">ContentKind::VBR</span>))]</span>
+    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">pre_assert</span>(<span class="ident">header</span>.<span class="ident">kind</span> <span class="op">==</span> <span class="ident">ContentKind::VBR</span>))]</span>
     <span class="ident">VBR</span>(<span class="attribute">#[<span class="ident">br</span>(<span class="ident">args</span>(<span class="ident">header</span>.<span class="ident">clone</span>()))]</span> <span class="ident">VBR</span>),
     <span class="doccomment">/// Fixed-width monochrome preview of the track waveform.</span>
-    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">pre_assert</span>(<span class="ident">header</span>.<span class="ident">kind</span> <span class="op">==</span> <span class="ident">ContentKind::WaveformPreview</span>))]</span>
+    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">pre_assert</span>(<span class="ident">header</span>.<span class="ident">kind</span> <span class="op">==</span> <span class="ident">ContentKind::WaveformPreview</span>))]</span>
     <span class="ident">WaveformPreview</span>(<span class="attribute">#[<span class="ident">br</span>(<span class="ident">args</span>(<span class="ident">header</span>.<span class="ident">clone</span>()))]</span> <span class="ident">WaveformPreview</span>),
     <span class="doccomment">/// Smaller version of the fixed-width monochrome preview of the track waveform.</span>
-    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">pre_assert</span>(<span class="ident">header</span>.<span class="ident">kind</span> <span class="op">==</span> <span class="ident">ContentKind::TinyWaveformPreview</span>))]</span>
+    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">pre_assert</span>(<span class="ident">header</span>.<span class="ident">kind</span> <span class="op">==</span> <span class="ident">ContentKind::TinyWaveformPreview</span>))]</span>
     <span class="ident">TinyWaveformPreview</span>(<span class="attribute">#[<span class="ident">br</span>(<span class="ident">args</span>(<span class="ident">header</span>.<span class="ident">clone</span>()))]</span> <span class="ident">TinyWaveformPreview</span>),
     <span class="doccomment">/// Variable-width large monochrome version of the track waveform.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// Used in `.EXT` files.</span>
-    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">pre_assert</span>(<span class="ident">header</span>.<span class="ident">kind</span> <span class="op">==</span> <span class="ident">ContentKind::WaveformDetail</span>))]</span>
+    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">pre_assert</span>(<span class="ident">header</span>.<span class="ident">kind</span> <span class="op">==</span> <span class="ident">ContentKind::WaveformDetail</span>))]</span>
     <span class="ident">WaveformDetail</span>(<span class="attribute">#[<span class="ident">br</span>(<span class="ident">args</span>(<span class="ident">header</span>.<span class="ident">clone</span>()))]</span> <span class="ident">WaveformDetail</span>),
     <span class="doccomment">/// Variable-width large monochrome version of the track waveform.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// Used in `.EXT` files.</span>
-    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">pre_assert</span>(<span class="ident">header</span>.<span class="ident">kind</span> <span class="op">==</span> <span class="ident">ContentKind::WaveformColorPreview</span>))]</span>
+    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">pre_assert</span>(<span class="ident">header</span>.<span class="ident">kind</span> <span class="op">==</span> <span class="ident">ContentKind::WaveformColorPreview</span>))]</span>
     <span class="ident">WaveformColorPreview</span>(<span class="attribute">#[<span class="ident">br</span>(<span class="ident">args</span>(<span class="ident">header</span>.<span class="ident">clone</span>()))]</span> <span class="ident">WaveformColorPreview</span>),
     <span class="doccomment">/// Variable-width large colored version of the track waveform.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// Used in `.EXT` files.</span>
-    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">pre_assert</span>(<span class="ident">header</span>.<span class="ident">kind</span> <span class="op">==</span> <span class="ident">ContentKind::WaveformColorDetail</span>))]</span>
+    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">pre_assert</span>(<span class="ident">header</span>.<span class="ident">kind</span> <span class="op">==</span> <span class="ident">ContentKind::WaveformColorDetail</span>))]</span>
     <span class="ident">WaveformColorDetail</span>(<span class="attribute">#[<span class="ident">br</span>(<span class="ident">args</span>(<span class="ident">header</span>.<span class="ident">clone</span>()))]</span> <span class="ident">WaveformColorDetail</span>),
     <span class="doccomment">/// Describes the structure of a sond (Intro, Chrous, Verse, etc.).</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// Used in `.EXT` files.</span>
-    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">pre_assert</span>(<span class="ident">header</span>.<span class="ident">kind</span> <span class="op">==</span> <span class="ident">ContentKind::SongStructure</span>))]</span>
+    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">pre_assert</span>(<span class="ident">header</span>.<span class="ident">kind</span> <span class="op">==</span> <span class="ident">ContentKind::SongStructure</span>))]</span>
     <span class="ident">SongStructure</span>(<span class="attribute">#[<span class="ident">br</span>(<span class="ident">args</span>(<span class="ident">header</span>.<span class="ident">clone</span>()))]</span> <span class="ident">SongStructure</span>),
     <span class="doccomment">/// Unknown content.</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// This allows handling files that contain unknown section types and allows to access later</span>
     <span class="doccomment">/// sections in the file that have a known type instead of failing to parse the whole file.</span>
-    <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">pre_assert</span>(<span class="macro">matches!</span>(<span class="ident">header</span>.<span class="ident">kind</span>, <span class="ident">ContentKind::Unknown</span>(<span class="kw">_</span>))))]</span>
+    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">pre_assert</span>(<span class="macro">matches!</span>(<span class="ident">header</span>.<span class="ident">kind</span>, <span class="ident">ContentKind::Unknown</span>(<span class="kw">_</span>))))]</span>
     <span class="ident">Unknown</span>(<span class="attribute">#[<span class="ident">br</span>(<span class="ident">args</span>(<span class="ident">header</span>.<span class="ident">clone</span>()))]</span> <span class="ident">Unknown</span>),
 }
 
@@ -1583,7 +1583,7 @@
 <span class="doccomment">/// Variation of the original `CueList` that also adds support for more metadata such as</span>
 <span class="doccomment">/// comments and colors. Introduces with the Nexus 2 series players.</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ExtendedCueList</span> {
     <span class="doccomment">/// The types of cues (memory or hot) that this list contains.</span>
     <span class="kw">pub</span> <span class="ident">list_type</span>: <span class="ident">CueListType</span>,
@@ -1601,7 +1601,7 @@
 
 <span class="doccomment">/// Path of the audio file that this analysis belongs to.</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>)]</span>
 <span class="attribute">#[<span class="ident">br</span>(<span class="ident">import</span>(<span class="ident">header</span>: <span class="ident">Header</span>))]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Path</span> {
     <span class="doccomment">/// Length of the path field in bytes.</span>
@@ -1872,7 +1872,7 @@
 
 <span class="doccomment">/// ANLZ Section.</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Section</span> {
     <span class="doccomment">/// The header.</span>
     <span class="kw">pub</span> <span class="ident">header</span>: <span class="ident">Header</span>,
@@ -1886,7 +1886,7 @@
 <span class="doccomment">/// The actual contents are not part of this struct and can parsed on-the-fly by iterating over the</span>
 <span class="doccomment">/// `ANLZ::sections()` method.</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">big</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ANLZ</span> {
     <span class="doccomment">/// The file header.</span>

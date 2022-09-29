@@ -1154,7 +1154,7 @@
 <span class="kw">use</span> <span class="ident">binrw</span>::{<span class="ident">binrw</span>, <span class="ident">io::Cursor</span>, <span class="ident">BinWrite</span>, <span class="ident">Endian</span>, <span class="ident">NullString</span>, <span class="ident">WriteOptions</span>};
 
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">little</span>)]</span>
 <span class="attribute">#[<span class="ident">bw</span>(<span class="ident">import</span>(<span class="ident">no_checksum</span>: <span class="ident">bool</span>))]</span>
 <span class="doccomment">/// Represents a setting file.</span>
