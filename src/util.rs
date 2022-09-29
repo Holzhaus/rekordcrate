@@ -12,7 +12,7 @@ use binrw::binrw;
 
 /// Indexed Color identifiers used for memory cues and tracks.
 #[binrw]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum ColorIndex {
     /// No color.
     #[brw(magic = 0u8)]
@@ -44,37 +44,40 @@ pub enum ColorIndex {
 }
 
 #[cfg(test)]
-pub(in crate) mod testing {
-    use binrw::prelude::*;
-    use binrw::ReadOptions;
-    use binrw::WriteOptions;
+pub(crate) mod testing {
+    use binrw::{
+        meta::{ReadEndian, WriteEndian},
+        prelude::*,
+        Endian, ReadOptions, WriteOptions,
+    };
     pub fn test_roundtrip_with_args<T>(
         bin: &[u8],
         obj: T,
         read_args: <T as binrw::BinRead>::Args,
         write_args: <T as binrw::BinWrite>::Args,
     ) where
-        T: BinRead + BinWrite + PartialEq + core::fmt::Debug,
+        T: BinRead + BinWrite + PartialEq + core::fmt::Debug + ReadEndian + WriteEndian,
     {
+        let write_opts = WriteOptions::new(Endian::NATIVE);
+        let read_opts = ReadOptions::new(Endian::NATIVE);
         // T->binary
         let mut writer = binrw::io::Cursor::new(Vec::with_capacity(bin.len()));
-        obj.write_options(&mut writer, &WriteOptions::default(), write_args.clone())
+        obj.write_options(&mut writer, &write_opts, write_args.clone())
             .unwrap();
         assert_eq!(bin.len(), writer.get_ref().len());
         assert_eq!(bin, writer.get_ref());
         // T->binary->T
         writer.set_position(0);
-        let parsed =
-            T::read_options(&mut writer, &ReadOptions::default(), read_args.clone()).unwrap();
+        let parsed = T::read_options(&mut writer, &read_opts, read_args.clone()).unwrap();
         assert_eq!(obj, parsed);
         // binary->T
         let mut cursor = binrw::io::Cursor::new(bin);
-        let parsed = T::read_options(&mut cursor, &ReadOptions::default(), read_args).unwrap();
+        let parsed = T::read_options(&mut cursor, &read_opts, read_args).unwrap();
         assert_eq!(obj, parsed);
         // binary->T->binary
         writer.set_position(0);
         parsed
-            .write_options(&mut writer, &WriteOptions::default(), write_args)
+            .write_options(&mut writer, &write_opts, write_args)
             .unwrap();
         assert_eq!(bin.len(), writer.get_ref().len());
         assert_eq!(bin, writer.get_ref());
@@ -84,7 +87,7 @@ pub(in crate) mod testing {
     where
         <T as binrw::BinRead>::Args: Default,
         <T as binrw::BinWrite>::Args: Default,
-        T: BinRead + BinWrite + PartialEq + core::fmt::Debug,
+        T: BinRead + BinWrite + PartialEq + core::fmt::Debug + ReadEndian + WriteEndian,
     {
         test_roundtrip_with_args(
             bin,

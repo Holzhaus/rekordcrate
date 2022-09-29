@@ -11,13 +11,13 @@
 //!
 //! See <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/exports.html#devicesql-strings>
 
-use binrw::{binrw, NullString};
-use std::fmt;
+use binrw::binrw;
+use std::{convert::TryInto, fmt};
 
 const MAX_SHORTSTR_SIZE: usize = ((u8::MAX >> 1) - 1) as usize;
 
 /// Error Objects occurring when dealing with [DeviceSQLString]'s
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 #[non_exhaustive]
 pub enum StringError {
     /// String being handled was too long for DeviceSQL
@@ -41,7 +41,7 @@ pub enum StringError {
 /// let binary = vec![0x9, 0x66, 0x6F, 0x6F];
 ///
 /// let mut writer = binrw::io::Cursor::new(vec![]);
-/// string.write_to(&mut writer)?;
+/// string.write(&mut writer)?;
 /// assert_eq!(&binary, writer.get_ref());
 ///
 /// let mut reader = binrw::io::Cursor::new(binary);
@@ -52,6 +52,7 @@ pub enum StringError {
 /// ```
 #[derive(PartialEq, Clone)]
 #[binrw]
+#[brw(little)]
 pub struct DeviceSQLString(DeviceSQLStringImpl);
 impl DeviceSQLString {
     /// Initializes a [`DeviceSQLString`] from a plain Rust [`std::string::String`]
@@ -95,7 +96,7 @@ impl DeviceSQLString {
             return Err(StringError::InvalidISRC);
         }
         Ok(Self(DeviceSQLStringImpl::Long {
-            content: LongBody::Isrc(NullString::from_string(string)),
+            content: LongBody::Isrc(string.into()),
         }))
     }
 
@@ -112,9 +113,7 @@ impl DeviceSQLString {
             DeviceSQLStringImpl::Long {
                 content: LongBody::Isrc(str),
                 ..
-            } => str
-                .into_string_lossless()
-                .map_err(|_| StringError::Encoding),
+            } => str.try_into().map_err(|_| StringError::Encoding),
             DeviceSQLStringImpl::Long {
                 content: LongBody::Ucs2le(vec),
             } => String::from_utf16(&vec).map_err(|_| StringError::Encoding),
@@ -202,7 +201,7 @@ impl LongBody {
             // ISRC offset is compensating for trailing nullbyte + 0x3 magic byte.
             Self::Isrc(null_str) => null_str.len() + 2,
             Self::Ascii(buf) => buf.len(),
-            Self::Ucs2le(buf) => (buf.len() * 2),
+            Self::Ucs2le(buf) => buf.len() * 2,
         }
         .try_into()
         .map_err(|_| StringError::TooLong)

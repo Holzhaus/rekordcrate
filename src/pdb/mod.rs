@@ -25,7 +25,7 @@ use crate::util::ColorIndex;
 use binrw::{
     binread, binrw,
     io::{Read, Seek, SeekFrom, Write},
-    BinRead, BinResult, BinWrite, Endian, FilePtr16, ReadOptions, WriteOptions,
+    BinRead, BinResult, BinWrite, Endian, FilePtr16, FilePtr8, ReadOptions, WriteOptions,
 };
 
 /// Do not read anything, but the return the current stream position of `reader`.
@@ -35,7 +35,7 @@ fn current_offset<R: Read + Seek>(reader: &mut R, _: &ReadOptions, _: ()) -> Bin
 
 /// The type of pages found inside a `Table`.
 #[binrw]
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[brw(little)]
 pub enum PageType {
     /// Holds rows of track metadata, such as title, artist, genre, artwork ID, playing time, etc.
@@ -86,7 +86,7 @@ pub enum PageType {
 /// Points to a table page and can be used to calculate the page's file offset by multiplying it
 /// with the page size (found in the file header).
 #[binrw]
-#[derive(Clone, Debug, PartialEq, PartialOrd)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
 #[brw(little)]
 pub struct PageIndex(u32);
 
@@ -101,7 +101,7 @@ impl PageIndex {
 /// Tables are linked lists of pages containing rows of a single type, which are organized
 /// into groups.
 #[binrw]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 pub struct Table {
     /// Identifies the type of rows that this table contains.
@@ -121,7 +121,7 @@ pub struct Table {
 
 /// The PDB header structure, including the list of tables.
 #[binrw]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 pub struct Header {
     /// Unknown purpose, perhaps an unoriginal signature, seems to always have the value 0.
@@ -286,6 +286,12 @@ pub struct Page {
     pub row_groups: Vec<RowGroup>,
 }
 
+// #[bw(little)] on #[binread] types does
+// not seem to work so we manually define the endianness here.
+impl binrw::meta::WriteEndian for Page {
+    const ENDIAN: binrw::meta::EndianKind = binrw::meta::EndianKind::Endian(Endian::Little);
+}
+
 impl BinWrite for Page {
     type Args = (u32,);
 
@@ -295,7 +301,7 @@ impl BinWrite for Page {
         options: &WriteOptions,
         args: Self::Args,
     ) -> BinResult<()> {
-        let options = &options.clone().with_endian(Endian::Little);
+        debug_assert_eq!(options.endian(), Endian::Little);
 
         let page_offset = writer.stream_position().map_err(binrw::Error::Io)?;
 
@@ -479,7 +485,7 @@ impl RowGroup {
         options: &WriteOptions,
         args: (u64, u64),
     ) -> binrw::BinResult<u64> {
-        let options = &options.clone().with_endian(Endian::Little);
+        let options = &options.with_endian(Endian::Little);
 
         let (page_offset, relative_row_offset) = args;
 
@@ -534,6 +540,12 @@ impl BinWrite for RowGroup {
 #[derive(Debug, PartialEq, Clone)]
 #[brw(little)]
 pub struct Album {
+    /// Position of start of this row (needed of offset calculations).
+    ///
+    /// **Note:** This is a virtual field and not actually read from the file.
+    #[br(temp, parse_with = current_offset)]
+    #[bw(ignore)]
+    base_offset: u64,
     /// Unknown field, usually `80 00`.
     unknown1: u16,
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
@@ -548,7 +560,11 @@ pub struct Album {
     unknown3: u32,
     /// Unknown field.
     unknown4: u8,
-    /// Byte offset of the album name string, relative to the start of this row.
+    /// Album name String
+    // TODO: this will produce wrong output strings because
+    // this should actually be a FilePtr8<DeviceSQLString>
+    // but those don't support binrw::BinWrite yet.
+    #[br(offset = base_offset, parse_with = FilePtr8::parse)]
     name: DeviceSQLString,
 }
 
@@ -638,7 +654,7 @@ pub struct HistoryPlaylist {
 
 /// Represents a history playlist.
 #[binrw]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 pub struct HistoryEntry {
     /// ID of the track played at this position in the playlist.
@@ -693,7 +709,7 @@ pub struct PlaylistTreeNode {
 }
 /// Represents a track entry in a playlist.
 #[binrw]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 pub struct PlaylistEntry {
     /// Position within the playlist.
@@ -840,6 +856,12 @@ pub struct Track {
     file_path: DeviceSQLString,
 }
 
+// #[bw(little)] on #[binread] types does
+// not seem to work so we manually define the endianness here.
+impl binrw::meta::WriteEndian for Track {
+    const ENDIAN: binrw::meta::EndianKind = binrw::meta::EndianKind::Endian(Endian::Little);
+}
+
 impl BinWrite for Track {
     type Args = ();
 
@@ -849,7 +871,7 @@ impl BinWrite for Track {
         options: &WriteOptions,
         _args: Self::Args,
     ) -> BinResult<()> {
-        let options = &options.clone().with_endian(Endian::Little);
+        debug_assert_eq!(options.endian(), Endian::Little);
 
         let base_position = writer.stream_position()?;
         self.unknown1.write_options(writer, options, ())?;
