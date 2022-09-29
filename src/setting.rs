@@ -25,7 +25,7 @@
 use binrw::{binrw, io::Cursor, BinWrite, Endian, NullString, WriteOptions};
 
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(little)]
 #[bw(import(no_checksum: bool))]
 /// Represents a setting file.

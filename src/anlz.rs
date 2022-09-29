@@ -226,7 +226,7 @@ pub struct Cue {
 
 /// A memory or hot cue (or loop).
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(big)]
 pub struct ExtendedCue {
     /// Cue entry header.
@@ -525,58 +525,58 @@ pub struct Phrase {
 
 /// Section content which differs depending on the section type.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[br(import(header: Header))]
 pub enum Content {
     /// All beats in the track.
-    #[brw(pre_assert(header.kind == ContentKind::BeatGrid))]
+    #[br(pre_assert(header.kind == ContentKind::BeatGrid))]
     BeatGrid(BeatGrid),
     /// List of cue points or loops (either hot cues or memory cues).
-    #[brw(pre_assert(header.kind == ContentKind::CueList))]
+    #[br(pre_assert(header.kind == ContentKind::CueList))]
     CueList(CueList),
     /// List of cue points or loops (either hot cues or memory cues, extended version).
     ///
     /// Variation of the original `CueList` that also adds support for more metadata such as
     /// comments and colors. Introduces with the Nexus 2 series players.
-    #[brw(pre_assert(header.kind == ContentKind::ExtendedCueList))]
+    #[br(pre_assert(header.kind == ContentKind::ExtendedCueList))]
     ExtendedCueList(ExtendedCueList),
     /// Path of the audio file that this analysis belongs to.
-    #[brw(pre_assert(header.kind == ContentKind::Path))]
+    #[br(pre_assert(header.kind == ContentKind::Path))]
     Path(#[br(args(header.clone()))] Path),
     /// Seek information for variable bitrate files (probably).
-    #[brw(pre_assert(header.kind == ContentKind::VBR))]
+    #[br(pre_assert(header.kind == ContentKind::VBR))]
     VBR(#[br(args(header.clone()))] VBR),
     /// Fixed-width monochrome preview of the track waveform.
-    #[brw(pre_assert(header.kind == ContentKind::WaveformPreview))]
+    #[br(pre_assert(header.kind == ContentKind::WaveformPreview))]
     WaveformPreview(#[br(args(header.clone()))] WaveformPreview),
     /// Smaller version of the fixed-width monochrome preview of the track waveform.
-    #[brw(pre_assert(header.kind == ContentKind::TinyWaveformPreview))]
+    #[br(pre_assert(header.kind == ContentKind::TinyWaveformPreview))]
     TinyWaveformPreview(#[br(args(header.clone()))] TinyWaveformPreview),
     /// Variable-width large monochrome version of the track waveform.
     ///
     /// Used in `.EXT` files.
-    #[brw(pre_assert(header.kind == ContentKind::WaveformDetail))]
+    #[br(pre_assert(header.kind == ContentKind::WaveformDetail))]
     WaveformDetail(#[br(args(header.clone()))] WaveformDetail),
     /// Variable-width large monochrome version of the track waveform.
     ///
     /// Used in `.EXT` files.
-    #[brw(pre_assert(header.kind == ContentKind::WaveformColorPreview))]
+    #[br(pre_assert(header.kind == ContentKind::WaveformColorPreview))]
     WaveformColorPreview(#[br(args(header.clone()))] WaveformColorPreview),
     /// Variable-width large colored version of the track waveform.
     ///
     /// Used in `.EXT` files.
-    #[brw(pre_assert(header.kind == ContentKind::WaveformColorDetail))]
+    #[br(pre_assert(header.kind == ContentKind::WaveformColorDetail))]
     WaveformColorDetail(#[br(args(header.clone()))] WaveformColorDetail),
     /// Describes the structure of a sond (Intro, Chrous, Verse, etc.).
     ///
     /// Used in `.EXT` files.
-    #[brw(pre_assert(header.kind == ContentKind::SongStructure))]
+    #[br(pre_assert(header.kind == ContentKind::SongStructure))]
     SongStructure(#[br(args(header.clone()))] SongStructure),
     /// Unknown content.
     ///
     /// This allows handling files that contain unknown section types and allows to access later
     /// sections in the file that have a known type instead of failing to parse the whole file.
-    #[brw(pre_assert(matches!(header.kind, ContentKind::Unknown(_))))]
+    #[br(pre_assert(matches!(header.kind, ContentKind::Unknown(_))))]
     Unknown(#[br(args(header.clone()))] Unknown),
 }
 
@@ -623,7 +623,7 @@ pub struct CueList {
 /// Variation of the original `CueList` that also adds support for more metadata such as
 /// comments and colors. Introduces with the Nexus 2 series players.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ExtendedCueList {
     /// The types of cues (memory or hot) that this list contains.
     pub list_type: CueListType,
@@ -641,7 +641,7 @@ pub struct ExtendedCueList {
 
 /// Path of the audio file that this analysis belongs to.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[br(import(header: Header))]
 pub struct Path {
     /// Length of the path field in bytes.
@@ -912,7 +912,7 @@ pub struct Unknown {
 
 /// ANLZ Section.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Section {
     /// The header.
     pub header: Header,
@@ -926,7 +926,7 @@ pub struct Section {
 /// The actual contents are not part of this struct and can parsed on-the-fly by iterating over the
 /// `ANLZ::sections()` method.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 #[brw(big)]
 pub struct ANLZ {
     /// The file header.
