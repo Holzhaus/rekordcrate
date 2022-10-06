@@ -28,6 +28,8 @@ files in the `PIONEER` directory):
 
     $ cargo run -- dump-setting -- data/complete_export/demo_tracks/PIONEER/MYSETTING.DAT
 
+Information about additional commands can be accessed using the `--help` flag.
+
 ## FAQ
 
 ### Is this software affiliated with Pioneer Corp. or its related companies?
