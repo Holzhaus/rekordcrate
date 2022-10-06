@@ -409,6 +409,60 @@ impl RowGroup {
     }
 }
 
+/// Identifies a track.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[br(little)]
+pub struct TrackId(pub u32);
+
+/// Identifies an artwork item.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[br(little)]
+pub struct ArtworkId(pub u32);
+
+/// Identifies an album.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[br(little)]
+pub struct AlbumId(pub u32);
+
+/// Identifies an artist.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[br(little)]
+pub struct ArtistId(pub u32);
+
+/// Identifies a genre.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[br(little)]
+pub struct GenreId(pub u32);
+
+/// Identifies a key.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[br(little)]
+pub struct KeyId(pub u32);
+
+/// Identifies a label.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[br(little)]
+pub struct LabelId(pub u32);
+
+/// Identifies a playlist tree node.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[br(little)]
+pub struct PlaylistTreeNodeId(pub u32);
+
+/// Identifies a history playlist.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[br(little)]
+pub struct HistoryPlaylistId(pub u32);
+
 /// Contains the album name, along with an ID of the corresponding artist.
 #[binread]
 #[derive(Debug, PartialEq, Clone)]
@@ -427,9 +481,9 @@ pub struct Album {
     /// Unknown field.
     unknown2: u32,
     /// ID of the artist row associated with this row.
-    artist_id: u32,
+    artist_id: ArtistId,
     /// ID of this row.
-    id: u32,
+    id: AlbumId,
     /// Unknown field.
     unknown3: u32,
     /// Unknown field.
@@ -449,7 +503,7 @@ pub struct Artist {
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
     index_shift: u16,
     /// ID of this row.
-    id: u32,
+    id: ArtistId,
     /// Unknown field.
     unknown1: u8,
     /// One-byte name offset used if `subtype` is `0x60`.
@@ -479,7 +533,7 @@ impl Artist {
 #[brw(little)]
 pub struct Artwork {
     /// ID of this row.
-    id: u32,
+    id: ArtworkId,
     /// Path to the album art file.
     path: DeviceSQLString,
 }
@@ -507,7 +561,7 @@ pub struct Color {
 #[brw(little)]
 pub struct Genre {
     /// ID of this row.
-    id: u32,
+    id: GenreId,
     /// Name of the genre.
     name: DeviceSQLString,
 }
@@ -518,7 +572,7 @@ pub struct Genre {
 #[brw(little)]
 pub struct HistoryPlaylist {
     /// ID of this row.
-    id: u32,
+    id: HistoryPlaylistId,
     /// Name of the playlist.
     name: DeviceSQLString,
 }
@@ -529,9 +583,9 @@ pub struct HistoryPlaylist {
 #[brw(little)]
 pub struct HistoryEntry {
     /// ID of the track played at this position in the playlist.
-    track_id: u32,
+    track_id: TrackId,
     /// ID of the history playlist.
-    playlist_id: u32,
+    playlist_id: HistoryPlaylistId,
     /// Position within the playlist.
     entry_index: u32,
 }
@@ -542,7 +596,7 @@ pub struct HistoryEntry {
 #[brw(little)]
 pub struct Key {
     /// ID of this row.
-    id: u32,
+    id: KeyId,
     /// Apparently a second copy of the row ID.
     id2: u32,
     /// Name of the key.
@@ -555,7 +609,7 @@ pub struct Key {
 #[brw(little)]
 pub struct Label {
     /// ID of this row.
-    id: u32,
+    id: LabelId,
     /// Name of the record label.
     name: DeviceSQLString,
 }
@@ -566,13 +620,13 @@ pub struct Label {
 #[brw(little)]
 pub struct PlaylistTreeNode {
     /// ID of parent row of this row (which means that the parent is a folder).
-    pub parent_id: u32,
+    pub parent_id: PlaylistTreeNodeId,
     /// Unknown field.
     unknown: u32,
     /// Sort order indicastor.
     sort_order: u32,
     /// ID of this row.
-    pub id: u32,
+    pub id: PlaylistTreeNodeId,
     /// Indicates if the node is a folder. Non-zero if it's a leaf node, i.e. a playlist.
     node_is_folder: u32,
     /// Name of this node, as shown when navigating the menu.
@@ -595,9 +649,9 @@ pub struct PlaylistEntry {
     /// Position within the playlist.
     entry_index: u32,
     /// ID of the track played at this position in the playlist.
-    track_id: u32,
-    /// ID of the history playlist.
-    playlist_id: u32,
+    track_id: TrackId,
+    /// ID of the playlist.
+    playlist_id: PlaylistTreeNodeId,
 }
 /// Contains the album name, along with an ID of the corresponding artist.
 #[binread]
@@ -618,7 +672,7 @@ pub struct Track {
     /// Sample Rate in Hz.
     sample_rate: u32,
     /// Composer of this track as artist row ID (non-zero if set).
-    composer_id: u32,
+    composer_id: ArtistId,
     /// File size in bytes.
     file_size: u32,
     /// Unknown field (maybe another ID?)
@@ -628,15 +682,15 @@ pub struct Track {
     /// Unknown field ("always 30967?" according to [@flesniak](https://github.com/flesniak))
     unknown4: u16,
     /// Artwork row ID for the cover art (non-zero if set),
-    artwork_id: u32,
+    artwork_id: ArtworkId,
     /// Key row ID for the cover art (non-zero if set).
-    key_id: u32,
+    key_id: KeyId,
     /// Artist row ID of the original performer (non-zero if set).
-    orig_artist_id: u32,
+    orig_artist_id: ArtistId,
     /// Label row ID of the original performer (non-zero if set).
-    label_id: u32,
+    label_id: LabelId,
     /// Artist row ID of the remixer (non-zero if set).
-    remixer_id: u32,
+    remixer_id: ArtistId,
     /// Bitrate of the track.
     bitrate: u32,
     /// Track number of the track.
@@ -644,13 +698,13 @@ pub struct Track {
     /// Track tempo in centi-BPM (= 1/100 BPM).
     tempo: u32,
     /// Genre row ID for this track (non-zero if set).
-    genre_id: u32,
+    genre_id: GenreId,
     /// Album row ID for this track (non-zero if set).
-    album_id: u32,
+    album_id: AlbumId,
     /// Artist row ID for this track (non-zero if set).
-    artist_id: u32,
+    artist_id: ArtistId,
     /// Row ID of this track (non-zero if set).
-    id: u32,
+    id: TrackId,
     /// Disc number of this track (non-zero if set).
     disc_number: u16,
     /// Number of times this track was played.
@@ -1073,23 +1127,23 @@ mod test {
             index_shift: 160,
             bitmask: 788224,
             sample_rate: 44100,
-            composer_id: 0,
+            composer_id: ArtistId(0),
             file_size: 6899624,
             unknown2: 214020570,
             unknown3: 64128,
             unknown4: 1511,
-            artwork_id: 0,
-            key_id: 5,
-            orig_artist_id: 0,
-            label_id: 1,
-            remixer_id: 0,
+            artwork_id: ArtworkId(0),
+            key_id: KeyId(5),
+            orig_artist_id: ArtistId(0),
+            label_id: LabelId(1),
+            remixer_id: ArtistId(0),
             bitrate: 320,
             track_number: 0,
             tempo: 12800,
-            genre_id: 0,
-            album_id: 0,
-            artist_id: 1,
-            id: 1,
+            genre_id: GenreId(0),
+            album_id: AlbumId(0),
+            artist_id: ArtistId(1),
+            id: TrackId(1),
             disc_number: 0,
             play_count: 0,
             year: 0,
@@ -1156,7 +1210,7 @@ mod test {
         let row = Artist {
             subtype: 96,
             index_shift: 32,
-            id: 1,
+            id: ArtistId(1),
             unknown1: 3,
             ofs_name_near: 10,
             ofs_name_far: None,
@@ -1174,7 +1228,7 @@ mod test {
     #[test]
     fn label_row() {
         let row = Label {
-            id: 1,
+            id: LabelId(1),
             name: DeviceSQLString::new("Loopmasters".to_string()).unwrap(),
         };
         test_roundtrip(
@@ -1188,7 +1242,7 @@ mod test {
     #[test]
     fn key_row() {
         let row = Key {
-            id: 1,
+            id: KeyId(1),
             id2: 1,
             name: DeviceSQLString::new("Dm".to_string()).unwrap(),
         };

@@ -50,10 +50,14 @@ enum Commands {
 }
 
 fn list_playlists(path: &PathBuf) {
-    use rekordcrate::pdb::PlaylistTreeNode;
+    use rekordcrate::pdb::{PlaylistTreeNode, PlaylistTreeNodeId};
     use std::collections::HashMap;
 
-    fn print_children_of(tree: &HashMap<u32, Vec<PlaylistTreeNode>>, id: u32, level: usize) {
+    fn print_children_of(
+        tree: &HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>>,
+        id: PlaylistTreeNodeId,
+        level: usize,
+    ) {
         tree.get(&id)
             .iter()
             .flat_map(|nodes| nodes.iter())
@@ -71,7 +75,7 @@ fn list_playlists(path: &PathBuf) {
     let mut reader = std::fs::File::open(&path).expect("failed to open file");
     let header = Header::read(&mut reader).expect("failed to parse pdb file");
 
-    let mut tree: HashMap<u32, Vec<PlaylistTreeNode>> = HashMap::new();
+    let mut tree: HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>> = HashMap::new();
 
     header
         .tables
@@ -104,7 +108,7 @@ fn list_playlists(path: &PathBuf) {
         })
         .for_each(|row| tree.entry(row.parent_id).or_default().push(row));
 
-    print_children_of(&tree, 0, 0);
+    print_children_of(&tree, PlaylistTreeNodeId(0), 0);
 }
 
 fn dump_anlz(path: &PathBuf) {
