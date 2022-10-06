@@ -578,6 +578,15 @@ pub struct PlaylistTreeNode {
     /// Name of this node, as shown when navigating the menu.
     pub name: DeviceSQLString,
 }
+
+impl PlaylistTreeNode {
+    /// Indicates whether the node is a folder or a playlist.
+    #[must_use]
+    pub fn is_folder(&self) -> bool {
+        self.node_is_folder > 0
+    }
+}
+
 /// Represents a track entry in a playlist.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
