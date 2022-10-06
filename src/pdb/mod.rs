@@ -487,7 +487,7 @@ impl RowGroup {
         options: &WriteOptions,
         args: (u64, u64),
     ) -> binrw::BinResult<u64> {
-        debug_assert_eq!(options.endian(), Endian::Little);
+        let options = options.with_endian(Endian::Little);
 
         let (page_offset, relative_row_offset) = args;
 
