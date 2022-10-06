@@ -279,11 +279,14 @@ pub struct Page {
     #[br(calc = page_index.offset(page_size) + u64::from(Self::HEADER_SIZE))]
     page_heap_offset: u64,
     /// Row groups belonging to this page.
-    #[br(seek_before(SeekFrom::Current(Page::row_groups_offset(
-        page_size,
-        num_rows_small,
-        num_rows_large
-    ))))]
+    #[br(
+        seek_before(SeekFrom::Current(Page::row_groups_offset(
+            page_size,
+            num_rows_small,
+            num_rows_large
+        ))),
+        restore_position
+    )]
     #[br(parse_with = Self::parse_row_groups, args(page_type, page_heap_offset, num_rows, num_row_groups))]
     pub row_groups: Vec<RowGroup>,
 }
@@ -458,6 +461,8 @@ pub struct RowGroup {
     /// An offset which points to a row in the table, whose actual presence is controlled by one of the
     /// bits in `row_present_flags`. This instance allows the row itself to be lazily loaded, unless it
     /// is not present, in which case there is no content to be loaded.
+    // TODO: this was originally `Vec<FilePtr16<Row>>` which is not the same as
+    // below. Thus breaking plain reading functionality.
     #[br(offset = page_heap_offset, parse_with = FilePtr16::parse, args { count: num_rows.into(), inner: (page_type,) })]
     rows: Vec<Row>,
     row_presence_flags: u16,
