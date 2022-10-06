@@ -53,8 +53,8 @@ fn list_playlists(path: &PathBuf) {
     use rekordcrate::pdb::PlaylistTreeNode;
     use std::collections::HashMap;
 
-    fn print_children_of(tree: &HashMap<u32, Vec<PlaylistTreeNode>>, id: &u32, level: usize) {
-        tree.get(id)
+    fn print_children_of(tree: &HashMap<u32, Vec<PlaylistTreeNode>>, id: u32, level: usize) {
+        tree.get(&id)
             .iter()
             .flat_map(|nodes| nodes.iter())
             .for_each(|node| {
@@ -64,7 +64,7 @@ fn list_playlists(path: &PathBuf) {
                     if node.is_folder() { "🗀" } else { "🗎" },
                     node.name.clone().into_string().unwrap(),
                 );
-                print_children_of(tree, &node.id, level + 1);
+                print_children_of(tree, node.id, level + 1);
             });
     }
 
@@ -104,7 +104,7 @@ fn list_playlists(path: &PathBuf) {
         })
         .for_each(|row| tree.entry(row.parent_id).or_default().push(row));
 
-    print_children_of(&tree, &0, 0);
+    print_children_of(&tree, 0, 0);
 }
 
 fn dump_anlz(path: &PathBuf) {
