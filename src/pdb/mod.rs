@@ -411,7 +411,7 @@ impl RowGroup {
 
 /// Contains the album name, along with an ID of the corresponding artist.
 #[binread]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[br(little)]
 pub struct Album {
     /// Position of start of this row (needed of offset calculations).
@@ -441,7 +441,7 @@ pub struct Album {
 
 /// Contains the artist name and ID.
 #[binrw]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 pub struct Artist {
     /// Determines if the `name` string is located at the 8-bit offset (0x60) or the 16-bit offset (0x64).
@@ -475,7 +475,7 @@ impl Artist {
 
 /// Contains the artwork path and ID.
 #[binrw]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 pub struct Artwork {
     /// ID of this row.
@@ -486,7 +486,7 @@ pub struct Artwork {
 
 /// Contains numeric color ID
 #[binrw]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 pub struct Color {
     /// Unknown field.
@@ -503,7 +503,7 @@ pub struct Color {
 
 /// Represents a musical genre.
 #[binrw]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 pub struct Genre {
     /// ID of this row.
@@ -514,7 +514,7 @@ pub struct Genre {
 
 /// Represents a history playlist.
 #[binrw]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 pub struct HistoryPlaylist {
     /// ID of this row.
@@ -538,7 +538,7 @@ pub struct HistoryEntry {
 
 /// Represents a musical key.
 #[binrw]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 pub struct Key {
     /// ID of this row.
@@ -551,7 +551,7 @@ pub struct Key {
 
 /// Represents a record label.
 #[binrw]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 pub struct Label {
     /// ID of this row.
@@ -562,7 +562,7 @@ pub struct Label {
 
 /// Represents a node in the playlist tree (either a folder or a playlist).
 #[binrw]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 pub struct PlaylistTreeNode {
     /// ID of parent row of this row (which means that the parent is a folder).
@@ -601,7 +601,7 @@ pub struct PlaylistEntry {
 }
 /// Contains the album name, along with an ID of the corresponding artist.
 #[binread]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[br(little)]
 pub struct Track {
     /// Position of start of this row (needed of offset calculations).
@@ -841,7 +841,7 @@ impl BinWrite for Track {
 
 /// A table row contains the actual data.
 #[binread]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[br(little)]
 #[br(import(page_type: PageType))]
 // The large enum size is unfortunate, but since users of this library will probably use iterators

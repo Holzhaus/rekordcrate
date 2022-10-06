@@ -50,7 +50,7 @@ pub enum StringError {
 /// # Ok(())
 /// # }
 /// ```
-#[derive(PartialEq, Clone)]
+#[derive(PartialEq, Eq, Clone)]
 #[binrw]
 #[brw(little)]
 pub struct DeviceSQLString(DeviceSQLStringImpl);
@@ -145,7 +145,7 @@ impl fmt::Debug for DeviceSQLString {
 ///
 /// This implementation forces them to be immutable for now
 #[binrw]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 enum DeviceSQLStringImpl {
     /// Short-String optimization case
     ShortASCII {
@@ -178,7 +178,7 @@ enum DeviceSQLStringImpl {
 }
 
 #[binrw]
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[br(import(flags: u8, len: u16))]
 enum LongBody {
     // Ordering is important otherwise, UCS2LE strings could be parsed
