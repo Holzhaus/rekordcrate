@@ -569,10 +569,10 @@ pub struct PlaylistTreeNode {
     parent_id: u32,
     /// Unknown field.
     unknown: u32,
-    /// ID of this row.
-    id: u32,
     /// Sort order indicastor.
     sort_order: u32,
+    /// ID of this row.
+    id: u32,
     /// Indicates if the node is a folder. Non-zero if it's a leaf node, i.e. a playlist.
     node_is_folder: u32,
     /// Name of this node, as shown when navigating the menu.
