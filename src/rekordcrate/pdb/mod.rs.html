@@ -1198,6 +1198,15 @@
 <span id="1198">1198</span>
 <span id="1199">1199</span>
 <span id="1200">1200</span>
+<span id="1201">1201</span>
+<span id="1202">1202</span>
+<span id="1203">1203</span>
+<span id="1204">1204</span>
+<span id="1205">1205</span>
+<span id="1206">1206</span>
+<span id="1207">1207</span>
+<span id="1208">1208</span>
+<span id="1209">1209</span>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) 2022 Jan Holthuis</span>
 <span class="comment">//</span>
 <span class="comment">// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy</span>
@@ -1766,18 +1775,27 @@
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">little</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">PlaylistTreeNode</span> {
     <span class="doccomment">/// ID of parent row of this row (which means that the parent is a folder).</span>
-    <span class="ident">parent_id</span>: <span class="ident">u32</span>,
+    <span class="kw">pub</span> <span class="ident">parent_id</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// Unknown field.</span>
     <span class="ident">unknown</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// Sort order indicastor.</span>
     <span class="ident">sort_order</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// ID of this row.</span>
-    <span class="ident">id</span>: <span class="ident">u32</span>,
+    <span class="kw">pub</span> <span class="ident">id</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// Indicates if the node is a folder. Non-zero if it&#39;s a leaf node, i.e. a playlist.</span>
     <span class="ident">node_is_folder</span>: <span class="ident">u32</span>,
     <span class="doccomment">/// Name of this node, as shown when navigating the menu.</span>
-    <span class="ident">name</span>: <span class="ident">DeviceSQLString</span>,
+    <span class="kw">pub</span> <span class="ident">name</span>: <span class="ident">DeviceSQLString</span>,
 }
+
+<span class="kw">impl</span> <span class="ident">PlaylistTreeNode</span> {
+    <span class="doccomment">/// Indicates whether the node is a folder or a playlist.</span>
+    <span class="attribute">#[<span class="ident">must_use</span>]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">is_folder</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">bool</span> {
+        <span class="self">self</span>.<span class="ident">node_is_folder</span> <span class="op">&gt;</span> <span class="number">0</span>
+    }
+}
+
 <span class="doccomment">/// Represents a track entry in a playlist.</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Clone</span>)]</span>
