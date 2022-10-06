@@ -15,6 +15,15 @@ exclude = [".*"]
 binrw = "0.10"
 modular-bitfield = "0.11"
 crc16 = "0.4"
+clap = { version = "4.0.10", features = ["derive"], optional = true }
 
 [build-dependencies]
 glob = "0.3"
+
+[features]
+default = ["cli"]
+cli = ["dep:clap"]
+
+[[bin]]
+name = "rekordcrate"
+required-features = ["cli"]

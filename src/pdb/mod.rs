@@ -566,18 +566,27 @@ pub struct Label {
 #[brw(little)]
 pub struct PlaylistTreeNode {
     /// ID of parent row of this row (which means that the parent is a folder).
-    parent_id: u32,
+    pub parent_id: u32,
     /// Unknown field.
     unknown: u32,
     /// Sort order indicastor.
     sort_order: u32,
     /// ID of this row.
-    id: u32,
+    pub id: u32,
     /// Indicates if the node is a folder. Non-zero if it's a leaf node, i.e. a playlist.
     node_is_folder: u32,
     /// Name of this node, as shown when navigating the menu.
-    name: DeviceSQLString,
+    pub name: DeviceSQLString,
 }
+
+impl PlaylistTreeNode {
+    /// Indicates whether the node is a folder or a playlist.
+    #[must_use]
+    pub fn is_folder(&self) -> bool {
+        self.node_is_folder > 0
+    }
+}
+
 /// Represents a track entry in a playlist.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
