@@ -1728,7 +1728,7 @@
 
 <span class="doccomment">/// Contains the album name, along with an ID of the corresponding artist.</span>
 <span class="attribute">#[<span class="ident">binread</span>]</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Clone</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Clone</span>)]</span>
 <span class="attribute">#[<span class="ident">br</span>(<span class="ident">little</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Album</span> {
     <span class="doccomment">/// Position of start of this row (needed of offset calculations).</span>
@@ -1758,7 +1758,7 @@
 
 <span class="doccomment">/// Contains the artist name and ID.</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Clone</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Clone</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">little</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Artist</span> {
     <span class="doccomment">/// Determines if the `name` string is located at the 8-bit offset (0x60) or the 16-bit offset (0x64).</span>
@@ -1792,7 +1792,7 @@
 
 <span class="doccomment">/// Contains the artwork path and ID.</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Clone</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Clone</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">little</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Artwork</span> {
     <span class="doccomment">/// ID of this row.</span>
@@ -1803,7 +1803,7 @@
 
 <span class="doccomment">/// Contains numeric color ID</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Clone</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Clone</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">little</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Color</span> {
     <span class="doccomment">/// Unknown field.</span>
@@ -1820,7 +1820,7 @@
 
 <span class="doccomment">/// Represents a musical genre.</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Clone</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Clone</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">little</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Genre</span> {
     <span class="doccomment">/// ID of this row.</span>
@@ -1831,7 +1831,7 @@
 
 <span class="doccomment">/// Represents a history playlist.</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Clone</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Clone</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">little</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">HistoryPlaylist</span> {
     <span class="doccomment">/// ID of this row.</span>
@@ -1855,7 +1855,7 @@
 
 <span class="doccomment">/// Represents a musical key.</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Clone</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Clone</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">little</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Key</span> {
     <span class="doccomment">/// ID of this row.</span>
@@ -1868,7 +1868,7 @@
 
 <span class="doccomment">/// Represents a record label.</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Clone</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Clone</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">little</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Label</span> {
     <span class="doccomment">/// ID of this row.</span>
@@ -1879,7 +1879,7 @@
 
 <span class="doccomment">/// Represents a node in the playlist tree (either a folder or a playlist).</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Clone</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Clone</span>)]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">little</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">PlaylistTreeNode</span> {
     <span class="doccomment">/// ID of parent row of this row (which means that the parent is a folder).</span>
@@ -1918,7 +1918,7 @@
 }
 <span class="doccomment">/// Contains the album name, along with an ID of the corresponding artist.</span>
 <span class="attribute">#[<span class="ident">binread</span>]</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Clone</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Clone</span>)]</span>
 <span class="attribute">#[<span class="ident">br</span>(<span class="ident">little</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Track</span> {
     <span class="doccomment">/// Position of start of this row (needed of offset calculations).</span>
@@ -2158,7 +2158,7 @@
 
 <span class="doccomment">/// A table row contains the actual data.</span>
 <span class="attribute">#[<span class="ident">binread</span>]</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Clone</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Clone</span>)]</span>
 <span class="attribute">#[<span class="ident">br</span>(<span class="ident">little</span>)]</span>
 <span class="attribute">#[<span class="ident">br</span>(<span class="ident">import</span>(<span class="ident">page_type</span>: <span class="ident">PageType</span>))]</span>
 <span class="comment">// The large enum size is unfortunate, but since users of this library will probably use iterators</span>

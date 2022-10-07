@@ -362,7 +362,7 @@
 <span class="doccomment">/// # Ok(())</span>
 <span class="doccomment">/// # }</span>
 <span class="doccomment">/// ```</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">PartialEq</span>, <span class="ident">Clone</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Clone</span>)]</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
 <span class="attribute">#[<span class="ident">brw</span>(<span class="ident">little</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">DeviceSQLString</span>(<span class="ident">DeviceSQLStringImpl</span>);
@@ -457,7 +457,7 @@
 <span class="doccomment">///</span>
 <span class="doccomment">/// This implementation forces them to be immutable for now</span>
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Clone</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Clone</span>)]</span>
 <span class="kw">enum</span> <span class="ident">DeviceSQLStringImpl</span> {
     <span class="doccomment">/// Short-String optimization case</span>
     <span class="ident">ShortASCII</span> {
@@ -490,7 +490,7 @@
 }
 
 <span class="attribute">#[<span class="ident">binrw</span>]</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Clone</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Clone</span>)]</span>
 <span class="attribute">#[<span class="ident">br</span>(<span class="ident">import</span>(<span class="ident">flags</span>: <span class="ident">u8</span>, <span class="ident">len</span>: <span class="ident">u16</span>))]</span>
 <span class="kw">enum</span> <span class="ident">LongBody</span> {
     <span class="comment">// Ordering is important otherwise, UCS2LE strings could be parsed</span>
