@@ -1,0 +1,18 @@
+[package]
+name = "rekordcrate-ffi"
+version = "0.2.0"
+authors = ["Jan Holthuis <jan.holthuis@ruhr-uni-bochum.de>"]
+description = "C bindings for rekordcrate"
+readme = "README.md"
+repository = "https://github.com/Holzhaus/rekordcrate"
+license = "MPL-2.0"
+keywords = ["rekordbox", "dj", "export", "database", "parser"]
+categories = ["parser-implementations"]
+edition = "2021"
+exclude = [".*"]
+
+[dependencies]
+rekordcrate = { version = "0.2.0", path = "../rekordcrate" }
+
+[lib]
+crate_type = ["cdylib"]
