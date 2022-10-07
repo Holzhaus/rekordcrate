@@ -2,4 +2,5 @@
 
 members = [
     "rekordcrate",
+    "rekordcrate-ffi",
 ]
