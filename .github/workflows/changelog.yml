@@ -15,6 +15,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: "Use cached artifacts"
+        uses: Swatinem/rust-cache@v2
+
       - name: "Print Rust version"
         run:  rustc -vV
 
