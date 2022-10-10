@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Check out repository"
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -28,10 +28,8 @@ jobs:
         run: echo "GIT_DIRTY=$(git diff --quiet ; printf "%d" "$?")" >> "${GITHUB_ENV}"
 
       - name: "Commit new changelog"
-        uses: EndBug/add-and-commit@v5
+        uses: EndBug/add-and-commit@v9
         if: env.GIT_DIRTY != null && env.GIT_DIRTY != '0'
         with:
           add: "CHANGELOG.md"
           message: "chore(changelog): Update changelog after merge"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
