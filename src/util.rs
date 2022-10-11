@@ -9,6 +9,20 @@
 //! Common types used in multiple modules.
 
 use binrw::binrw;
+use thiserror::Error;
+
+/// Enumerates errors returned by this library.
+#[derive(Error, Debug)]
+#[non_exhaustive]
+pub enum RekordcrateError {
+    /// Represents a failure to parse input.
+    #[error(transparent)]
+    ParseError(#[from] binrw::Error),
+
+    /// Represents an `std::io::Error`.
+    #[error(transparent)]
+    IOError(#[from] std::io::Error),
+}
 
 /// Indexed Color identifiers used for memory cues and tracks.
 #[binrw]
