@@ -75,6 +75,55 @@ pub struct Setting {
     unknown: u16,
 }
 
+impl Setting {
+    /// Create a new object containing with the given brand string and data.
+    #[must_use]
+    fn default_with_brand_and_data(brand: NullString, data: SettingData) -> Self {
+        Self {
+            brand,
+            software: "rekordbox".into(),
+            version: "6.6.1".into(),
+            data,
+        }
+    }
+
+    /// Create a new object containing the default values of a `DEVSETTING.DAT` file.
+    #[must_use]
+    pub fn default_devsetting() -> Self {
+        Self::default_with_brand_and_data(
+            "PIONEER DJ".into(),
+            SettingData::DevSetting(DevSetting::default()),
+        )
+    }
+
+    /// Create a new object containing the default values of a `DJMMYSETTING.DAT` file.
+    #[must_use]
+    pub fn default_djmmysetting() -> Self {
+        Self::default_with_brand_and_data(
+            "PioneerDJ".into(),
+            SettingData::DJMMySetting(DJMMySetting::default()),
+        )
+    }
+
+    /// Create a new object containing the default values of a `MYSETTING.DAT` file.
+    #[must_use]
+    pub fn default_mysetting() -> Self {
+        Self::default_with_brand_and_data(
+            "PIONEER".into(),
+            SettingData::MySetting(MySetting::default()),
+        )
+    }
+
+    /// Create a new object containing the default values of a `MYSETTING2.DAT` file.
+    #[must_use]
+    pub fn default_mysetting2() -> Self {
+        Self::default_with_brand_and_data(
+            "PIONEER".into(),
+            SettingData::MySetting2(MySetting2::default()),
+        )
+    }
+}
+
 impl Setting
 where
     Setting: BinWrite,
