@@ -13,19 +13,23 @@
 
 use binrw::binrw;
 use std::{convert::TryInto, fmt};
+use thiserror::Error;
 
 const MAX_SHORTSTR_SIZE: usize = ((u8::MAX >> 1) - 1) as usize;
 
 /// Error Objects occurring when dealing with [DeviceSQLString]'s
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone, Error)]
 #[non_exhaustive]
 pub enum StringError {
     /// String being handled was too long for DeviceSQL
+    #[error("string is too long for DeviceSQL")]
     TooLong,
     /// Creating of ISRC String was unsuccessful because the string was not
     /// containing a valid ISRC string specifier
+    #[error("string does not contain valid ISRC identifier")]
     InvalidISRC,
     /// String encoding Error (invalid UTF-8/16)
+    #[error("string encoding is invalid")]
     Encoding,
 }
 

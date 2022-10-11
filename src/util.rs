@@ -8,6 +8,7 @@
 
 //! Common types used in multiple modules.
 
+use crate::pdb::string::StringError;
 use binrw::binrw;
 use thiserror::Error;
 
@@ -15,6 +16,10 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 #[non_exhaustive]
 pub enum RekordcrateError {
+    /// Represents a failure to decode a DeviceSQL string.
+    #[error(transparent)]
+    StringError(#[from] StringError),
+
     /// Represents a failure to parse input.
     #[error(transparent)]
     ParseError(#[from] binrw::Error),
