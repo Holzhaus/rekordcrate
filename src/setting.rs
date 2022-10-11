@@ -69,7 +69,9 @@ pub struct Setting {
     #[bw(calc = no_checksum.then_some(0).unwrap_or_else(|| self.calculate_checksum()))]
     checksum: u16,
     /// Unknown field (apparently always `0000`).
+    #[br(temp)]
     #[br(assert(unknown == 0))]
+    #[bw(calc = 0u16)]
     unknown: u16,
 }
 
