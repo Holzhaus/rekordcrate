@@ -310,6 +310,10 @@
 <span id="310">310</span>
 <span id="311">311</span>
 <span id="312">312</span>
+<span id="313">313</span>
+<span id="314">314</span>
+<span id="315">315</span>
+<span id="316">316</span>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) 2022 Nikolaus Einhauser</span>
 <span class="comment">//</span>
 <span class="comment">// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy</span>
@@ -325,19 +329,23 @@
 
 <span class="kw">use</span> <span class="ident">binrw::binrw</span>;
 <span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">convert::TryInto</span>, <span class="ident">fmt</span>};
+<span class="kw">use</span> <span class="ident">thiserror::Error</span>;
 
 <span class="kw">const</span> <span class="ident">MAX_SHORTSTR_SIZE</span>: <span class="ident">usize</span> <span class="op">=</span> ((<span class="ident">u8::MAX</span> <span class="op">&gt;</span><span class="op">&gt;</span> <span class="number">1</span>) <span class="op">-</span> <span class="number">1</span>) <span class="kw">as</span> <span class="ident">usize</span>;
 
 <span class="doccomment">/// Error Objects occurring when dealing with [DeviceSQLString]&#39;s</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Copy</span>, <span class="ident">Clone</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Copy</span>, <span class="ident">Clone</span>, <span class="ident">Error</span>)]</span>
 <span class="attribute">#[<span class="ident">non_exhaustive</span>]</span>
 <span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">StringError</span> {
     <span class="doccomment">/// String being handled was too long for DeviceSQL</span>
+    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;string is too long for DeviceSQL&quot;</span>)]</span>
     <span class="ident">TooLong</span>,
     <span class="doccomment">/// Creating of ISRC String was unsuccessful because the string was not</span>
     <span class="doccomment">/// containing a valid ISRC string specifier</span>
+    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;string does not contain valid ISRC identifier&quot;</span>)]</span>
     <span class="ident">InvalidISRC</span>,
     <span class="doccomment">/// String encoding Error (invalid UTF-8/16)</span>
+    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;string encoding is invalid&quot;</span>)]</span>
     <span class="ident">Encoding</span>,
 }
 
