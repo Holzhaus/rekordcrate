@@ -24,10 +24,12 @@
 #![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
 
 pub mod anlz;
+pub mod device;
 pub mod pdb;
 pub mod setting;
 pub mod util;
 pub(crate) mod xor;
 
+pub use crate::device::DeviceExport;
 pub use crate::util::RekordcrateError as Error;
 pub use crate::util::RekordcrateResult as Result;
