@@ -8,7 +8,29 @@
 
 //! Common types used in multiple modules.
 
+use crate::pdb::string::StringError;
 use binrw::binrw;
+use thiserror::Error;
+
+/// Enumerates errors returned by this library.
+#[derive(Error, Debug)]
+#[non_exhaustive]
+pub enum RekordcrateError {
+    /// Represents a failure to decode a DeviceSQL string.
+    #[error(transparent)]
+    StringError(#[from] StringError),
+
+    /// Represents a failure to parse input.
+    #[error(transparent)]
+    ParseError(#[from] binrw::Error),
+
+    /// Represents an `std::io::Error`.
+    #[error(transparent)]
+    IOError(#[from] std::io::Error),
+}
+
+/// Type alias for results where the error is a `RekordcrateError`.
+pub type RekordcrateResult<T> = std::result::Result<T, RekordcrateError>;
 
 /// Indexed Color identifiers used for memory cues and tracks.
 #[binrw]

@@ -49,7 +49,7 @@ enum Commands {
     },
 }
 
-fn list_playlists(path: &PathBuf) {
+fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
     use rekordcrate::pdb::{PlaylistTreeNode, PlaylistTreeNodeId};
     use std::collections::HashMap;
 
@@ -72,8 +72,8 @@ fn list_playlists(path: &PathBuf) {
             });
     }
 
-    let mut reader = std::fs::File::open(&path).expect("failed to open file");
-    let header = Header::read(&mut reader).expect("failed to parse pdb file");
+    let mut reader = std::fs::File::open(&path)?;
+    let header = Header::read(&mut reader)?;
 
     let mut tree: HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>> = HashMap::new();
 
@@ -109,17 +109,21 @@ fn list_playlists(path: &PathBuf) {
         .for_each(|row| tree.entry(row.parent_id).or_default().push(row));
 
     print_children_of(&tree, PlaylistTreeNodeId(0), 0);
+
+    Ok(())
 }
 
-fn dump_anlz(path: &PathBuf) {
-    let mut reader = std::fs::File::open(&path).expect("failed to open file");
-    let anlz = ANLZ::read(&mut reader).expect("failed to parse setting file");
+fn dump_anlz(path: &PathBuf) -> rekordcrate::Result<()> {
+    let mut reader = std::fs::File::open(&path)?;
+    let anlz = ANLZ::read(&mut reader)?;
     println!("{:#?}", anlz);
+
+    Ok(())
 }
 
-fn dump_pdb(path: &PathBuf) {
-    let mut reader = std::fs::File::open(&path).expect("failed to open file");
-    let header = Header::read(&mut reader).expect("failed to parse pdb file");
+fn dump_pdb(path: &PathBuf) -> rekordcrate::Result<()> {
+    let mut reader = std::fs::File::open(&path)?;
+    let header = Header::read(&mut reader)?;
 
     println!("{:#?}", header);
 
@@ -143,16 +147,20 @@ fn dump_pdb(path: &PathBuf) {
             })
         }
     }
+
+    Ok(())
 }
 
-fn dump_setting(path: &PathBuf) {
-    let mut reader = std::fs::File::open(&path).expect("failed to open file");
-    let setting = Setting::read(&mut reader).expect("failed to parse setting file");
+fn dump_setting(path: &PathBuf) -> rekordcrate::Result<()> {
+    let mut reader = std::fs::File::open(&path)?;
+    let setting = Setting::read(&mut reader)?;
 
     println!("{:#04x?}", setting);
+
+    Ok(())
 }
 
-fn main() {
+fn main() -> rekordcrate::Result<()> {
     let cli = Cli::parse();
 
     match &cli.command {
