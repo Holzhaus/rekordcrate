@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [unreleased]
+
+### Features
+
+- setting: Add method to construct default setting objects
+- setting: Derive `Clone` and `Copy` traits for all setting values
+- setting: Derive `Clone` for all setting data structs
+- setting: Add `Display` implementation for setting values
+
 ## [0.2.0] - 2022-10-09
 
 - Switch from `nom` to `binrw` to pave the way for serialization support in the future
