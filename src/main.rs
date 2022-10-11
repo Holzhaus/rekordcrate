@@ -33,6 +33,12 @@ enum Commands {
         #[arg(value_name = "PDB_FILE")]
         path: PathBuf,
     },
+    /// Display settings from a Rekordbox device export.
+    ListSettings {
+        /// Path to parse.
+        #[arg(value_name = "EXPORT_PATH")]
+        path: PathBuf,
+    },
     /// Parse and dump a Rekordbox Analysis (`ANLZXXXX.DAT`) file.
     DumpANLZ {
         /// File to parse.
@@ -187,6 +193,339 @@ fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
     Ok(())
 }
 
+fn list_settings(path: &Path) -> rekordcrate::Result<()> {
+    use rekordcrate::DeviceExport;
+
+    let mut export = DeviceExport::default();
+    export.load(path)?;
+    let settings = export.get_settings();
+
+    println!(
+        "On Air Display:                 {}",
+        settings
+            .on_air_display
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "LCD Brightness:                 {}",
+        settings
+            .lcd_brightness
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Quantize:                       {}",
+        settings
+            .quantize
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Auto Cue Level:                 {}",
+        settings
+            .auto_cue_level
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Language:                       {}",
+        settings
+            .language
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Jog Ring Brightness:            {}",
+        settings
+            .jog_ring_brightness
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Jog Ring Indicator:             {}",
+        settings
+            .jog_ring_indicator
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Slip Flashing:                  {}",
+        settings
+            .slip_flashing
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Disc Slot Illumination:         {}",
+        settings
+            .disc_slot_illumination
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Eject Lock:                     {}",
+        settings
+            .eject_lock
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Sync:                           {}",
+        settings
+            .sync
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Play Mode:                      {}",
+        settings
+            .play_mode
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Quantize Beat Value:            {}",
+        settings
+            .quantize_beat_value
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Hotcue Autoload:                {}",
+        settings
+            .hotcue_autoload
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Hotcue Color:                   {}",
+        settings
+            .hotcue_color
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Needle Lock:                    {}",
+        settings
+            .needle_lock
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Time Mode:                      {}",
+        settings
+            .time_mode
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Jog Mode:                       {}",
+        settings
+            .jog_mode
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Auto Cue:                       {}",
+        settings
+            .auto_cue
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Master Tempo:                   {}",
+        settings
+            .master_tempo
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Tempo Range:                    {}",
+        settings
+            .tempo_range
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Phase Meter:                    {}",
+        settings
+            .phase_meter
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Vinyl Speed Adjust:             {}",
+        settings
+            .vinyl_speed_adjust
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Jog Display Mode:               {}",
+        settings
+            .jog_display_mode
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Pad Button Brightness:          {}",
+        settings
+            .pad_button_brightness
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Jog LCD Brightness:             {}",
+        settings
+            .jog_lcd_brightness
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Waveform Divisions:             {}",
+        settings
+            .waveform_divisions
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Waveform:                       {}",
+        settings
+            .waveform
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Beat Jump Beat Value:           {}",
+        settings
+            .beat_jump_beat_value
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Channel Fader Curve:            {}",
+        settings
+            .channel_fader_curve
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Crossfader Curve:               {}",
+        settings
+            .crossfader_curve
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Headphones Pre Eq:              {}",
+        settings
+            .headphones_pre_eq
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Headphones Mono Split:          {}",
+        settings
+            .headphones_mono_split
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Beat FX Quantize:               {}",
+        settings
+            .beat_fx_quantize
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Mic Low Cut:                    {}",
+        settings
+            .mic_low_cut
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Talk Over Mode:                 {}",
+        settings
+            .talk_over_mode
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Talk Over Level:                {}",
+        settings
+            .talk_over_level
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "MIDI Channel:                   {}",
+        settings
+            .midi_channel
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "MIDI Button Type:               {}",
+        settings
+            .midi_button_type
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Display Brightness:             {}",
+        settings
+            .display_brightness
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Indicator Brightness:           {}",
+        settings
+            .indicator_brightness
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Channel Fader Curve Long Fader: {}",
+        settings
+            .channel_fader_curve_long_fader
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Overview Waveform Type:         {}",
+        settings
+            .overview_waveform_type
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Waveform Color:                 {}",
+        settings
+            .waveform_color
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Key Display Format:             {}",
+        settings
+            .key_display_format
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+    println!(
+        "Waveform Current Position:      {}",
+        settings
+            .waveform_current_position
+            .map(|v| v.to_string())
+            .unwrap_or_else(|| "<missing>".to_string())
+    );
+
+    Ok(())
+}
+
 fn dump_anlz(path: &PathBuf) -> rekordcrate::Result<()> {
     let mut reader = std::fs::File::open(path)?;
     let anlz = ANLZ::read(&mut reader)?;
@@ -291,6 +630,7 @@ fn main() -> rekordcrate::Result<()> {
 
     match &cli.command {
         Commands::ListPlaylists { path } => list_playlists(path),
+        Commands::ListSettings { path } => list_settings(path),
         Commands::DumpPDB { path, db_type } => {
             let db_type = match guess_db_type(path, db_type.as_deref()) {
                 Some(db_type) => db_type,
