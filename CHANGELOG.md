@@ -11,6 +11,10 @@ All notable changes to this project will be documented in this file.
 - setting: Derive `Clone` for all setting data structs
 - setting: Add `Display` implementation for setting values
 
+### Refactor
+
+- cli: Return `Result` from main method instead of unwrapping
+
 ## [0.2.0] - 2022-10-09
 
 - Switch from `nom` to `binrw` to pave the way for serialization support in the future
