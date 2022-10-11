@@ -8,9 +8,14 @@
 
 //! High-level API for working with Rekordbox device exports.
 
-use crate::{setting, setting::Setting};
-use binrw::BinRead;
-use std::path::Path;
+use crate::{
+    pdb::{Header, Page, PageType, PlaylistTreeNode, PlaylistTreeNodeId, Row},
+    setting,
+    setting::Setting,
+};
+use binrw::{BinRead, ReadOptions};
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
 /// Represents a Rekordbox device export.
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
@@ -233,5 +238,116 @@ impl Settings {
         self.waveform_color = Some(data.waveform_color);
         self.key_display_format = Some(data.key_display_format);
         self.waveform_current_position = Some(data.waveform_current_position);
+    }
+}
+
+/// Represent a PDB file.
+#[derive(Debug, PartialEq)]
+pub struct Pdb {
+    header: Header,
+    pages: Vec<Page>,
+}
+
+/// Represents either a playlist folder or a playlist.
+#[derive(Debug, PartialEq)]
+pub enum PlaylistNode {
+    /// Represents a playlist folder that contains `PlaylistNode`s.
+    Folder(PlaylistFolder),
+    /// Represents a playlist.
+    Playlist(Playlist),
+}
+
+/// Represents a playlist folder that contains `PlaylistNode`s.
+#[derive(Debug, PartialEq)]
+pub struct PlaylistFolder {
+    /// Name of the playlist folder.
+    pub name: String,
+    /// Child nodes of the playlist folder.
+    pub children: Vec<PlaylistNode>,
+}
+
+/// Represents a playlist.
+#[derive(Debug, PartialEq, Eq)]
+pub struct Playlist {
+    /// Name of the playlist.
+    pub name: String,
+}
+
+impl Pdb {
+    /// Create a new `Pdb` object by reading the PDB file at the given path.
+    pub fn new_from_path(path: &PathBuf) -> crate::Result<Self> {
+        let mut reader = std::fs::File::open(&path)?;
+        let header = Header::read(&mut reader)?;
+        let pages = header
+            .tables
+            .iter()
+            .flat_map(|table| {
+                header
+                    .read_pages(
+                        &mut reader,
+                        &ReadOptions::new(binrw::Endian::NATIVE),
+                        (&table.first_page, &table.last_page),
+                    )
+                    .into_iter()
+            })
+            .flatten()
+            .collect::<Vec<Page>>();
+
+        let pdb = Pdb { header, pages };
+
+        Ok(pdb)
+    }
+
+    /// Get playlist tree.
+    pub fn get_playlists(&self) -> crate::Result<Vec<PlaylistNode>> {
+        let mut playlists: HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>> = HashMap::new();
+        self.pages
+            .iter()
+            .filter(|page| page.page_type == PageType::PlaylistTree)
+            .flat_map(|page| page.row_groups.iter())
+            .flat_map(|row_group| {
+                row_group
+                    .present_rows()
+                    .map(|row| {
+                        if let Row::PlaylistTreeNode(playlist_tree) = row {
+                            playlist_tree
+                        } else {
+                            unreachable!("encountered non-playlist tree row in playlist table");
+                        }
+                    })
+                    .cloned()
+                    .collect::<Vec<PlaylistTreeNode>>()
+                    .into_iter()
+            })
+            .for_each(|row| playlists.entry(row.parent_id).or_default().push(row));
+
+        fn get_child_nodes(
+            playlists: &HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>>,
+            id: PlaylistTreeNodeId,
+        ) -> impl Iterator<Item = crate::Result<PlaylistNode>> + '_ {
+            playlists
+                .get(&id)
+                .into_iter()
+                .flat_map(|nodes| nodes.iter())
+                .map(|node| -> crate::Result<PlaylistNode> {
+                    let child_node = if node.is_folder() {
+                        let folder = PlaylistFolder {
+                            name: node.name.clone().into_string()?,
+                            children: get_child_nodes(playlists, node.id)
+                                .collect::<crate::Result<Vec<PlaylistNode>>>()?,
+                        };
+                        PlaylistNode::Folder(folder)
+                    } else {
+                        let playlist = Playlist {
+                            name: node.name.clone().into_string()?,
+                        };
+                        PlaylistNode::Playlist(playlist)
+                    };
+                    Ok(child_node)
+                })
+        }
+
+        get_child_nodes(&playlists, PlaylistTreeNodeId(0))
+            .collect::<crate::Result<Vec<PlaylistNode>>>()
     }
 }
