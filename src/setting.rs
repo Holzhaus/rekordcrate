@@ -25,7 +25,7 @@
 use binrw::{binrw, io::Cursor, BinWrite, Endian, NullString, WriteOptions};
 
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 #[bw(import(no_checksum: bool))]
 /// Represents a setting file.
@@ -155,7 +155,7 @@ where
 
 /// Data section of a `*SETTING.DAT` file.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 #[br(import(len: u32))]
 pub enum SettingData {
@@ -186,7 +186,7 @@ impl SettingData {
 
 /// Payload of a `DEVSETTING.DAT` file (32 bytes).
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 pub struct DevSetting {
     /// Unknown field.
@@ -224,7 +224,7 @@ impl Default for DevSetting {
 
 /// Payload of a `DJMMYSETTING.DAT` file (52 bytes).
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 pub struct DJMMySetting {
     /// Unknown field.
@@ -286,7 +286,7 @@ impl Default for DJMMySetting {
 
 /// Payload of a `MYSETTING.DAT` file (40 bytes).
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 pub struct MySetting {
     /// Unknown field.
@@ -387,7 +387,7 @@ impl Default for MySetting {
 
 /// Payload of a `MYSETTING2.DAT` file (40 bytes).
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 pub struct MySetting2 {
     /// "VINYL SPEED ADJUST" setting.
