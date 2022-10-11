@@ -30,3 +30,4 @@ pub mod util;
 pub(crate) mod xor;
 
 pub use crate::util::RekordcrateError as Error;
+pub use crate::util::RekordcrateResult as Result;

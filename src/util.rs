@@ -24,6 +24,9 @@ pub enum RekordcrateError {
     IOError(#[from] std::io::Error),
 }
 
+/// Type alias for results where the error is a `RekordcrateError`.
+pub type RekordcrateResult<T> = std::result::Result<T, RekordcrateError>;
+
 /// Indexed Color identifiers used for memory cues and tracks.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
