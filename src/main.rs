@@ -39,6 +39,15 @@ enum Commands {
         #[arg(value_name = "EXPORT_PATH")]
         path: PathBuf,
     },
+    /// Export the playlists from a Pioneer Database (`.PDB`) file to M3U files.
+    ExportPlaylists {
+        /// File to parse.
+        #[arg(value_name = "EXPORT_PATH")]
+        path: PathBuf,
+        /// Output directory to write M3U files to.
+        #[arg(value_name = "OUTPUT_DIR")]
+        output_dir: PathBuf,
+    },
     /// Parse and dump a Rekordbox Analysis (`ANLZXXXX.DAT`) file.
     DumpANLZ {
         /// File to parse.
@@ -189,6 +198,67 @@ fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
         PlaylistTreeNodeId(0),
         0,
     );
+
+    Ok(())
+}
+
+fn export_playlists(path: &Path, output_dir: &PathBuf) -> rekordcrate::Result<()> {
+    use rekordcrate::device::PlaylistNode;
+    use rekordcrate::pdb::{Track, TrackId};
+    use rekordcrate::DeviceExport;
+    use std::collections::HashMap;
+    use std::io::Write;
+
+    let mut export = DeviceExport::new(path.into());
+    export.load_pdb()?;
+    let playlists = export.get_playlists()?;
+    let mut tracks: HashMap<TrackId, Track> = HashMap::new();
+    export.get_tracks().for_each(|track| {
+        tracks.insert(track.id, track);
+    });
+
+    fn walk_tree(
+        export: &DeviceExport,
+        tracks: &HashMap<TrackId, Track>,
+        node: PlaylistNode,
+        path: &PathBuf,
+    ) -> rekordcrate::Result<()> {
+        match node {
+            PlaylistNode::Folder(folder) => {
+                folder.children.into_iter().try_for_each(|child| {
+                    walk_tree(export, tracks, child, &path.join(&folder.name))
+                })?;
+            }
+            PlaylistNode::Playlist(playlist) => {
+                let mut playlist_entries: Vec<(u32, TrackId)> = export
+                    .get_playlist_entries(playlist.id)
+                    .collect();
+                playlist_entries.sort_by_key(|entry| entry.0);
+
+                std::fs::create_dir_all(path)?;
+                let playlist_path = path.join(format!("{}.m3u", playlist.name));
+
+                println!("{}", playlist_path.display());
+                let mut file = std::fs::File::create(playlist_path)?;
+                playlist_entries
+                    .into_iter()
+                    .filter_map(|(_index, id)| tracks.get(&id))
+                    .try_for_each(|track| -> rekordcrate::Result<()> {
+                        Ok(writeln!(
+                            &mut file,
+                            "{}",
+                            track.offsets.file_path.clone().into_string()?
+                        )?)
+                    })?;
+            }
+        };
+
+        Ok(())
+    }
+
+    playlists
+        .into_iter()
+        .try_for_each(|node| walk_tree(&export, &tracks, node, output_dir))?;
 
     Ok(())
 }
@@ -631,6 +701,7 @@ fn main() -> rekordcrate::Result<()> {
     match &cli.command {
         Commands::ListPlaylists { path } => list_playlists(path),
         Commands::ListSettings { path } => list_settings(path),
+        Commands::ExportPlaylists { path, output_dir } => export_playlists(path, output_dir),
         Commands::DumpPDB { path, db_type } => {
             let db_type = match guess_db_type(path, db_type.as_deref()) {
                 Some(db_type) => db_type,

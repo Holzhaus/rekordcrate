@@ -1057,7 +1057,7 @@ pub struct TrackStrings {
     #[brw(args(base, ()))]
     #[br(parse_with = offsets.read_offset(21))]
     #[bw(write_with = offsets.write_offset(21))]
-    file_path: DeviceSQLString,
+    pub file_path: DeviceSQLString,
 }
 
 /// Contains the album name, along with an ID of the corresponding artist.
