@@ -83,7 +83,10 @@ fn list_playlists(path: &Path) -> rekordcrate::Result<()> {
                     .for_each(|child| walk_tree(export, child, level + 1));
             }
             PlaylistNode::Playlist(playlist) => {
-                let num_tracks = export.get_playlist_entries(playlist.id).count();
+                let num_tracks = export
+                    .get_playlist_entries(playlist.id)
+                    .expect("failed to get playlist entries")
+                    .count();
                 println!("{}🗎 {} ({} tracks)", indent, playlist.name, num_tracks)
             }
         };
@@ -106,7 +109,7 @@ fn export_playlists(path: &Path, output_dir: &PathBuf) -> rekordcrate::Result<()
     export.load_pdb()?;
     let playlists = export.get_playlists()?;
     let mut tracks: HashMap<TrackId, Track> = HashMap::new();
-    export.get_tracks().try_for_each(|result| {
+    export.get_tracks()?.try_for_each(|result| {
         if let Ok(track) = result {
             tracks.insert(track.id, track);
             Ok(())
@@ -129,7 +132,7 @@ fn export_playlists(path: &Path, output_dir: &PathBuf) -> rekordcrate::Result<()
             }
             PlaylistNode::Playlist(playlist) => {
                 let mut playlist_entries = export
-                    .get_playlist_entries(playlist.id)
+                    .get_playlist_entries(playlist.id)?
                     .collect::<rekordcrate::Result<Vec<(u32, TrackId)>>>()?;
                 playlist_entries.sort_by_key(|entry| entry.0);
 

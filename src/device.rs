@@ -128,28 +128,26 @@ impl DeviceExport {
     pub fn get_playlists(&self) -> crate::Result<Vec<PlaylistNode>> {
         match &self.pdb {
             Some(pdb) => pdb.get_playlists(),
-            None => Ok(Vec::new()),
+            None => Err(crate::Error::NotLoadedError),
         }
     }
 
     /// Get the entries for a single playlist.
-    #[must_use]
     pub fn get_playlist_entries(
         &self,
         id: PlaylistTreeNodeId,
-    ) -> Box<dyn Iterator<Item = crate::Result<(u32, TrackId)>> + '_> {
+    ) -> crate::Result<impl Iterator<Item = crate::Result<(u32, TrackId)>> + '_> {
         match &self.pdb {
-            Some(pdb) => Box::new(pdb.get_playlist_entries(id)),
-            None => Box::new(std::iter::empty()),
+            Some(pdb) => Ok(pdb.get_playlist_entries(id)),
+            None => Err(crate::Error::NotLoadedError),
         }
     }
 
     /// Get the tracks.
-    #[must_use]
-    pub fn get_tracks(&self) -> Box<dyn Iterator<Item = crate::Result<Track>> + '_> {
+    pub fn get_tracks(&self) -> crate::Result<impl Iterator<Item = crate::Result<Track>> + '_> {
         match &self.pdb {
-            Some(pdb) => Box::new(pdb.get_tracks()),
-            None => Box::new(std::iter::empty()),
+            Some(pdb) => Ok(pdb.get_tracks()),
+            None => Err(crate::Error::NotLoadedError),
         }
     }
 }
@@ -393,12 +391,16 @@ impl Pdb {
         self.get_rows_by_page_type(PageType::PlaylistTree)
             .map(|row| {
                 if let Row::PlaylistTreeNode(playlist_tree) = row {
-                    playlist_tree
+                    Ok(playlist_tree)
                 } else {
-                    unreachable!("encountered non-playlist tree row in playlist table");
+                    Err(crate::Error::IntegrityError(
+                        "encountered non-playlist tree row in playlist table",
+                    ))
                 }
             })
-            .for_each(|row| playlists.entry(row.parent_id).or_default().push(row));
+            .try_for_each(|row| {
+                row.map(|node| playlists.entry(node.parent_id).or_default().push(node))
+            })?;
 
         fn get_child_nodes<'a>(
             playlists: &'a HashMap<PlaylistTreeNodeId, Vec<&PlaylistTreeNode>>,
@@ -446,7 +448,9 @@ impl Pdb {
                         None
                     }
                 } else {
-                    unreachable!("encountered non-playlist tree row in playlist table");
+                    Some(Err(crate::Error::IntegrityError(
+                        "encountered non-playlist tree row in playlist table",
+                    )))
                 }
             })
     }
@@ -457,7 +461,9 @@ impl Pdb {
             if let Row::Track(track) = row {
                 Ok(track.clone())
             } else {
-                unreachable!("encountered non-track row in track table");
+                Err(crate::Error::IntegrityError(
+                    "encountered non-track row in track table",
+                ))
             }
         })
     }
