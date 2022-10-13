@@ -181,6 +181,17 @@ impl Header {
     }
 }
 
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+struct PageFlags(u8);
+
+impl PageFlags {
+    #[must_use]
+    pub fn page_has_data(&self) -> bool {
+        (self.0 & 0x40) == 0
+    }
+}
+
 /// A table page.
 ///
 /// Each page consists of a header that contains information about the type, number of rows, etc.,
@@ -234,7 +245,7 @@ pub struct Page {
     ///
     /// According to [@flesniak](https://github.com/flesniak):
     /// > strange pages: 0x44, 0x64; otherwise seen: 0x24, 0x34
-    pub page_flags: u8,
+    page_flags: PageFlags,
     /// Free space in bytes in the data section of the page (excluding the row offsets in the page footer).
     pub free_size: u16,
     /// Used space in bytes in the data section of the page.
@@ -287,7 +298,7 @@ pub struct Page {
     page_heap_offset: u64,
     /// Row groups belonging to this page.
     #[br(seek_before(row_groups_offset), restore_position)]
-    #[br(parse_with = Self::parse_row_groups, args(page_type, page_heap_offset, num_rows, num_row_groups))]
+    #[br(parse_with = Self::parse_row_groups, args(page_type, page_heap_offset, num_rows, num_row_groups, page_flags))]
     pub row_groups: Vec<RowGroup>,
 }
 
@@ -299,10 +310,10 @@ impl Page {
     fn parse_row_groups<R: Read + Seek>(
         reader: &mut R,
         ro: &ReadOptions,
-        args: (PageType, u64, u16, u16),
+        args: (PageType, u64, u16, u16, PageFlags),
     ) -> BinResult<Vec<RowGroup>> {
-        let (page_type, page_heap_offset, num_rows, num_row_groups) = args;
-        if num_row_groups == 0 {
+        let (page_type, page_heap_offset, num_rows, num_row_groups, page_flags) = args;
+        if num_row_groups == 0 || !page_flags.page_has_data() {
             return Ok(vec![]);
         }
 
@@ -338,7 +349,7 @@ impl Page {
     #[must_use]
     /// Returns `true` if the page actually contains row data.
     pub fn has_data(&self) -> bool {
-        (self.page_flags & 0x40) == 0
+        self.page_flags.page_has_data()
     }
 
     #[must_use]
