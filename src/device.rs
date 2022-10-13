@@ -379,33 +379,31 @@ impl Pdb {
         Ok(pdb)
     }
 
-    /// Get playlist tree.
-    pub fn get_playlists(&self) -> crate::Result<Vec<PlaylistNode>> {
-        let mut playlists: HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>> = HashMap::new();
+    fn get_rows_by_page_type(&self, page_type: PageType) -> impl Iterator<Item = &Row> + '_ {
         self.pages
             .iter()
-            .filter(|page| page.page_type == PageType::PlaylistTree)
+            .filter(move |page| page.page_type == page_type)
             .flat_map(|page| page.row_groups.iter())
-            .flat_map(|row_group| {
-                row_group
-                    .present_rows()
-                    .map(|row| {
-                        if let Row::PlaylistTreeNode(playlist_tree) = row {
-                            playlist_tree
-                        } else {
-                            unreachable!("encountered non-playlist tree row in playlist table");
-                        }
-                    })
-                    .cloned()
-                    .collect::<Vec<PlaylistTreeNode>>()
-                    .into_iter()
+            .flat_map(|row_group| row_group.present_rows())
+    }
+
+    /// Get playlist tree.
+    pub fn get_playlists(&self) -> crate::Result<Vec<PlaylistNode>> {
+        let mut playlists: HashMap<PlaylistTreeNodeId, Vec<&PlaylistTreeNode>> = HashMap::new();
+        self.get_rows_by_page_type(PageType::PlaylistTree)
+            .map(|row| {
+                if let Row::PlaylistTreeNode(playlist_tree) = row {
+                    playlist_tree
+                } else {
+                    unreachable!("encountered non-playlist tree row in playlist table");
+                }
             })
             .for_each(|row| playlists.entry(row.parent_id).or_default().push(row));
 
-        fn get_child_nodes(
-            playlists: &HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>>,
+        fn get_child_nodes<'a>(
+            playlists: &'a HashMap<PlaylistTreeNodeId, Vec<&PlaylistTreeNode>>,
             id: PlaylistTreeNodeId,
-        ) -> impl Iterator<Item = crate::Result<PlaylistNode>> + '_ {
+        ) -> impl Iterator<Item = crate::Result<PlaylistNode>> + 'a {
             playlists
                 .get(&id)
                 .into_iter()
@@ -439,11 +437,7 @@ impl Pdb {
         &self,
         playlist_id: PlaylistTreeNodeId,
     ) -> impl Iterator<Item = crate::Result<(u32, TrackId)>> + '_ {
-        self.pages
-            .iter()
-            .filter(|page| page.page_type == PageType::PlaylistEntries)
-            .flat_map(|page| page.row_groups.iter())
-            .flat_map(|row_group| row_group.present_rows())
+        self.get_rows_by_page_type(PageType::PlaylistEntries)
             .filter_map(move |row| {
                 if let Row::PlaylistEntry(entry) = row {
                     if entry.playlist_id == playlist_id {
@@ -459,18 +453,12 @@ impl Pdb {
 
     /// Get tracks.
     pub fn get_tracks(&self) -> impl Iterator<Item = crate::Result<Track>> + '_ {
-        self.pages
-            .iter()
-            .filter(|page| page.page_type == PageType::Tracks)
-            .flat_map(|page| page.row_groups.iter())
-            .flat_map(|row_group| {
-                row_group.present_rows().map(|row| {
-                    if let Row::Track(track) = row {
-                        Ok(track.clone())
-                    } else {
-                        unreachable!("encountered non-track row in track table");
-                    }
-                })
-            })
+        self.get_rows_by_page_type(PageType::Tracks).map(|row| {
+            if let Row::Track(track) = row {
+                Ok(track.clone())
+            } else {
+                unreachable!("encountered non-track row in track table");
+            }
+        })
     }
 }
