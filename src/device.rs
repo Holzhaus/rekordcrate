@@ -9,17 +9,22 @@
 //! High-level API for working with Rekordbox device exports.
 
 use crate::{
-    pdb::{Header, Page, PageType, PlaylistTreeNode, PlaylistTreeNodeId, Row},
+    pdb::{
+        DatabaseType, Header, Page, PageContent, PageType, PlainPageType, PlainRow,
+        PlaylistTreeNode, PlaylistTreeNodeId, Row,
+    },
     setting,
     setting::Setting,
 };
-use binrw::{BinRead, ReadOptions};
+use binrw::BinRead;
 use std::collections::HashMap;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /// Represents a Rekordbox device export.
-#[derive(Debug, Default, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq)]
 pub struct DeviceExport {
+    path: PathBuf,
+    pdb: Option<Pdb>,
     devsetting: Option<Setting>,
     djmmysetting: Option<Setting>,
     mysetting: Option<Setting>,
@@ -27,22 +32,68 @@ pub struct DeviceExport {
 }
 
 impl DeviceExport {
-    fn load_setting(path: &Path) -> Result<Setting, crate::Error> {
+    /// Load device export from the given path.
+    ///
+    /// The path should contain a `PIONEER` directory.
+    #[must_use]
+    pub fn new(path: PathBuf) -> Self {
+        Self {
+            path,
+            pdb: None,
+            devsetting: None,
+            djmmysetting: None,
+            mysetting: None,
+            mysetting2: None,
+        }
+    }
+
+    fn read_setting_file(path: &PathBuf) -> crate::Result<Setting> {
         let mut reader = std::fs::File::open(path)?;
         let setting = Setting::read(&mut reader)?;
         Ok(setting)
     }
 
-    /// Load device export from the given path.
-    ///
-    /// The path should contain a `PIONEER` directory.
-    pub fn load(&mut self, path: &Path) -> Result<(), crate::Error> {
-        let path = path.join("PIONEER");
-        self.devsetting = Some(Self::load_setting(&path.join("DEVSETTING.DAT"))?);
-        self.djmmysetting = Some(Self::load_setting(&path.join("DJMMYSETTING.DAT"))?);
-        self.mysetting = Some(Self::load_setting(&path.join("MYSETTING.DAT"))?);
-        self.mysetting2 = Some(Self::load_setting(&path.join("MYSETTING2.DAT"))?);
+    /// Load setting files.
+    pub fn load_settings(&mut self) -> crate::Result<()> {
+        let path = self.path.join("PIONEER");
+        self.devsetting = Some(Self::read_setting_file(&path.join("DEVSETTING.DAT"))?);
+        self.djmmysetting = Some(Self::read_setting_file(&path.join("DJMMYSETTING.DAT"))?);
+        self.mysetting = Some(Self::read_setting_file(&path.join("MYSETTING.DAT"))?);
+        self.mysetting2 = Some(Self::read_setting_file(&path.join("MYSETTING2.DAT"))?);
 
+        Ok(())
+    }
+
+    fn read_pdb_file(path: &PathBuf) -> crate::Result<Pdb> {
+        let mut reader = std::fs::File::open(path)?;
+        let header = Header::read_args(&mut reader, (DatabaseType::Plain,))?;
+        let pages = header
+            .tables
+            .iter()
+            .flat_map(|table| {
+                header
+                    .read_pages(
+                        &mut reader,
+                        binrw::Endian::NATIVE,
+                        (&table.first_page, &table.last_page, DatabaseType::Plain),
+                    )
+                    .into_iter()
+            })
+            .flatten()
+            .collect::<Vec<Page>>();
+
+        let pdb = Pdb { header, pages };
+        Ok(pdb)
+    }
+
+    /// Load PDB file.
+    pub fn load_pdb(&mut self) -> crate::Result<()> {
+        let path = self
+            .path
+            .join("PIONEER")
+            .join("rekordbox")
+            .join("export.pdb");
+        self.pdb = Some(Self::read_pdb_file(&path)?);
         Ok(())
     }
 
@@ -74,6 +125,14 @@ impl DeviceExport {
         });
 
         settings
+    }
+
+    /// Get the playlists tree.
+    pub fn get_playlists(&self) -> crate::Result<Vec<PlaylistNode>> {
+        match &self.pdb {
+            Some(pdb) => pdb.get_playlists(),
+            None => Ok(Vec::new()),
+        }
     }
 }
 
@@ -276,8 +335,8 @@ pub struct Playlist {
 impl Pdb {
     /// Create a new `Pdb` object by reading the PDB file at the given path.
     pub fn new_from_path(path: &PathBuf) -> crate::Result<Self> {
-        let mut reader = std::fs::File::open(&path)?;
-        let header = Header::read(&mut reader)?;
+        let mut reader = std::fs::File::open(path)?;
+        let header = Header::read_args(&mut reader, (DatabaseType::Plain,))?;
         let pages = header
             .tables
             .iter()
@@ -285,8 +344,8 @@ impl Pdb {
                 header
                     .read_pages(
                         &mut reader,
-                        &ReadOptions::new(binrw::Endian::NATIVE),
-                        (&table.first_page, &table.last_page),
+                        binrw::Endian::NATIVE,
+                        (&table.first_page, &table.last_page, DatabaseType::Plain),
                     )
                     .into_iter()
             })
@@ -303,21 +362,18 @@ impl Pdb {
         let mut playlists: HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>> = HashMap::new();
         self.pages
             .iter()
-            .filter(|page| page.page_type == PageType::PlaylistTree)
-            .flat_map(|page| page.row_groups.iter())
-            .flat_map(|row_group| {
-                row_group
-                    .present_rows()
-                    .map(|row| {
-                        if let Row::PlaylistTreeNode(playlist_tree) = row {
-                            playlist_tree
-                        } else {
-                            unreachable!("encountered non-playlist tree row in playlist table");
-                        }
-                    })
-                    .cloned()
-                    .collect::<Vec<PlaylistTreeNode>>()
-                    .into_iter()
+            .filter(|page| page.header.page_type == PageType::Plain(PlainPageType::PlaylistTree))
+            .filter_map(|page| match &page.content {
+                PageContent::Data(data) => Some(data),
+                _ => None,
+            })
+            .flat_map(|data| data.rows.values())
+            .filter_map(|row| {
+                if let Row::Plain(PlainRow::PlaylistTreeNode(playlist_tree)) = row {
+                    Some(playlist_tree.clone())
+                } else {
+                    None
+                }
             })
             .for_each(|row| playlists.entry(row.parent_id).or_default().push(row));
 
