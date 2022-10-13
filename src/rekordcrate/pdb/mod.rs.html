@@ -1261,6 +1261,17 @@
 <span id="1261">1261</span>
 <span id="1262">1262</span>
 <span id="1263">1263</span>
+<span id="1264">1264</span>
+<span id="1265">1265</span>
+<span id="1266">1266</span>
+<span id="1267">1267</span>
+<span id="1268">1268</span>
+<span id="1269">1269</span>
+<span id="1270">1270</span>
+<span id="1271">1271</span>
+<span id="1272">1272</span>
+<span id="1273">1273</span>
+<span id="1274">1274</span>
 </pre><pre class="rust"><code><span class="comment">// Copyright (c) 2022 Jan Holthuis</span>
 <span class="comment">//</span>
 <span class="comment">// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy</span>
@@ -1444,6 +1455,17 @@
     }
 }
 
+<span class="attribute">#[<span class="ident">binrw</span>]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Clone</span>, <span class="ident">Copy</span>)]</span>
+<span class="kw">struct</span> <span class="ident">PageFlags</span>(<span class="ident">u8</span>);
+
+<span class="kw">impl</span> <span class="ident">PageFlags</span> {
+    <span class="attribute">#[<span class="ident">must_use</span>]</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">page_has_data</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">bool</span> {
+        (<span class="self">self</span>.<span class="number">0</span> <span class="op">&amp;</span> <span class="number">0x40</span>) <span class="op">==</span> <span class="number">0</span>
+    }
+}
+
 <span class="doccomment">/// A table page.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// Each page consists of a header that contains information about the type, number of rows, etc.,</span>
@@ -1497,7 +1519,7 @@
     <span class="doccomment">///</span>
     <span class="doccomment">/// According to [@flesniak](https://github.com/flesniak):</span>
     <span class="doccomment">/// &gt; strange pages: 0x44, 0x64; otherwise seen: 0x24, 0x34</span>
-    <span class="kw">pub</span> <span class="ident">page_flags</span>: <span class="ident">u8</span>,
+    <span class="ident">page_flags</span>: <span class="ident">PageFlags</span>,
     <span class="doccomment">/// Free space in bytes in the data section of the page (excluding the row offsets in the page footer).</span>
     <span class="kw">pub</span> <span class="ident">free_size</span>: <span class="ident">u16</span>,
     <span class="doccomment">/// Used space in bytes in the data section of the page.</span>
@@ -1550,7 +1572,7 @@
     <span class="ident">page_heap_offset</span>: <span class="ident">u64</span>,
     <span class="doccomment">/// Row groups belonging to this page.</span>
     <span class="attribute">#[<span class="ident">br</span>(<span class="ident">seek_before</span>(<span class="ident">row_groups_offset</span>), <span class="ident">restore_position</span>)]</span>
-    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">parse_with</span> <span class="op">=</span> <span class="ident"><span class="self">Self</span>::parse_row_groups</span>, <span class="ident">args</span>(<span class="ident">page_type</span>, <span class="ident">page_heap_offset</span>, <span class="ident">num_rows</span>, <span class="ident">num_row_groups</span>))]</span>
+    <span class="attribute">#[<span class="ident">br</span>(<span class="ident">parse_with</span> <span class="op">=</span> <span class="ident"><span class="self">Self</span>::parse_row_groups</span>, <span class="ident">args</span>(<span class="ident">page_type</span>, <span class="ident">page_heap_offset</span>, <span class="ident">num_rows</span>, <span class="ident">num_row_groups</span>, <span class="ident">page_flags</span>))]</span>
     <span class="kw">pub</span> <span class="ident">row_groups</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">RowGroup</span><span class="op">&gt;</span>,
 }
 
@@ -1562,10 +1584,10 @@
     <span class="kw">fn</span> <span class="ident">parse_row_groups</span><span class="op">&lt;</span><span class="ident">R</span>: <span class="ident">Read</span> <span class="op">+</span> <span class="ident">Seek</span><span class="op">&gt;</span>(
         <span class="ident">reader</span>: <span class="kw-2">&amp;mut</span> <span class="ident">R</span>,
         <span class="ident">ro</span>: <span class="kw-2">&amp;</span><span class="ident">ReadOptions</span>,
-        <span class="ident">args</span>: (<span class="ident">PageType</span>, <span class="ident">u64</span>, <span class="ident">u16</span>, <span class="ident">u16</span>),
+        <span class="ident">args</span>: (<span class="ident">PageType</span>, <span class="ident">u64</span>, <span class="ident">u16</span>, <span class="ident">u16</span>, <span class="ident">PageFlags</span>),
     ) -&gt; <span class="ident">BinResult</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">RowGroup</span><span class="op">&gt;</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> (<span class="ident">page_type</span>, <span class="ident">page_heap_offset</span>, <span class="ident">num_rows</span>, <span class="ident">num_row_groups</span>) <span class="op">=</span> <span class="ident">args</span>;
-        <span class="kw">if</span> <span class="ident">num_row_groups</span> <span class="op">==</span> <span class="number">0</span> {
+        <span class="kw">let</span> (<span class="ident">page_type</span>, <span class="ident">page_heap_offset</span>, <span class="ident">num_rows</span>, <span class="ident">num_row_groups</span>, <span class="ident">page_flags</span>) <span class="op">=</span> <span class="ident">args</span>;
+        <span class="kw">if</span> <span class="ident">num_row_groups</span> <span class="op">==</span> <span class="number">0</span> <span class="op">|</span><span class="op">|</span> <span class="op">!</span><span class="ident">page_flags</span>.<span class="ident">page_has_data</span>() {
             <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="macro">vec!</span>[]);
         }
 
@@ -1601,7 +1623,7 @@
     <span class="attribute">#[<span class="ident">must_use</span>]</span>
     <span class="doccomment">/// Returns `true` if the page actually contains row data.</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">has_data</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">bool</span> {
-        (<span class="self">self</span>.<span class="ident">page_flags</span> <span class="op">&amp;</span> <span class="number">0x40</span>) <span class="op">==</span> <span class="number">0</span>
+        <span class="self">self</span>.<span class="ident">page_flags</span>.<span class="ident">page_has_data</span>()
     }
 
     <span class="attribute">#[<span class="ident">must_use</span>]</span>
