@@ -26,9 +26,17 @@ pub enum RekordcrateError {
     #[error(transparent)]
     ParseError(#[from] binrw::Error),
 
+    /// Represents a failure to validate a constraint.
+    #[error("failed integrity constraint: {0}")]
+    IntegrityError(&'static str),
+
     /// Represents an `std::io::Error`.
     #[error(transparent)]
     IOError(#[from] std::io::Error),
+
+    /// Represents an `std::io::Error`.
+    #[error("component not loaded")]
+    NotLoadedError,
 }
 
 /// Type alias for results where the error is a `RekordcrateError`.

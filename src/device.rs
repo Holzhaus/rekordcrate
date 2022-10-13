@@ -131,12 +131,11 @@ impl DeviceExport {
     pub fn get_playlists(&self) -> crate::Result<Vec<PlaylistNode>> {
         match &self.pdb {
             Some(pdb) => pdb.get_playlists(),
-            None => Ok(Vec::new()),
+            None => Err(crate::Error::NotLoadedError),
         }
     }
 
     /// Get the entries for a single playlist.
-    #[must_use]
     pub fn get_playlist_entries(
         &self,
         id: PlaylistTreeNodeId,
@@ -404,7 +403,9 @@ impl Pdb {
                     None
                 }
             })
-            .for_each(|row| playlists.entry(row.parent_id).or_default().push(row));
+            .for_each(|node| {
+                playlists.entry(node.parent_id).or_default().push(node);
+            });
 
         fn get_child_nodes(
             playlists: &HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>>,
