@@ -382,17 +382,21 @@ impl Pdb {
         Ok(pdb)
     }
 
-    /// Get playlist tree.
-    pub fn get_playlists(&self) -> crate::Result<Vec<PlaylistNode>> {
-        let mut playlists: HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>> = HashMap::new();
+    fn get_rows_by_page_type(&self, page_type: PlainPageType) -> impl Iterator<Item = &Row> + '_ {
         self.pages
             .iter()
-            .filter(|page| page.header.page_type == PageType::Plain(PlainPageType::PlaylistTree))
+            .filter(move |page| page.header.page_type == PageType::Plain(page_type))
             .filter_map(|page| match &page.content {
                 PageContent::Data(data) => Some(data),
                 _ => None,
             })
             .flat_map(|data| data.rows.values())
+    }
+
+    /// Get playlist tree.
+    pub fn get_playlists(&self) -> crate::Result<Vec<PlaylistNode>> {
+        let mut playlists: HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>> = HashMap::new();
+        self.get_rows_by_page_type(PlainPageType::PlaylistTree)
             .filter_map(|row| {
                 if let Row::Plain(PlainRow::PlaylistTreeNode(playlist_tree)) = row {
                     Some(playlist_tree.clone())
@@ -439,14 +443,7 @@ impl Pdb {
         &self,
         playlist_id: PlaylistTreeNodeId,
     ) -> impl Iterator<Item = (u32, TrackId)> + '_ {
-        self.pages
-            .iter()
-            .filter(|page| page.header.page_type == PageType::Plain(PlainPageType::PlaylistEntries))
-            .filter_map(|page| match &page.content {
-                PageContent::Data(data) => Some(data),
-                _ => None,
-            })
-            .flat_map(|data| data.rows.values())
+        self.get_rows_by_page_type(PlainPageType::PlaylistEntries)
             .filter_map(move |row| {
                 if let Row::Plain(PlainRow::PlaylistEntry(entry)) = row {
                     if entry.playlist_id == playlist_id {
@@ -462,20 +459,12 @@ impl Pdb {
 
     /// Get tracks.
     pub fn get_tracks(&self) -> impl Iterator<Item = Track> + '_ {
-        self.pages
-            .iter()
-            .filter(|page| page.header.page_type == PageType::Plain(PlainPageType::Tracks))
-            .filter_map(|page| match &page.content {
-                PageContent::Data(data) => Some(data),
-                _ => None,
-            })
-            .flat_map(|data| data.rows.values())
-            .filter_map(|row| {
-                if let Row::Plain(PlainRow::Track(track)) = row {
-                    Some(track.clone())
-                } else {
-                    None
-                }
-            })
+        self.get_rows_by_page_type(PlainPageType::Tracks).filter_map(|row| {
+            if let Row::Plain(PlainRow::Track(track)) = row {
+                Some(track.clone())
+            } else {
+                None
+            }
+        })
     }
 }
