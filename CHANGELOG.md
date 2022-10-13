@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [unreleased]
 
+### Bug Fixes
+
+- pdb: Skip reading rows of invalid pages
+
 ### Features
 
 - setting: Add method to construct default setting objects
