@@ -9,7 +9,7 @@
 use binrw::{BinRead, ReadOptions};
 use clap::{Parser, Subcommand};
 use rekordcrate::anlz::ANLZ;
-use rekordcrate::pdb::{Header, PageType, Row};
+use rekordcrate::pdb::Header;
 use rekordcrate::setting::Setting;
 use std::path::{Path, PathBuf};
 
@@ -55,66 +55,28 @@ enum Commands {
     },
 }
 
-fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
-    use rekordcrate::pdb::{PlaylistTreeNode, PlaylistTreeNodeId};
-    use std::collections::HashMap;
+fn list_playlists(path: &Path) -> rekordcrate::Result<()> {
+    use rekordcrate::device::PlaylistNode;
+    use rekordcrate::DeviceExport;
 
-    fn print_children_of(
-        tree: &HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>>,
-        id: PlaylistTreeNodeId,
-        level: usize,
-    ) {
-        tree.get(&id)
-            .iter()
-            .flat_map(|nodes| nodes.iter())
-            .for_each(|node| {
-                println!(
-                    "{}{} {}",
-                    "    ".repeat(level),
-                    if node.is_folder() { "🗀" } else { "🗎" },
-                    node.name.clone().into_string().unwrap(),
-                );
-                print_children_of(tree, node.id, level + 1);
-            });
+    let mut export = DeviceExport::new(path.into());
+    export.load_pdb()?;
+    let playlists = export.get_playlists()?;
+
+    fn walk_tree(node: PlaylistNode, level: usize) {
+        let indent = "    ".repeat(level);
+        match node {
+            PlaylistNode::Folder(folder) => {
+                println!("{}🗀 {}", indent, folder.name);
+                folder
+                    .children
+                    .into_iter()
+                    .for_each(|child| walk_tree(child, level + 1));
+            }
+            PlaylistNode::Playlist(playlist) => println!("{}🗎 {}", indent, playlist.name),
+        };
     }
-
-    let mut reader = std::fs::File::open(&path)?;
-    let header = Header::read(&mut reader)?;
-
-    let mut tree: HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>> = HashMap::new();
-
-    header
-        .tables
-        .iter()
-        .filter(|table| table.page_type == PageType::PlaylistTree)
-        .flat_map(|table| {
-            header
-                .read_pages(
-                    &mut reader,
-                    &ReadOptions::new(binrw::Endian::NATIVE),
-                    (&table.first_page, &table.last_page),
-                )
-                .unwrap()
-                .into_iter()
-                .flat_map(|page| page.row_groups.into_iter())
-                .flat_map(|row_group| {
-                    row_group
-                        .present_rows()
-                        .map(|row| {
-                            if let Row::PlaylistTreeNode(playlist_tree) = row {
-                                playlist_tree
-                            } else {
-                                unreachable!("encountered non-playlist tree row in playlist table");
-                            }
-                        })
-                        .cloned()
-                        .collect::<Vec<PlaylistTreeNode>>()
-                        .into_iter()
-                })
-        })
-        .for_each(|row| tree.entry(row.parent_id).or_default().push(row));
-
-    print_children_of(&tree, PlaylistTreeNodeId(0), 0);
+    playlists.into_iter().for_each(|node| walk_tree(node, 0));
 
     Ok(())
 }
@@ -122,8 +84,8 @@ fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
 fn list_settings(path: &Path) -> rekordcrate::Result<()> {
     use rekordcrate::DeviceExport;
 
-    let mut export = DeviceExport::default();
-    export.load(path)?;
+    let mut export = DeviceExport::new(path.into());
+    export.load_settings()?;
     let settings = export.get_settings();
 
     println!(
