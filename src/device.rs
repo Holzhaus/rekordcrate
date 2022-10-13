@@ -11,7 +11,7 @@
 use crate::{
     pdb::{
         DatabaseType, Header, Page, PageContent, PageType, PlainPageType, PlainRow,
-        PlaylistTreeNode, PlaylistTreeNodeId, Row,
+        PlaylistTreeNode, PlaylistTreeNodeId, Row, Track, TrackId,
     },
     setting,
     setting::Setting,
@@ -132,6 +132,27 @@ impl DeviceExport {
         match &self.pdb {
             Some(pdb) => pdb.get_playlists(),
             None => Ok(Vec::new()),
+        }
+    }
+
+    /// Get the entries for a single playlist.
+    #[must_use]
+    pub fn get_playlist_entries(
+        &self,
+        id: PlaylistTreeNodeId,
+    ) -> Box<dyn Iterator<Item = (u32, TrackId)> + '_> {
+        match &self.pdb {
+            Some(pdb) => Box::new(pdb.get_playlist_entries(id)),
+            None => Box::new(std::iter::empty()),
+        }
+    }
+
+    /// Get the tracks.
+    #[must_use]
+    pub fn get_tracks(&self) -> Box<dyn Iterator<Item = Track> + '_> {
+        match &self.pdb {
+            Some(pdb) => Box::new(pdb.get_tracks()),
+            None => Box::new(std::iter::empty()),
         }
     }
 }
@@ -319,6 +340,8 @@ pub enum PlaylistNode {
 /// Represents a playlist folder that contains `PlaylistNode`s.
 #[derive(Debug, PartialEq)]
 pub struct PlaylistFolder {
+    /// ID of this node in the playlist tree.
+    pub id: PlaylistTreeNodeId,
     /// Name of the playlist folder.
     pub name: String,
     /// Child nodes of the playlist folder.
@@ -328,6 +351,8 @@ pub struct PlaylistFolder {
 /// Represents a playlist.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Playlist {
+    /// ID of this node in the playlist tree.
+    pub id: PlaylistTreeNodeId,
     /// Name of the playlist.
     pub name: String,
 }
@@ -388,6 +413,7 @@ impl Pdb {
                 .map(|node| -> crate::Result<PlaylistNode> {
                     let child_node = if node.is_folder() {
                         let folder = PlaylistFolder {
+                            id: node.id,
                             name: node.name.clone().into_string()?,
                             children: get_child_nodes(playlists, node.id)
                                 .collect::<crate::Result<Vec<PlaylistNode>>>()?,
@@ -395,6 +421,7 @@ impl Pdb {
                         PlaylistNode::Folder(folder)
                     } else {
                         let playlist = Playlist {
+                            id: node.id,
                             name: node.name.clone().into_string()?,
                         };
                         PlaylistNode::Playlist(playlist)
@@ -405,5 +432,50 @@ impl Pdb {
 
         get_child_nodes(&playlists, PlaylistTreeNodeId(0))
             .collect::<crate::Result<Vec<PlaylistNode>>>()
+    }
+
+    /// Get playlist entries.
+    pub fn get_playlist_entries(
+        &self,
+        playlist_id: PlaylistTreeNodeId,
+    ) -> impl Iterator<Item = (u32, TrackId)> + '_ {
+        self.pages
+            .iter()
+            .filter(|page| page.header.page_type == PageType::Plain(PlainPageType::PlaylistEntries))
+            .filter_map(|page| match &page.content {
+                PageContent::Data(data) => Some(data),
+                _ => None,
+            })
+            .flat_map(|data| data.rows.values())
+            .filter_map(move |row| {
+                if let Row::Plain(PlainRow::PlaylistEntry(entry)) = row {
+                    if entry.playlist_id == playlist_id {
+                        Some((entry.entry_index, entry.track_id))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+    }
+
+    /// Get tracks.
+    pub fn get_tracks(&self) -> impl Iterator<Item = Track> + '_ {
+        self.pages
+            .iter()
+            .filter(|page| page.header.page_type == PageType::Plain(PlainPageType::Tracks))
+            .filter_map(|page| match &page.content {
+                PageContent::Data(data) => Some(data),
+                _ => None,
+            })
+            .flat_map(|data| data.rows.values())
+            .filter_map(|row| {
+                if let Row::Plain(PlainRow::Track(track)) = row {
+                    Some(track.clone())
+                } else {
+                    None
+                }
+            })
     }
 }
