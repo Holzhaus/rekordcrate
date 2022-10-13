@@ -9,7 +9,7 @@
 //! High-level API for working with Rekordbox device exports.
 
 use crate::{
-    pdb::{Header, Page, PageType, PlaylistTreeNode, PlaylistTreeNodeId, Row},
+    pdb::{Header, Page, PageType, PlaylistTreeNode, PlaylistTreeNodeId, Row, Track, TrackId},
     setting,
     setting::Setting,
 };
@@ -129,6 +129,27 @@ impl DeviceExport {
         match &self.pdb {
             Some(pdb) => pdb.get_playlists(),
             None => Ok(Vec::new()),
+        }
+    }
+
+    /// Get the entries for a single playlist.
+    #[must_use]
+    pub fn get_playlist_entries(
+        &self,
+        id: PlaylistTreeNodeId,
+    ) -> Box<dyn Iterator<Item = crate::Result<(u32, TrackId)>> + '_> {
+        match &self.pdb {
+            Some(pdb) => Box::new(pdb.get_playlist_entries(id)),
+            None => Box::new(std::iter::empty()),
+        }
+    }
+
+    /// Get the tracks.
+    #[must_use]
+    pub fn get_tracks(&self) -> Box<dyn Iterator<Item = crate::Result<Track>> + '_> {
+        match &self.pdb {
+            Some(pdb) => Box::new(pdb.get_tracks()),
+            None => Box::new(std::iter::empty()),
         }
     }
 }
@@ -316,6 +337,8 @@ pub enum PlaylistNode {
 /// Represents a playlist folder that contains `PlaylistNode`s.
 #[derive(Debug, PartialEq)]
 pub struct PlaylistFolder {
+    /// ID of this node in the playlist tree.
+    pub id: PlaylistTreeNodeId,
     /// Name of the playlist folder.
     pub name: String,
     /// Child nodes of the playlist folder.
@@ -325,6 +348,8 @@ pub struct PlaylistFolder {
 /// Represents a playlist.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Playlist {
+    /// ID of this node in the playlist tree.
+    pub id: PlaylistTreeNodeId,
     /// Name of the playlist.
     pub name: String,
 }
@@ -388,6 +413,7 @@ impl Pdb {
                 .map(|node| -> crate::Result<PlaylistNode> {
                     let child_node = if node.is_folder() {
                         let folder = PlaylistFolder {
+                            id: node.id,
                             name: node.name.clone().into_string()?,
                             children: get_child_nodes(playlists, node.id)
                                 .collect::<crate::Result<Vec<PlaylistNode>>>()?,
@@ -395,6 +421,7 @@ impl Pdb {
                         PlaylistNode::Folder(folder)
                     } else {
                         let playlist = Playlist {
+                            id: node.id,
                             name: node.name.clone().into_string()?,
                         };
                         PlaylistNode::Playlist(playlist)
@@ -405,5 +432,45 @@ impl Pdb {
 
         get_child_nodes(&playlists, PlaylistTreeNodeId(0))
             .collect::<crate::Result<Vec<PlaylistNode>>>()
+    }
+
+    /// Get playlist entries.
+    pub fn get_playlist_entries(
+        &self,
+        playlist_id: PlaylistTreeNodeId,
+    ) -> impl Iterator<Item = crate::Result<(u32, TrackId)>> + '_ {
+        self.pages
+            .iter()
+            .filter(|page| page.page_type == PageType::PlaylistEntries)
+            .flat_map(|page| page.row_groups.iter())
+            .flat_map(|row_group| row_group.present_rows())
+            .filter_map(move |row| {
+                if let Row::PlaylistEntry(entry) = row {
+                    if entry.playlist_id == playlist_id {
+                        Some(Ok((entry.entry_index, entry.track_id)))
+                    } else {
+                        None
+                    }
+                } else {
+                    unreachable!("encountered non-playlist tree row in playlist table");
+                }
+            })
+    }
+
+    /// Get tracks.
+    pub fn get_tracks(&self) -> impl Iterator<Item = crate::Result<Track>> + '_ {
+        self.pages
+            .iter()
+            .filter(|page| page.page_type == PageType::Tracks)
+            .flat_map(|page| page.row_groups.iter())
+            .flat_map(|row_group| {
+                row_group.present_rows().map(|row| {
+                    if let Row::Track(track) = row {
+                        Ok(track.clone())
+                    } else {
+                        unreachable!("encountered non-track row in track table");
+                    }
+                })
+            })
     }
 }

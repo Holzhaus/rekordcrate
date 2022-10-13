@@ -63,7 +63,7 @@ fn list_playlists(path: &Path) -> rekordcrate::Result<()> {
     export.load_pdb()?;
     let playlists = export.get_playlists()?;
 
-    fn walk_tree(node: PlaylistNode, level: usize) {
+    fn walk_tree(export: &DeviceExport, node: PlaylistNode, level: usize) {
         let indent = "    ".repeat(level);
         match node {
             PlaylistNode::Folder(folder) => {
@@ -71,12 +71,17 @@ fn list_playlists(path: &Path) -> rekordcrate::Result<()> {
                 folder
                     .children
                     .into_iter()
-                    .for_each(|child| walk_tree(child, level + 1));
+                    .for_each(|child| walk_tree(export, child, level + 1));
             }
-            PlaylistNode::Playlist(playlist) => println!("{}🗎 {}", indent, playlist.name),
+            PlaylistNode::Playlist(playlist) => {
+                let num_tracks = export.get_playlist_entries(playlist.id).count();
+                println!("{}🗎 {} ({} tracks)", indent, playlist.name, num_tracks)
+            }
         };
     }
-    playlists.into_iter().for_each(|node| walk_tree(node, 0));
+    playlists
+        .into_iter()
+        .for_each(|node| walk_tree(&export, node, 0));
 
     Ok(())
 }
