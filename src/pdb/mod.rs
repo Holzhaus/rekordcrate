@@ -76,6 +76,9 @@ pub enum PageType {
     /// Holds rows pointing to album artwork images.
     #[brw(magic = 13u32)]
     Artwork,
+    /// Contains the metadata categories by which Tracks can be browsed by.
+    #[brw(magic = 16u32)]
+    Columns,
     /// Holds information used by rekordbox to synchronize history playlists (not yet studied).
     #[brw(magic = 19u32)]
     History,
@@ -664,6 +667,30 @@ pub struct PlaylistEntry {
     /// ID of the playlist.
     playlist_id: PlaylistTreeNodeId,
 }
+
+/// Contains the kinds of Metadata Categories tracks can be browsed by
+/// on CDJs.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[brw(little)]
+pub struct ColumnEntry {
+    // Possibly the primary key, though I don't know if that would
+    // make sense as I don't think there are references to these
+    // rows anywhere else. This could be a stable ID to identify
+    // a category by in hardware (instead of by name).
+    id: u16,
+    // Maybe a bitfield containing infos on sort order and which
+    // columns are displayed.
+    unknown0: u16,
+    /// TODO Contained string is prefixed by the "interlinear annotation"
+    /// characters "\u{fffa}" and postfixed with "\u{fffb}" for some reason?!
+    /// Contained strings are actually `DeviceSQLString::LongBody` even though
+    /// they only contain ascii (apart from their unicode annotations)
+    // TODO since there are only finite many categories, it would make sense
+    // to encode those as an enum as part of the high-level api.
+    pub column_name: DeviceSQLString,
+}
+
 /// Contains the album name, along with an ID of the corresponding artist.
 #[binread]
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -948,6 +975,9 @@ pub enum Row {
     /// Represents a track entry in a playlist.
     #[br(pre_assert(page_type == PageType::PlaylistEntries))]
     PlaylistEntry(PlaylistEntry),
+    /// Contains the metadata categories by which Tracks can be browsed by.
+    #[br(pre_assert(page_type == PageType::Columns))]
+    ColumnEntry(ColumnEntry),
     /// Contains the album name, along with an ID of the corresponding artist.
     #[br(pre_assert(page_type == PageType::Tracks))]
     Track(Track),
@@ -1083,7 +1113,7 @@ mod test {
                     last_page: PageIndex(31),
                 },
                 Table {
-                    page_type: PageType::Unknown(16),
+                    page_type: PageType::Columns,
                     empty_candidate: 43,
                     first_page: PageIndex(33),
                     last_page: PageIndex(34),
@@ -1270,5 +1300,18 @@ mod test {
             name: DeviceSQLString::new("Pink".to_string()).unwrap(),
         };
         test_roundtrip(&[0, 0, 0, 0, 1, 1, 0, 0, 11, 80, 105, 110, 107], row);
+    }
+    #[test]
+    fn column_entry() {
+        let row = ColumnEntry {
+            id: 1,
+            unknown0: 128,
+            column_name: DeviceSQLString::new("\u{fffa}GENRE\u{fffb}".into()).unwrap(),
+        };
+        let bin = &[
+            0x01, 0x00, 0x80, 0x00, 0x90, 0x12, 0x00, 0x00, 0xfa, 0xff, 0x47, 0x00, 0x45, 0x00,
+            0x4e, 0x00, 0x52, 0x00, 0x45, 0x00, 0xfb, 0xff,
+        ];
+        test_roundtrip(bin, row);
     }
 }
