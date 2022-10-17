@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 - setting: Derive `Clone` and `Copy` traits for all setting values
 - setting: Derive `Clone` for all setting data structs
 - setting: Add `Display` implementation for setting values
+- pdb: Add Columns table
 
 ### Refactor
 
