@@ -27,6 +27,7 @@ use binrw::{
     io::{Read, Seek, SeekFrom, Write},
     BinRead, BinResult, BinWrite, Endian, FilePtr16, FilePtr8, ReadOptions, WriteOptions,
 };
+use bitflags::bitflags;
 
 /// Do not read anything, but the return the current stream position of `reader`.
 fn current_offset<R: Read + Seek>(reader: &mut R, _: &ReadOptions, _: ()) -> BinResult<u64> {
@@ -184,14 +185,12 @@ impl Header {
     }
 }
 
-#[binrw]
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-struct PageFlags(u8);
-
-impl PageFlags {
-    #[must_use]
-    pub fn page_has_data(&self) -> bool {
-        (self.0 & 0x40) == 0
+bitflags! {
+    /// Flags of a table page.
+    #[derive(BinRead, BinWrite)]
+    struct PageFlags: u8 {
+        /// Determines whether the page is a data page.
+        const DATA = 0x40;
     }
 }
 
@@ -316,7 +315,7 @@ impl Page {
         args: (PageType, u64, u16, u16, PageFlags),
     ) -> BinResult<Vec<RowGroup>> {
         let (page_type, page_heap_offset, num_rows, num_row_groups, page_flags) = args;
-        if num_row_groups == 0 || !page_flags.page_has_data() {
+        if num_row_groups == 0 || !page_flags.contains(PageFlags::DATA) {
             return Ok(vec![]);
         }
 
@@ -352,7 +351,7 @@ impl Page {
     #[must_use]
     /// Returns `true` if the page actually contains row data.
     pub fn has_data(&self) -> bool {
-        self.page_flags.page_has_data()
+        self.page_flags.contains(PageFlags::DATA)
     }
 
     #[must_use]

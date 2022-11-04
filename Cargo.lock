@@ -275,6 +275,7 @@ name = "rekordcrate"
 version = "0.2.0"
 dependencies = [
  "binrw",
+ "bitflags",
  "clap",
  "crc16",
  "glob",
