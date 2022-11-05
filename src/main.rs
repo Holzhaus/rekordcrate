@@ -145,10 +145,15 @@ fn export_playlists(path: &Path, output_dir: &PathBuf) -> rekordcrate::Result<()
                     .into_iter()
                     .filter_map(|(_index, id)| tracks.get(&id))
                     .try_for_each(|track| -> rekordcrate::Result<()> {
+                        let track_path = track.file_path.clone().into_string()?;
                         Ok(writeln!(
                             &mut file,
                             "{}",
-                            track.file_path.clone().into_string()?
+                            export
+                                .get_path()
+                                .canonicalize()?
+                                .join(track_path.strip_prefix('/').unwrap_or(&track_path))
+                                .display(),
                         )?)
                     })?;
             }

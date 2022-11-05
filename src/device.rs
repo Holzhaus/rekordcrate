@@ -15,7 +15,7 @@ use crate::{
 };
 use binrw::{BinRead, ReadOptions};
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Represents a Rekordbox device export.
 #[derive(Debug, PartialEq)]
@@ -42,6 +42,12 @@ impl DeviceExport {
             mysetting: None,
             mysetting2: None,
         }
+    }
+
+    /// Get the device path.
+    #[must_use]
+    pub fn get_path(&self) -> &Path {
+        &self.path
     }
 
     fn read_setting_file(path: &PathBuf) -> crate::Result<Setting> {
