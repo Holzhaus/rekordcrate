@@ -2,7 +2,7 @@ default_language_version:
   python: python3
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v4.1.0
+  rev: v4.4.0
   hooks:
   - id: check-case-conflict
   - id: check-json
@@ -19,7 +19,7 @@ repos:
   - id: mixed-line-ending
   - id: trailing-whitespace
 - repo: https://github.com/codespell-project/codespell
-  rev: v2.1.0
+  rev: v2.2.5
   hooks:
   - id: codespell
     args: [
@@ -51,10 +51,10 @@ repos:
       warnings,
     ]
 - repo: https://github.com/Holzhaus/sourceheaders
-  rev: v0.0.1
+  rev: v0.0.4
   hooks:
   - id: sourceheaders
 - repo: https://github.com/jorisroovers/gitlint
-  rev: v0.17.0
+  rev: v0.19.1
   hooks:
   - id: gitlint
