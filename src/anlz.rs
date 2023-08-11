@@ -797,7 +797,7 @@ pub struct SongStructure {
     #[br(assert((len_entry_bytes * (len_entries as u32)) == header.content_size()))]
     #[bw(calc = data.phrases.len() as u16)]
     len_entries: u16,
-    /// Indicates if the remaining parts of the song structure section are encryped.
+    /// Indicates if the remaining parts of the song structure section are encrypted.
     ///
     /// This is a virtual field and not actually present in the file.
     #[br(restore_position, map = |raw_mood: [u8; 2]| SongStructureData::check_if_encrypted(raw_mood, len_entries))]

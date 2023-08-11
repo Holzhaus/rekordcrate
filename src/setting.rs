@@ -132,7 +132,7 @@ where
     /// Calculate the CRC16 checksum.
     ///
     /// This is horribly inefficient and basically serializes the whole data structure twice, but
-    /// there seems to be no other way to archieve this.
+    /// there seems to be no other way to achieve this.
     ///
     /// Upstream issue: https://github.com/jam1garner/binrw/issues/102
     fn calculate_checksum(&self) -> u16 {
