@@ -958,7 +958,7 @@
 <a href="#958" id="958">958</a>
 <a href="#959" id="959">959</a>
 <a href="#960" id="960">960</a>
-</pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2022 Jan Holthuis
+</pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023 Jan Holthuis &lt;jan.holthuis@rub.de&gt;
 //
 // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy
 // of the MPL was not distributed with this file, You can obtain one at
@@ -1757,7 +1757,7 @@
     #[br(assert((len_entry_bytes * (len_entries <span class="kw">as </span>u32)) == header.content_size()))]
     #[bw(calc = data.phrases.len() <span class="kw">as </span>u16)]
     </span>len_entries: u16,
-    <span class="doccomment">/// Indicates if the remaining parts of the song structure section are encryped.
+    <span class="doccomment">/// Indicates if the remaining parts of the song structure section are encrypted.
     ///
     /// This is a virtual field and not actually present in the file.
     </span><span class="attr">#[br(restore_position, map = |raw_mood: [u8; <span class="number">2</span>]</span>| SongStructureData::check_if_encrypted(raw_mood, len_entries))]
