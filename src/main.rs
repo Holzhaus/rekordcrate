@@ -87,7 +87,13 @@ fn list_playlists(path: &Path) -> rekordcrate::Result<()> {
                     .get_playlist_entries(playlist.id)
                     .expect("failed to get playlist entries")
                     .count();
-                println!("{}🗎 {} ({} tracks)", indent, playlist.name, num_tracks)
+                println!(
+                    "{}🗎 {} ({} {})",
+                    indent,
+                    playlist.name,
+                    num_tracks,
+                    if num_tracks == 1 { "track" } else { "tracks" }
+                )
             }
         };
     }
