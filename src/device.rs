@@ -264,61 +264,61 @@ pub struct Settings {
 
 impl Settings {
     fn set_mysetting(&mut self, data: &setting::MySetting) {
-        self.on_air_display = Some(data.on_air_display);
-        self.lcd_brightness = Some(data.lcd_brightness);
-        self.quantize = Some(data.quantize);
-        self.auto_cue_level = Some(data.auto_cue_level);
-        self.language = Some(data.language);
-        self.jog_ring_brightness = Some(data.jog_ring_brightness);
-        self.jog_ring_indicator = Some(data.jog_ring_indicator);
-        self.slip_flashing = Some(data.slip_flashing);
-        self.disc_slot_illumination = Some(data.disc_slot_illumination);
-        self.eject_lock = Some(data.eject_lock);
-        self.sync = Some(data.sync);
-        self.play_mode = Some(data.play_mode);
-        self.quantize_beat_value = Some(data.quantize_beat_value);
-        self.hotcue_autoload = Some(data.hotcue_autoload);
-        self.hotcue_color = Some(data.hotcue_color);
-        self.needle_lock = Some(data.needle_lock);
-        self.time_mode = Some(data.time_mode);
-        self.jog_mode = Some(data.jog_mode);
-        self.auto_cue = Some(data.auto_cue);
-        self.master_tempo = Some(data.master_tempo);
-        self.tempo_range = Some(data.tempo_range);
-        self.phase_meter = Some(data.phase_meter);
+        self.on_air_display = data.on_air_display.into();
+        self.lcd_brightness = data.lcd_brightness.into();
+        self.quantize = data.quantize.into();
+        self.auto_cue_level = data.auto_cue_level.into();
+        self.language = data.language.into();
+        self.jog_ring_brightness = data.jog_ring_brightness.into();
+        self.jog_ring_indicator = data.jog_ring_indicator.into();
+        self.slip_flashing = data.slip_flashing.into();
+        self.disc_slot_illumination = data.disc_slot_illumination.into();
+        self.eject_lock = data.eject_lock.into();
+        self.sync = data.sync.into();
+        self.play_mode = data.play_mode.into();
+        self.quantize_beat_value = data.quantize_beat_value.into();
+        self.hotcue_autoload = data.hotcue_autoload.into();
+        self.hotcue_color = data.hotcue_color.into();
+        self.needle_lock = data.needle_lock.into();
+        self.time_mode = data.time_mode.into();
+        self.jog_mode = data.jog_mode.into();
+        self.auto_cue = data.auto_cue.into();
+        self.master_tempo = data.master_tempo.into();
+        self.tempo_range = data.tempo_range.into();
+        self.phase_meter = data.phase_meter.into();
     }
 
     fn set_mysetting2(&mut self, data: &setting::MySetting2) {
-        self.vinyl_speed_adjust = Some(data.vinyl_speed_adjust);
-        self.jog_display_mode = Some(data.jog_display_mode);
-        self.pad_button_brightness = Some(data.pad_button_brightness);
-        self.jog_lcd_brightness = Some(data.jog_lcd_brightness);
-        self.waveform_divisions = Some(data.waveform_divisions);
-        self.waveform = Some(data.waveform);
-        self.beat_jump_beat_value = Some(data.beat_jump_beat_value);
+        self.vinyl_speed_adjust = data.vinyl_speed_adjust.into();
+        self.jog_display_mode = data.jog_display_mode.into();
+        self.pad_button_brightness = data.pad_button_brightness.into();
+        self.jog_lcd_brightness = data.jog_lcd_brightness.into();
+        self.waveform_divisions = data.waveform_divisions.into();
+        self.waveform = data.waveform.into();
+        self.beat_jump_beat_value = data.beat_jump_beat_value.into();
     }
 
     fn set_djmmysetting(&mut self, data: &setting::DJMMySetting) {
-        self.channel_fader_curve = Some(data.channel_fader_curve);
-        self.crossfader_curve = Some(data.crossfader_curve);
-        self.headphones_pre_eq = Some(data.headphones_pre_eq);
-        self.headphones_mono_split = Some(data.headphones_mono_split);
-        self.beat_fx_quantize = Some(data.beat_fx_quantize);
-        self.mic_low_cut = Some(data.mic_low_cut);
-        self.talk_over_mode = Some(data.talk_over_mode);
-        self.talk_over_level = Some(data.talk_over_level);
-        self.midi_channel = Some(data.midi_channel);
-        self.midi_button_type = Some(data.midi_button_type);
-        self.display_brightness = Some(data.display_brightness);
-        self.indicator_brightness = Some(data.indicator_brightness);
-        self.channel_fader_curve_long_fader = Some(data.channel_fader_curve_long_fader);
+        self.channel_fader_curve = data.channel_fader_curve.into();
+        self.crossfader_curve = data.crossfader_curve.into();
+        self.headphones_pre_eq = data.headphones_pre_eq.into();
+        self.headphones_mono_split = data.headphones_mono_split.into();
+        self.beat_fx_quantize = data.beat_fx_quantize.into();
+        self.mic_low_cut = data.mic_low_cut.into();
+        self.talk_over_mode = data.talk_over_mode.into();
+        self.talk_over_level = data.talk_over_level.into();
+        self.midi_channel = data.midi_channel.into();
+        self.midi_button_type = data.midi_button_type.into();
+        self.display_brightness = data.display_brightness.into();
+        self.indicator_brightness = data.indicator_brightness.into();
+        self.channel_fader_curve_long_fader = data.channel_fader_curve_long_fader.into();
     }
 
     fn set_devsetting(&mut self, data: &setting::DevSetting) {
-        self.overview_waveform_type = Some(data.overview_waveform_type);
-        self.waveform_color = Some(data.waveform_color);
-        self.key_display_format = Some(data.key_display_format);
-        self.waveform_current_position = Some(data.waveform_current_position);
+        self.overview_waveform_type = data.overview_waveform_type.into();
+        self.waveform_color = data.waveform_color.into();
+        self.key_display_format = data.key_display_format.into();
+        self.waveform_current_position = data.waveform_current_position.into();
     }
 }
 
