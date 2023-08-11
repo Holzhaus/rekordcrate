@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Jan Holthuis <jan.holthuis@rub.de>
+// Copyright (c) 2023 Jan Holthuis <jan.holthuis@rub.de>
 //
 // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy
 // of the MPL was not distributed with this file, You can obtain one at
@@ -68,7 +68,7 @@ impl DeviceExport {
     }
 
     fn read_pdb_file(path: &PathBuf) -> crate::Result<Pdb> {
-        let mut reader = std::fs::File::open(&path)?;
+        let mut reader = std::fs::File::open(path)?;
         let header = Header::read(&mut reader)?;
         let pages = header
             .tables
@@ -361,7 +361,7 @@ pub struct Playlist {
 impl Pdb {
     /// Create a new `Pdb` object by reading the PDB file at the given path.
     pub fn new_from_path(path: &PathBuf) -> crate::Result<Self> {
-        let mut reader = std::fs::File::open(&path)?;
+        let mut reader = std::fs::File::open(path)?;
         let header = Header::read(&mut reader)?;
         let pages = header
             .tables

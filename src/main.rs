@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Jan Holthuis <jan.holthuis@rub.de>
+// Copyright (c) 2023 Jan Holthuis <jan.holthuis@rub.de>
 //
 // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy
 // of the MPL was not distributed with this file, You can obtain one at
@@ -503,7 +503,7 @@ fn list_settings(path: &Path) -> rekordcrate::Result<()> {
 }
 
 fn dump_anlz(path: &PathBuf) -> rekordcrate::Result<()> {
-    let mut reader = std::fs::File::open(&path)?;
+    let mut reader = std::fs::File::open(path)?;
     let anlz = ANLZ::read(&mut reader)?;
     println!("{:#?}", anlz);
 
@@ -511,7 +511,7 @@ fn dump_anlz(path: &PathBuf) -> rekordcrate::Result<()> {
 }
 
 fn dump_pdb(path: &PathBuf) -> rekordcrate::Result<()> {
-    let mut reader = std::fs::File::open(&path)?;
+    let mut reader = std::fs::File::open(path)?;
     let header = Header::read(&mut reader)?;
 
     println!("{:#?}", header);
@@ -541,7 +541,7 @@ fn dump_pdb(path: &PathBuf) -> rekordcrate::Result<()> {
 }
 
 fn dump_setting(path: &PathBuf) -> rekordcrate::Result<()> {
-    let mut reader = std::fs::File::open(&path)?;
+    let mut reader = std::fs::File::open(path)?;
     let setting = Setting::read(&mut reader)?;
 
     println!("{:#04x?}", setting);

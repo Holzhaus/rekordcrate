@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Jan Holthuis
+// Copyright (c) 2023 Jan Holthuis <jan.holthuis@rub.de>
 //
 // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy
 // of the MPL was not distributed with this file, You can obtain one at
@@ -9,11 +9,11 @@
 //! This library provides access to device libraries exported from Pioneer's Rekordbox DJ software.
 
 #![warn(unsafe_code)]
+#![warn(missing_docs)]
 #![cfg_attr(not(debug_assertions), deny(warnings))]
 #![deny(rust_2018_idioms)]
 #![deny(rust_2021_compatibility)]
 #![deny(missing_debug_implementations)]
-#![deny(missing_docs)]
 #![deny(rustdoc::broken_intra_doc_links)]
 #![deny(clippy::all)]
 #![deny(clippy::explicit_deref_methods)]

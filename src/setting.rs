@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Jan Holthuis
+// Copyright (c) 2023 Jan Holthuis <jan.holthuis@rub.de>
 //
 // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy
 // of the MPL was not distributed with this file, You can obtain one at
@@ -132,7 +132,7 @@ where
     /// Calculate the CRC16 checksum.
     ///
     /// This is horribly inefficient and basically serializes the whole data structure twice, but
-    /// there seems to be no other way to archieve this.
+    /// there seems to be no other way to achieve this.
     ///
     /// Upstream issue: https://github.com/jam1garner/binrw/issues/102
     fn calculate_checksum(&self) -> u16 {
