@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":[["ColorIndex","Indexed Color identifiers used for memory cues and tracks."],["RekordcrateError","Enumerates errors returned by this library."]],"type":[["RekordcrateResult","Type alias for results where the error is a `RekordcrateError`."]]};
+window.SIDEBAR_ITEMS = {"enum":["ColorIndex","RekordcrateError"],"type":["RekordcrateResult"]};
