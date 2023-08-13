@@ -15,10 +15,17 @@ All notable changes to this project will be documented in this file.
 - setting: Derive `Clone` for all setting data structs
 - setting: Add `Display` implementation for setting values
 - pdb: Add Columns table
+- pdb: Mark table rows as serializable
 
 ### Refactor
 
 - cli: Return `Result` from main method instead of unwrapping
+
+### Testing
+
+- util: Add helper function for passing args to roundtrip tests
+- util: Add additional length checks to roundtrip tests
+- util: Print useful diffs when `assert_eq!` fails on large blobs
 
 ## [0.2.0] - 2022-10-09
 
