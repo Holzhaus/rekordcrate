@@ -72,6 +72,14 @@ pub(crate) mod testing {
         prelude::*,
         Endian, ReadOptions, WriteOptions,
     };
+    use pretty_assertions::assert_eq;
+    use pretty_hex::pretty_hex;
+
+    macro_rules! assert_eq_hex {
+        ($cond:expr, $expected:expr) => {
+            assert_eq!(pretty_hex($cond), pretty_hex($expected));
+        };
+    }
 
     pub fn test_roundtrip_with_args<T>(
         bin: &[u8],
@@ -88,7 +96,7 @@ pub(crate) mod testing {
         obj.write_options(&mut writer, &write_opts, write_args.clone())
             .unwrap();
         assert_eq!(bin.len(), writer.get_ref().len());
-        assert_eq!(bin, writer.get_ref());
+        assert_eq_hex!(&bin, &writer.get_ref());
         // T->binary->T
         writer.set_position(0);
         let parsed = T::read_options(&mut writer, &read_opts, read_args.clone()).unwrap();
@@ -103,7 +111,7 @@ pub(crate) mod testing {
             .write_options(&mut writer, &write_opts, write_args)
             .unwrap();
         assert_eq!(bin.len(), writer.get_ref().len());
-        assert_eq!(bin, writer.get_ref());
+        assert_eq_hex!(&bin, &writer.get_ref());
     }
 
     pub fn test_roundtrip<T>(bin: &[u8], obj: T)
