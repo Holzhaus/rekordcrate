@@ -70,28 +70,61 @@ pub(crate) mod testing {
     use binrw::{
         meta::{ReadEndian, WriteEndian},
         prelude::*,
+        Endian, ReadOptions, WriteOptions,
     };
+    use pretty_assertions::assert_eq;
+    use pretty_hex::pretty_hex;
+
+    macro_rules! assert_eq_hex {
+        ($cond:expr, $expected:expr) => {
+            assert_eq!(pretty_hex($cond), pretty_hex($expected));
+        };
+    }
+
+    pub fn test_roundtrip_with_args<T>(
+        bin: &[u8],
+        obj: T,
+        read_args: <T as binrw::BinRead>::Args,
+        write_args: <T as binrw::BinWrite>::Args,
+    ) where
+        T: BinRead + BinWrite + PartialEq + core::fmt::Debug + ReadEndian + WriteEndian,
+    {
+        let write_opts = WriteOptions::new(Endian::NATIVE);
+        let read_opts = ReadOptions::new(Endian::NATIVE);
+        // T->binary
+        let mut writer = binrw::io::Cursor::new(Vec::with_capacity(bin.len()));
+        obj.write_options(&mut writer, &write_opts, write_args.clone())
+            .unwrap();
+        assert_eq!(bin.len(), writer.get_ref().len());
+        assert_eq_hex!(&bin, &writer.get_ref());
+        // T->binary->T
+        writer.set_position(0);
+        let parsed = T::read_options(&mut writer, &read_opts, read_args.clone()).unwrap();
+        assert_eq!(obj, parsed);
+        // binary->T
+        let mut cursor = binrw::io::Cursor::new(bin);
+        let parsed = T::read_options(&mut cursor, &read_opts, read_args).unwrap();
+        assert_eq!(obj, parsed);
+        // binary->T->binary
+        writer.set_position(0);
+        parsed
+            .write_options(&mut writer, &write_opts, write_args)
+            .unwrap();
+        assert_eq!(bin.len(), writer.get_ref().len());
+        assert_eq_hex!(&bin, &writer.get_ref());
+    }
+
     pub fn test_roundtrip<T>(bin: &[u8], obj: T)
     where
         <T as binrw::BinRead>::Args: Default,
         <T as binrw::BinWrite>::Args: Default,
         T: BinRead + BinWrite + PartialEq + core::fmt::Debug + ReadEndian + WriteEndian,
     {
-        // T->binary
-        let mut writer = binrw::io::Cursor::new(Vec::with_capacity(bin.len()));
-        obj.write(&mut writer).unwrap();
-        assert_eq!(bin, writer.get_ref());
-        // T->binary->T
-        writer.set_position(0);
-        let parsed = T::read(&mut writer).unwrap();
-        assert_eq!(obj, parsed);
-        // binary->T
-        let mut cursor = binrw::io::Cursor::new(bin);
-        let parsed = T::read(&mut cursor).unwrap();
-        assert_eq!(obj, parsed);
-        // binary->T->binary
-        writer.set_position(0);
-        parsed.write(&mut writer).unwrap();
-        assert_eq!(bin, writer.get_ref());
+        test_roundtrip_with_args(
+            bin,
+            obj,
+            <T as binrw::BinRead>::Args::default(),
+            <T as binrw::BinWrite>::Args::default(),
+        );
     }
 }

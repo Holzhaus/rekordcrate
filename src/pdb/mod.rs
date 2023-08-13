@@ -426,61 +426,61 @@ impl RowGroup {
 /// Identifies a track.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-#[br(little)]
+#[brw(little)]
 pub struct TrackId(pub u32);
 
 /// Identifies an artwork item.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-#[br(little)]
+#[brw(little)]
 pub struct ArtworkId(pub u32);
 
 /// Identifies an album.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-#[br(little)]
+#[brw(little)]
 pub struct AlbumId(pub u32);
 
 /// Identifies an artist.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-#[br(little)]
+#[brw(little)]
 pub struct ArtistId(pub u32);
 
 /// Identifies a genre.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-#[br(little)]
+#[brw(little)]
 pub struct GenreId(pub u32);
 
 /// Identifies a key.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-#[br(little)]
+#[brw(little)]
 pub struct KeyId(pub u32);
 
 /// Identifies a label.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-#[br(little)]
+#[brw(little)]
 pub struct LabelId(pub u32);
 
 /// Identifies a playlist tree node.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-#[br(little)]
+#[brw(little)]
 pub struct PlaylistTreeNodeId(pub u32);
 
 /// Identifies a history playlist.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-#[br(little)]
+#[brw(little)]
 pub struct HistoryPlaylistId(pub u32);
 
 /// Contains the album name, along with an ID of the corresponding artist.
-#[binread]
+#[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
-#[br(little)]
+#[brw(little)]
 pub struct Album {
     /// Position of start of this row (needed of offset calculations).
     ///
@@ -932,9 +932,9 @@ impl BinWrite for Track {
 }
 
 /// A table row contains the actual data.
-#[binread]
+#[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
-#[br(little)]
+#[brw(little)]
 #[br(import(page_type: PageType))]
 // The large enum size is unfortunate, but since users of this library will probably use iterators
 // to consume the results on demand, we can live with this. The alternative of using a `Box` would
