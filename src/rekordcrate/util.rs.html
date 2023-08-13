@@ -95,6 +95,39 @@
 <a href="#95" id="95">95</a>
 <a href="#96" id="96">96</a>
 <a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023 Jan Holthuis &lt;jan.holthuis@rub.de&gt;
 //
 // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy
@@ -167,29 +200,62 @@
     <span class="kw">use </span>binrw::{
         meta::{ReadEndian, WriteEndian},
         prelude::<span class="kw-2">*</span>,
+        Endian, ReadOptions, WriteOptions,
     };
+    <span class="kw">use </span>pretty_assertions::assert_eq;
+    <span class="kw">use </span>pretty_hex::pretty_hex;
+
+    <span class="macro">macro_rules! </span>assert_eq_hex {
+        (<span class="macro-nonterminal">$cond</span>:expr, <span class="macro-nonterminal">$expected</span>:expr) =&gt; {
+            <span class="macro">assert_eq!</span>(pretty_hex(<span class="macro-nonterminal">$cond</span>), pretty_hex(<span class="macro-nonterminal">$expected</span>));
+        };
+    }
+
+    <span class="kw">pub fn </span>test_roundtrip_with_args&lt;T&gt;(
+        bin: <span class="kw-2">&amp;</span>[u8],
+        obj: T,
+        read_args: &lt;T <span class="kw">as </span>binrw::BinRead&gt;::Args,
+        write_args: &lt;T <span class="kw">as </span>binrw::BinWrite&gt;::Args,
+    ) <span class="kw">where
+        </span>T: BinRead + BinWrite + PartialEq + core::fmt::Debug + ReadEndian + WriteEndian,
+    {
+        <span class="kw">let </span>write_opts = WriteOptions::new(Endian::NATIVE);
+        <span class="kw">let </span>read_opts = ReadOptions::new(Endian::NATIVE);
+        <span class="comment">// T-&gt;binary
+        </span><span class="kw">let </span><span class="kw-2">mut </span>writer = binrw::io::Cursor::new(Vec::with_capacity(bin.len()));
+        obj.write_options(<span class="kw-2">&amp;mut </span>writer, <span class="kw-2">&amp;</span>write_opts, write_args.clone())
+            .unwrap();
+        <span class="macro">assert_eq!</span>(bin.len(), writer.get_ref().len());
+        <span class="macro">assert_eq_hex!</span>(<span class="kw-2">&amp;</span>bin, <span class="kw-2">&amp;</span>writer.get_ref());
+        <span class="comment">// T-&gt;binary-&gt;T
+        </span>writer.set_position(<span class="number">0</span>);
+        <span class="kw">let </span>parsed = T::read_options(<span class="kw-2">&amp;mut </span>writer, <span class="kw-2">&amp;</span>read_opts, read_args.clone()).unwrap();
+        <span class="macro">assert_eq!</span>(obj, parsed);
+        <span class="comment">// binary-&gt;T
+        </span><span class="kw">let </span><span class="kw-2">mut </span>cursor = binrw::io::Cursor::new(bin);
+        <span class="kw">let </span>parsed = T::read_options(<span class="kw-2">&amp;mut </span>cursor, <span class="kw-2">&amp;</span>read_opts, read_args).unwrap();
+        <span class="macro">assert_eq!</span>(obj, parsed);
+        <span class="comment">// binary-&gt;T-&gt;binary
+        </span>writer.set_position(<span class="number">0</span>);
+        parsed
+            .write_options(<span class="kw-2">&amp;mut </span>writer, <span class="kw-2">&amp;</span>write_opts, write_args)
+            .unwrap();
+        <span class="macro">assert_eq!</span>(bin.len(), writer.get_ref().len());
+        <span class="macro">assert_eq_hex!</span>(<span class="kw-2">&amp;</span>bin, <span class="kw-2">&amp;</span>writer.get_ref());
+    }
+
     <span class="kw">pub fn </span>test_roundtrip&lt;T&gt;(bin: <span class="kw-2">&amp;</span>[u8], obj: T)
     <span class="kw">where
         </span>&lt;T <span class="kw">as </span>binrw::BinRead&gt;::Args: Default,
         &lt;T <span class="kw">as </span>binrw::BinWrite&gt;::Args: Default,
         T: BinRead + BinWrite + PartialEq + core::fmt::Debug + ReadEndian + WriteEndian,
     {
-        <span class="comment">// T-&gt;binary
-        </span><span class="kw">let </span><span class="kw-2">mut </span>writer = binrw::io::Cursor::new(Vec::with_capacity(bin.len()));
-        obj.write(<span class="kw-2">&amp;mut </span>writer).unwrap();
-        <span class="macro">assert_eq!</span>(bin, writer.get_ref());
-        <span class="comment">// T-&gt;binary-&gt;T
-        </span>writer.set_position(<span class="number">0</span>);
-        <span class="kw">let </span>parsed = T::read(<span class="kw-2">&amp;mut </span>writer).unwrap();
-        <span class="macro">assert_eq!</span>(obj, parsed);
-        <span class="comment">// binary-&gt;T
-        </span><span class="kw">let </span><span class="kw-2">mut </span>cursor = binrw::io::Cursor::new(bin);
-        <span class="kw">let </span>parsed = T::read(<span class="kw-2">&amp;mut </span>cursor).unwrap();
-        <span class="macro">assert_eq!</span>(obj, parsed);
-        <span class="comment">// binary-&gt;T-&gt;binary
-        </span>writer.set_position(<span class="number">0</span>);
-        parsed.write(<span class="kw-2">&amp;mut </span>writer).unwrap();
-        <span class="macro">assert_eq!</span>(bin, writer.get_ref());
+        test_roundtrip_with_args(
+            bin,
+            obj,
+            &lt;T <span class="kw">as </span>binrw::BinRead&gt;::Args::default(),
+            &lt;T <span class="kw">as </span>binrw::BinWrite&gt;::Args::default(),
+        );
     }
 }
 </code></pre></div></section></main></body></html>

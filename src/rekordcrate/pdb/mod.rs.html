@@ -1743,61 +1743,61 @@
 <span class="doccomment">/// Identifies a track.
 </span><span class="attr">#[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-#[br(little)]
+#[brw(little)]
 </span><span class="kw">pub struct </span>TrackId(<span class="kw">pub </span>u32);
 
 <span class="doccomment">/// Identifies an artwork item.
 </span><span class="attr">#[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-#[br(little)]
+#[brw(little)]
 </span><span class="kw">pub struct </span>ArtworkId(<span class="kw">pub </span>u32);
 
 <span class="doccomment">/// Identifies an album.
 </span><span class="attr">#[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-#[br(little)]
+#[brw(little)]
 </span><span class="kw">pub struct </span>AlbumId(<span class="kw">pub </span>u32);
 
 <span class="doccomment">/// Identifies an artist.
 </span><span class="attr">#[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-#[br(little)]
+#[brw(little)]
 </span><span class="kw">pub struct </span>ArtistId(<span class="kw">pub </span>u32);
 
 <span class="doccomment">/// Identifies a genre.
 </span><span class="attr">#[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-#[br(little)]
+#[brw(little)]
 </span><span class="kw">pub struct </span>GenreId(<span class="kw">pub </span>u32);
 
 <span class="doccomment">/// Identifies a key.
 </span><span class="attr">#[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-#[br(little)]
+#[brw(little)]
 </span><span class="kw">pub struct </span>KeyId(<span class="kw">pub </span>u32);
 
 <span class="doccomment">/// Identifies a label.
 </span><span class="attr">#[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-#[br(little)]
+#[brw(little)]
 </span><span class="kw">pub struct </span>LabelId(<span class="kw">pub </span>u32);
 
 <span class="doccomment">/// Identifies a playlist tree node.
 </span><span class="attr">#[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-#[br(little)]
+#[brw(little)]
 </span><span class="kw">pub struct </span>PlaylistTreeNodeId(<span class="kw">pub </span>u32);
 
 <span class="doccomment">/// Identifies a history playlist.
 </span><span class="attr">#[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
-#[br(little)]
+#[brw(little)]
 </span><span class="kw">pub struct </span>HistoryPlaylistId(<span class="kw">pub </span>u32);
 
 <span class="doccomment">/// Contains the album name, along with an ID of the corresponding artist.
-</span><span class="attr">#[binread]
+</span><span class="attr">#[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
-#[br(little)]
+#[brw(little)]
 </span><span class="kw">pub struct </span>Album {
     <span class="doccomment">/// Position of start of this row (needed of offset calculations).
     ///
@@ -2249,9 +2249,9 @@
 }
 
 <span class="doccomment">/// A table row contains the actual data.
-</span><span class="attr">#[binread]
+</span><span class="attr">#[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
-#[br(little)]
+#[brw(little)]
 #[br(import(page_type: PageType))]
 </span><span class="comment">// The large enum size is unfortunate, but since users of this library will probably use iterators
 // to consume the results on demand, we can live with this. The alternative of using a `Box` would
