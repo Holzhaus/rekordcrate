@@ -661,11 +661,11 @@ impl PlaylistTreeNode {
 #[brw(little)]
 pub struct PlaylistEntry {
     /// Position within the playlist.
-    entry_index: u32,
+    pub entry_index: u32,
     /// ID of the track played at this position in the playlist.
-    track_id: TrackId,
+    pub track_id: TrackId,
     /// ID of the playlist.
-    playlist_id: PlaylistTreeNodeId,
+    pub playlist_id: PlaylistTreeNodeId,
 }
 
 /// Contains the kinds of Metadata Categories tracks can be browsed by
@@ -742,7 +742,7 @@ pub struct Track {
     /// Artist row ID for this track (non-zero if set).
     artist_id: ArtistId,
     /// Row ID of this track (non-zero if set).
-    id: TrackId,
+    pub id: TrackId,
     /// Disc number of this track (non-zero if set).
     disc_number: u16,
     /// Number of times this track was played.
@@ -825,7 +825,7 @@ pub struct Track {
     filename: DeviceSQLString,
     /// Path of the file.
     #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-    file_path: DeviceSQLString,
+    pub file_path: DeviceSQLString,
 }
 
 // #[bw(little)] on #[binread] types does
