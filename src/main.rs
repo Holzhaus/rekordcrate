@@ -41,6 +41,15 @@ enum Commands {
         #[arg(value_name = "PDB_FILE")]
         path: PathBuf,
     },
+    /// Read a Pioneer Database (`.PDB`) file and write the serialization to a different place.
+    ReexportPDB {
+        /// File to parse.
+        #[arg(value_name = "PDB_IN_FILE")]
+        inpath: PathBuf,
+        /// File to write.
+        #[arg(value_name = "PDB_OUT_FILE")]
+        outpath: PathBuf,
+    },
     /// Parse and dump a Pioneer Settings (`*SETTING.DAT`) file.
     DumpSetting {
         /// File to parse.
@@ -151,6 +160,19 @@ fn dump_pdb(path: &PathBuf) -> rekordcrate::Result<()> {
     Ok(())
 }
 
+fn reexport_pdb(inpath: &PathBuf, outpath: &PathBuf) -> rekordcrate::Result<()> {
+    use binrw::BinWrite;
+
+    let mut reader = std::fs::File::open(inpath)?;
+    let header = Header::read(&mut reader)?;
+
+
+    let mut writer = std::fs::File::create(outpath)?;
+    Header::write(&header, &mut writer)?;
+
+    Ok(())
+}
+
 fn dump_setting(path: &PathBuf) -> rekordcrate::Result<()> {
     let mut reader = std::fs::File::open(path)?;
     let setting = Setting::read(&mut reader)?;
@@ -166,6 +188,7 @@ fn main() -> rekordcrate::Result<()> {
     match &cli.command {
         Commands::ListPlaylists { path } => list_playlists(path),
         Commands::DumpPDB { path } => dump_pdb(path),
+        Commands::ReexportPDB { inpath, outpath } => reexport_pdb(inpath, outpath),
         Commands::DumpANLZ { path } => dump_anlz(path),
         Commands::DumpSetting { path } => dump_setting(path),
     }
