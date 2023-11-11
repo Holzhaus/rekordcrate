@@ -81,6 +81,12 @@ pub enum PageType {
     /// Contains the metadata categories by which Tracks can be browsed by.
     #[brw(magic = 16u32)]
     Columns,
+    /// tbi
+    #[brw(magic = 17u32)]
+    PageType17,
+    /// tbi
+    #[brw(magic = 18u32)]
+    PageType18,
     /// Holds information used by rekordbox to synchronize history playlists (not yet studied).
     #[brw(magic = 19u32)]
     History,
@@ -1155,8 +1161,17 @@ pub enum Row {
     /// Contains the album name, along with an ID of the corresponding artist.
     #[br(pre_assert(page_type == PageType::Tracks))]
     Track(Track),
+    /// Placeholder
+    #[br(pre_assert(page_type == PageType::PageType17))]
+    Row17(u64),
+    /// Placeholder
+    #[br(pre_assert(page_type == PageType::PageType18))]
+    Row18(u64),
+    /// Placeholder
+    #[br(pre_assert(page_type == PageType::History))]
+    History((u64, u64, u64, u64, u64)),
     /// The row format (and also its size) is unknown, which means it can't be parsed.
-    #[br(pre_assert(matches!(page_type, PageType::History | PageType::Unknown(_))))]
+    #[br(pre_assert(matches!(page_type, PageType::Unknown(_))))]
     Unknown,
 }
 
@@ -1185,6 +1200,9 @@ impl Row {
             PlaylistTreeNode(r) => type_to_opt_align(r),
             PlaylistEntry(r) => type_to_opt_align(r),
             Track(r) => type_to_opt_align(r),
+            Row17(r) => type_to_opt_align(r),
+            Row18(r) => type_to_opt_align(r),
+            History(r) => type_to_opt_align(r),
             Unknown => None,
         }
     }
