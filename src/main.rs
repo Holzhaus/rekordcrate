@@ -187,12 +187,6 @@ fn reexport_pdb(inpath: &PathBuf, outpath: &PathBuf) -> rekordcrate::Result<()> 
         {
             println!("  {:?}", page);
             page.write_options(&mut writer, write_options, (header.page_size,))?;
-            page.row_groups.iter().for_each(|row_group| {
-                RowGroup::write(&row_group, &mut writer).unwrap();
-                for row in row_group.present_rows() {
-                    row.write(&mut writer).unwrap();
-                }
-            })
         }
     }
 
