@@ -163,7 +163,6 @@ fn dump_pdb(path: &PathBuf) -> rekordcrate::Result<()> {
 fn reexport_pdb(inpath: &PathBuf, outpath: &PathBuf) -> rekordcrate::Result<()> {
     use binrw::BinWrite;
     use binrw::WriteOptions;
-    use rekordcrate::pdb::{RowGroup, Page};
 
     let mut reader = std::fs::File::open(inpath)?;
     let header = Header::read(&mut reader)?;
