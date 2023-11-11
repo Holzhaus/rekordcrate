@@ -162,6 +162,7 @@ fn dump_pdb(path: &PathBuf) -> rekordcrate::Result<()> {
 
 fn reexport_pdb(inpath: &PathBuf, outpath: &PathBuf) -> rekordcrate::Result<()> {
     use binrw::BinWrite;
+    use rekordcrate::pdb::{RowGroup, Page};
 
     let mut reader = std::fs::File::open(inpath)?;
     let header = Header::read(&mut reader)?;
@@ -169,6 +170,27 @@ fn reexport_pdb(inpath: &PathBuf, outpath: &PathBuf) -> rekordcrate::Result<()> 
 
     let mut writer = std::fs::File::create(outpath)?;
     Header::write(&header, &mut writer)?;
+
+    for (_, table) in header.tables.iter().enumerate() {
+        for page in header
+            .read_pages(
+                &mut reader,
+                &ReadOptions::new(binrw::Endian::NATIVE),
+                (&table.first_page, &table.last_page),
+            )
+            .unwrap()
+            .into_iter()
+        {
+            println!("  {:?}", page);
+            Page::write(&page, &mut writer)?;
+            page.row_groups.iter().for_each(|row_group| {
+                RowGroup::write(&row_group, &mut writer).unwrap();
+                for row in row_group.present_rows() {
+                    Row::write(&row, &mut writer).unwrap();
+                }
+            })
+        }
+    }
 
     Ok(())
 }

@@ -593,6 +593,10 @@ impl BinWrite for RowGroup {
     }
 }
 
+impl binrw::meta::WriteEndian for RowGroup {
+    const ENDIAN: binrw::meta::EndianKind = binrw::meta::EndianKind::Endian(Endian::Little);
+}
+
 /// Identifies a track.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
