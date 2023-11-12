@@ -361,7 +361,7 @@ impl BinWrite for Page {
                     pos: (page_offset + u64::from(Self::HEADER_SIZE)),
                     err: Box::new(e),
                 })?;
-                
+
         vec![0u8; page_heap_size].write_options(writer, &options, ())?;
 
         // TODO: row_data starts at different offsets
@@ -538,12 +538,14 @@ impl RowGroup {
 
         let (page_offset, relative_row_offset) = args;
 
+        // Do this to make our job easier
         // TODO(Swiftb0y): DeviceSQL seems to write RowGroups so that the Rows
         // with the lowest offset have their offset written at the end of the
         // page. So If the Rows appeared in order Row1,Row2,Row3 in the heap/page
         // their offsets would be stored in reverse order &Row3,&Row2,&Row1.
         // It probably doesn't change the correctness of the (de-)serialization,
         // but it makes sense to strive to be as close as possible to DeviceSQL
+        // This is so that the table can grow.
 
         // Write rows
         let mut offset = page_offset + relative_row_offset;
