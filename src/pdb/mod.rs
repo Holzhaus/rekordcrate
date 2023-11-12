@@ -24,12 +24,13 @@ use crate::pdb::string::DeviceSQLString;
 use crate::util::ColorIndex;
 use binrw::{
     binread, binrw,
+    file_ptr::FilePtrArgs,
     io::{Read, Seek, SeekFrom, Write},
-    BinRead, BinResult, BinWrite, Endian, FilePtr16, FilePtr8, ReadOptions, WriteOptions,
+    BinRead, BinResult, BinWrite, Endian, FilePtr16, FilePtr8,
 };
 
 /// Do not read anything, but the return the current stream position of `reader`.
-fn current_offset<R: Read + Seek>(reader: &mut R, _: &ReadOptions, _: ()) -> BinResult<u64> {
+fn current_offset<R: Read + Seek>(reader: &mut R, _: Endian, _: ()) -> BinResult<u64> {
     reader.stream_position().map_err(binrw::Error::Io)
 }
 
@@ -161,7 +162,7 @@ impl Header {
     pub fn read_pages<R: Read + Seek>(
         &self,
         reader: &mut R,
-        ro: &ReadOptions,
+        endian: Endian,
         args: (&PageIndex, &PageIndex),
     ) -> BinResult<Vec<Page>> {
         let (first_page, last_page) = args;
@@ -171,7 +172,7 @@ impl Header {
         loop {
             let page_offset = SeekFrom::Start(page_index.offset(self.page_size));
             reader.seek(page_offset).map_err(binrw::Error::Io)?;
-            let page = Page::read_options(reader, ro, (self.page_size,))?;
+            let page = Page::read_options(reader, endian, (self.page_size,))?;
             let is_last_page = &page.page_index == last_page;
             page_index = page.next_page.clone();
             pages.push(page);
@@ -312,7 +313,7 @@ impl Page {
     /// Parse the row groups at the end of the page.
     fn parse_row_groups<R: Read + Seek>(
         reader: &mut R,
-        ro: &ReadOptions,
+        endian: Endian,
         args: (PageType, u64, u16, u16, PageFlags),
     ) -> BinResult<Vec<RowGroup>> {
         let (page_type, page_heap_offset, num_rows, num_row_groups, page_flags) = args;
@@ -331,7 +332,7 @@ impl Page {
         // Read last row group
         let row_group = RowGroup::read_options(
             reader,
-            ro,
+            endian,
             (page_type, page_heap_offset, num_rows_in_last_row_group),
         )?;
         row_groups.push(row_group);
@@ -340,7 +341,7 @@ impl Page {
         for _ in 1..num_row_groups {
             let row_group = RowGroup::read_options(
                 reader,
-                ro,
+                endian,
                 (page_type, page_heap_offset, RowGroup::MAX_ROW_COUNT),
             )?;
             row_groups.insert(0, row_group);
@@ -395,7 +396,7 @@ pub struct RowGroup {
     /// An offset which points to a row in the table, whose actual presence is controlled by one of the
     /// bits in `row_present_flags`. This instance allows the row itself to be lazily loaded, unless it
     /// is not present, in which case there is no content to be loaded.
-    #[br(offset = page_heap_offset, args { count: num_rows.into(), inner: (page_type,) })]
+    #[br(args { count: num_rows.into(), inner: FilePtrArgs { inner: (page_type,), offset: page_heap_offset }})]
     rows: Vec<FilePtr16<Row>>,
     row_presence_flags: u16,
     /// Unknown field, probably padding.
@@ -408,14 +409,14 @@ impl RowGroup {
     const MAX_ROW_COUNT: u16 = 16;
 
     /// Return the ordered list of row offsets that are actually present.
-    pub fn present_rows(&self) -> impl Iterator<Item = &Row> {
+    pub fn present_rows(&self) -> impl Iterator<Item = Row> + '_ {
         self.rows
             .iter()
             .rev()
             .enumerate()
             .filter_map(|(i, row_offset)| {
                 if (self.row_presence_flags & (1 << i)) != 0 {
-                    row_offset.value.as_ref()
+                    Some(row_offset.value.clone())
                 } else {
                     None
                 }
@@ -835,48 +836,48 @@ impl binrw::meta::WriteEndian for Track {
 }
 
 impl BinWrite for Track {
-    type Args = ();
+    type Args<'a> = ();
 
     fn write_options<W: Write + Seek>(
         &self,
         writer: &mut W,
-        options: &WriteOptions,
-        _args: Self::Args,
+        endian: Endian,
+        _args: Self::Args<'_>,
     ) -> BinResult<()> {
-        debug_assert!(options.endian() == Endian::Little);
+        debug_assert!(endian == Endian::Little);
 
         let base_position = writer.stream_position()?;
-        self.unknown1.write_options(writer, options, ())?;
-        self.index_shift.write_options(writer, options, ())?;
-        self.bitmask.write_options(writer, options, ())?;
-        self.sample_rate.write_options(writer, options, ())?;
-        self.composer_id.write_options(writer, options, ())?;
-        self.file_size.write_options(writer, options, ())?;
-        self.unknown2.write_options(writer, options, ())?;
-        self.unknown3.write_options(writer, options, ())?;
-        self.unknown4.write_options(writer, options, ())?;
-        self.artwork_id.write_options(writer, options, ())?;
-        self.key_id.write_options(writer, options, ())?;
-        self.orig_artist_id.write_options(writer, options, ())?;
-        self.label_id.write_options(writer, options, ())?;
-        self.remixer_id.write_options(writer, options, ())?;
-        self.bitrate.write_options(writer, options, ())?;
-        self.track_number.write_options(writer, options, ())?;
-        self.tempo.write_options(writer, options, ())?;
-        self.genre_id.write_options(writer, options, ())?;
-        self.album_id.write_options(writer, options, ())?;
-        self.artist_id.write_options(writer, options, ())?;
-        self.id.write_options(writer, options, ())?;
-        self.disc_number.write_options(writer, options, ())?;
-        self.play_count.write_options(writer, options, ())?;
-        self.year.write_options(writer, options, ())?;
-        self.sample_depth.write_options(writer, options, ())?;
-        self.duration.write_options(writer, options, ())?;
-        self.unknown5.write_options(writer, options, ())?;
-        self.color.write_options(writer, options, ())?;
-        self.rating.write_options(writer, options, ())?;
-        self.unknown6.write_options(writer, options, ())?;
-        self.unknown7.write_options(writer, options, ())?;
+        self.unknown1.write_options(writer, endian, ())?;
+        self.index_shift.write_options(writer, endian, ())?;
+        self.bitmask.write_options(writer, endian, ())?;
+        self.sample_rate.write_options(writer, endian, ())?;
+        self.composer_id.write_options(writer, endian, ())?;
+        self.file_size.write_options(writer, endian, ())?;
+        self.unknown2.write_options(writer, endian, ())?;
+        self.unknown3.write_options(writer, endian, ())?;
+        self.unknown4.write_options(writer, endian, ())?;
+        self.artwork_id.write_options(writer, endian, ())?;
+        self.key_id.write_options(writer, endian, ())?;
+        self.orig_artist_id.write_options(writer, endian, ())?;
+        self.label_id.write_options(writer, endian, ())?;
+        self.remixer_id.write_options(writer, endian, ())?;
+        self.bitrate.write_options(writer, endian, ())?;
+        self.track_number.write_options(writer, endian, ())?;
+        self.tempo.write_options(writer, endian, ())?;
+        self.genre_id.write_options(writer, endian, ())?;
+        self.album_id.write_options(writer, endian, ())?;
+        self.artist_id.write_options(writer, endian, ())?;
+        self.id.write_options(writer, endian, ())?;
+        self.disc_number.write_options(writer, endian, ())?;
+        self.play_count.write_options(writer, endian, ())?;
+        self.year.write_options(writer, endian, ())?;
+        self.sample_depth.write_options(writer, endian, ())?;
+        self.duration.write_options(writer, endian, ())?;
+        self.unknown5.write_options(writer, endian, ())?;
+        self.color.write_options(writer, endian, ())?;
+        self.rating.write_options(writer, endian, ())?;
+        self.unknown6.write_options(writer, endian, ())?;
+        self.unknown7.write_options(writer, endian, ())?;
 
         let start_of_string_section = writer.stream_position()?;
         debug_assert_eq!(start_of_string_section - base_position, 0x5e);
@@ -919,12 +920,12 @@ impl BinWrite for Track {
                     message: "Wraparound while calculating row offset".to_string(),
                 })?;
             string_offsets[i] = offset;
-            string.write_options(writer, options, ())?;
+            string.write_options(writer, endian, ())?;
         }
 
         let end_of_row = writer.stream_position()?;
         writer.seek(SeekFrom::Start(start_of_string_section))?;
-        string_offsets.write_options(writer, options, ())?;
+        string_offsets.write_options(writer, endian, ())?;
         writer.seek(SeekFrom::Start(end_of_row))?;
 
         Ok(())
