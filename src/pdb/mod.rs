@@ -361,6 +361,7 @@ impl BinWrite for Page {
                     pos: (page_offset + u64::from(Self::HEADER_SIZE)),
                     err: Box::new(e),
                 })?;
+                
         vec![0u8; page_heap_size].write_options(writer, &options, ())?;
 
         // Row Groups

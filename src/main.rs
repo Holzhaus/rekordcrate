@@ -164,6 +164,8 @@ fn reexport_pdb(inpath: &PathBuf, outpath: &PathBuf) -> rekordcrate::Result<()> 
     use binrw::BinWrite;
     use binrw::WriteOptions;
     use std::io::Seek;
+    use std::collections::HashMap;
+    use rekordcrate::pdb::PageIndex;
 
     let mut reader = std::fs::File::open(inpath)?;
     let header = Header::read(&mut reader)?;
@@ -177,11 +179,12 @@ fn reexport_pdb(inpath: &PathBuf, outpath: &PathBuf) -> rekordcrate::Result<()> 
 
     let writer_offset = writer.stream_position().map_err(binrw::Error::Io)?;
 
-    let header_padding: usize = (4096 - writer_offset).try_into().unwrap();
+    let header_padding: usize = (header.page_size - writer_offset as u32).try_into().unwrap();
 
     vec![0u8; header_padding].write_options(&mut writer, write_options, ())?;
 
-
+    let mut pages_hash_map = HashMap::new();
+    let mut max_page_index = 0;
     for (_, table) in header.tables.iter().enumerate() {
         for page in header
             .read_pages(
@@ -193,9 +196,21 @@ fn reexport_pdb(inpath: &PathBuf, outpath: &PathBuf) -> rekordcrate::Result<()> 
             .into_iter()
         {
             println!("  {:?}", page);
-            let k = page.write_options(&mut writer, write_options, (header.page_size,))?;
+            let PageIndex(index) = page.page_index;
+            
+            if index > max_page_index {
+                max_page_index = index;
+            }
 
-            println!("{:?}", k);
+            pages_hash_map.insert(index, page);
+        }
+    }
+
+    for i in 1..(max_page_index + 1) {
+        if let Some(page) = pages_hash_map.get(&i) {
+            page.write_options(&mut writer, write_options, (header.page_size,));
+        } else {
+            vec![0u8; header.page_size as usize].write_options(&mut writer, write_options, ())?;   
         }
     }
 
