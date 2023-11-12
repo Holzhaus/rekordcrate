@@ -180,6 +180,8 @@ impl Header {
             let page_offset = SeekFrom::Start(page_index.offset(self.page_size));
             reader.seek(page_offset).map_err(binrw::Error::Io)?;
             let page = Page::read_options(reader, ro, (self.page_size,))?;
+            
+            println!(" {:?}", page);
             let is_last_page = &page.page_index == last_page;
             page_index = page.next_page.clone();
             pages.push(page);
@@ -327,6 +329,9 @@ impl BinWrite for Page {
 
         let page_offset = writer.stream_position().map_err(binrw::Error::Io)?;
 
+        dbg!(page_offset);
+
+        println!("{:?}", self);
         // Header
         0u32.write_options(writer, &options, ())?;
         self.page_index.write_options(writer, &options, ())?;
@@ -345,6 +350,7 @@ impl BinWrite for Page {
         self.unknown6.write_options(writer, &options, ())?;
         self.unknown7.write_options(writer, &options, ())?;
 
+        dbg!(writer.stream_position().map_err(binrw::Error::Io)?);
         let (page_size,) = args;
 
         // Padding
@@ -366,6 +372,8 @@ impl BinWrite for Page {
                 (page_offset, relative_row_offset),
             )?;
         }
+
+        dbg!(writer.stream_position().map_err(binrw::Error::Io)?);
         Ok(())
     }
 }

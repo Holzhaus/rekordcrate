@@ -163,6 +163,7 @@ fn dump_pdb(path: &PathBuf) -> rekordcrate::Result<()> {
 fn reexport_pdb(inpath: &PathBuf, outpath: &PathBuf) -> rekordcrate::Result<()> {
     use binrw::BinWrite;
     use binrw::WriteOptions;
+    use std::io::Seek;
 
     let mut reader = std::fs::File::open(inpath)?;
     let header = Header::read(&mut reader)?;
@@ -170,9 +171,16 @@ fn reexport_pdb(inpath: &PathBuf, outpath: &PathBuf) -> rekordcrate::Result<()> 
     println!("Header {:?}", header);
 
     let mut writer = std::fs::File::create(outpath)?;
-    header.write(&mut writer)?;
 
     let write_options = &WriteOptions::new(binrw::Endian::NATIVE);
+    header.write_options(&mut writer, write_options, ())?;
+
+    let writer_offset = writer.stream_position().map_err(binrw::Error::Io)?;
+
+    let header_padding: usize = (4096 - writer_offset).try_into().unwrap();
+
+    vec![0u8; header_padding].write_options(&mut writer, write_options, ())?;
+
 
     for (_, table) in header.tables.iter().enumerate() {
         for page in header
@@ -185,7 +193,9 @@ fn reexport_pdb(inpath: &PathBuf, outpath: &PathBuf) -> rekordcrate::Result<()> 
             .into_iter()
         {
             println!("  {:?}", page);
-            page.write_options(&mut writer, write_options, (header.page_size,))?;
+            let k = page.write_options(&mut writer, write_options, (header.page_size,))?;
+
+            println!("{:?}", k);
         }
     }
 
