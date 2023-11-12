@@ -364,6 +364,10 @@ impl BinWrite for Page {
                 
         vec![0u8; page_heap_size].write_options(writer, &options, ())?;
 
+        // TODO: row_data starts at different offsets
+        // original EXPORT.pdb: row_data = page_index * page_size + page_header_size + row offset
+        // generated out.pdb:   row_data = page_index * page_size + row_offset
+
         // Row Groups
         let mut relative_row_offset: u64 = Self::HEADER_SIZE.into();
         for row_group in &self.row_groups {
