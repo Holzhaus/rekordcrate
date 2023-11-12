@@ -208,7 +208,7 @@ fn reexport_pdb(inpath: &PathBuf, outpath: &PathBuf) -> rekordcrate::Result<()> 
 
     for i in 1..(max_page_index + 1) {
         if let Some(page) = pages_hash_map.get(&i) {
-            page.write_options(&mut writer, write_options, (header.page_size,));
+            page.write_options(&mut writer, write_options, (header.page_size,))?;
         } else {
             vec![0u8; header.page_size as usize].write_options(&mut writer, write_options, ())?;   
         }
