@@ -99,7 +99,7 @@ pub enum PageType {
 #[binrw]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
 #[brw(little)]
-pub struct PageIndex(u32);
+pub struct PageIndex(pub u32);
 
 impl PageIndex {
     /// Calculate the absolute file offset of the page in the PDB file for the given `page_size`.
