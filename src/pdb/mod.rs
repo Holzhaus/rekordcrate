@@ -914,7 +914,7 @@ pub struct ColumnEntry {
 impl ColumnEntry {
     fn has_padding(column_name: DeviceSQLString) -> bool {
         let column_name_len = column_name.into_string().unwrap().len();
-        
+
         column_name_len % 2 != 0 && column_name_len <= 21
     }
 }
