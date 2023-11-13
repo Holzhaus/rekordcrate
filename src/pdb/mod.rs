@@ -721,7 +721,7 @@ pub struct Artist {
     /// Name of this artist.
     #[br(seek_before = Artist::calculate_name_seek(ofs_name_near, &ofs_name_far))]
     #[bw(seek_before = Artist::calculate_name_seek(*ofs_name_near, ofs_name_far))]
-    #[brw(restore_position)]
+    //#[brw(restore_position)]
     name: DeviceSQLString,
 }
 
