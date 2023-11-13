@@ -177,11 +177,12 @@ impl Header {
         let mut pages = vec![];
         let mut page_index = first_page.clone();
         loop {
+           println!("{:?}", page_index);
             let page_offset = SeekFrom::Start(page_index.offset(self.page_size));
             reader.seek(page_offset).map_err(binrw::Error::Io)?;
             let page = Page::read_options(reader, ro, (self.page_size,))?;
+            println!(" {:?}", page); 
             
-            println!(" {:?}", page);
             let is_last_page = &page.page_index == last_page;
             page_index = page.next_page.clone();
             pages.push(page);
@@ -522,7 +523,9 @@ impl RowGroup {
     ) -> BinResult<Vec<Row>> {
         let mut rows = Vec::<Row>::with_capacity(args.count);
         for _ in 0..args.count {
+            println!("try to parse row");
             let row = FilePtr16::<Row>::parse(reader, options, args.inner)?;
+            println!("{:?}", row);
             rows.push(row);
         }
 
@@ -561,7 +564,7 @@ impl RowGroup {
             // Write row offset
             let row_offset: u16 = offset
                 .checked_sub(page_offset + Page::HEADER_SIZE as u64)
-                .map(|offset| align_by(alignment, offset))
+                //.map(|offset| align_by(alignment, offset))
                 .and_then(|v| u16::try_from(v).ok())
                 .ok_or_else(|| binrw::Error::AssertFail {
                     pos: offset,
