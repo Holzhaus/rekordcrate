@@ -693,9 +693,23 @@ pub struct Album {
     unknown3: u32,
     /// Unknown field.
     unknown4: u8,
+    /// Name offset
+    ofs_name: u8,
     /// Album name String
-    #[br(offset = base_offset, parse_with = FilePtr8::parse)]
+    #[br(seek_before = Album::calculate_name_seek(ofs_name))]
+    #[bw(seek_before = Album::calculate_name_seek(*ofs_name))]
     name: DeviceSQLString,
+}
+
+impl Album {
+    /// Size of the album header in bytes.
+    pub const HEADER_SIZE: u8 = 0x16;
+
+    fn calculate_name_seek(ofs_name: u8) -> SeekFrom {
+        println!("ofs_name: {}", ofs_name);
+        let offset: u8 = ofs_name - Self::HEADER_SIZE;
+        SeekFrom::Current(offset.into())
+    }
 }
 
 /// Contains the artist name and ID.
