@@ -372,7 +372,7 @@ impl BinWrite for Page {
 
         // Row Groups
         let mut relative_row_offset: u64 = Self::HEADER_SIZE.into();
-        for row_group in &self.row_groups {
+        for row_group in self.row_groups.iter().rev() {
             relative_row_offset = row_group.write_options_and_get_row_offset(
                 writer,
                 &options,
