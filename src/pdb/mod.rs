@@ -559,7 +559,7 @@ impl RowGroup {
                 .get();
             // Write row offset
             let row_offset: u16 = offset
-                .checked_sub(page_offset)
+                .checked_sub(page_offset + Page::HEADER_SIZE as u64)
                 .map(|offset| align_by(alignment, offset))
                 .and_then(|v| u16::try_from(v).ok())
                 .ok_or_else(|| binrw::Error::AssertFail {
