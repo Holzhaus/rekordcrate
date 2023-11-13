@@ -13,7 +13,10 @@
         buildInputs = with pkgs; [
           cargo
           rustc
+          rustfmt
+          clippy
           rehex
+          pre-commit
         ];
       };
 

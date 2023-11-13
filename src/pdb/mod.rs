@@ -23,7 +23,7 @@ pub mod string;
 use std::convert::TryInto;
 
 use crate::pdb::string::DeviceSQLString;
-use crate::util::{ColorIndex};
+use crate::util::ColorIndex;
 use binrw::{
     binread, binrw,
     io::{Read, Seek, SeekFrom, Write},
@@ -177,12 +177,12 @@ impl Header {
         let mut pages = vec![];
         let mut page_index = first_page.clone();
         loop {
-           println!("{:?}", page_index);
+            println!("{:?}", page_index);
             let page_offset = SeekFrom::Start(page_index.offset(self.page_size));
             reader.seek(page_offset).map_err(binrw::Error::Io)?;
             let page = Page::read_options(reader, ro, (self.page_size,))?;
-            println!(" {:?}", page); 
-            
+            println!(" {:?}", page);
+
             let is_last_page = &page.page_index == last_page;
             page_index = page.next_page.clone();
             pages.push(page);
@@ -523,7 +523,10 @@ impl RowGroup {
     ) -> BinResult<Vec<Row>> {
         let mut rows = Vec::<Row>::with_capacity(args.count);
         for _ in 0..args.count {
-            println!("try to parse row at {:X}", reader.stream_position().unwrap());
+            println!(
+                "try to parse row at {:X}",
+                reader.stream_position().unwrap()
+            );
             let row = FilePtr16::<Row>::parse(reader, options, args.inner)?;
             println!("{:?}", row);
             rows.push(row);
@@ -742,13 +745,11 @@ impl Artist {
 
     fn calculate_name_seek(ofs_near: u8, ofs_far: &Option<u16>) -> SeekFrom {
         println!("ofs_near: {}", ofs_near);
-        SeekFrom::Current(
-          if let Some(ofs_far) = ofs_far {
-              (ofs_far - Self::HEADER_SIZE_FAR).into()
-          } else {
-              (ofs_near - Self::HEADER_SIZE_NEAR).into()
-          }
-        )
+        SeekFrom::Current(if let Some(ofs_far) = ofs_far {
+            (ofs_far - Self::HEADER_SIZE_FAR).into()
+        } else {
+            (ofs_near - Self::HEADER_SIZE_NEAR).into()
+        })
     }
 }
 
