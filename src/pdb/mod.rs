@@ -270,6 +270,7 @@ pub struct Page {
     ///
     /// Used when the number of rows does not fit into a single byte. In that case,`num_rows_large`
     /// is greater than `num_rows_small`, but is not equal to `0x1FFF`.
+    /// TODO make this an option with 0x1FFF <=> None
     pub num_rows_large: u16,
     /// Unknown field.
     #[allow(dead_code)]
