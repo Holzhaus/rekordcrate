@@ -523,7 +523,7 @@ impl RowGroup {
     ) -> BinResult<Vec<Row>> {
         let mut rows = Vec::<Row>::with_capacity(args.count);
         for _ in 0..args.count {
-            println!("try to parse row");
+            println!("try to parse row at {:X}", reader.stream_position().unwrap());
             let row = FilePtr16::<Row>::parse(reader, options, args.inner)?;
             println!("{:?}", row);
             rows.push(row);
@@ -727,6 +727,7 @@ pub struct Artist {
 
 impl Artist {
     fn calculate_name_seek(ofs_near: u8, ofs_far: &Option<u16>) -> SeekFrom {
+        println!("ofs_near: {}", ofs_near);
         let offset: u16 = ofs_far.map_or_else(|| ofs_near.into(), |v| v - 2) - 10;
         SeekFrom::Current(offset.into())
     }
