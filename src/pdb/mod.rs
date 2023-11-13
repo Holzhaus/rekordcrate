@@ -27,7 +27,7 @@ use crate::util::{ColorIndex};
 use binrw::{
     binread, binrw,
     io::{Read, Seek, SeekFrom, Write},
-    BinRead, BinResult, BinWrite, Endian, FilePtr16, FilePtr8, ReadOptions, VecArgs, WriteOptions,
+    BinRead, BinResult, BinWrite, Endian, FilePtr16, ReadOptions, VecArgs, WriteOptions,
 };
 
 /// Do not read anything, but the return the current stream position of `reader`.
@@ -673,12 +673,6 @@ pub struct HistoryPlaylistId(pub u32);
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 pub struct Album {
-    /// Position of start of this row (needed of offset calculations).
-    ///
-    /// **Note:** This is a virtual field and not actually read from the file.
-    #[br(temp, parse_with = current_offset)]
-    #[bw(ignore)]
-    base_offset: u64,
     /// Unknown field, usually `80 00`.
     unknown1: u16,
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
@@ -740,8 +734,10 @@ pub struct Artist {
 }
 
 impl Artist {
-    /// Size of the album header in bytes.
+    /// Size of the album header for the near variant in bytes.
     pub const HEADER_SIZE_NEAR: u8 = 0x0a;
+
+    /// Size of the album header for the far variant in bytes.
     pub const HEADER_SIZE_FAR: u16 = 0x0c;
 
     fn calculate_name_seek(ofs_near: u8, ofs_far: &Option<u16>) -> SeekFrom {
