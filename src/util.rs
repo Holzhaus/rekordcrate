@@ -137,7 +137,7 @@ pub(crate) mod testing {
     where
         <T as binrw::BinRead>::Args<'a>: Default + Clone,
         <T as binrw::BinWrite>::Args<'a>: Default + Clone,
-        T: BinRead + BinWrite + PartialEq + core::fmt::Debug + ReadEndian + WriteEndian + Clone,
+        T: BinRead + BinWrite + PartialEq + core::fmt::Debug + ReadEndian + WriteEndian,
     {
         test_roundtrip_with_args(
             bin,
