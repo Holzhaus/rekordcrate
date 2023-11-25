@@ -1340,13 +1340,13 @@ mod test {
                     last_page: PageIndex(34),
                 },
                 Table {
-                    page_type: PageType::Unknown(17),
+                    page_type: PageType::PageType17,
                     empty_candidate: 44,
                     first_page: PageIndex(35),
                     last_page: PageIndex(36),
                 },
                 Table {
-                    page_type: PageType::Unknown(18),
+                    page_type: PageType::PageType18,
                     empty_candidate: 45,
                     first_page: PageIndex(37),
                     last_page: PageIndex(38),
