@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/pdb/mod.rs`."><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-f3501f0f5ae15dfb.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="rekordcrate" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.1 (eb26296b5 2023-08-03)" data-search-js="search-4926e5fc22a5646a.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../../../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../../../static.files/source-script-11255107d0a65077.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../rekordcrate/index.html"><img class="rust-logo" src="../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/pdb/mod.rs`."><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-fa3bb1812debf86c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="rekordcrate" data-themes="" data-resource-suffix="" data-rustdoc-version="1.74.0 (79e9716c9 2023-11-13)" data-channel="1.74.0" data-search-js="search-8be46b629f5f14a8.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-c5bd66d33317d69f.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../rekordcrate/index.html"><img class="rust-logo" src="../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1315,6 +1315,11 @@
 <a href="#1315" id="1315">1315</a>
 <a href="#1316" id="1316">1316</a>
 <a href="#1317" id="1317">1317</a>
+<a href="#1318" id="1318">1318</a>
+<a href="#1319" id="1319">1319</a>
+<a href="#1320" id="1320">1320</a>
+<a href="#1321" id="1321">1321</a>
+<a href="#1322" id="1322">1322</a>
 </pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023 Jan Holthuis &lt;jan.holthuis@rub.de&gt;
 //
 // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy
@@ -1341,12 +1346,13 @@
 <span class="kw">use </span><span class="kw">crate</span>::util::ColorIndex;
 <span class="kw">use </span>binrw::{
     binread, binrw,
+    file_ptr::FilePtrArgs,
     io::{Read, Seek, SeekFrom, Write},
-    BinRead, BinResult, BinWrite, Endian, FilePtr16, FilePtr8, ReadOptions, WriteOptions,
+    BinRead, BinResult, BinWrite, Endian, FilePtr16, FilePtr8,
 };
 
 <span class="doccomment">/// Do not read anything, but the return the current stream position of `reader`.
-</span><span class="kw">fn </span>current_offset&lt;R: Read + Seek&gt;(reader: <span class="kw-2">&amp;mut </span>R, <span class="kw">_</span>: <span class="kw-2">&amp;</span>ReadOptions, <span class="kw">_</span>: ()) -&gt; BinResult&lt;u64&gt; {
+</span><span class="kw">fn </span>current_offset&lt;R: Read + Seek&gt;(reader: <span class="kw-2">&amp;mut </span>R, <span class="kw">_</span>: Endian, <span class="kw">_</span>: ()) -&gt; BinResult&lt;u64&gt; {
     reader.stream_position().map_err(binrw::Error::Io)
 }
 
@@ -1478,7 +1484,7 @@
     </span><span class="kw">pub fn </span>read_pages&lt;R: Read + Seek&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         reader: <span class="kw-2">&amp;mut </span>R,
-        ro: <span class="kw-2">&amp;</span>ReadOptions,
+        endian: Endian,
         args: (<span class="kw-2">&amp;</span>PageIndex, <span class="kw-2">&amp;</span>PageIndex),
     ) -&gt; BinResult&lt;Vec&lt;Page&gt;&gt; {
         <span class="kw">let </span>(first_page, last_page) = args;
@@ -1488,7 +1494,7 @@
         <span class="kw">loop </span>{
             <span class="kw">let </span>page_offset = SeekFrom::Start(page_index.offset(<span class="self">self</span>.page_size));
             reader.seek(page_offset).map_err(binrw::Error::Io)<span class="question-mark">?</span>;
-            <span class="kw">let </span>page = Page::read_options(reader, ro, (<span class="self">self</span>.page_size,))<span class="question-mark">?</span>;
+            <span class="kw">let </span>page = Page::read_options(reader, endian, (<span class="self">self</span>.page_size,))<span class="question-mark">?</span>;
             <span class="kw">let </span>is_last_page = <span class="kw-2">&amp;</span>page.page_index == last_page;
             page_index = page.next_page.clone();
             pages.push(page);
@@ -1629,7 +1635,7 @@
     <span class="doccomment">/// Parse the row groups at the end of the page.
     </span><span class="kw">fn </span>parse_row_groups&lt;R: Read + Seek&gt;(
         reader: <span class="kw-2">&amp;mut </span>R,
-        ro: <span class="kw-2">&amp;</span>ReadOptions,
+        endian: Endian,
         args: (PageType, u64, u16, u16, PageFlags),
     ) -&gt; BinResult&lt;Vec&lt;RowGroup&gt;&gt; {
         <span class="kw">let </span>(page_type, page_heap_offset, num_rows, num_row_groups, page_flags) = args;
@@ -1648,7 +1654,7 @@
         <span class="comment">// Read last row group
         </span><span class="kw">let </span>row_group = RowGroup::read_options(
             reader,
-            ro,
+            endian,
             (page_type, page_heap_offset, num_rows_in_last_row_group),
         )<span class="question-mark">?</span>;
         row_groups.push(row_group);
@@ -1657,7 +1663,7 @@
         </span><span class="kw">for _ in </span><span class="number">1</span>..num_row_groups {
             <span class="kw">let </span>row_group = RowGroup::read_options(
                 reader,
-                ro,
+                endian,
                 (page_type, page_heap_offset, RowGroup::MAX_ROW_COUNT),
             )<span class="question-mark">?</span>;
             row_groups.insert(<span class="number">0</span>, row_group);
@@ -1712,7 +1718,7 @@
     <span class="doccomment">/// An offset which points to a row in the table, whose actual presence is controlled by one of the
     /// bits in `row_present_flags`. This instance allows the row itself to be lazily loaded, unless it
     /// is not present, in which case there is no content to be loaded.
-    </span><span class="attr">#[br(offset = page_heap_offset, args { count: num_rows.into(), inner: (page_type,) })]
+    </span><span class="attr">#[br(args { count: num_rows.into(), inner: FilePtrArgs { inner: (page_type,), offset: page_heap_offset }})]
     </span>rows: Vec&lt;FilePtr16&lt;Row&gt;&gt;,
     row_presence_flags: u16,
     <span class="doccomment">/// Unknown field, probably padding.
@@ -1725,14 +1731,18 @@
     <span class="kw">const </span>MAX_ROW_COUNT: u16 = <span class="number">16</span>;
 
     <span class="doccomment">/// Return the ordered list of row offsets that are actually present.
-    </span><span class="kw">pub fn </span>present_rows(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw">impl </span>Iterator&lt;Item = <span class="kw-2">&amp;</span>Row&gt; {
+    </span><span class="kw">pub fn </span>present_rows(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw">impl </span>Iterator&lt;Item = Row&gt; + <span class="lifetime">&#39;_ </span>{
         <span class="self">self</span>.rows
             .iter()
             .rev()
             .enumerate()
             .filter_map(|(i, row_offset)| {
                 <span class="kw">if </span>(<span class="self">self</span>.row_presence_flags &amp; (<span class="number">1 </span>&lt;&lt; i)) != <span class="number">0 </span>{
-                    row_offset.value.as_ref()
+                    <span class="comment">// TODO: the explicit clone is probably quite expensive
+                    // but the simplest way to make the borrow checker happy for now.
+                    // This is forced by the changes to FilePtr in binrw 0.12.
+                    // We should investigate how to remove the clone in the future.
+                    </span><span class="prelude-val">Some</span>(row_offset.value.clone())
                 } <span class="kw">else </span>{
                     <span class="prelude-val">None
                 </span>}
@@ -2152,48 +2162,48 @@
 }
 
 <span class="kw">impl </span>BinWrite <span class="kw">for </span>Track {
-    <span class="kw">type </span>Args = ();
+    <span class="kw">type </span>Args&lt;<span class="lifetime">&#39;a</span>&gt; = ();
 
     <span class="kw">fn </span>write_options&lt;W: Write + Seek&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         writer: <span class="kw-2">&amp;mut </span>W,
-        options: <span class="kw-2">&amp;</span>WriteOptions,
-        _args: <span class="self">Self</span>::Args,
+        endian: Endian,
+        _args: <span class="self">Self</span>::Args&lt;<span class="lifetime">&#39;_</span>&gt;,
     ) -&gt; BinResult&lt;()&gt; {
-        <span class="macro">debug_assert!</span>(options.endian() == Endian::Little);
+        <span class="macro">debug_assert!</span>(endian == Endian::Little);
 
         <span class="kw">let </span>base_position = writer.stream_position()<span class="question-mark">?</span>;
-        <span class="self">self</span>.unknown1.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.index_shift.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.bitmask.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.sample_rate.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.composer_id.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.file_size.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.unknown2.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.unknown3.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.unknown4.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.artwork_id.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.key_id.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.orig_artist_id.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.label_id.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.remixer_id.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.bitrate.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.track_number.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.tempo.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.genre_id.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.album_id.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.artist_id.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.id.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.disc_number.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.play_count.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.year.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.sample_depth.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.duration.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.unknown5.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.color.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.rating.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.unknown6.write_options(writer, options, ())<span class="question-mark">?</span>;
-        <span class="self">self</span>.unknown7.write_options(writer, options, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.unknown1.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.index_shift.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.bitmask.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.sample_rate.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.composer_id.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.file_size.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.unknown2.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.unknown3.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.unknown4.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.artwork_id.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.key_id.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.orig_artist_id.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.label_id.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.remixer_id.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.bitrate.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.track_number.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.tempo.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.genre_id.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.album_id.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.artist_id.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.id.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.disc_number.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.play_count.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.year.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.sample_depth.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.duration.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.unknown5.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.color.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.rating.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.unknown6.write_options(writer, endian, ())<span class="question-mark">?</span>;
+        <span class="self">self</span>.unknown7.write_options(writer, endian, ())<span class="question-mark">?</span>;
 
         <span class="kw">let </span>start_of_string_section = writer.stream_position()<span class="question-mark">?</span>;
         <span class="macro">debug_assert_eq!</span>(start_of_string_section - base_position, <span class="number">0x5e</span>);
@@ -2236,12 +2246,12 @@
                     message: <span class="string">&quot;Wraparound while calculating row offset&quot;</span>.to_string(),
                 })<span class="question-mark">?</span>;
             string_offsets[i] = offset;
-            string.write_options(writer, options, ())<span class="question-mark">?</span>;
+            string.write_options(writer, endian, ())<span class="question-mark">?</span>;
         }
 
         <span class="kw">let </span>end_of_row = writer.stream_position()<span class="question-mark">?</span>;
         writer.seek(SeekFrom::Start(start_of_string_section))<span class="question-mark">?</span>;
-        string_offsets.write_options(writer, options, ())<span class="question-mark">?</span>;
+        string_offsets.write_options(writer, endian, ())<span class="question-mark">?</span>;
         writer.seek(SeekFrom::Start(end_of_row))<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
