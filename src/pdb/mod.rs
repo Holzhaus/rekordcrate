@@ -417,7 +417,7 @@ impl RowGroup {
             .filter_map(|(i, row_offset)| {
                 if (self.row_presence_flags & (1 << i)) != 0 {
                     // TODO: the explicit clone is probably quite expensive
-                    // but the simplest way to make the borrow checker happy for now. 
+                    // but the simplest way to make the borrow checker happy for now.
                     // This is forced by the changes to FilePtr in binrw 0.12.
                     // We should investigate how to remove the clone in the future.
                     Some(row_offset.value.clone())
