@@ -430,7 +430,7 @@ pub struct WaveformColorDetailColumn {
 pub enum Mood {
     /// Phrase types consist of "Intro", "Up", "Down", "Chorus", and "Outro". Other values in each
     /// phrase entry cause the intro, chorus, and outro phrases to have their labels subdivided
-    /// into styes "1" or "2" (for example, "Intro 1"), and "up" is subdivided into style "Up 1",
+    /// into styles "1" or "2" (for example, "Intro 1"), and "up" is subdivided into style "Up 1",
     /// "Up 2", or "Up 3".
     High = 1,
     /// Phrase types are labeled "Intro", "Verse 1" through "Verse 6", "Chorus", "Bridge", and
