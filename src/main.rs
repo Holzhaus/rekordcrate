@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-use binrw::{BinRead, ReadOptions};
+use binrw::BinRead;
 use clap::{Parser, Subcommand};
 use rekordcrate::anlz::ANLZ;
 use rekordcrate::pdb::{Header, PageType, Row};
@@ -85,7 +85,7 @@ fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
             header
                 .read_pages(
                     &mut reader,
-                    &ReadOptions::new(binrw::Endian::NATIVE),
+                    binrw::Endian::NATIVE,
                     (&table.first_page, &table.last_page),
                 )
                 .unwrap()
@@ -101,7 +101,6 @@ fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
                                 unreachable!("encountered non-playlist tree row in playlist table");
                             }
                         })
-                        .cloned()
                         .collect::<Vec<PlaylistTreeNode>>()
                         .into_iter()
                 })
@@ -132,7 +131,7 @@ fn dump_pdb(path: &PathBuf) -> rekordcrate::Result<()> {
         for page in header
             .read_pages(
                 &mut reader,
-                &ReadOptions::new(binrw::Endian::NATIVE),
+                binrw::Endian::NATIVE,
                 (&table.first_page, &table.last_page),
             )
             .unwrap()

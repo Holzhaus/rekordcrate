@@ -30,7 +30,7 @@ use crate::{util::ColorIndex, xor::XorStream};
 use binrw::{
     binrw,
     io::{Read, Seek, Write},
-    BinRead, BinResult, BinWrite, NullWideString, ReadOptions, WriteOptions,
+    BinRead, BinResult, BinWrite, Endian, NullWideString,
 };
 use modular_bitfield::prelude::*;
 
@@ -867,15 +867,15 @@ impl SongStructureData {
     /// value.
     fn read_encrypted<R: Read + Seek>(
         reader: &mut R,
-        options: &ReadOptions,
+        endian: Endian,
         (is_encrypted, len_entries): (bool, u16),
     ) -> BinResult<Self> {
         if is_encrypted {
             let key: Vec<u8> = Self::get_key(len_entries).collect();
             let mut xor_reader = XorStream::with_key(reader, key);
-            Self::read_options(&mut xor_reader, options, (len_entries,))
+            Self::read_options(&mut xor_reader, endian, (len_entries,))
         } else {
-            Self::read_options(reader, options, (len_entries,))
+            Self::read_options(reader, endian, (len_entries,))
         }
     }
 
@@ -884,15 +884,15 @@ impl SongStructureData {
     fn write_encrypted<W: Write + Seek>(
         &self,
         writer: &mut W,
-        options: &WriteOptions,
+        endian: Endian,
         (is_encrypted, len_entries): (bool, u16),
     ) -> BinResult<()> {
         if is_encrypted {
             let key: Vec<u8> = Self::get_key(len_entries).collect();
             let mut xor_writer = XorStream::with_key(writer, key);
-            self.write_options(&mut xor_writer, options, ())
+            self.write_options(&mut xor_writer, endian, ())
         } else {
-            self.write_options(writer, options, ())
+            self.write_options(writer, endian, ())
         }
     }
 }
@@ -943,7 +943,7 @@ pub struct ANLZ {
 impl ANLZ {
     fn parse_sections<R: Read + Seek>(
         reader: &mut R,
-        ro: &ReadOptions,
+        endian: Endian,
         args: (u32,),
     ) -> BinResult<Vec<Section>> {
         let (content_size,) = args;
@@ -951,7 +951,7 @@ impl ANLZ {
 
         let mut sections: Vec<Section> = vec![];
         while reader.stream_position()? < final_position {
-            let section = Section::read_options(reader, ro, ())?;
+            let section = Section::read_options(reader, endian, ())?;
             sections.push(section);
         }
 
