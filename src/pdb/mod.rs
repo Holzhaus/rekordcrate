@@ -372,7 +372,7 @@ impl BinWrite for Page {
 
         // Row Groups
         let mut relative_row_offset: u64 = Self::HEADER_SIZE.into();
-        for row_group in self.row_groups.iter().rev() {
+        for row_group in self.row_groups.iter() {
             relative_row_offset = row_group.write_options_and_get_row_offset(
                 writer,
                 &options,
@@ -556,7 +556,7 @@ impl RowGroup {
 
         // Write rows
         let mut offset = page_offset + relative_row_offset;
-        for row in &self.rows {
+        for row in self.rows.iter().rev() {
             // Write row offset
             let row_offset: u16 = offset
                 .checked_sub(page_offset + Page::HEADER_SIZE as u64)
@@ -901,8 +901,18 @@ pub struct ColumnEntry {
     // TODO since there are only finite many categories, it would make sense
     // to encode those as an enum as part of the high-level api.
     pub column_name: DeviceSQLString,
+
+    #[brw(if(ColumnEntry::has_padding(column_name.clone())))]
+    unknown1: u16,
 }
 
+impl ColumnEntry {
+    fn has_padding(column_name: DeviceSQLString) -> bool {
+        let column_name_len = column_name.into_string().unwrap().len();
+        
+        column_name_len % 2 != 0 && column_name_len <= 21
+    }
+}
 /// Contains the album name, along with an ID of the corresponding artist.
 #[binread]
 #[derive(Debug, PartialEq, Eq, Clone)]
