@@ -28,7 +28,7 @@ use binrw::{
     binread, binrw,
     file_ptr::FilePtrArgs,
     io::{Read, Seek, SeekFrom, Write},
-    BinRead, BinResult, BinWrite, Endian, FilePtr16, FilePtr8, VecArgs,
+    BinRead, BinResult, BinWrite, Endian, FilePtr16, VecArgs,
 };
 
 /// Do not read anything, but the return the current stream position of `reader`.
@@ -320,38 +320,36 @@ impl binrw::meta::WriteEndian for Page {
 }
 
 impl BinWrite for Page {
-    type Args = (u32,);
+    type Args<'a> = (u32,);
 
     fn write_options<W: Write + Seek>(
         &self,
         writer: &mut W,
-        options: &WriteOptions,
-        args: Self::Args,
+        endian: Endian,
+        args: Self::Args<'_>,
     ) -> BinResult<()> {
-        let options = options.with_endian(Endian::Little);
-
         let page_offset = writer.stream_position().map_err(binrw::Error::Io)?;
 
         dbg!(page_offset);
 
         println!("{:?}", self);
         // Header
-        0u32.write_options(writer, &options, ())?;
-        self.page_index.write_options(writer, &options, ())?;
-        self.page_type.write_options(writer, &options, ())?;
-        self.next_page.write_options(writer, &options, ())?;
-        self.unknown1.write_options(writer, &options, ())?;
-        self.unknown2.write_options(writer, &options, ())?;
-        self.num_rows_small.write_options(writer, &options, ())?;
-        self.unknown3.write_options(writer, &options, ())?;
-        self.unknown4.write_options(writer, &options, ())?;
-        self.page_flags.write_options(writer, &options, ())?;
-        self.free_size.write_options(writer, &options, ())?;
-        self.used_size.write_options(writer, &options, ())?;
-        self.unknown5.write_options(writer, &options, ())?;
-        self.num_rows_large.write_options(writer, &options, ())?;
-        self.unknown6.write_options(writer, &options, ())?;
-        self.unknown7.write_options(writer, &options, ())?;
+        0u32.write_options(writer, endian, ())?;
+        self.page_index.write_options(writer, endian, ())?;
+        self.page_type.write_options(writer, endian, ())?;
+        self.next_page.write_options(writer, endian, ())?;
+        self.unknown1.write_options(writer, endian, ())?;
+        self.unknown2.write_options(writer, endian, ())?;
+        self.num_rows_small.write_options(writer, endian, ())?;
+        self.unknown3.write_options(writer, endian, ())?;
+        self.unknown4.write_options(writer, endian, ())?;
+        self.page_flags.write_options(writer, endian, ())?;
+        self.free_size.write_options(writer, endian, ())?;
+        self.used_size.write_options(writer, endian, ())?;
+        self.unknown5.write_options(writer, endian, ())?;
+        self.num_rows_large.write_options(writer, endian, ())?;
+        self.unknown6.write_options(writer, endian, ())?;
+        self.unknown7.write_options(writer, endian, ())?;
 
         dbg!(writer.stream_position().map_err(binrw::Error::Io)?);
         let (page_size,) = args;
@@ -365,7 +363,7 @@ impl BinWrite for Page {
                     err: Box::new(e),
                 })?;
 
-        vec![0u8; page_heap_size].write_options(writer, &options, ())?;
+        vec![0u8; page_heap_size].write_options(writer, endian, ())?;
 
         // TODO: row_data starts at different offsets
         // original EXPORT.pdb: row_data = page_index * page_size + page_header_size + row offset
@@ -376,7 +374,7 @@ impl BinWrite for Page {
         for row_group in self.row_groups.iter() {
             relative_row_offset = row_group.write_options_and_get_row_offset(
                 writer,
-                &options,
+                endian,
                 (page_offset, relative_row_offset),
             )?;
         }
@@ -527,7 +525,7 @@ impl RowGroup {
 
     fn parse_rows<R: Read + Seek>(
         reader: &mut R,
-        options: &ReadOptions,
+        endian: Endian,
         args: VecArgs<(PageType,)>,
     ) -> BinResult<Vec<Row>> {
         let mut rows = Vec::<Row>::with_capacity(args.count);
@@ -536,7 +534,7 @@ impl RowGroup {
                 "try to parse row at {:X}",
                 reader.stream_position().unwrap()
             );
-            let row = FilePtr16::<Row>::parse(reader, options, args.inner)?;
+            let row = FilePtr16::<Row>::parse(reader, endian, args.inner)?;
             println!("{:?}", row);
             rows.push(row);
         }
@@ -547,11 +545,9 @@ impl RowGroup {
     fn write_options_and_get_row_offset<W: Write + Seek>(
         &self,
         writer: &mut W,
-        options: &WriteOptions,
+        endian: Endian,
         args: (u64, u64),
     ) -> binrw::BinResult<u64> {
-        let options = options.with_endian(Endian::Little);
-
         let (page_offset, relative_row_offset) = args;
 
         // Do this to make our job easier
@@ -574,7 +570,7 @@ impl RowGroup {
                     pos: offset,
                     message: "Wraparound while calculating row offset".to_string(),
                 })?;
-            row_offset.write_options(writer, &options, ())?;
+            row_offset.write_options(writer, endian, ())?;
             let restore_position = writer.stream_position()?;
 
             // TODO(Swiftb0y): Write with proper alignment.
@@ -591,7 +587,7 @@ impl RowGroup {
 
             // Write actual row content
             let offset_before_write = writer.seek(SeekFrom::Start(offset))?;
-            row.write_options(writer, &options, ())?;
+            row.write_options(writer, endian, ())?;
             let offset_after_write = writer.stream_position()?;
             offset += offset_after_write - offset_before_write;
 
@@ -600,24 +596,23 @@ impl RowGroup {
         }
         let new_relative_row_offset = offset - page_offset;
 
-        self.row_presence_flags
-            .write_options(writer, &options, ())?;
-        self.unknown.write_options(writer, &options, ())?;
+        self.row_presence_flags.write_options(writer, endian, ())?;
+        self.unknown.write_options(writer, endian, ())?;
 
         Ok(new_relative_row_offset)
     }
 }
 
 impl BinWrite for RowGroup {
-    type Args = (u64, u64);
+    type Args<'a> = (u64, u64);
 
     fn write_options<W: Write + Seek>(
         &self,
         writer: &mut W,
-        options: &WriteOptions,
-        args: Self::Args,
+        endian: Endian,
+        args: Self::Args<'_>,
     ) -> binrw::BinResult<()> {
-        self.write_options_and_get_row_offset(writer, options, args)?;
+        self.write_options_and_get_row_offset(writer, endian, args)?;
         Ok(())
     }
 }
