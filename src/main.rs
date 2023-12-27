@@ -161,7 +161,6 @@ fn dump_pdb(path: &PathBuf) -> rekordcrate::Result<()> {
 
 fn reexport_pdb(inpath: &PathBuf, outpath: &PathBuf) -> rekordcrate::Result<()> {
     use binrw::BinWrite;
-    use binrw::WriteOptions;
     use rekordcrate::pdb::PageIndex;
     use std::collections::HashMap;
     use std::io::Seek;
@@ -173,8 +172,8 @@ fn reexport_pdb(inpath: &PathBuf, outpath: &PathBuf) -> rekordcrate::Result<()> 
 
     let mut writer = std::fs::File::create(outpath)?;
 
-    let write_options = &WriteOptions::new(binrw::Endian::NATIVE);
-    header.write_options(&mut writer, write_options, ())?;
+    let endian = binrw::Endian::NATIVE;
+    header.write_options(&mut writer, endian, ())?;
 
     let writer_offset = writer.stream_position().map_err(binrw::Error::Io)?;
 
@@ -182,7 +181,7 @@ fn reexport_pdb(inpath: &PathBuf, outpath: &PathBuf) -> rekordcrate::Result<()> 
         .try_into()
         .unwrap();
 
-    vec![0u8; header_padding].write_options(&mut writer, write_options, ())?;
+    vec![0u8; header_padding].write_options(&mut writer, endian, ())?;
 
     let mut pages_hash_map = HashMap::new();
     let mut max_page_index = 0;
@@ -190,7 +189,7 @@ fn reexport_pdb(inpath: &PathBuf, outpath: &PathBuf) -> rekordcrate::Result<()> 
         for page in header
             .read_pages(
                 &mut reader,
-                &ReadOptions::new(binrw::Endian::NATIVE),
+                binrw::Endian::NATIVE,
                 (&table.first_page, &table.last_page),
             )
             .unwrap()
@@ -209,9 +208,9 @@ fn reexport_pdb(inpath: &PathBuf, outpath: &PathBuf) -> rekordcrate::Result<()> 
 
     for i in 1..(max_page_index + 1) {
         if let Some(page) = pages_hash_map.get(&i) {
-            page.write_options(&mut writer, write_options, (header.page_size,))?;
+            page.write_options(&mut writer, endian, (header.page_size,))?;
         } else {
-            vec![0u8; header.page_size as usize].write_options(&mut writer, write_options, ())?;
+            vec![0u8; header.page_size as usize].write_options(&mut writer, endian, ())?;
         }
     }
 
