@@ -757,14 +757,14 @@ pub struct Artist {
 }
 
 impl Artist {
-    /// Size of the album header for the near variant in bytes.
+    /// Size of the artist header for the near variant in bytes.
     pub const HEADER_SIZE_NEAR: u8 = 0x0a;
 
-    /// Size of the album header for the far variant in bytes.
+    /// Size of the artist header for the far variant in bytes.
     pub const HEADER_SIZE_FAR: u16 = 0x0c;
 
     fn calculate_name_seek(ofs_near: u8, ofs_far: &Option<u16>) -> SeekFrom {
-        println!("ofs_near: {}", ofs_near);
+        dbg!(ofs_near);
         SeekFrom::Current(if let Some(ofs_far) = ofs_far {
             (ofs_far - Self::HEADER_SIZE_FAR).into()
         } else {
