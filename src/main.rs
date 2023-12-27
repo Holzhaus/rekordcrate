@@ -208,7 +208,14 @@ fn reexport_pdb(inpath: &PathBuf, outpath: &PathBuf) -> rekordcrate::Result<()> 
 
     for i in 1..(max_page_index + 1) {
         if let Some(page) = pages_hash_map.get(&i) {
-            page.write_options(&mut writer, endian, (header.page_size,))?;
+            let PageIndex(next_index) = page.next_page;
+            let next_page_num_rows = if let Some(next_page) = pages_hash_map.get(&next_index) {
+                next_page.num_rows()
+            } else {
+                0
+            };
+
+            page.write_options(&mut writer, endian, (header.page_size, next_page_num_rows as u32))?;
         } else {
             vec![0u8; header.page_size as usize].write_options(&mut writer, endian, ())?;
         }

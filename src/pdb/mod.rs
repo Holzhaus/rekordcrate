@@ -320,7 +320,7 @@ impl binrw::meta::WriteEndian for Page {
 }
 
 impl BinWrite for Page {
-    type Args<'a> = (u32,);
+    type Args<'a> = (u32, u32);
 
     fn write_options<W: Write + Seek>(
         &self,
@@ -351,20 +351,46 @@ impl BinWrite for Page {
         self.unknown6.write_options(writer, endian, ())?;
         self.unknown7.write_options(writer, endian, ())?;
 
-        dbg!(writer.stream_position().map_err(binrw::Error::Io)?);
-        let (page_size,) = args;
+        let (page_size, next_page_num_rows) = args;
 
-        // Padding
-        let page_heap_size: usize =
-            Self::row_groups_offset(page_size, self.num_rows_small, self.num_rows_large)
-                .try_into()
-                .map_err(|e| binrw::Error::Custom {
-                    pos: (page_offset + u64::from(Self::HEADER_SIZE)),
-                    err: Box::new(e),
-                })?;
+        // The following logic seems to work but still need extra checks
+        // Maybe we can integrate the following fields in the Page struct after vierfying them
+        let num_rows = self.num_rows();
+        if num_rows == 0 {
+           self.page_index.write_options(writer, endian, ())?;
+        }
 
-        vec![0u8; page_heap_size].write_options(writer, endian, ())?;
+        if next_page_num_rows == 0 {
+            0x3ffffffu32.write_options(writer, endian, ())?;
+        } else {
+            self.next_page.write_options(writer, endian, ())?;
+        }
 
+        if num_rows == 0 {
+            0x3ffffffu32.write_options(writer, endian, ())?;
+            0u32.write_options(writer, endian, ())?;
+            0u16.write_options(writer, endian, ())?;
+
+            vec![0xfff81fffu32; self.unknown6 as usize].write_options(writer, endian, ())?;
+
+            0x1fffu16.write_options(writer, endian, ())?;
+
+            let zero_paddings = page_size - (writer.stream_position().unwrap() as u32 % page_size);
+
+            vec![0u8; zero_paddings as usize].write_options(writer,endian, ())?;
+
+        } else {
+            // Padding
+            let page_heap_size: usize =
+                Self::row_groups_offset(page_size, self.num_rows_small, self.num_rows_large)
+                    .try_into()
+                    .map_err(|e| binrw::Error::Custom {
+                        pos: (page_offset + u64::from(Self::HEADER_SIZE)),
+                        err: Box::new(e),
+                    })?;
+
+            vec![0u8; page_heap_size - 4].write_options(writer, endian, ())?;
+        }
         // TODO: row_data starts at different offsets
         // original EXPORT.pdb: row_data = page_index * page_size + page_header_size + row offset
         // generated out.pdb:   row_data = page_index * page_size + row_offset
@@ -764,6 +790,16 @@ pub struct Color {
     unknown3: u16,
     /// User-defined name of the color.
     name: DeviceSQLString,
+
+    // TODO: The following unknowns fields' conditions can be simplified
+    #[brw(if(name.clone().into_string().unwrap().len() % 2 == 0 && name.clone().into_string().unwrap().len() <= 5))]
+    uknown4: u16,
+
+    #[brw(if(name.clone().into_string().unwrap().len() % 2 == 0 || name.clone().into_string().unwrap().len() > 5))]
+    uknown5: u8,
+
+    #[brw(if(name.clone().into_string().unwrap().len() == 5))]
+    uknown6: u16,
 }
 
 /// Represents a musical genre.
@@ -842,6 +878,8 @@ pub struct PlaylistTreeNode {
     node_is_folder: u32,
     /// Name of this node, as shown when navigating the menu.
     pub name: DeviceSQLString,
+
+    unknown1: u16,
 }
 
 impl PlaylistTreeNode {
