@@ -385,8 +385,7 @@ impl BinWrite for Page {
             // Zero padding seems to be added to fill the rest of the empty page heap
             let zero_paddings = page_size - (writer.stream_position().unwrap() as u32 % page_size);
 
-            vec![0u8; zero_paddings as usize].write_options(writer,endian, ())?;
-
+            vec![0u8; zero_paddings as usize].write_options(writer, endian, ())?;
         } else {
             // When the page is not empty
             // Padding
@@ -406,7 +405,7 @@ impl BinWrite for Page {
 
         // Row Groups
         let mut relative_row_offset: u64 = Self::HEADER_SIZE.into();
-        for row_group in self.row_groups.iter() {
+        for row_group in &self.row_groups {
             relative_row_offset = row_group.write_options_and_get_row_offset(
                 writer,
                 endian,
@@ -802,13 +801,13 @@ pub struct Color {
 
     // TODO: The following unknowns fields' conditions can be simplified
     #[brw(if(name.clone().into_string().unwrap().len() % 2 == 0 && name.clone().into_string().unwrap().len() <= 5))]
-    uknown4: u16,
+    unknown4: u16,
 
     #[brw(if(name.clone().into_string().unwrap().len() % 2 == 0 || name.clone().into_string().unwrap().len() > 5))]
-    uknown5: u8,
+    unknown5: u8,
 
     #[brw(if(name.clone().into_string().unwrap().len() == 5))]
-    uknown6: u16,
+    unknown6: u16,
 }
 
 /// Represents a musical genre.
@@ -1561,6 +1560,9 @@ mod test {
             color: ColorIndex::Pink,
             unknown3: 0,
             name: DeviceSQLString::new("Pink".to_string()).unwrap(),
+            unknown4: 0,
+            unknown5: 0,
+            unknown6: 0,
         };
         test_roundtrip(&[0, 0, 0, 0, 1, 1, 0, 0, 11, 80, 105, 110, 107], row);
     }
@@ -2233,7 +2235,7 @@ mod test {
             ],
             page,
             (page_size,),
-            (page_size,),
+            (page_size, 0),
         );
     }
 }

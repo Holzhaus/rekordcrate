@@ -215,7 +215,11 @@ fn reexport_pdb(inpath: &PathBuf, outpath: &PathBuf) -> rekordcrate::Result<()> 
                 0
             };
 
-            page.write_options(&mut writer, endian, (header.page_size, next_page_num_rows as u32))?;
+            page.write_options(
+                &mut writer,
+                endian,
+                (header.page_size, next_page_num_rows as u32),
+            )?;
         } else {
             vec![0u8; header.page_size as usize].write_options(&mut writer, endian, ())?;
         }
