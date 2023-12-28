@@ -357,9 +357,12 @@ impl BinWrite for Page {
         // Maybe we can integrate the following fields in the Page struct after vierfying them
         let num_rows = self.num_rows();
         if num_rows == 0 {
-           self.page_index.write_options(writer, endian, ())?;
+            // When the page is empty (0 rows), the page_index is repeated here
+            self.page_index.write_options(writer, endian, ())?;
         }
 
+        // When the next page is empty (0 rows), 0x3ffffff value is written
+        // Otherwise the next_page index is repeated here
         if next_page_num_rows == 0 {
             0x3ffffffu32.write_options(writer, endian, ())?;
         } else {
@@ -367,19 +370,25 @@ impl BinWrite for Page {
         }
 
         if num_rows == 0 {
+            // When the page is empty, the following seems to be written
             0x3ffffffu32.write_options(writer, endian, ())?;
             0u32.write_options(writer, endian, ())?;
             0u16.write_options(writer, endian, ())?;
 
+            // When the page is empty, the page heap seems to contain "padding" with 0xfff81fff
+            // unknown6 seems to contain the size of the 0xfff81fff padding
+            // unknown6 value is always 1004 when the page is empty and 0 otherwise?
             vec![0xfff81fffu32; self.unknown6 as usize].write_options(writer, endian, ())?;
 
             0x1fffu16.write_options(writer, endian, ())?;
 
+            // Zero padding seems to be added to fill the rest of the empty page heap
             let zero_paddings = page_size - (writer.stream_position().unwrap() as u32 % page_size);
 
             vec![0u8; zero_paddings as usize].write_options(writer,endian, ())?;
 
         } else {
+            // When the page is not empty
             // Padding
             let page_heap_size: usize =
                 Self::row_groups_offset(page_size, self.num_rows_small, self.num_rows_large)
@@ -878,7 +887,7 @@ pub struct PlaylistTreeNode {
     node_is_folder: u32,
     /// Name of this node, as shown when navigating the menu.
     pub name: DeviceSQLString,
-
+    /// Unknown field.
     unknown1: u16,
 }
 
