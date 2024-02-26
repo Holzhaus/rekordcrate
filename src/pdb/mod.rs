@@ -20,13 +20,15 @@
 
 pub mod string;
 
+use std::convert::TryInto;
+
 use crate::pdb::string::DeviceSQLString;
 use crate::util::ColorIndex;
 use binrw::{
     binread, binrw,
     file_ptr::FilePtrArgs,
     io::{Read, Seek, SeekFrom, Write},
-    BinRead, BinResult, BinWrite, Endian, FilePtr16, FilePtr8,
+    BinRead, BinResult, BinWrite, Endian, FilePtr16,
 };
 
 /// Do not read anything, but the return the current stream position of `reader`.
@@ -80,6 +82,12 @@ pub enum PageType {
     /// Contains the metadata categories by which Tracks can be browsed by.
     #[brw(magic = 16u32)]
     Columns,
+    /// tbi
+    #[brw(magic = 17u32)]
+    PageType17,
+    /// tbi
+    #[brw(magic = 18u32)]
+    PageType18,
     /// Holds information used by rekordbox to synchronize history playlists (not yet studied).
     #[brw(magic = 19u32)]
     History,
@@ -92,7 +100,7 @@ pub enum PageType {
 #[binrw]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
 #[brw(little)]
-pub struct PageIndex(u32);
+pub struct PageIndex(pub u32);
 
 impl PageIndex {
     /// Calculate the absolute file offset of the page in the PDB file for the given `page_size`.
@@ -170,9 +178,12 @@ impl Header {
         let mut pages = vec![];
         let mut page_index = first_page.clone();
         loop {
+            println!("{:?}", page_index);
             let page_offset = SeekFrom::Start(page_index.offset(self.page_size));
             reader.seek(page_offset).map_err(binrw::Error::Io)?;
             let page = Page::read_options(reader, endian, (self.page_size,))?;
+            println!(" {:?}", page);
+
             let is_last_page = &page.page_index == last_page;
             page_index = page.next_page.clone();
             pages.push(page);
@@ -201,9 +212,6 @@ impl PageFlags {
 /// Each page consists of a header that contains information about the type, number of rows, etc.,
 /// followed by the data section that holds the row data. Each row needs to be located using an
 /// offset found in the page footer at the end of the page.
-///
-/// **Note: The `Page` struct is currently not writable, because row offsets are not taken into
-/// account and rows are not serialized correctly yet.**
 #[binread]
 #[derive(Debug, PartialEq)]
 #[br(little, magic = 0u32)]
@@ -264,6 +272,7 @@ pub struct Page {
     ///
     /// Used when the number of rows does not fit into a single byte. In that case,`num_rows_large`
     /// is greater than `num_rows_small`, but is not equal to `0x1FFF`.
+    /// TODO make this an option with 0x1FFF <=> None
     pub num_rows_large: u16,
     /// Unknown field.
     #[allow(dead_code)]
@@ -288,12 +297,6 @@ pub struct Page {
     // (currently nightly-only, see https://github.com/rust-lang/rust/issues/88581).
     #[br(calc = if num_rows > 0 { (num_rows - 1) / RowGroup::MAX_ROW_COUNT + 1 } else { 0 })]
     num_row_groups: u16,
-    /// The offset at which row groups for this page are located.
-    ///
-    /// **Note:** This is a virtual field and not actually read from the file.
-    #[br(temp)]
-    #[br(calc = SeekFrom::Current(i64::from(page_size) - i64::from(Self::HEADER_SIZE) - i64::from(num_rows) * 2 - i64::from(num_row_groups) * 4))]
-    row_groups_offset: SeekFrom,
     /// The offset at which the row data for this page are located.
     ///
     /// **Note:** This is a virtual field and not actually read from the file.
@@ -301,14 +304,141 @@ pub struct Page {
     #[br(calc = page_index.offset(page_size) + u64::from(Self::HEADER_SIZE))]
     page_heap_offset: u64,
     /// Row groups belonging to this page.
-    #[br(seek_before(row_groups_offset), restore_position)]
+    #[br(seek_before(SeekFrom::Current(Page::row_groups_offset(
+        page_size,
+        num_rows_small,
+        num_rows_large
+    ))))]
     #[br(parse_with = Self::parse_row_groups, args(page_type, page_heap_offset, num_rows, num_row_groups, page_flags))]
     pub row_groups: Vec<RowGroup>,
+}
+
+// #[bw(little)] on #[binread] types does
+// not seem to work so we manually define the endianness here.
+impl binrw::meta::WriteEndian for Page {
+    const ENDIAN: binrw::meta::EndianKind = binrw::meta::EndianKind::Endian(Endian::Little);
+}
+
+impl BinWrite for Page {
+    type Args<'a> = (u32, u32);
+
+    fn write_options<W: Write + Seek>(
+        &self,
+        writer: &mut W,
+        endian: Endian,
+        args: Self::Args<'_>,
+    ) -> BinResult<()> {
+        let page_offset = writer.stream_position().map_err(binrw::Error::Io)?;
+
+        dbg!(page_offset);
+
+        println!("{:?}", self);
+        // Header
+        0u32.write_options(writer, endian, ())?;
+        self.page_index.write_options(writer, endian, ())?;
+        self.page_type.write_options(writer, endian, ())?;
+        self.next_page.write_options(writer, endian, ())?;
+        self.unknown1.write_options(writer, endian, ())?;
+        self.unknown2.write_options(writer, endian, ())?;
+        self.num_rows_small.write_options(writer, endian, ())?;
+        self.unknown3.write_options(writer, endian, ())?;
+        self.unknown4.write_options(writer, endian, ())?;
+        self.page_flags.write_options(writer, endian, ())?;
+        self.free_size.write_options(writer, endian, ())?;
+        self.used_size.write_options(writer, endian, ())?;
+        self.unknown5.write_options(writer, endian, ())?;
+        self.num_rows_large.write_options(writer, endian, ())?;
+        self.unknown6.write_options(writer, endian, ())?;
+        self.unknown7.write_options(writer, endian, ())?;
+
+        let (page_size, next_page_num_rows) = args;
+
+        // The following logic seems to work but still need extra checks
+        // Maybe we can integrate the following fields in the Page struct after vierfying them
+        let num_rows = self.num_rows();
+        if num_rows == 0 {
+            // When the page is empty (0 rows), the page_index is repeated here
+            self.page_index.write_options(writer, endian, ())?;
+        }
+
+        // When the next page is empty (0 rows), 0x3ffffff value is written
+        // Otherwise the next_page index is repeated here
+        if next_page_num_rows == 0 {
+            0x3ffffffu32.write_options(writer, endian, ())?;
+        } else {
+            self.next_page.write_options(writer, endian, ())?;
+        }
+
+        if num_rows == 0 {
+            // When the page is empty, the following seems to be written
+            0x3ffffffu32.write_options(writer, endian, ())?;
+            0u32.write_options(writer, endian, ())?;
+            0u16.write_options(writer, endian, ())?;
+
+            // When the page is empty, the page heap seems to contain "padding" with 0xfff81fff
+            // unknown6 seems to contain the size of the 0xfff81fff padding
+            // unknown6 value is always 1004 when the page is empty and 0 otherwise?
+            vec![0xfff81fffu32; self.unknown6 as usize].write_options(writer, endian, ())?;
+
+            0x1fffu16.write_options(writer, endian, ())?;
+
+            // Zero padding seems to be added to fill the rest of the empty page heap
+            let zero_paddings = page_size - (writer.stream_position().unwrap() as u32 % page_size);
+
+            vec![0u8; zero_paddings as usize].write_options(writer, endian, ())?;
+        } else {
+            // When the page is not empty
+            // Padding
+            let page_heap_size: usize =
+                Self::row_groups_offset(page_size, self.num_rows_small, self.num_rows_large)
+                    .try_into()
+                    .map_err(|e| binrw::Error::Custom {
+                        pos: (page_offset + u64::from(Self::HEADER_SIZE)),
+                        err: Box::new(e),
+                    })?;
+
+            vec![0u8; page_heap_size - 4].write_options(writer, endian, ())?;
+        }
+        // TODO: row_data starts at different offsets
+        // original EXPORT.pdb: row_data = page_index * page_size + page_header_size + row offset
+        // generated out.pdb:   row_data = page_index * page_size + row_offset
+
+        // Row Groups
+        let mut relative_row_offset: u64 = Self::HEADER_SIZE.into();
+        for row_group in &self.row_groups {
+            relative_row_offset = row_group.write_options_and_get_row_offset(
+                writer,
+                endian,
+                (page_offset, relative_row_offset),
+            )?;
+        }
+
+        dbg!(writer.stream_position().map_err(binrw::Error::Io)?);
+        Ok(())
+    }
 }
 
 impl Page {
     /// Size of the page header in bytes.
     pub const HEADER_SIZE: u32 = 0x28;
+
+    fn row_groups_offset(page_size: u32, num_rows_small: u8, num_rows_large: u16) -> i64 {
+        let num_rows = if num_rows_large > num_rows_small.into() && num_rows_large != 0x1fff {
+            num_rows_large
+        } else {
+            num_rows_small.into()
+        };
+        let num_row_groups = if num_rows > 0 {
+            (num_rows - 1) / RowGroup::MAX_ROW_COUNT + 1
+        } else {
+            0
+        };
+
+        let row_groups_size = num_rows * 2 + num_row_groups * 4;
+        dbg!(row_groups_size);
+
+        i64::from(page_size) - i64::from(Self::HEADER_SIZE) - i64::from(row_groups_size)
+    }
 
     /// Parse the row groups at the end of the page.
     fn parse_row_groups<R: Read + Seek>(
@@ -426,6 +556,84 @@ impl RowGroup {
                 }
             })
     }
+
+    fn write_options_and_get_row_offset<W: Write + Seek>(
+        &self,
+        writer: &mut W,
+        endian: Endian,
+        args: (u64, u64),
+    ) -> binrw::BinResult<u64> {
+        let (page_offset, relative_row_offset) = args;
+
+        // Do this to make our job easier
+        // TODO(Swiftb0y): DeviceSQL seems to write RowGroups so that the Rows
+        // with the lowest offset have their offset written at the end of the
+        // page. So If the Rows appeared in order Row1,Row2,Row3 in the heap/page
+        // their offsets would be stored in reverse order &Row3,&Row2,&Row1.
+        // It probably doesn't change the correctness of the (de-)serialization,
+        // but it makes sense to strive to be as close as possible to DeviceSQL
+        // This is so that the table can grow.
+
+        // Write rows
+        let mut offset = page_offset + relative_row_offset;
+        for row in self.rows.iter().rev() {
+            // Write row offset
+            let row_offset: u16 = offset
+                .checked_sub(page_offset + Page::HEADER_SIZE as u64)
+                .and_then(|v| u16::try_from(v).ok())
+                .ok_or_else(|| binrw::Error::AssertFail {
+                    pos: offset,
+                    message: "Wraparound while calculating row offset".to_string(),
+                })?;
+            row_offset.write_options(writer, endian, ())?;
+            let restore_position = writer.stream_position()?;
+
+            // TODO(Swiftb0y): Write with proper alignment.
+            // Rows don't seem to be directly adjacent to each other
+            // but instead have gaps in between. They probably adhere to their
+            // member variable alignment.
+            // I have seen gaps of 52 to 55 bytes (ending after the last char
+            // of the previous row and the first byte of the next row).
+            // I have 0 idea why these gaps are this big or how to accurately
+            // guess their size.
+            // Rows also don't have a fixed size. Their sizes seem to fluctuate
+            // between 0 and 48 bytes in size (though the fluctuations always
+            // were multiple of 12)
+
+            // Write actual row content
+            let offset_before_write = writer.seek(SeekFrom::Start(offset))?;
+            row.write_options(writer, endian, ())?;
+            let offset_after_write = writer.stream_position()?;
+            offset += offset_after_write - offset_before_write;
+
+            // Seek back to row offset
+            writer.seek(SeekFrom::Start(restore_position))?;
+        }
+        let new_relative_row_offset = offset - page_offset;
+
+        self.row_presence_flags.write_options(writer, endian, ())?;
+        self.unknown.write_options(writer, endian, ())?;
+
+        Ok(new_relative_row_offset)
+    }
+}
+
+impl BinWrite for RowGroup {
+    type Args<'a> = (u64, u64);
+
+    fn write_options<W: Write + Seek>(
+        &self,
+        writer: &mut W,
+        endian: Endian,
+        args: Self::Args<'_>,
+    ) -> binrw::BinResult<()> {
+        self.write_options_and_get_row_offset(writer, endian, args)?;
+        Ok(())
+    }
+}
+
+impl binrw::meta::WriteEndian for RowGroup {
+    const ENDIAN: binrw::meta::EndianKind = binrw::meta::EndianKind::Endian(Endian::Little);
 }
 
 /// Identifies a track.
@@ -487,12 +695,6 @@ pub struct HistoryPlaylistId(pub u32);
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 pub struct Album {
-    /// Position of start of this row (needed of offset calculations).
-    ///
-    /// **Note:** This is a virtual field and not actually read from the file.
-    #[br(temp, parse_with = current_offset)]
-    #[bw(ignore)]
-    base_offset: u64,
     /// Unknown field, usually `80 00`.
     unknown1: u16,
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
@@ -507,9 +709,23 @@ pub struct Album {
     unknown3: u32,
     /// Unknown field.
     unknown4: u8,
+    /// Name offset
+    ofs_name: u8,
     /// Album name String
-    #[br(offset = base_offset, parse_with = FilePtr8::parse)]
+    #[br(seek_before = Album::calculate_name_seek(ofs_name))]
+    #[bw(seek_before = Album::calculate_name_seek(*ofs_name))]
     name: DeviceSQLString,
+}
+
+impl Album {
+    /// Size of the album header in bytes.
+    pub const HEADER_SIZE: u8 = 0x16;
+
+    fn calculate_name_seek(ofs_name: u8) -> SeekFrom {
+        println!("ofs_name: {}", ofs_name);
+        let offset: u8 = ofs_name - Self::HEADER_SIZE;
+        SeekFrom::Current(offset.into())
+    }
 }
 
 /// Contains the artist name and ID.
@@ -535,14 +751,24 @@ pub struct Artist {
     /// Name of this artist.
     #[br(seek_before = Artist::calculate_name_seek(ofs_name_near, &ofs_name_far))]
     #[bw(seek_before = Artist::calculate_name_seek(*ofs_name_near, ofs_name_far))]
-    #[brw(restore_position)]
+    //#[brw(restore_position)]
     name: DeviceSQLString,
 }
 
 impl Artist {
+    /// Size of the artist header for the near variant in bytes.
+    pub const HEADER_SIZE_NEAR: u8 = 0x0a;
+
+    /// Size of the artist header for the far variant in bytes.
+    pub const HEADER_SIZE_FAR: u16 = 0x0c;
+
     fn calculate_name_seek(ofs_near: u8, ofs_far: &Option<u16>) -> SeekFrom {
-        let offset: u16 = ofs_far.map_or_else(|| ofs_near.into(), |v| v - 2) - 10;
-        SeekFrom::Current(offset.into())
+        dbg!(ofs_near);
+        SeekFrom::Current(if let Some(ofs_far) = ofs_far {
+            (ofs_far - Self::HEADER_SIZE_FAR).into()
+        } else {
+            (ofs_near - Self::HEADER_SIZE_NEAR).into()
+        })
     }
 }
 
@@ -572,6 +798,16 @@ pub struct Color {
     unknown3: u16,
     /// User-defined name of the color.
     name: DeviceSQLString,
+
+    // TODO: The following unknowns fields' conditions can be simplified
+    #[brw(if(name.clone().into_string().unwrap().len() % 2 == 0 && name.clone().into_string().unwrap().len() <= 5))]
+    unknown4: u16,
+
+    #[brw(if(name.clone().into_string().unwrap().len() % 2 == 0 || name.clone().into_string().unwrap().len() > 5))]
+    unknown5: u8,
+
+    #[brw(if(name.clone().into_string().unwrap().len() == 5))]
+    unknown6: u16,
 }
 
 /// Represents a musical genre.
@@ -650,6 +886,8 @@ pub struct PlaylistTreeNode {
     node_is_folder: u32,
     /// Name of this node, as shown when navigating the menu.
     pub name: DeviceSQLString,
+    /// Unknown field.
+    unknown1: u16,
 }
 
 impl PlaylistTreeNode {
@@ -673,7 +911,7 @@ pub struct PlaylistEntry {
     playlist_id: PlaylistTreeNodeId,
 }
 
-/// Contains the kinds of Metadata Categories tracks can be browsed by
+/// Contains the kinds of Metadata Categories tracks that can be browsed by
 /// on CDJs.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -694,8 +932,18 @@ pub struct ColumnEntry {
     // TODO since there are only finite many categories, it would make sense
     // to encode those as an enum as part of the high-level api.
     pub column_name: DeviceSQLString,
+
+    #[brw(if(ColumnEntry::has_padding(column_name.clone())))]
+    unknown1: u16,
 }
 
+impl ColumnEntry {
+    fn has_padding(column_name: DeviceSQLString) -> bool {
+        let column_name_len = column_name.into_string().unwrap().len();
+
+        column_name_len % 2 != 0 && column_name_len <= 21
+    }
+}
 /// Contains the album name, along with an ID of the corresponding artist.
 #[binread]
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -986,15 +1234,24 @@ pub enum Row {
     /// Contains the album name, along with an ID of the corresponding artist.
     #[br(pre_assert(page_type == PageType::Tracks))]
     Track(Track),
+    /// Placeholder
+    #[br(pre_assert(page_type == PageType::PageType17))]
+    Row17(u64),
+    /// Placeholder
+    #[br(pre_assert(page_type == PageType::PageType18))]
+    Row18(u64),
+    /// Placeholder
+    #[br(pre_assert(page_type == PageType::History))]
+    History((u64, u64, u64, u64, u64)),
     /// The row format (and also its size) is unknown, which means it can't be parsed.
-    #[br(pre_assert(matches!(page_type, PageType::History | PageType::Unknown(_))))]
+    #[br(pre_assert(matches!(page_type, PageType::Unknown(_))))]
     Unknown,
 }
 
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::util::testing::test_roundtrip;
+    use crate::util::testing::{test_roundtrip, test_roundtrip_with_args};
 
     #[test]
     fn empty_header() {
@@ -1124,13 +1381,13 @@ mod test {
                     last_page: PageIndex(34),
                 },
                 Table {
-                    page_type: PageType::Unknown(17),
+                    page_type: PageType::PageType17,
                     empty_candidate: 44,
                     first_page: PageIndex(35),
                     last_page: PageIndex(36),
                 },
                 Table {
-                    page_type: PageType::Unknown(18),
+                    page_type: PageType::PageType18,
                     empty_candidate: 45,
                     first_page: PageIndex(37),
                     last_page: PageIndex(38),
@@ -1303,20 +1560,682 @@ mod test {
             color: ColorIndex::Pink,
             unknown3: 0,
             name: DeviceSQLString::new("Pink".to_string()).unwrap(),
+            unknown4: 0,
+            unknown5: 0,
+            unknown6: 0,
         };
         test_roundtrip(&[0, 0, 0, 0, 1, 1, 0, 0, 11, 80, 105, 110, 107], row);
     }
+
     #[test]
     fn column_entry() {
         let row = ColumnEntry {
             id: 1,
             unknown0: 128,
             column_name: DeviceSQLString::new("\u{fffa}GENRE\u{fffb}".into()).unwrap(),
+            unknown1: 0,
         };
         let bin = &[
             0x01, 0x00, 0x80, 0x00, 0x90, 0x12, 0x00, 0x00, 0xfa, 0xff, 0x47, 0x00, 0x45, 0x00,
             0x4e, 0x00, 0x52, 0x00, 0x45, 0x00, 0xfb, 0xff,
         ];
         test_roundtrip(bin, row);
+    }
+
+    #[test]
+    fn track_page() {
+        let page = Page {
+            page_index: PageIndex(2),
+            page_type: PageType::Tracks,
+            next_page: PageIndex(47),
+            unknown1: 32,
+            unknown2: 0,
+            num_rows_small: 7,
+            unknown3: 64,
+            unknown4: 0,
+            page_flags: PageFlags(52),
+            free_size: 1530,
+            used_size: 2508,
+            unknown5: 1,
+            num_rows_large: 6,
+            unknown6: 0,
+            unknown7: 0,
+            row_groups: vec![RowGroup {
+                rows: vec![
+                    FilePtr16 {
+                        ptr: 0,
+                        value: Row::Track(Track {
+                            unknown1: 36,
+                            index_shift: 0,
+                            bitmask: 788224,
+                            sample_rate: 44100,
+                            composer_id: ArtistId(0),
+                            file_size: 1382226,
+                            unknown2: 191204207,
+                            unknown3: 64128,
+                            unknown4: 1511,
+                            artwork_id: ArtworkId(0),
+                            key_id: KeyId(1),
+                            orig_artist_id: ArtistId(0),
+                            label_id: LabelId(0),
+                            remixer_id: ArtistId(0),
+                            bitrate: 2116,
+                            track_number: 0,
+                            tempo: 0,
+                            genre_id: GenreId(0),
+                            album_id: AlbumId(0),
+                            artist_id: ArtistId(0),
+                            id: TrackId(1),
+                            disc_number: 0,
+                            play_count: 0,
+                            year: 0,
+                            sample_depth: 24,
+                            duration: 5,
+                            unknown5: 41,
+                            color: ColorIndex::None,
+                            rating: 0,
+                            unknown6: 11,
+                            unknown7: 3,
+                            isrc: DeviceSQLString::new_isrc("".to_string()).unwrap(),
+                            unknown_string1: DeviceSQLString::empty(),
+                            unknown_string2: DeviceSQLString::new("3".to_string()).unwrap(),
+                            unknown_string3: DeviceSQLString::new("2".to_string()).unwrap(),
+                            unknown_string4: DeviceSQLString::empty(),
+                            message: DeviceSQLString::empty(),
+                            kuvo_public: DeviceSQLString::empty(),
+                            autoload_hotcues: DeviceSQLString::new("ON".to_string()).unwrap(),
+                            unknown_string5: DeviceSQLString::empty(),
+                            unknown_string6: DeviceSQLString::empty(),
+                            date_added: DeviceSQLString::new("2015-09-07".to_string()).unwrap(),
+                            release_date: DeviceSQLString::empty(),
+                            mix_name: DeviceSQLString::empty(),
+                            unknown_string7: DeviceSQLString::empty(),
+                            analyze_path: DeviceSQLString::new(
+                                "/PIONEER/USBANLZ/P019/00020AA9/ANLZ0000.DAT".to_string(),
+                            )
+                            .unwrap(),
+                            analyze_date: DeviceSQLString::new("2022-02-02".to_string()).unwrap(),
+                            comment: DeviceSQLString::empty(),
+                            title: DeviceSQLString::new("NOISE".to_string()).unwrap(),
+                            unknown_string8: DeviceSQLString::empty(),
+                            filename: DeviceSQLString::new("NOISE.wav".to_string()).unwrap(),
+                            file_path: DeviceSQLString::new(
+                                "/Contents/UnknownArtist/UnknownAlbum/NOISE.wav".to_string(),
+                            )
+                            .unwrap(),
+                        }),
+                    },
+                    FilePtr16 {
+                        ptr: 0,
+                        value: Row::Track(Track {
+                            unknown1: 36,
+                            index_shift: 32,
+                            bitmask: 788224,
+                            sample_rate: 44100,
+                            composer_id: ArtistId(0),
+                            file_size: 1515258,
+                            unknown2: 34882935,
+                            unknown3: 64128,
+                            unknown4: 1511,
+                            artwork_id: ArtworkId(0),
+                            key_id: KeyId(2),
+                            orig_artist_id: ArtistId(0),
+                            label_id: LabelId(0),
+                            remixer_id: ArtistId(0),
+                            bitrate: 2116,
+                            track_number: 0,
+                            tempo: 0,
+                            genre_id: GenreId(0),
+                            album_id: AlbumId(0),
+                            artist_id: ArtistId(0),
+                            id: TrackId(2),
+                            disc_number: 0,
+                            play_count: 0,
+                            year: 0,
+                            sample_depth: 24,
+                            duration: 5,
+                            unknown5: 41,
+                            color: ColorIndex::None,
+                            rating: 0,
+                            unknown6: 11,
+                            unknown7: 3,
+                            isrc: DeviceSQLString::new_isrc("".to_string()).unwrap(),
+                            unknown_string1: DeviceSQLString::empty(),
+                            unknown_string2: DeviceSQLString::new("3".to_string()).unwrap(),
+                            unknown_string3: DeviceSQLString::new("2".to_string()).unwrap(),
+                            unknown_string4: DeviceSQLString::empty(),
+                            message: DeviceSQLString::empty(),
+                            kuvo_public: DeviceSQLString::empty(),
+                            autoload_hotcues: DeviceSQLString::new("ON".to_string()).unwrap(),
+                            unknown_string5: DeviceSQLString::empty(),
+                            unknown_string6: DeviceSQLString::empty(),
+                            date_added: DeviceSQLString::new("2015-09-07".to_string()).unwrap(),
+                            release_date: DeviceSQLString::empty(),
+                            mix_name: DeviceSQLString::empty(),
+                            unknown_string7: DeviceSQLString::empty(),
+                            analyze_path: DeviceSQLString::new(
+                                "/PIONEER/USBANLZ/P043/00011517/ANLZ0000.DAT".to_string(),
+                            )
+                            .unwrap(),
+                            analyze_date: DeviceSQLString::new("2022-02-02".to_string()).unwrap(),
+                            comment: DeviceSQLString::empty(),
+                            title: DeviceSQLString::new("SINEWAVE".to_string()).unwrap(),
+                            unknown_string8: DeviceSQLString::empty(),
+                            filename: DeviceSQLString::new("SINEWAVE.wav".to_string()).unwrap(),
+                            file_path: DeviceSQLString::new(
+                                "/Contents/UnknownArtist/UnknownAlbum/SINEWAVE.wav".to_string(),
+                            )
+                            .unwrap(),
+                        }),
+                    },
+                    FilePtr16 {
+                        ptr: 0,
+                        value: Row::Track(Track {
+                            unknown1: 36,
+                            index_shift: 64,
+                            bitmask: 788224,
+                            sample_rate: 44100,
+                            composer_id: ArtistId(0),
+                            file_size: 1941204,
+                            unknown2: 243638374,
+                            unknown3: 64128,
+                            unknown4: 1511,
+                            artwork_id: ArtworkId(0),
+                            key_id: KeyId(3),
+                            orig_artist_id: ArtistId(0),
+                            label_id: LabelId(0),
+                            remixer_id: ArtistId(0),
+                            bitrate: 2116,
+                            track_number: 0,
+                            tempo: 0,
+                            genre_id: GenreId(0),
+                            album_id: AlbumId(0),
+                            artist_id: ArtistId(0),
+                            id: TrackId(3),
+                            disc_number: 0,
+                            play_count: 0,
+                            year: 0,
+                            sample_depth: 24,
+                            duration: 7,
+                            unknown5: 41,
+                            color: ColorIndex::None,
+                            rating: 0,
+                            unknown6: 11,
+                            unknown7: 3,
+                            isrc: DeviceSQLString::new_isrc("".to_string()).unwrap(),
+                            unknown_string1: DeviceSQLString::empty(),
+                            unknown_string2: DeviceSQLString::new("3".to_string()).unwrap(),
+                            unknown_string3: DeviceSQLString::new("2".to_string()).unwrap(),
+                            unknown_string4: DeviceSQLString::empty(),
+                            message: DeviceSQLString::empty(),
+                            kuvo_public: DeviceSQLString::empty(),
+                            autoload_hotcues: DeviceSQLString::new("ON".to_string()).unwrap(),
+                            unknown_string5: DeviceSQLString::empty(),
+                            unknown_string6: DeviceSQLString::empty(),
+                            date_added: DeviceSQLString::new("2015-09-07".to_string()).unwrap(),
+                            release_date: DeviceSQLString::empty(),
+                            mix_name: DeviceSQLString::empty(),
+                            unknown_string7: DeviceSQLString::empty(),
+                            analyze_path: DeviceSQLString::new(
+                                "/PIONEER/USBANLZ/P017/00009B77/ANLZ0000.DAT".to_string(),
+                            )
+                            .unwrap(),
+                            analyze_date: DeviceSQLString::new("2022-02-02".to_string()).unwrap(),
+                            comment: DeviceSQLString::empty(),
+                            title: DeviceSQLString::new("SIREN".to_string()).unwrap(),
+                            unknown_string8: DeviceSQLString::empty(),
+                            filename: DeviceSQLString::new("SIREN.wav".to_string()).unwrap(),
+                            file_path: DeviceSQLString::new(
+                                "/Contents/UnknownArtist/UnknownAlbum/SIREN.wav".to_string(),
+                            )
+                            .unwrap(),
+                        }),
+                    },
+                    FilePtr16 {
+                        ptr: 0,
+                        value: Row::Track(Track {
+                            unknown1: 36,
+                            index_shift: 96,
+                            bitmask: 788224,
+                            sample_rate: 44100,
+                            composer_id: ArtistId(0),
+                            file_size: 2010816,
+                            unknown2: 227782126,
+                            unknown3: 64128,
+                            unknown4: 1511,
+                            artwork_id: ArtworkId(0),
+                            key_id: KeyId(4),
+                            orig_artist_id: ArtistId(0),
+                            label_id: LabelId(0),
+                            remixer_id: ArtistId(0),
+                            bitrate: 2116,
+                            track_number: 0,
+                            tempo: 0,
+                            genre_id: GenreId(0),
+                            album_id: AlbumId(0),
+                            artist_id: ArtistId(0),
+                            id: TrackId(4),
+                            disc_number: 0,
+                            play_count: 0,
+                            year: 0,
+                            sample_depth: 24,
+                            duration: 7,
+                            unknown5: 41,
+                            color: ColorIndex::None,
+                            rating: 0,
+                            unknown6: 11,
+                            unknown7: 3,
+                            isrc: DeviceSQLString::new_isrc("".to_string()).unwrap(),
+                            unknown_string1: DeviceSQLString::empty(),
+                            unknown_string2: DeviceSQLString::new("3".to_string()).unwrap(),
+                            unknown_string3: DeviceSQLString::new("2".to_string()).unwrap(),
+                            unknown_string4: DeviceSQLString::empty(),
+                            message: DeviceSQLString::empty(),
+                            kuvo_public: DeviceSQLString::empty(),
+                            autoload_hotcues: DeviceSQLString::new("ON".to_string()).unwrap(),
+                            unknown_string5: DeviceSQLString::empty(),
+                            unknown_string6: DeviceSQLString::empty(),
+                            date_added: DeviceSQLString::new("2015-09-07".to_string()).unwrap(),
+                            release_date: DeviceSQLString::empty(),
+                            mix_name: DeviceSQLString::empty(),
+                            unknown_string7: DeviceSQLString::empty(),
+                            analyze_path: DeviceSQLString::new(
+                                "/PIONEER/USBANLZ/P021/00006D2B/ANLZ0000.DAT".to_string(),
+                            )
+                            .unwrap(),
+                            analyze_date: DeviceSQLString::new("2022-02-02".to_string()).unwrap(),
+                            comment: DeviceSQLString::empty(),
+                            title: DeviceSQLString::new("HORN".to_string()).unwrap(),
+                            unknown_string8: DeviceSQLString::empty(),
+                            filename: DeviceSQLString::new("HORN.wav".to_string()).unwrap(),
+                            file_path: DeviceSQLString::new(
+                                "/Contents/UnknownArtist/UnknownAlbum/HORN.wav".to_string(),
+                            )
+                            .unwrap(),
+                        }),
+                    },
+                    FilePtr16 {
+                        ptr: 0,
+                        value: Row::Track(Track {
+                            unknown1: 36,
+                            index_shift: 128,
+                            bitmask: 788224,
+                            sample_rate: 44100,
+                            composer_id: ArtistId(0),
+                            file_size: 6899624,
+                            unknown2: 214020570,
+                            unknown3: 64128,
+                            unknown4: 1511,
+                            artwork_id: ArtworkId(0),
+                            key_id: KeyId(5),
+                            orig_artist_id: ArtistId(0),
+                            label_id: LabelId(1),
+                            remixer_id: ArtistId(0),
+                            bitrate: 320,
+                            track_number: 0,
+                            tempo: 12800,
+                            genre_id: GenreId(0),
+                            album_id: AlbumId(0),
+                            artist_id: ArtistId(1),
+                            id: TrackId(5),
+                            disc_number: 0,
+                            play_count: 0,
+                            year: 0,
+                            sample_depth: 16,
+                            duration: 172,
+                            unknown5: 41,
+                            color: ColorIndex::None,
+                            rating: 0,
+                            unknown6: 1,
+                            unknown7: 3,
+                            isrc: DeviceSQLString::new_isrc("".to_string()).unwrap(),
+                            unknown_string1: DeviceSQLString::empty(),
+                            unknown_string2: DeviceSQLString::new("3".to_string()).unwrap(),
+                            unknown_string3: DeviceSQLString::new("3".to_string()).unwrap(),
+                            unknown_string4: DeviceSQLString::empty(),
+                            message: DeviceSQLString::empty(),
+                            kuvo_public: DeviceSQLString::empty(),
+                            autoload_hotcues: DeviceSQLString::new("ON".to_string()).unwrap(),
+                            unknown_string5: DeviceSQLString::empty(),
+                            unknown_string6: DeviceSQLString::empty(),
+                            date_added: DeviceSQLString::new("2018-05-25".to_string()).unwrap(),
+                            release_date: DeviceSQLString::empty(),
+                            mix_name: DeviceSQLString::empty(),
+                            unknown_string7: DeviceSQLString::empty(),
+                            analyze_path: DeviceSQLString::new(
+                                "/PIONEER/USBANLZ/P016/0000875E/ANLZ0000.DAT".to_string(),
+                            )
+                            .unwrap(),
+                            analyze_date: DeviceSQLString::new("2022-02-02".to_string()).unwrap(),
+                            comment: DeviceSQLString::new(
+                                "Tracks by www.loopmasters.com".to_string(),
+                            )
+                            .unwrap(),
+                            title: DeviceSQLString::new("Demo Track 1".to_string()).unwrap(),
+                            unknown_string8: DeviceSQLString::empty(),
+                            filename: DeviceSQLString::new("Demo Track 1.mp3".to_string()).unwrap(),
+                            file_path: DeviceSQLString::new(
+                                "/Contents/Loopmasters/UnknownAlbum/Demo Track 1.mp3".to_string(),
+                            )
+                            .unwrap(),
+                        }),
+                    },
+                    FilePtr16 {
+                        ptr: 0,
+                        value: Row::Track(Track {
+                            unknown1: 36,
+                            index_shift: 160,
+                            bitmask: 788224,
+                            sample_rate: 44100,
+                            composer_id: ArtistId(0),
+                            file_size: 6899624,
+                            unknown2: 214020570,
+                            unknown3: 64128,
+                            unknown4: 1511,
+                            artwork_id: ArtworkId(0),
+                            key_id: KeyId(5),
+                            orig_artist_id: ArtistId(0),
+                            label_id: LabelId(1),
+                            remixer_id: ArtistId(0),
+                            bitrate: 320,
+                            track_number: 0,
+                            tempo: 12800,
+                            genre_id: GenreId(0),
+                            album_id: AlbumId(0),
+                            artist_id: ArtistId(1),
+                            id: TrackId(1),
+                            disc_number: 0,
+                            play_count: 0,
+                            year: 0,
+                            sample_depth: 16,
+                            duration: 172,
+                            unknown5: 41,
+                            color: ColorIndex::None,
+                            rating: 0,
+                            unknown6: 1,
+                            unknown7: 3,
+                            isrc: DeviceSQLString::new_isrc("".to_string()).unwrap(),
+                            unknown_string1: DeviceSQLString::empty(),
+                            unknown_string2: DeviceSQLString::new("3".to_string()).unwrap(),
+                            unknown_string3: DeviceSQLString::new("3".to_string()).unwrap(),
+                            unknown_string4: DeviceSQLString::empty(),
+                            message: DeviceSQLString::empty(),
+                            kuvo_public: DeviceSQLString::empty(),
+                            autoload_hotcues: DeviceSQLString::new("ON".to_string()).unwrap(),
+                            unknown_string5: DeviceSQLString::empty(),
+                            unknown_string6: DeviceSQLString::empty(),
+                            date_added: DeviceSQLString::new("2018-05-25".to_string()).unwrap(),
+                            release_date: DeviceSQLString::empty(),
+                            mix_name: DeviceSQLString::empty(),
+                            unknown_string7: DeviceSQLString::empty(),
+                            analyze_path: DeviceSQLString::new(
+                                "/PIONEER/USBANLZ/P016/0000875E/ANLZ0000.DAT".to_string(),
+                            )
+                            .unwrap(),
+                            analyze_date: DeviceSQLString::new("2022-02-02".to_string()).unwrap(),
+                            comment: DeviceSQLString::new(
+                                "Tracks by www.loopmasters.com".to_string(),
+                            )
+                            .unwrap(),
+                            title: DeviceSQLString::new("Demo Track 1".to_string()).unwrap(),
+                            unknown_string8: DeviceSQLString::empty(),
+                            filename: DeviceSQLString::new("Demo Track 1.mp3".to_string()).unwrap(),
+                            file_path: DeviceSQLString::new(
+                                "/Contents/Loopmasters/UnknownAlbum/Demo Track 1.mp3".to_string(),
+                            )
+                            .unwrap(),
+                        }),
+                    },
+                    FilePtr16 {
+                        ptr: 0,
+                        value: Row::Track(Track {
+                            unknown1: 36,
+                            index_shift: 192,
+                            bitmask: 788224,
+                            sample_rate: 44100,
+                            composer_id: ArtistId(0),
+                            file_size: 5124342,
+                            unknown2: 263879995,
+                            unknown3: 64128,
+                            unknown4: 1511,
+                            artwork_id: ArtworkId(0),
+                            key_id: KeyId(5),
+                            orig_artist_id: ArtistId(0),
+                            label_id: LabelId(1),
+                            remixer_id: ArtistId(0),
+                            bitrate: 320,
+                            track_number: 0,
+                            tempo: 12000,
+                            genre_id: GenreId(0),
+                            album_id: AlbumId(0),
+                            artist_id: ArtistId(1),
+                            id: TrackId(2),
+                            disc_number: 0,
+                            play_count: 0,
+                            year: 0,
+                            sample_depth: 16,
+                            duration: 128,
+                            unknown5: 41,
+                            color: ColorIndex::None,
+                            rating: 0,
+                            unknown6: 1,
+                            unknown7: 3,
+                            isrc: DeviceSQLString::new_isrc("".to_string()).unwrap(),
+                            unknown_string1: DeviceSQLString::empty(),
+                            unknown_string2: DeviceSQLString::new("3".to_string()).unwrap(),
+                            unknown_string3: DeviceSQLString::new("3".to_string()).unwrap(),
+                            unknown_string4: DeviceSQLString::empty(),
+                            message: DeviceSQLString::empty(),
+                            kuvo_public: DeviceSQLString::empty(),
+                            autoload_hotcues: DeviceSQLString::new("ON".to_string()).unwrap(),
+                            unknown_string5: DeviceSQLString::empty(),
+                            unknown_string6: DeviceSQLString::empty(),
+                            date_added: DeviceSQLString::new("2018-05-25".to_string()).unwrap(),
+                            release_date: DeviceSQLString::empty(),
+                            mix_name: DeviceSQLString::empty(),
+                            unknown_string7: DeviceSQLString::empty(),
+                            analyze_path: DeviceSQLString::new(
+                                "/PIONEER/USBANLZ/P053/0001D21F/ANLZ0000.DAT".to_string(),
+                            )
+                            .unwrap(),
+                            analyze_date: DeviceSQLString::new("2022-02-02".to_string()).unwrap(),
+                            comment: DeviceSQLString::new(
+                                "Tracks by www.loopmasters.com".to_string(),
+                            )
+                            .unwrap(),
+                            title: DeviceSQLString::new("Demo Track 2".to_string()).unwrap(),
+                            unknown_string8: DeviceSQLString::empty(),
+                            filename: DeviceSQLString::new("Demo Track 2.mp3".to_string()).unwrap(),
+                            file_path: DeviceSQLString::new(
+                                "/Contents/Loopmasters/UnknownAlbum/Demo Track 2.mp3".to_string(),
+                            )
+                            .unwrap(),
+                        }),
+                    },
+                ],
+                row_presence_flags: 96,
+                unknown: 64,
+            }],
+        };
+
+        let page_size: u32 = 4096;
+        test_roundtrip_with_args(
+            &[
+                0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 47, 0, 0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 7, 64, 0,
+                52, 250, 5, 204, 9, 1, 0, 6, 0, 0, 0, 0, 0, 36, 0, 0, 0, 0, 7, 12, 0, 68, 172, 0,
+                0, 0, 0, 0, 0, 82, 23, 21, 0, 111, 139, 101, 11, 128, 250, 231, 5, 0, 0, 0, 0, 1,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 68, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 24, 0, 5, 0, 41,
+                0, 0, 0, 11, 0, 3, 0, 136, 0, 137, 0, 138, 0, 140, 0, 142, 0, 143, 0, 144, 0, 145,
+                0, 148, 0, 149, 0, 150, 0, 161, 0, 162, 0, 163, 0, 164, 0, 208, 0, 219, 0, 220, 0,
+                226, 0, 227, 0, 237, 0, 3, 3, 5, 51, 5, 50, 3, 3, 3, 7, 79, 78, 3, 3, 23, 50, 48,
+                49, 53, 45, 48, 57, 45, 48, 55, 3, 3, 3, 89, 47, 80, 73, 79, 78, 69, 69, 82, 47,
+                85, 83, 66, 65, 78, 76, 90, 47, 80, 48, 49, 57, 47, 48, 48, 48, 50, 48, 65, 65, 57,
+                47, 65, 78, 76, 90, 48, 48, 48, 48, 46, 68, 65, 84, 23, 50, 48, 50, 50, 45, 48, 50,
+                45, 48, 50, 3, 13, 78, 79, 73, 83, 69, 3, 21, 78, 79, 73, 83, 69, 46, 119, 97, 118,
+                95, 47, 67, 111, 110, 116, 101, 110, 116, 115, 47, 85, 110, 107, 110, 111, 119,
+                110, 65, 114, 116, 105, 115, 116, 47, 85, 110, 107, 110, 111, 119, 110, 65, 108,
+                98, 117, 109, 47, 78, 79, 73, 83, 69, 46, 119, 97, 118, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 36, 0, 32, 0, 0, 7, 12, 0, 68, 172, 0,
+                0, 0, 0, 0, 0, 250, 30, 23, 0, 119, 69, 20, 2, 128, 250, 231, 5, 0, 0, 0, 0, 2, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 68, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 24, 0, 5, 0, 41, 0,
+                0, 0, 11, 0, 3, 0, 136, 0, 137, 0, 138, 0, 140, 0, 142, 0, 143, 0, 144, 0, 145, 0,
+                148, 0, 149, 0, 150, 0, 161, 0, 162, 0, 163, 0, 164, 0, 208, 0, 219, 0, 220, 0,
+                229, 0, 230, 0, 243, 0, 3, 3, 5, 51, 5, 50, 3, 3, 3, 7, 79, 78, 3, 3, 23, 50, 48,
+                49, 53, 45, 48, 57, 45, 48, 55, 3, 3, 3, 89, 47, 80, 73, 79, 78, 69, 69, 82, 47,
+                85, 83, 66, 65, 78, 76, 90, 47, 80, 48, 52, 51, 47, 48, 48, 48, 49, 49, 53, 49, 55,
+                47, 65, 78, 76, 90, 48, 48, 48, 48, 46, 68, 65, 84, 23, 50, 48, 50, 50, 45, 48, 50,
+                45, 48, 50, 3, 19, 83, 73, 78, 69, 87, 65, 86, 69, 3, 27, 83, 73, 78, 69, 87, 65,
+                86, 69, 46, 119, 97, 118, 101, 47, 67, 111, 110, 116, 101, 110, 116, 115, 47, 85,
+                110, 107, 110, 111, 119, 110, 65, 114, 116, 105, 115, 116, 47, 85, 110, 107, 110,
+                111, 119, 110, 65, 108, 98, 117, 109, 47, 83, 73, 78, 69, 87, 65, 86, 69, 46, 119,
+                97, 118, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 36, 0, 64, 0, 0, 7, 12, 0, 68, 172, 0, 0, 0, 0, 0, 0, 212, 158, 29, 0, 102,
+                160, 133, 14, 128, 250, 231, 5, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 68, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 24, 0, 7, 0, 41, 0, 0, 0, 11, 0, 3, 0, 136, 0, 137,
+                0, 138, 0, 140, 0, 142, 0, 143, 0, 144, 0, 145, 0, 148, 0, 149, 0, 150, 0, 161, 0,
+                162, 0, 163, 0, 164, 0, 208, 0, 219, 0, 220, 0, 226, 0, 227, 0, 237, 0, 3, 3, 5,
+                51, 5, 50, 3, 3, 3, 7, 79, 78, 3, 3, 23, 50, 48, 49, 53, 45, 48, 57, 45, 48, 55, 3,
+                3, 3, 89, 47, 80, 73, 79, 78, 69, 69, 82, 47, 85, 83, 66, 65, 78, 76, 90, 47, 80,
+                48, 49, 55, 47, 48, 48, 48, 48, 57, 66, 55, 55, 47, 65, 78, 76, 90, 48, 48, 48, 48,
+                46, 68, 65, 84, 23, 50, 48, 50, 50, 45, 48, 50, 45, 48, 50, 3, 13, 83, 73, 82, 69,
+                78, 3, 21, 83, 73, 82, 69, 78, 46, 119, 97, 118, 95, 47, 67, 111, 110, 116, 101,
+                110, 116, 115, 47, 85, 110, 107, 110, 111, 119, 110, 65, 114, 116, 105, 115, 116,
+                47, 85, 110, 107, 110, 111, 119, 110, 65, 108, 98, 117, 109, 47, 83, 73, 82, 69,
+                78, 46, 119, 97, 118, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 36, 0, 96, 0, 0, 7, 12, 0, 68, 172, 0, 0, 0, 0, 0, 0, 192, 174, 30, 0,
+                238, 173, 147, 13, 128, 250, 231, 5, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 68, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 24, 0, 7, 0, 41, 0, 0, 0, 11, 0, 3, 0, 136, 0,
+                137, 0, 138, 0, 140, 0, 142, 0, 143, 0, 144, 0, 145, 0, 148, 0, 149, 0, 150, 0,
+                161, 0, 162, 0, 163, 0, 164, 0, 208, 0, 219, 0, 220, 0, 225, 0, 226, 0, 235, 0, 3,
+                3, 5, 51, 5, 50, 3, 3, 3, 7, 79, 78, 3, 3, 23, 50, 48, 49, 53, 45, 48, 57, 45, 48,
+                55, 3, 3, 3, 89, 47, 80, 73, 79, 78, 69, 69, 82, 47, 85, 83, 66, 65, 78, 76, 90,
+                47, 80, 48, 50, 49, 47, 48, 48, 48, 48, 54, 68, 50, 66, 47, 65, 78, 76, 90, 48, 48,
+                48, 48, 46, 68, 65, 84, 23, 50, 48, 50, 50, 45, 48, 50, 45, 48, 50, 3, 11, 72, 79,
+                82, 78, 3, 19, 72, 79, 82, 78, 46, 119, 97, 118, 93, 47, 67, 111, 110, 116, 101,
+                110, 116, 115, 47, 85, 110, 107, 110, 111, 119, 110, 65, 114, 116, 105, 115, 116,
+                47, 85, 110, 107, 110, 111, 119, 110, 65, 108, 98, 117, 109, 47, 72, 79, 82, 78,
+                46, 119, 97, 118, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 36, 0, 128, 0, 0, 7, 12, 0, 68, 172, 0, 0, 0, 0, 0, 0, 168, 71, 105,
+                0, 218, 177, 193, 12, 128, 250, 231, 5, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+                0, 0, 0, 0, 0, 0, 64, 1, 0, 0, 0, 0, 0, 0, 0, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+                0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16, 0, 172, 0, 41, 0, 0, 0, 1, 0, 3, 0, 136,
+                0, 137, 0, 138, 0, 140, 0, 142, 0, 143, 0, 144, 0, 145, 0, 148, 0, 149, 0, 150, 0,
+                161, 0, 162, 0, 163, 0, 164, 0, 208, 0, 219, 0, 249, 0, 6, 1, 7, 1, 24, 1, 3, 3, 5,
+                51, 5, 51, 3, 3, 3, 7, 79, 78, 3, 3, 23, 50, 48, 49, 56, 45, 48, 53, 45, 50, 53, 3,
+                3, 3, 89, 47, 80, 73, 79, 78, 69, 69, 82, 47, 85, 83, 66, 65, 78, 76, 90, 47, 80,
+                48, 49, 54, 47, 48, 48, 48, 48, 56, 55, 53, 69, 47, 65, 78, 76, 90, 48, 48, 48, 48,
+                46, 68, 65, 84, 23, 50, 48, 50, 50, 45, 48, 50, 45, 48, 50, 61, 84, 114, 97, 99,
+                107, 115, 32, 98, 121, 32, 119, 119, 119, 46, 108, 111, 111, 112, 109, 97, 115,
+                116, 101, 114, 115, 46, 99, 111, 109, 27, 68, 101, 109, 111, 32, 84, 114, 97, 99,
+                107, 32, 49, 3, 35, 68, 101, 109, 111, 32, 84, 114, 97, 99, 107, 32, 49, 46, 109,
+                112, 51, 105, 47, 67, 111, 110, 116, 101, 110, 116, 115, 47, 76, 111, 111, 112,
+                109, 97, 115, 116, 101, 114, 115, 47, 85, 110, 107, 110, 111, 119, 110, 65, 108,
+                98, 117, 109, 47, 68, 101, 109, 111, 32, 84, 114, 97, 99, 107, 32, 49, 46, 109,
+                112, 51, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                36, 0, 160, 0, 0, 7, 12, 0, 68, 172, 0, 0, 0, 0, 0, 0, 168, 71, 105, 0, 218, 177,
+                193, 12, 128, 250, 231, 5, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
+                0, 64, 1, 0, 0, 0, 0, 0, 0, 0, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 16, 0, 172, 0, 41, 0, 0, 0, 1, 0, 3, 0, 136, 0, 137, 0,
+                138, 0, 140, 0, 142, 0, 143, 0, 144, 0, 145, 0, 148, 0, 149, 0, 150, 0, 161, 0,
+                162, 0, 163, 0, 164, 0, 208, 0, 219, 0, 249, 0, 6, 1, 7, 1, 24, 1, 3, 3, 5, 51, 5,
+                51, 3, 3, 3, 7, 79, 78, 3, 3, 23, 50, 48, 49, 56, 45, 48, 53, 45, 50, 53, 3, 3, 3,
+                89, 47, 80, 73, 79, 78, 69, 69, 82, 47, 85, 83, 66, 65, 78, 76, 90, 47, 80, 48, 49,
+                54, 47, 48, 48, 48, 48, 56, 55, 53, 69, 47, 65, 78, 76, 90, 48, 48, 48, 48, 46, 68,
+                65, 84, 23, 50, 48, 50, 50, 45, 48, 50, 45, 48, 50, 61, 84, 114, 97, 99, 107, 115,
+                32, 98, 121, 32, 119, 119, 119, 46, 108, 111, 111, 112, 109, 97, 115, 116, 101,
+                114, 115, 46, 99, 111, 109, 27, 68, 101, 109, 111, 32, 84, 114, 97, 99, 107, 32,
+                49, 3, 35, 68, 101, 109, 111, 32, 84, 114, 97, 99, 107, 32, 49, 46, 109, 112, 51,
+                105, 47, 67, 111, 110, 116, 101, 110, 116, 115, 47, 76, 111, 111, 112, 109, 97,
+                115, 116, 101, 114, 115, 47, 85, 110, 107, 110, 111, 119, 110, 65, 108, 98, 117,
+                109, 47, 68, 101, 109, 111, 32, 84, 114, 97, 99, 107, 32, 49, 46, 109, 112, 51, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 36, 0, 192, 0,
+                0, 7, 12, 0, 68, 172, 0, 0, 0, 0, 0, 0, 246, 48, 78, 0, 59, 125, 186, 15, 128, 250,
+                231, 5, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 64, 1, 0, 0, 0,
+                0, 0, 0, 224, 46, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 16, 0, 128, 0, 41, 0, 0, 0, 1, 0, 3, 0, 136, 0, 137, 0, 138, 0, 140, 0, 142,
+                0, 143, 0, 144, 0, 145, 0, 148, 0, 149, 0, 150, 0, 161, 0, 162, 0, 163, 0, 164, 0,
+                208, 0, 219, 0, 249, 0, 6, 1, 7, 1, 24, 1, 3, 3, 5, 51, 5, 51, 3, 3, 3, 7, 79, 78,
+                3, 3, 23, 50, 48, 49, 56, 45, 48, 53, 45, 50, 53, 3, 3, 3, 89, 47, 80, 73, 79, 78,
+                69, 69, 82, 47, 85, 83, 66, 65, 78, 76, 90, 47, 80, 48, 53, 51, 47, 48, 48, 48, 49,
+                68, 50, 49, 70, 47, 65, 78, 76, 90, 48, 48, 48, 48, 46, 68, 65, 84, 23, 50, 48, 50,
+                50, 45, 48, 50, 45, 48, 50, 61, 84, 114, 97, 99, 107, 115, 32, 98, 121, 32, 119,
+                119, 119, 46, 108, 111, 111, 112, 109, 97, 115, 116, 101, 114, 115, 46, 99, 111,
+                109, 27, 68, 101, 109, 111, 32, 84, 114, 97, 99, 107, 32, 50, 3, 35, 68, 101, 109,
+                111, 32, 84, 114, 97, 99, 107, 32, 50, 46, 109, 112, 51, 105, 47, 67, 111, 110,
+                116, 101, 110, 116, 115, 47, 76, 111, 111, 112, 109, 97, 115, 116, 101, 114, 115,
+                47, 85, 110, 107, 110, 111, 119, 110, 65, 108, 98, 117, 109, 47, 68, 101, 109, 111,
+                32, 84, 114, 97, 99, 107, 32, 50, 46, 109, 112, 51, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 76, 8, 204, 6, 76, 5, 252, 3, 172, 2, 80, 1, 0, 0, 96, 0, 64, 0,
+            ],
+            page,
+            (page_size,),
+            (page_size, 0),
+        );
     }
 }
