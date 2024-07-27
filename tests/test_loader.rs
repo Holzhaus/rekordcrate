@@ -10,3 +10,4 @@
 include!(concat!(env!("OUT_DIR"), "/tests_pdb.rs"));
 include!(concat!(env!("OUT_DIR"), "/tests_anlz.rs"));
 include!(concat!(env!("OUT_DIR"), "/tests_setting.rs"));
+include!(concat!(env!("OUT_DIR"), "/tests_xml.rs"));

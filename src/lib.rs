@@ -27,6 +27,7 @@ pub mod anlz;
 pub mod pdb;
 pub mod setting;
 pub mod util;
+pub mod xml;
 pub(crate) mod xor;
 
 pub use crate::util::RekordcrateError as Error;
