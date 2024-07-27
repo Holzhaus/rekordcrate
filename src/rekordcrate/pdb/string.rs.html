@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/pdb/string.rs`."><title>string.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-fa3bb1812debf86c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="rekordcrate" data-themes="" data-resource-suffix="" data-rustdoc-version="1.74.0 (79e9716c9 2023-11-13)" data-channel="1.74.0" data-search-js="search-8be46b629f5f14a8.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-c5bd66d33317d69f.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../rekordcrate/index.html"><img class="rust-logo" src="../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/pdb/string.rs`."><title>string.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-081576b923113409.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="rekordcrate" data-themes="" data-resource-suffix="" data-rustdoc-version="1.79.0 (129f3b996 2024-06-10)" data-channel="1.79.0" data-search-js="search-bf21c90c8c1d92b1.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-e32f0c247825364d.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-09095024cf37855e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../rekordcrate/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Type ‘S’ or ‘/’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings">Settings</a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -314,7 +314,7 @@
 <a href="#314" id="314">314</a>
 <a href="#315" id="315">315</a>
 <a href="#316" id="316">316</a>
-</pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023 Nikolaus Einhauser
+</pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2024 Nikolaus Einhauser
 //
 // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy
 // of the MPL was not distributed with this file, You can obtain one at
@@ -333,19 +333,19 @@
 
 <span class="kw">const </span>MAX_SHORTSTR_SIZE: usize = ((u8::MAX &gt;&gt; <span class="number">1</span>) - <span class="number">1</span>) <span class="kw">as </span>usize;
 
-<span class="doccomment">/// Error Objects occurring when dealing with [DeviceSQLString]&#39;s
+<span class="doccomment">/// Error Objects occurring when dealing with [DeviceSQLString]'s
 </span><span class="attr">#[derive(Debug, PartialEq, Eq, Copy, Clone, Error)]
 #[non_exhaustive]
 </span><span class="kw">pub enum </span>StringError {
     <span class="doccomment">/// String being handled was too long for DeviceSQL
-    </span><span class="attr">#[error(<span class="string">&quot;string is too long for DeviceSQL&quot;</span>)]
+    </span><span class="attr">#[error(<span class="string">"string is too long for DeviceSQL"</span>)]
     </span>TooLong,
     <span class="doccomment">/// Creating of ISRC String was unsuccessful because the string was not
     /// containing a valid ISRC string specifier
-    </span><span class="attr">#[error(<span class="string">&quot;string does not contain valid ISRC identifier&quot;</span>)]
+    </span><span class="attr">#[error(<span class="string">"string does not contain valid ISRC identifier"</span>)]
     </span>InvalidISRC,
     <span class="doccomment">/// String encoding Error (invalid UTF-8/16)
-    </span><span class="attr">#[error(<span class="string">&quot;string encoding is invalid&quot;</span>)]
+    </span><span class="attr">#[error(<span class="string">"string encoding is invalid"</span>)]
     </span>Encoding,
 }
 
@@ -357,7 +357,7 @@
 /// # pub fn main() -&gt; binrw::BinResult&lt;()&gt; {
 /// use rekordcrate::pdb::string::DeviceSQLString;
 /// use binrw::{BinWrite, BinRead};
-/// let string = DeviceSQLString::new(&quot;foo&quot;.to_owned()).unwrap();
+/// let string = DeviceSQLString::new("foo".to_owned()).unwrap();
 /// let binary = vec![0x9, 0x66, 0x6F, 0x6F];
 ///
 /// let mut writer = binrw::io::Cursor::new(vec![]);
@@ -452,16 +452,16 @@
 }
 
 <span class="kw">impl </span>fmt::Debug <span class="kw">for </span>DeviceSQLString {
-    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, fmt: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; fmt::Result {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, fmt: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
         <span class="kw">let </span>value = <span class="self">self
             </span>.clone()
             .into_string()
-            .unwrap_or_else(|<span class="kw">_</span>| <span class="string">&quot;&lt;string error&gt;&quot;</span>.to_string());
-        fmt.debug_tuple(<span class="string">&quot;DeviceSQLString&quot;</span>).field(<span class="kw-2">&amp;</span>value).finish()
+            .unwrap_or_else(|<span class="kw">_</span>| <span class="string">"&lt;string error&gt;"</span>.to_string());
+        fmt.debug_tuple(<span class="string">"DeviceSQLString"</span>).field(<span class="kw-2">&amp;</span>value).finish()
     }
 }
 
-<span class="doccomment">/// A String encapsulating how DeviceSQL VARCHAR&#39;s are structured
+<span class="doccomment">/// A String encapsulating how DeviceSQL VARCHAR's are structured
 ///
 /// This implementation forces them to be immutable for now
 </span><span class="attr">#[binrw]
@@ -477,7 +477,7 @@
         #[bw(calc = (((content.len() + <span class="number">1</span>) &lt;&lt; <span class="number">1</span>) | <span class="number">1</span>) <span class="kw">as </span>u8)]
         </span>header: u8,
 
-        <span class="attr">#[br(count = (header &gt;&gt; <span class="number">1</span>) - <span class="number">1</span>)]
+        <span class="attr">#[br(count = usize::from(header &gt;&gt; <span class="number">1</span>) - <span class="number">1</span>)]
         </span>content: Vec&lt;u8&gt;,
     },
     <span class="doccomment">/// Regular long form strings, containing possibly different encodings
@@ -509,10 +509,10 @@
     </span><span class="attr">#[br(pre_assert(flags == <span class="number">0x90</span>))]
     </span>Isrc(<span class="attr">#[brw(magic = <span class="number">0x3u8</span>)] </span>binrw::NullString),
     <span class="attr">#[br(pre_assert(flags == <span class="number">0x40</span>))]
-    </span>Ascii(<span class="attr">#[br(count = len)] </span>Vec&lt;u8&gt;),
+    </span>Ascii(<span class="attr">#[br(count = usize::from(len))] </span>Vec&lt;u8&gt;),
     <span class="attr">#[br(pre_assert(flags == <span class="number">0x90</span>))]
     #[br(pre_assert(len % <span class="number">2 </span>== <span class="number">0</span>))]
-    </span>Ucs2le(<span class="attr">#[br(count = len / <span class="number">2</span>)] </span>Vec&lt;u16&gt;),
+    </span>Ucs2le(<span class="attr">#[br(count = usize::from(len / <span class="number">2</span>))] </span>Vec&lt;u16&gt;),
 }
 
 <span class="kw">impl </span>LongBody {
@@ -555,14 +555,14 @@
     </span><span class="kw">fn </span>short_ascii_string() -&gt; <span class="prelude-ty">Result</span>&lt;(), StringError&gt; {
         test_roundtrip(
             <span class="kw-2">&amp;</span>[<span class="number">0x9</span>, <span class="number">0x66</span>, <span class="number">0x6F</span>, <span class="number">0x6F</span>],
-            DeviceSQLString::new(<span class="string">&quot;foo&quot;</span>.to_owned())<span class="question-mark">?</span>,
+            DeviceSQLString::new(<span class="string">"foo"</span>.to_owned())<span class="question-mark">?</span>,
         );
         <span class="prelude-val">Ok</span>(())
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>long_ascii_string() -&gt; <span class="prelude-ty">Result</span>&lt;(), StringError&gt; {
-        <span class="kw">let </span>long_string = <span class="string">&quot;Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliqu&quot;</span>;
+        <span class="kw">let </span>long_string = <span class="string">"Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliqu"</span>;
         <span class="kw">let </span>long_string_serialized = [
             <span class="number">0x40</span>, <span class="number">0x83</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x4C</span>, <span class="number">0x6F</span>, <span class="number">0x72</span>, <span class="number">0x65</span>, <span class="number">0x6D</span>, <span class="number">0x20</span>, <span class="number">0x69</span>, <span class="number">0x70</span>, <span class="number">0x73</span>, <span class="number">0x75</span>,
             <span class="number">0x6D</span>, <span class="number">0x20</span>, <span class="number">0x64</span>, <span class="number">0x6F</span>, <span class="number">0x6C</span>, <span class="number">0x6F</span>, <span class="number">0x72</span>, <span class="number">0x20</span>, <span class="number">0x73</span>, <span class="number">0x69</span>, <span class="number">0x74</span>, <span class="number">0x20</span>, <span class="number">0x61</span>, <span class="number">0x6D</span>,
@@ -588,20 +588,20 @@
             <span class="number">0x90</span>, <span class="number">0x14</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x49</span>, <span class="number">0x00</span>, <span class="number">0x20</span>, <span class="number">0x00</span>, <span class="number">0x64</span>, <span class="number">0x27</span>, <span class="number">0x20</span>, <span class="number">0x00</span>, <span class="number">0x52</span>, <span class="number">0x00</span>,
             <span class="number">0x75</span>, <span class="number">0x00</span>, <span class="number">0x73</span>, <span class="number">0x00</span>, <span class="number">0x74</span>, <span class="number">0x00</span>,
         ];
-        test_roundtrip(<span class="kw-2">&amp;</span>serialized, DeviceSQLString::new(<span class="string">&quot;I ❤ Rust&quot;</span>.to_string())<span class="question-mark">?</span>);
+        test_roundtrip(<span class="kw-2">&amp;</span>serialized, DeviceSQLString::new(<span class="string">"I ❤ Rust"</span>.to_string())<span class="question-mark">?</span>);
         <span class="prelude-val">Ok</span>(())
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>too_long_string() {
-        <span class="comment">// construct super long string containing just &quot;AAAAAAA&quot;...
+        <span class="comment">// construct super long string containing just "AAAAAAA"...
         </span><span class="kw">const </span>TOO_LARGE_STR_SIZE: usize = (u16::MAX <span class="kw">as </span>usize) + <span class="number">1</span>;
-        <span class="kw">const </span>INIT_CHAR: char = <span class="string">&#39;A&#39;</span>;
+        <span class="kw">const </span>INIT_CHAR: char = <span class="string">'A'</span>;
         <span class="kw">const _</span>: () = <span class="macro">assert!</span>(INIT_CHAR.is_ascii());
         <span class="kw">const </span>HUMONGOUS_ARRAY: [u8; TOO_LARGE_STR_SIZE] = [INIT_CHAR <span class="kw">as </span>u8; TOO_LARGE_STR_SIZE];
 
         <span class="comment">// Since we already know that the string only contains ascii at compile time,
-        // we could probably skip the validation, but that requires unsafe code which I&#39;d consider overkill.
+        // we could probably skip the validation, but that requires unsafe code which I'd consider overkill.
         </span><span class="kw">let </span>humongous_string = String::from_utf8(HUMONGOUS_ARRAY.to_vec()).unwrap();
 
         <span class="macro">assert_eq!</span>(
@@ -618,12 +618,12 @@
         ];
         test_roundtrip(
             <span class="kw-2">&amp;</span>serialized,
-            DeviceSQLString::new_isrc(<span class="string">&quot;GBAYE6700149&quot;</span>.to_string())<span class="question-mark">?</span>,
+            DeviceSQLString::new_isrc(<span class="string">"GBAYE6700149"</span>.to_string())<span class="question-mark">?</span>,
         );
-        test_roundtrip(<span class="kw-2">&amp;</span>[<span class="number">0x3</span>], DeviceSQLString::new_isrc(<span class="string">&quot;&quot;</span>.to_string())<span class="question-mark">?</span>);
+        test_roundtrip(<span class="kw-2">&amp;</span>[<span class="number">0x3</span>], DeviceSQLString::new_isrc(<span class="string">""</span>.to_string())<span class="question-mark">?</span>);
 
         <span class="macro">assert_eq!</span>(
-            DeviceSQLString::new_isrc(<span class="string">&quot;non-conforming garbage&quot;</span>.to_string()).unwrap_err(),
+            DeviceSQLString::new_isrc(<span class="string">"non-conforming garbage"</span>.to_string()).unwrap_err(),
             StringError::InvalidISRC
         );
 

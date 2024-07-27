@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/pdb/mod.rs`."><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-fa3bb1812debf86c.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="rekordcrate" data-themes="" data-resource-suffix="" data-rustdoc-version="1.74.0 (79e9716c9 2023-11-13)" data-channel="1.74.0" data-search-js="search-8be46b629f5f14a8.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-c5bd66d33317d69f.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../rekordcrate/index.html"><img class="rust-logo" src="../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/pdb/mod.rs`."><title>mod.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-081576b923113409.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="rekordcrate" data-themes="" data-resource-suffix="" data-rustdoc-version="1.79.0 (129f3b996 2024-06-10)" data-channel="1.79.0" data-search-js="search-bf21c90c8c1d92b1.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-e32f0c247825364d.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-09095024cf37855e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../rekordcrate/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Type ‘S’ or ‘/’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings">Settings</a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1320,7 +1320,7 @@
 <a href="#1320" id="1320">1320</a>
 <a href="#1321" id="1321">1321</a>
 <a href="#1322" id="1322">1322</a>
-</pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023 Jan Holthuis &lt;jan.holthuis@rub.de&gt;
+</pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2024 Jan Holthuis &lt;jan.holthuis@rub.de&gt;
 //
 // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy
 // of the MPL was not distributed with this file, You can obtain one at
@@ -1409,7 +1409,7 @@
     </span>Unknown(u32),
 }
 
-<span class="doccomment">/// Points to a table page and can be used to calculate the page&#39;s file offset by multiplying it
+<span class="doccomment">/// Points to a table page and can be used to calculate the page's file offset by multiplying it
 /// with the page size (found in the file header).
 </span><span class="attr">#[binrw]
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
@@ -1460,7 +1460,7 @@
     </span><span class="kw">pub </span>page_size: u32,
     <span class="doccomment">/// Number of tables.
     </span><span class="attr">#[br(temp)]
-    #[bw(calc = tables.len().try_into().expect(<span class="string">&quot;too many tables&quot;</span>))]
+    #[bw(calc = tables.len().try_into().expect(<span class="string">"too many tables"</span>))]
     </span>num_tables: u32,
     <span class="doccomment">/// Unknown field, not used as any `empty_candidate`, points past end of file.
     </span><span class="attr">#[allow(dead_code)]
@@ -1593,7 +1593,7 @@
     <span class="doccomment">/// Unknown field.
     ///
     /// According to [@flesniak](https://github.com/flesniak):
-    /// &gt; always 0, except 1 for history pages, num entries for strange pages?&quot;
+    /// &gt; always 0, except 1 for history pages, num entries for strange pages?"
     </span><span class="attr">#[allow(dead_code)]
     </span>unknown7: u16,
     <span class="doccomment">/// Number of rows in this page.
@@ -1731,7 +1731,7 @@
     <span class="kw">const </span>MAX_ROW_COUNT: u16 = <span class="number">16</span>;
 
     <span class="doccomment">/// Return the ordered list of row offsets that are actually present.
-    </span><span class="kw">pub fn </span>present_rows(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw">impl </span>Iterator&lt;Item = Row&gt; + <span class="lifetime">&#39;_ </span>{
+    </span><span class="kw">pub fn </span>present_rows(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw">impl </span>Iterator&lt;Item = Row&gt; + <span class="lifetime">'_ </span>{
         <span class="self">self</span>.rows
             .iter()
             .rev()
@@ -1968,7 +1968,7 @@
     </span>sort_order: u32,
     <span class="doccomment">/// ID of this row.
     </span><span class="kw">pub </span>id: PlaylistTreeNodeId,
-    <span class="doccomment">/// Indicates if the node is a folder. Non-zero if it&#39;s a leaf node, i.e. a playlist.
+    <span class="doccomment">/// Indicates if the node is a folder. Non-zero if it's a leaf node, i.e. a playlist.
     </span>node_is_folder: u32,
     <span class="doccomment">/// Name of this node, as shown when navigating the menu.
     </span><span class="kw">pub </span>name: DeviceSQLString,
@@ -2001,16 +2001,16 @@
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 </span><span class="kw">pub struct </span>ColumnEntry {
-    <span class="comment">// Possibly the primary key, though I don&#39;t know if that would
-    // make sense as I don&#39;t think there are references to these
+    <span class="comment">// Possibly the primary key, though I don't know if that would
+    // make sense as I don't think there are references to these
     // rows anywhere else. This could be a stable ID to identify
     // a category by in hardware (instead of by name).
     </span>id: u16,
     <span class="comment">// Maybe a bitfield containing infos on sort order and which
     // columns are displayed.
     </span>unknown0: u16,
-    <span class="doccomment">/// TODO Contained string is prefixed by the &quot;interlinear annotation&quot;
-    /// characters &quot;\u{fffa}&quot; and postfixed with &quot;\u{fffb}&quot; for some reason?!
+    <span class="doccomment">/// TODO Contained string is prefixed by the "interlinear annotation"
+    /// characters "\u{fffa}" and postfixed with "\u{fffb}" for some reason?!
     /// Contained strings are actually `DeviceSQLString::LongBody` even though
     /// they only contain ascii (apart from their unicode annotations)
     </span><span class="comment">// TODO since there are only finite many categories, it would make sense
@@ -2042,9 +2042,9 @@
     </span>file_size: u32,
     <span class="doccomment">/// Unknown field (maybe another ID?)
     </span>unknown2: u32,
-    <span class="doccomment">/// Unknown field (&quot;always 19048?&quot; according to [@flesniak](https://github.com/flesniak))
+    <span class="doccomment">/// Unknown field ("always 19048?" according to [@flesniak](https://github.com/flesniak))
     </span>unknown3: u16,
-    <span class="doccomment">/// Unknown field (&quot;always 30967?&quot; according to [@flesniak](https://github.com/flesniak))
+    <span class="doccomment">/// Unknown field ("always 30967?" according to [@flesniak](https://github.com/flesniak))
     </span>unknown4: u16,
     <span class="doccomment">/// Artwork row ID for the cover art (non-zero if set),
     </span>artwork_id: ArtworkId,
@@ -2080,15 +2080,15 @@
     </span>sample_depth: u16,
     <span class="doccomment">/// Playback duration of this track in seconds (at normal speed).
     </span>duration: u16,
-    <span class="doccomment">/// Unknown field, apparently always &quot;29&quot;.
+    <span class="doccomment">/// Unknown field, apparently always "29".
     </span>unknown5: u16,
     <span class="doccomment">/// Color row ID for this track (non-zero if set).
     </span>color: ColorIndex,
     <span class="doccomment">/// User rating of this track (0 to 5 starts).
     </span>rating: u8,
-    <span class="doccomment">/// Unknown field, apparently always &quot;1&quot;.
+    <span class="doccomment">/// Unknown field, apparently always "1".
     </span>unknown6: u16,
-    <span class="doccomment">/// Unknown field (alternating &quot;2&quot; and &quot;3&quot;?).
+    <span class="doccomment">/// Unknown field (alternating "2" and "3"?).
     </span>unknown7: u16,
     <span class="doccomment">/// International Standard Recording Code (ISRC), in mangled format.
     </span><span class="attr">#[br(offset = base_offset, parse_with = FilePtr16::parse)]
@@ -2108,10 +2108,10 @@
     <span class="doccomment">/// Unknown string field (named by [@flesniak](https://github.com/flesniak)).
     </span><span class="attr">#[br(offset = base_offset, parse_with = FilePtr16::parse)]
     </span>message: DeviceSQLString,
-    <span class="doccomment">/// Probably describes whether the track is public on kuvo.com (?). Value is either &quot;ON&quot; or empty string.
+    <span class="doccomment">/// Probably describes whether the track is public on kuvo.com (?). Value is either "ON" or empty string.
     </span><span class="attr">#[br(offset = base_offset, parse_with = FilePtr16::parse)]
     </span>kuvo_public: DeviceSQLString,
-    <span class="doccomment">/// Determines if hotcues should be autoloaded. Value is either &quot;ON&quot; or empty string.
+    <span class="doccomment">/// Determines if hotcues should be autoloaded. Value is either "ON" or empty string.
     </span><span class="attr">#[br(offset = base_offset, parse_with = FilePtr16::parse)]
     </span>autoload_hotcues: DeviceSQLString,
     <span class="doccomment">/// Unknown string field.
@@ -2162,13 +2162,13 @@
 }
 
 <span class="kw">impl </span>BinWrite <span class="kw">for </span>Track {
-    <span class="kw">type </span>Args&lt;<span class="lifetime">&#39;a</span>&gt; = ();
+    <span class="kw">type </span>Args&lt;<span class="lifetime">'a</span>&gt; = ();
 
     <span class="kw">fn </span>write_options&lt;W: Write + Seek&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         writer: <span class="kw-2">&amp;mut </span>W,
         endian: Endian,
-        _args: <span class="self">Self</span>::Args&lt;<span class="lifetime">&#39;_</span>&gt;,
+        _args: <span class="self">Self</span>::Args&lt;<span class="lifetime">'_</span>&gt;,
     ) -&gt; BinResult&lt;()&gt; {
         <span class="macro">debug_assert!</span>(endian == Endian::Little);
 
@@ -2243,7 +2243,7 @@
                 .and_then(|v| u16::try_from(v).ok())
                 .ok_or_else(|| binrw::Error::AssertFail {
                     pos: current_position,
-                    message: <span class="string">&quot;Wraparound while calculating row offset&quot;</span>.to_string(),
+                    message: <span class="string">"Wraparound while calculating row offset"</span>.to_string(),
                 })<span class="question-mark">?</span>;
             string_offsets[i] = offset;
             string.write_options(writer, endian, ())<span class="question-mark">?</span>;
@@ -2308,7 +2308,7 @@
     <span class="doccomment">/// Contains the album name, along with an ID of the corresponding artist.
     </span><span class="attr">#[br(pre_assert(page_type == PageType::Tracks))]
     </span>Track(Track),
-    <span class="doccomment">/// The row format (and also its size) is unknown, which means it can&#39;t be parsed.
+    <span class="doccomment">/// The row format (and also its size) is unknown, which means it can't be parsed.
     </span><span class="attr">#[br(pre_assert(<span class="macro">matches!</span>(page_type, PageType::History | PageType::Unknown(<span class="kw">_</span>))))]
     </span>Unknown,
 }
@@ -2522,31 +2522,31 @@
             rating: <span class="number">0</span>,
             unknown6: <span class="number">1</span>,
             unknown7: <span class="number">3</span>,
-            isrc: DeviceSQLString::new_isrc(<span class="string">&quot;&quot;</span>.to_string()).unwrap(),
+            isrc: DeviceSQLString::new_isrc(<span class="string">""</span>.to_string()).unwrap(),
             unknown_string1: DeviceSQLString::empty(),
-            unknown_string2: DeviceSQLString::new(<span class="string">&quot;3&quot;</span>.to_string()).unwrap(),
-            unknown_string3: DeviceSQLString::new(<span class="string">&quot;3&quot;</span>.to_string()).unwrap(),
+            unknown_string2: DeviceSQLString::new(<span class="string">"3"</span>.to_string()).unwrap(),
+            unknown_string3: DeviceSQLString::new(<span class="string">"3"</span>.to_string()).unwrap(),
             unknown_string4: DeviceSQLString::empty(),
             message: DeviceSQLString::empty(),
             kuvo_public: DeviceSQLString::empty(),
-            autoload_hotcues: DeviceSQLString::new(<span class="string">&quot;ON&quot;</span>.to_string()).unwrap(),
+            autoload_hotcues: DeviceSQLString::new(<span class="string">"ON"</span>.to_string()).unwrap(),
             unknown_string5: DeviceSQLString::empty(),
             unknown_string6: DeviceSQLString::empty(),
-            date_added: DeviceSQLString::new(<span class="string">&quot;2018-05-25&quot;</span>.to_string()).unwrap(),
+            date_added: DeviceSQLString::new(<span class="string">"2018-05-25"</span>.to_string()).unwrap(),
             release_date: DeviceSQLString::empty(),
             mix_name: DeviceSQLString::empty(),
             unknown_string7: DeviceSQLString::empty(),
             analyze_path: DeviceSQLString::new(
-                <span class="string">&quot;/PIONEER/USBANLZ/P016/0000875E/ANLZ0000.DAT&quot;</span>.to_string(),
+                <span class="string">"/PIONEER/USBANLZ/P016/0000875E/ANLZ0000.DAT"</span>.to_string(),
             )
             .unwrap(),
-            analyze_date: DeviceSQLString::new(<span class="string">&quot;2022-02-02&quot;</span>.to_string()).unwrap(),
-            comment: DeviceSQLString::new(<span class="string">&quot;Tracks by www.loopmasters.com&quot;</span>.to_string()).unwrap(),
-            title: DeviceSQLString::new(<span class="string">&quot;Demo Track 1&quot;</span>.to_string()).unwrap(),
+            analyze_date: DeviceSQLString::new(<span class="string">"2022-02-02"</span>.to_string()).unwrap(),
+            comment: DeviceSQLString::new(<span class="string">"Tracks by www.loopmasters.com"</span>.to_string()).unwrap(),
+            title: DeviceSQLString::new(<span class="string">"Demo Track 1"</span>.to_string()).unwrap(),
             unknown_string8: DeviceSQLString::empty(),
-            filename: DeviceSQLString::new(<span class="string">&quot;Demo Track 1.mp3&quot;</span>.to_string()).unwrap(),
+            filename: DeviceSQLString::new(<span class="string">"Demo Track 1.mp3"</span>.to_string()).unwrap(),
             file_path: DeviceSQLString::new(
-                <span class="string">&quot;/Contents/Loopmasters/UnknownAlbum/Demo Track 1.mp3&quot;</span>.to_string(),
+                <span class="string">"/Contents/Loopmasters/UnknownAlbum/Demo Track 1.mp3"</span>.to_string(),
             )
             .unwrap(),
         };
@@ -2582,7 +2582,7 @@
             unknown1: <span class="number">3</span>,
             ofs_name_near: <span class="number">10</span>,
             ofs_name_far: <span class="prelude-val">None</span>,
-            name: DeviceSQLString::new(<span class="string">&quot;Loopmasters&quot;</span>.to_string()).unwrap(),
+            name: DeviceSQLString::new(<span class="string">"Loopmasters"</span>.to_string()).unwrap(),
         };
         test_roundtrip(
             <span class="kw-2">&amp;</span>[
@@ -2597,7 +2597,7 @@
     </span><span class="kw">fn </span>label_row() {
         <span class="kw">let </span>row = Label {
             id: LabelId(<span class="number">1</span>),
-            name: DeviceSQLString::new(<span class="string">&quot;Loopmasters&quot;</span>.to_string()).unwrap(),
+            name: DeviceSQLString::new(<span class="string">"Loopmasters"</span>.to_string()).unwrap(),
         };
         test_roundtrip(
             <span class="kw-2">&amp;</span>[
@@ -2612,7 +2612,7 @@
         <span class="kw">let </span>row = Key {
             id: KeyId(<span class="number">1</span>),
             id2: <span class="number">1</span>,
-            name: DeviceSQLString::new(<span class="string">&quot;Dm&quot;</span>.to_string()).unwrap(),
+            name: DeviceSQLString::new(<span class="string">"Dm"</span>.to_string()).unwrap(),
         };
         test_roundtrip(<span class="kw-2">&amp;</span>[<span class="number">1</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">1</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">7</span>, <span class="number">68</span>, <span class="number">109</span>], row);
     }
@@ -2624,7 +2624,7 @@
             unknown2: <span class="number">1</span>,
             color: ColorIndex::Pink,
             unknown3: <span class="number">0</span>,
-            name: DeviceSQLString::new(<span class="string">&quot;Pink&quot;</span>.to_string()).unwrap(),
+            name: DeviceSQLString::new(<span class="string">"Pink"</span>.to_string()).unwrap(),
         };
         test_roundtrip(<span class="kw-2">&amp;</span>[<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">1</span>, <span class="number">1</span>, <span class="number">0</span>, <span class="number">0</span>, <span class="number">11</span>, <span class="number">80</span>, <span class="number">105</span>, <span class="number">110</span>, <span class="number">107</span>], row);
     }
@@ -2633,7 +2633,7 @@
         <span class="kw">let </span>row = ColumnEntry {
             id: <span class="number">1</span>,
             unknown0: <span class="number">128</span>,
-            column_name: DeviceSQLString::new(<span class="string">&quot;\u{fffa}GENRE\u{fffb}&quot;</span>.into()).unwrap(),
+            column_name: DeviceSQLString::new(<span class="string">"\u{fffa}GENRE\u{fffb}"</span>.into()).unwrap(),
         };
         <span class="kw">let </span>bin = <span class="kw-2">&amp;</span>[
             <span class="number">0x01</span>, <span class="number">0x00</span>, <span class="number">0x80</span>, <span class="number">0x00</span>, <span class="number">0x90</span>, <span class="number">0x12</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0xfa</span>, <span class="number">0xff</span>, <span class="number">0x47</span>, <span class="number">0x00</span>, <span class="number">0x45</span>, <span class="number">0x00</span>,

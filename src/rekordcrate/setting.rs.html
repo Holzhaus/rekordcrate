@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/setting.rs`."><title>setting.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-fa3bb1812debf86c.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="rekordcrate" data-themes="" data-resource-suffix="" data-rustdoc-version="1.74.0 (79e9716c9 2023-11-13)" data-channel="1.74.0" data-search-js="search-8be46b629f5f14a8.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-c5bd66d33317d69f.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../rekordcrate/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/setting.rs`."><title>setting.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-081576b923113409.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="rekordcrate" data-themes="" data-resource-suffix="" data-rustdoc-version="1.79.0 (129f3b996 2024-06-10)" data-channel="1.79.0" data-search-js="search-bf21c90c8c1d92b1.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-e32f0c247825364d.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-09095024cf37855e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../rekordcrate/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Type ‘S’ or ‘/’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings">Settings</a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1286,7 +1286,7 @@
 <a href="#1286" id="1286">1286</a>
 <a href="#1287" id="1287">1287</a>
 <a href="#1288" id="1288">1288</a>
-</pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2023 Jan Holthuis &lt;jan.holthuis@rub.de&gt;
+</pre></div><pre class="rust"><code><span class="comment">// Copyright (c) 2024 Jan Holthuis &lt;jan.holthuis@rub.de&gt;
 //
 // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy
 // of the MPL was not distributed with this file, You can obtain one at
@@ -1299,7 +1299,7 @@
 //! These files either in the `PIONEER` directory of a USB drive (device exports), but are also
 //! present for on local installations of Rekordbox 6 in `%APPDATA%\Pioneer\rekordbox6`.
 //!
-//! The settings files store the settings found on the &quot;DJ System&quot; &gt; &quot;My Settings&quot; page of the
+//! The settings files store the settings found on the "DJ System" &gt; "My Settings" page of the
 //! Rekordbox preferences. These includes language, LCD brightness, tempo fader range, crossfader
 //! curve, etc.
 //!
@@ -1335,7 +1335,7 @@
     /// | `MYSETTING2.DAT`   | `PIONEER`    |
     </span><span class="attr">#[brw(pad_size_to = <span class="number">0x20</span>, assert(brand.len() &lt;= (<span class="number">0x20 </span>- <span class="number">1</span>)))]
     </span><span class="kw">pub </span>brand: NullString,
-    <span class="doccomment">/// Name of the software (&quot;rekordbox&quot;).
+    <span class="doccomment">/// Name of the software ("rekordbox").
     </span><span class="attr">#[brw(pad_size_to = <span class="number">0x20</span>, assert(software.len() &lt;= (<span class="number">0x20 </span>- <span class="number">1</span>)))]
     </span><span class="kw">pub </span>software: NullString,
     <span class="doccomment">/// Some kind of version number.
@@ -1370,8 +1370,8 @@
     </span><span class="kw">fn </span>default_with_brand_and_data(brand: NullString, data: SettingData) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             brand,
-            software: <span class="string">&quot;rekordbox&quot;</span>.into(),
-            version: <span class="string">&quot;6.6.1&quot;</span>.into(),
+            software: <span class="string">"rekordbox"</span>.into(),
+            version: <span class="string">"6.6.1"</span>.into(),
             data,
         }
     }
@@ -1380,7 +1380,7 @@
     </span><span class="attr">#[must_use]
     </span><span class="kw">pub fn </span>default_devsetting() -&gt; <span class="self">Self </span>{
         <span class="self">Self</span>::default_with_brand_and_data(
-            <span class="string">&quot;PIONEER DJ&quot;</span>.into(),
+            <span class="string">"PIONEER DJ"</span>.into(),
             SettingData::DevSetting(DevSetting::default()),
         )
     }
@@ -1389,7 +1389,7 @@
     </span><span class="attr">#[must_use]
     </span><span class="kw">pub fn </span>default_djmmysetting() -&gt; <span class="self">Self </span>{
         <span class="self">Self</span>::default_with_brand_and_data(
-            <span class="string">&quot;PioneerDJ&quot;</span>.into(),
+            <span class="string">"PioneerDJ"</span>.into(),
             SettingData::DJMMySetting(DJMMySetting::default()),
         )
     }
@@ -1398,7 +1398,7 @@
     </span><span class="attr">#[must_use]
     </span><span class="kw">pub fn </span>default_mysetting() -&gt; <span class="self">Self </span>{
         <span class="self">Self</span>::default_with_brand_and_data(
-            <span class="string">&quot;PIONEER&quot;</span>.into(),
+            <span class="string">"PIONEER"</span>.into(),
             SettingData::MySetting(MySetting::default()),
         )
     }
@@ -1407,7 +1407,7 @@
     </span><span class="attr">#[must_use]
     </span><span class="kw">pub fn </span>default_mysetting2() -&gt; <span class="self">Self </span>{
         <span class="self">Self</span>::default_with_brand_and_data(
-            <span class="string">&quot;PIONEER&quot;</span>.into(),
+            <span class="string">"PIONEER"</span>.into(),
             SettingData::MySetting2(MySetting2::default()),
         )
     }
@@ -1481,16 +1481,16 @@
     <span class="doccomment">/// Unknown field.
     </span><span class="attr">#[br(assert(unknown1 == [<span class="number">0x78</span>, <span class="number">0x56</span>, <span class="number">0x34</span>, <span class="number">0x12</span>, <span class="number">0x01</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x01</span>]</span>))]
     unknown1: [u8; <span class="number">9</span>],
-    <span class="doccomment">/// &quot;Type of the overview Waveform&quot; setting.
+    <span class="doccomment">/// "Type of the overview Waveform" setting.
     </span><span class="kw">pub </span>overview_waveform_type: OverviewWaveformType,
-    <span class="doccomment">/// &quot;Waveform color&quot; setting.
+    <span class="doccomment">/// "Waveform color" setting.
     </span><span class="kw">pub </span>waveform_color: WaveformColor,
     <span class="doccomment">/// Unknown field.
     </span><span class="attr">#[br(assert(unknown2 == <span class="number">0x01</span>))]
     </span>unknown2: u8,
-    <span class="doccomment">/// &quot;Key display format&quot; setting.
+    <span class="doccomment">/// "Key display format" setting.
     </span><span class="kw">pub </span>key_display_format: KeyDisplayFormat,
-    <span class="doccomment">/// &quot;Waveform Current Position&quot; setting.
+    <span class="doccomment">/// "Waveform Current Position" setting.
     </span><span class="kw">pub </span>waveform_current_position: WaveformCurrentPosition,
     <span class="doccomment">/// Unknown field.
     </span><span class="attr">#[br(assert(unknown3 == [<span class="number">0x00</span>; <span class="number">18</span>]</span>))]
@@ -1518,31 +1518,31 @@
 </span><span class="kw">pub struct </span>DJMMySetting {
     <span class="doccomment">/// Unknown field.
     </span>unknown1: [u8; <span class="number">12</span>],
-    <span class="doccomment">/// &quot;CH FADER CURVE&quot; setting.
+    <span class="doccomment">/// "CH FADER CURVE" setting.
     </span><span class="kw">pub </span>channel_fader_curve: ChannelFaderCurve,
-    <span class="doccomment">/// &quot;CROSSFADER CURVE&quot; setting.
+    <span class="doccomment">/// "CROSSFADER CURVE" setting.
     </span><span class="kw">pub </span>crossfader_curve: CrossfaderCurve,
-    <span class="doccomment">/// &quot;HEADPHONES PRE EQ&quot; setting.
+    <span class="doccomment">/// "HEADPHONES PRE EQ" setting.
     </span><span class="kw">pub </span>headphones_pre_eq: HeadphonesPreEQ,
-    <span class="doccomment">/// &quot;HEADPHONES MONO SPLIT&quot; setting.
+    <span class="doccomment">/// "HEADPHONES MONO SPLIT" setting.
     </span><span class="kw">pub </span>headphones_mono_split: HeadphonesMonoSplit,
-    <span class="doccomment">/// &quot;BEAT FX QUANTIZE&quot; setting.
+    <span class="doccomment">/// "BEAT FX QUANTIZE" setting.
     </span><span class="kw">pub </span>beat_fx_quantize: BeatFXQuantize,
-    <span class="doccomment">/// &quot;MIC LOW CUT&quot; setting.
+    <span class="doccomment">/// "MIC LOW CUT" setting.
     </span><span class="kw">pub </span>mic_low_cut: MicLowCut,
-    <span class="doccomment">/// &quot;TALK OVER MODE&quot; setting.
+    <span class="doccomment">/// "TALK OVER MODE" setting.
     </span><span class="kw">pub </span>talk_over_mode: TalkOverMode,
-    <span class="doccomment">/// &quot;TALK OVER LEVEL&quot; setting.
+    <span class="doccomment">/// "TALK OVER LEVEL" setting.
     </span><span class="kw">pub </span>talk_over_level: TalkOverLevel,
-    <span class="doccomment">/// &quot;MIDI CH&quot; setting.
+    <span class="doccomment">/// "MIDI CH" setting.
     </span><span class="kw">pub </span>midi_channel: MidiChannel,
-    <span class="doccomment">/// &quot;MIDI BUTTON TYPE&quot; setting.
+    <span class="doccomment">/// "MIDI BUTTON TYPE" setting.
     </span><span class="kw">pub </span>midi_button_type: MidiButtonType,
-    <span class="doccomment">/// &quot;BRIGHTNESS &gt; DISPLAY&quot; setting.
+    <span class="doccomment">/// "BRIGHTNESS &gt; DISPLAY" setting.
     </span><span class="kw">pub </span>display_brightness: MixerDisplayBrightness,
-    <span class="doccomment">/// &quot;BRIGHTNESS &gt; INDICATOR&quot; setting.
+    <span class="doccomment">/// "BRIGHTNESS &gt; INDICATOR" setting.
     </span><span class="kw">pub </span>indicator_brightness: MixerIndicatorBrightness,
-    <span class="doccomment">/// &quot;CH FADER CURVE (LONG FADER)&quot; setting.
+    <span class="doccomment">/// "CH FADER CURVE (LONG FADER)" setting.
     </span><span class="kw">pub </span>channel_fader_curve_long_fader: ChannelFaderCurveLongFader,
     <span class="doccomment">/// Unknown field (apparently always 0).
     </span><span class="attr">#[br(assert(unknown2 == [<span class="number">0</span>; <span class="number">27</span>]</span>))]
@@ -1580,59 +1580,59 @@
 </span><span class="kw">pub struct </span>MySetting {
     <span class="doccomment">/// Unknown field.
     </span>unknown1: [u8; <span class="number">8</span>],
-    <span class="doccomment">/// &quot;ON AIR DISPLAY&quot; setting.
+    <span class="doccomment">/// "ON AIR DISPLAY" setting.
     </span><span class="kw">pub </span>on_air_display: OnAirDisplay,
-    <span class="doccomment">/// &quot;LCD BRIGHTNESS&quot; setting.
+    <span class="doccomment">/// "LCD BRIGHTNESS" setting.
     </span><span class="kw">pub </span>lcd_brightness: LCDBrightness,
-    <span class="doccomment">/// &quot;QUANTIZE&quot; setting.
+    <span class="doccomment">/// "QUANTIZE" setting.
     </span><span class="kw">pub </span>quantize: Quantize,
-    <span class="doccomment">/// &quot;AUTO CUE LEVEL&quot; setting.
+    <span class="doccomment">/// "AUTO CUE LEVEL" setting.
     </span><span class="kw">pub </span>auto_cue_level: AutoCueLevel,
-    <span class="doccomment">/// &quot;LANGUAGE&quot; setting.
+    <span class="doccomment">/// "LANGUAGE" setting.
     </span><span class="kw">pub </span>language: Language,
     <span class="doccomment">/// Unknown field.
     </span>unknown2: u8,
-    <span class="doccomment">/// &quot;JOG RING BRIGHTNESS&quot; setting.
+    <span class="doccomment">/// "JOG RING BRIGHTNESS" setting.
     </span><span class="kw">pub </span>jog_ring_brightness: JogRingBrightness,
-    <span class="doccomment">/// &quot;JOG RING INDICATOR&quot; setting.
+    <span class="doccomment">/// "JOG RING INDICATOR" setting.
     </span><span class="kw">pub </span>jog_ring_indicator: JogRingIndicator,
-    <span class="doccomment">/// &quot;SLIP FLASHING&quot; setting.
+    <span class="doccomment">/// "SLIP FLASHING" setting.
     </span><span class="kw">pub </span>slip_flashing: SlipFlashing,
     <span class="doccomment">/// Unknown field.
     </span>unknown3: [u8; <span class="number">3</span>],
-    <span class="doccomment">/// &quot;DISC SLOT ILLUMINATION&quot; setting.
+    <span class="doccomment">/// "DISC SLOT ILLUMINATION" setting.
     </span><span class="kw">pub </span>disc_slot_illumination: DiscSlotIllumination,
-    <span class="doccomment">/// &quot;EJECT/LOAD LOCK&quot; setting.
+    <span class="doccomment">/// "EJECT/LOAD LOCK" setting.
     </span><span class="kw">pub </span>eject_lock: EjectLock,
-    <span class="doccomment">/// &quot;SYNC&quot; setting.
+    <span class="doccomment">/// "SYNC" setting.
     </span><span class="kw">pub </span>sync: Sync,
-    <span class="doccomment">/// &quot;PLAY MODE / AUTO PLAY MODE&quot; setting.
+    <span class="doccomment">/// "PLAY MODE / AUTO PLAY MODE" setting.
     </span><span class="kw">pub </span>play_mode: PlayMode,
     <span class="doccomment">/// Quantize Beat Value setting.
     </span><span class="kw">pub </span>quantize_beat_value: QuantizeBeatValue,
-    <span class="doccomment">/// &quot;HOT CUE AUTO LOAD&quot; setting.
+    <span class="doccomment">/// "HOT CUE AUTO LOAD" setting.
     </span><span class="kw">pub </span>hotcue_autoload: HotCueAutoLoad,
-    <span class="doccomment">/// &quot;HOT CUE COLOR&quot; setting.
+    <span class="doccomment">/// "HOT CUE COLOR" setting.
     </span><span class="kw">pub </span>hotcue_color: HotCueColor,
     <span class="doccomment">/// Unknown field (apparently always 0).
     </span><span class="attr">#[br(assert(unknown4 == <span class="number">0</span>))]
     </span>unknown4: u16,
-    <span class="doccomment">/// &quot;NEEDLE LOCK&quot; setting.
+    <span class="doccomment">/// "NEEDLE LOCK" setting.
     </span><span class="kw">pub </span>needle_lock: NeedleLock,
     <span class="doccomment">/// Unknown field (apparently always 0).
     </span><span class="attr">#[br(assert(unknown5 == <span class="number">0</span>))]
     </span>unknown5: u16,
-    <span class="doccomment">/// &quot;TIME MODE&quot; setting.
+    <span class="doccomment">/// "TIME MODE" setting.
     </span><span class="kw">pub </span>time_mode: TimeMode,
-    <span class="doccomment">/// &quot;TIME MODE&quot; setting.
+    <span class="doccomment">/// "TIME MODE" setting.
     </span><span class="kw">pub </span>jog_mode: JogMode,
-    <span class="doccomment">/// &quot;AUTO CUE&quot; setting.
+    <span class="doccomment">/// "AUTO CUE" setting.
     </span><span class="kw">pub </span>auto_cue: AutoCue,
-    <span class="doccomment">/// &quot;MASTER TEMPO&quot; setting.
+    <span class="doccomment">/// "MASTER TEMPO" setting.
     </span><span class="kw">pub </span>master_tempo: MasterTempo,
-    <span class="doccomment">/// &quot;TEMPO RANGE&quot; setting.
+    <span class="doccomment">/// "TEMPO RANGE" setting.
     </span><span class="kw">pub </span>tempo_range: TempoRange,
-    <span class="doccomment">/// &quot;PHASE METER&quot; setting.
+    <span class="doccomment">/// "PHASE METER" setting.
     </span><span class="kw">pub </span>phase_meter: PhaseMeter,
     <span class="doccomment">/// Unknown field (apparently always 0).
     </span><span class="attr">#[br(assert(unknown6 == <span class="number">0</span>))]
@@ -1679,24 +1679,24 @@
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 </span><span class="kw">pub struct </span>MySetting2 {
-    <span class="doccomment">/// &quot;VINYL SPEED ADJUST&quot; setting.
+    <span class="doccomment">/// "VINYL SPEED ADJUST" setting.
     </span><span class="kw">pub </span>vinyl_speed_adjust: VinylSpeedAdjust,
-    <span class="doccomment">/// &quot;JOG DISPLAY MODE&quot; setting.
+    <span class="doccomment">/// "JOG DISPLAY MODE" setting.
     </span><span class="kw">pub </span>jog_display_mode: JogDisplayMode,
-    <span class="doccomment">/// &quot;PAD/BUTTON BRIGHTNESS&quot; setting.
+    <span class="doccomment">/// "PAD/BUTTON BRIGHTNESS" setting.
     </span><span class="kw">pub </span>pad_button_brightness: PadButtonBrightness,
-    <span class="doccomment">/// &quot;JOG LCD BRIGHTNESS&quot; setting.
+    <span class="doccomment">/// "JOG LCD BRIGHTNESS" setting.
     </span><span class="kw">pub </span>jog_lcd_brightness: JogLCDBrightness,
-    <span class="doccomment">/// &quot;WAVEFORM DIVISIONS&quot; setting.
+    <span class="doccomment">/// "WAVEFORM DIVISIONS" setting.
     </span><span class="kw">pub </span>waveform_divisions: WaveformDivisions,
     <span class="doccomment">/// Unknown field (apparently always 0).
     </span><span class="attr">#[br(assert(unknown1 == [<span class="number">0</span>; <span class="number">5</span>]</span>))]
     unknown1: [u8; <span class="number">5</span>],
-    <span class="doccomment">/// &quot;WAVEFORM / PHASE METER&quot; setting.
+    <span class="doccomment">/// "WAVEFORM / PHASE METER" setting.
     </span><span class="kw">pub </span>waveform: Waveform,
     <span class="doccomment">/// Unknown field.
     </span>unknown2: u8,
-    <span class="doccomment">/// &quot;BEAT JUMP BEAT VALUE&quot; setting.
+    <span class="doccomment">/// "BEAT JUMP BEAT VALUE" setting.
     </span><span class="kw">pub </span>beat_jump_beat_value: BeatJumpBeatValue,
     <span class="doccomment">/// Unknown field (apparently always 0).
     </span><span class="attr">#[br(assert(unknown3 == [<span class="number">0</span>; <span class="number">27</span>]</span>))]
@@ -1720,582 +1720,582 @@
     }
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; PLAY MODE / AUTO PLAY MODE&quot; of the &quot;My Settings&quot; page in the
+<span class="doccomment">/// Found at "PLAYER &gt; DJ SETTING &gt; PLAY MODE / AUTO PLAY MODE" of the "My Settings" page in the
 /// Rekordbox preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>PlayMode {
-    <span class="doccomment">/// Named &quot;CONTINUE / ON&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;Continue / On&quot;</span>)]
+    <span class="doccomment">/// Named "CONTINUE / ON" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"Continue / On"</span>)]
     </span>Continue = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;SINGLE / OFF&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;Single / Off&quot;</span>)]
+    <span class="doccomment">/// Named "SINGLE / OFF" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"Single / Off"</span>)]
     #[default]
     </span>Single,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; EJECT/LOAD LOCK&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DJ SETTING &gt; EJECT/LOAD LOCK" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>EjectLock {
-    <span class="doccomment">/// Named &quot;UNLOCK&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "UNLOCK" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>Unlock = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;LOCK&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "LOCK" in the Rekordbox preferences.
     </span>Lock,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; NEEDLE LOCK&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DJ SETTING &gt; NEEDLE LOCK" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>NeedleLock {
-    <span class="doccomment">/// Named &quot;UNLOCK&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "UNLOCK" in the Rekordbox preferences.
     </span>Unlock = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;LOCK&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "LOCK" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>Lock,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; QUANTIZE BEAT VALUE&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DJ SETTING &gt; QUANTIZE BEAT VALUE" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>QuantizeBeatValue {
-    <span class="doccomment">/// Named &quot;1/8 Beat&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;1/8 Beat&quot;</span>)]
+    <span class="doccomment">/// Named "1/8 Beat" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"1/8 Beat"</span>)]
     </span>EighthBeat = <span class="number">0x83</span>,
-    <span class="doccomment">/// Named &quot;1/4 Beat&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;1/4 Beat&quot;</span>)]
+    <span class="doccomment">/// Named "1/4 Beat" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"1/4 Beat"</span>)]
     </span>QuarterBeat = <span class="number">0x82</span>,
-    <span class="doccomment">/// Named &quot;1/2 Beat&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;1/2 Beat&quot;</span>)]
+    <span class="doccomment">/// Named "1/2 Beat" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"1/2 Beat"</span>)]
     </span>HalfBeat = <span class="number">0x81</span>,
-    <span class="doccomment">/// Named &quot;1 Beat&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "1 Beat" in the Rekordbox preferences.
     </span><span class="attr">#[default]
-    #[display(<span class="string">&quot;1 Beat&quot;</span>)]
+    #[display(<span class="string">"1 Beat"</span>)]
     </span>FullBeat = <span class="number">0x80</span>,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; HOT CUE AUTO LOAD&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DJ SETTING &gt; HOT CUE AUTO LOAD" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>HotCueAutoLoad {
-    <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "OFF" in the Rekordbox preferences.
     </span>Off = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;rekordbox SETTING&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;rekordbox SETTING&quot;</span>)]
+    <span class="doccomment">/// Named "rekordbox SETTING" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"rekordbox SETTING"</span>)]
     </span>RekordboxSetting = <span class="number">0x82</span>,
-    <span class="doccomment">/// Named &quot;On&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "On" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>On = <span class="number">0x81</span>,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; HOT CUE COLOR&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DJ SETTING &gt; HOT CUE COLOR" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>HotCueColor {
-    <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "OFF" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>Off = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;On&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "On" in the Rekordbox preferences.
     </span>On,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; AUTO CUE LEVEL&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DJ SETTING &gt; AUTO CUE LEVEL" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>AutoCueLevel {
-    <span class="doccomment">/// Named &quot;-78dB&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;-78dB&quot;</span>)]
+    <span class="doccomment">/// Named "-78dB" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"-78dB"</span>)]
     </span>Minus78dB = <span class="number">0x87</span>,
-    <span class="doccomment">/// Named &quot;-72dB&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;-72dB&quot;</span>)]
+    <span class="doccomment">/// Named "-72dB" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"-72dB"</span>)]
     </span>Minus72dB = <span class="number">0x86</span>,
-    <span class="doccomment">/// Named &quot;-66dB&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;-66dB&quot;</span>)]
+    <span class="doccomment">/// Named "-66dB" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"-66dB"</span>)]
     </span>Minus66dB = <span class="number">0x85</span>,
-    <span class="doccomment">/// Named &quot;-60dB&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;-60dB&quot;</span>)]
+    <span class="doccomment">/// Named "-60dB" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"-60dB"</span>)]
     </span>Minus60dB = <span class="number">0x84</span>,
-    <span class="doccomment">/// Named &quot;-54dB&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;-54dB&quot;</span>)]
+    <span class="doccomment">/// Named "-54dB" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"-54dB"</span>)]
     </span>Minus54dB = <span class="number">0x83</span>,
-    <span class="doccomment">/// Named &quot;-48dB&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;-48dB&quot;</span>)]
+    <span class="doccomment">/// Named "-48dB" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"-48dB"</span>)]
     </span>Minus48dB = <span class="number">0x82</span>,
-    <span class="doccomment">/// Named &quot;-42dB&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;-42dB&quot;</span>)]
+    <span class="doccomment">/// Named "-42dB" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"-42dB"</span>)]
     </span>Minus42dB = <span class="number">0x81</span>,
-    <span class="doccomment">/// Named &quot;-36dB&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;-36dB&quot;</span>)]
+    <span class="doccomment">/// Named "-36dB" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"-36dB"</span>)]
     </span>Minus36dB = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;MEMORY&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "MEMORY" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>Memory = <span class="number">0x88</span>,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; TIME MODE&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DJ SETTING &gt; TIME MODE" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>TimeMode {
-    <span class="doccomment">/// Named &quot;Elapsed&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "Elapsed" in the Rekordbox preferences.
     </span>Elapsed = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;REMAIN&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "REMAIN" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>Remain,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; AUTO CUE&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DJ SETTING &gt; AUTO CUE" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>AutoCue {
-    <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "OFF" in the Rekordbox preferences.
     </span>Off = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;ON&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "ON" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>On,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; JOG MODE&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DJ SETTING &gt; JOG MODE" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>JogMode {
-    <span class="doccomment">/// Named &quot;VINYL&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "VINYL" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>Vinyl = <span class="number">0x81</span>,
-    <span class="doccomment">/// Named &quot;CDJ&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "CDJ" in the Rekordbox preferences.
     </span>CDJ = <span class="number">0x80</span>,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; TEMPO RANGE&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DJ SETTING &gt; TEMPO RANGE" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>TempoRange {
-    <span class="doccomment">/// Named &quot;±6&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;±6%&quot;</span>)]
+    <span class="doccomment">/// Named "±6" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"±6%"</span>)]
     </span>SixPercent = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;±10&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;±10%&quot;</span>)]
+    <span class="doccomment">/// Named "±10" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"±10%"</span>)]
     #[default]
     </span>TenPercent,
-    <span class="doccomment">/// Named &quot;±16&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;±16%&quot;</span>)]
+    <span class="doccomment">/// Named "±16" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"±16%"</span>)]
     </span>SixteenPercent,
-    <span class="doccomment">/// Named &quot;WIDE&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "WIDE" in the Rekordbox preferences.
     </span>Wide,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; MASTER TEMPO&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DJ SETTING &gt; MASTER TEMPO" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>MasterTempo {
-    <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "OFF" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>Off = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;ON&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "ON" in the Rekordbox preferences.
     </span>On,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; QUANTIZE&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DJ SETTING &gt; QUANTIZE" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>Quantize {
-    <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "OFF" in the Rekordbox preferences.
     </span>Off = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;ON&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "ON" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>On,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; SYNC&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DJ SETTING &gt; SYNC" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>Sync {
-    <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "OFF" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>Off = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;ON&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "ON" in the Rekordbox preferences.
     </span>On,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; PHASE METER&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DJ SETTING &gt; PHASE METER" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>PhaseMeter {
-    <span class="doccomment">/// Named &quot;TYPE 1&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "TYPE 1" in the Rekordbox preferences.
     </span><span class="attr">#[default]
-    #[display(<span class="string">&quot;Type 1&quot;</span>)]
+    #[display(<span class="string">"Type 1"</span>)]
     </span>Type1 = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;TYPE 2&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;Type 2&quot;</span>)]
+    <span class="doccomment">/// Named "TYPE 2" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"Type 2"</span>)]
     </span>Type2,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; WAVEFORM / PHASE METER&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DJ SETTING &gt; WAVEFORM / PHASE METER" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>Waveform {
-    <span class="doccomment">/// Named &quot;WAVEFORM&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "WAVEFORM" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>Waveform = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;PHASE METER&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;Phase Meter&quot;</span>)]
+    <span class="doccomment">/// Named "PHASE METER" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"Phase Meter"</span>)]
     </span>PhaseMeter,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; WAVEFORM DIVISIONS&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DJ SETTING &gt; WAVEFORM DIVISIONS" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>WaveformDivisions {
-    <span class="doccomment">/// Named &quot;TIME SCALE&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;Time Scale&quot;</span>)]
+    <span class="doccomment">/// Named "TIME SCALE" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"Time Scale"</span>)]
     </span>TimeScale = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;PHRASE&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "PHRASE" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>Phrase,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; VINYL SPEED ADJUST&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DJ SETTING &gt; VINYL SPEED ADJUST" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>VinylSpeedAdjust {
-    <span class="doccomment">/// Named &quot;TOUCH &amp; RELEASE&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;Touch &amp; Release&quot;</span>)]
+    <span class="doccomment">/// Named "TOUCH &amp; RELEASE" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"Touch &amp; Release"</span>)]
     </span>TouchRelease = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;TOUCH&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "TOUCH" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>Touch,
-    <span class="doccomment">/// Named &quot;RELEASE&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "RELEASE" in the Rekordbox preferences.
     </span>Release,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DJ SETTING &gt; BEAT JUMP BEAT VALUE&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DJ SETTING &gt; BEAT JUMP BEAT VALUE" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>BeatJumpBeatValue {
-    <span class="doccomment">/// Named &quot;1/2 BEAT&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;1/2 Beat&quot;</span>)]
+    <span class="doccomment">/// Named "1/2 BEAT" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"1/2 Beat"</span>)]
     </span>HalfBeat = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;1 BEAT&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;1 Beat&quot;</span>)]
+    <span class="doccomment">/// Named "1 BEAT" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"1 Beat"</span>)]
     </span>OneBeat,
-    <span class="doccomment">/// Named &quot;2 BEAT&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;2 Beat&quot;</span>)]
+    <span class="doccomment">/// Named "2 BEAT" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"2 Beat"</span>)]
     </span>TwoBeat,
-    <span class="doccomment">/// Named &quot;4 BEAT&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;4 Beat&quot;</span>)]
+    <span class="doccomment">/// Named "4 BEAT" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"4 Beat"</span>)]
     </span>FourBeat,
-    <span class="doccomment">/// Named &quot;8 BEAT&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;8 Beat&quot;</span>)]
+    <span class="doccomment">/// Named "8 BEAT" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"8 Beat"</span>)]
     </span>EightBeat,
-    <span class="doccomment">/// Named &quot;16 BEAT&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;16 Beat&quot;</span>)]
+    <span class="doccomment">/// Named "16 BEAT" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"16 Beat"</span>)]
     #[default]
     </span>SixteenBeat,
-    <span class="doccomment">/// Named &quot;32 BEAT&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;32 Beat&quot;</span>)]
+    <span class="doccomment">/// Named "32 BEAT" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"32 Beat"</span>)]
     </span>ThirtytwoBeat,
-    <span class="doccomment">/// Named &quot;64 BEAT&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;64 Beat&quot;</span>)]
+    <span class="doccomment">/// Named "64 BEAT" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"64 Beat"</span>)]
     </span>SixtyfourBeat,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DISPLAY(LCD) &gt; LANGUAGE&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DISPLAY(LCD) &gt; LANGUAGE" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>Language {
-    <span class="doccomment">/// Named &quot;English&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "English" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>English = <span class="number">0x81</span>,
-    <span class="doccomment">/// Named &quot;Français&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;Français&quot;</span>)]
+    <span class="doccomment">/// Named "Français" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"Français"</span>)]
     </span>French,
-    <span class="doccomment">/// Named &quot;Deutsch&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;Deutsch&quot;</span>)]
+    <span class="doccomment">/// Named "Deutsch" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"Deutsch"</span>)]
     </span>German,
-    <span class="doccomment">/// Named &quot;Italiano&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;Italiano&quot;</span>)]
+    <span class="doccomment">/// Named "Italiano" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"Italiano"</span>)]
     </span>Italian,
-    <span class="doccomment">/// Named &quot;Nederlands&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;Nederlands&quot;</span>)]
+    <span class="doccomment">/// Named "Nederlands" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"Nederlands"</span>)]
     </span>Dutch,
-    <span class="doccomment">/// Named &quot;Español&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;Español&quot;</span>)]
+    <span class="doccomment">/// Named "Español" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"Español"</span>)]
     </span>Spanish,
-    <span class="doccomment">/// Named &quot;Русский&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;Русский&quot;</span>)]
+    <span class="doccomment">/// Named "Русский" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"Русский"</span>)]
     </span>Russian,
-    <span class="doccomment">/// Named &quot;한국어&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;한국어&quot;</span>)]
+    <span class="doccomment">/// Named "한국어" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"한국어"</span>)]
     </span>Korean,
-    <span class="doccomment">/// Named &quot;简体中文&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "简体中文" in the Rekordbox preferences.
     </span>ChineseSimplified,
-    <span class="attr">#[display(<span class="string">&quot;简体中文&quot;</span>)]
-    </span><span class="doccomment">/// Named &quot;繁體中文&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;繁體中文&quot;</span>)]
+    <span class="attr">#[display(<span class="string">"简体中文"</span>)]
+    </span><span class="doccomment">/// Named "繁體中文" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"繁體中文"</span>)]
     </span>ChineseTraditional,
-    <span class="doccomment">/// Named &quot;日本語&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;日本語&quot;</span>)]
+    <span class="doccomment">/// Named "日本語" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"日本語"</span>)]
     </span>Japanese,
-    <span class="doccomment">/// Named &quot;Português&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;Português&quot;</span>)]
+    <span class="doccomment">/// Named "Português" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"Português"</span>)]
     </span>Portuguese,
-    <span class="doccomment">/// Named &quot;Svenska&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;Svenska&quot;</span>)]
+    <span class="doccomment">/// Named "Svenska" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"Svenska"</span>)]
     </span>Swedish,
-    <span class="doccomment">/// Named &quot;Čeština&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;Čeština&quot;</span>)]
+    <span class="doccomment">/// Named "Čeština" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"Čeština"</span>)]
     </span>Czech,
-    <span class="doccomment">/// Named &quot;Magyar&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;Magyar&quot;</span>)]
+    <span class="doccomment">/// Named "Magyar" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"Magyar"</span>)]
     </span>Hungarian,
-    <span class="doccomment">/// Named &quot;Dansk&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;Dansk&quot;</span>)]
+    <span class="doccomment">/// Named "Dansk" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"Dansk"</span>)]
     </span>Danish,
-    <span class="doccomment">/// Named &quot;Ελληνικά&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;Ελληνικά&quot;</span>)]
+    <span class="doccomment">/// Named "Ελληνικά" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"Ελληνικά"</span>)]
     </span>Greek,
-    <span class="doccomment">/// Named &quot;Türkçe&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;Türkçe&quot;</span>)]
+    <span class="doccomment">/// Named "Türkçe" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"Türkçe"</span>)]
     </span>Turkish,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DISPLAY(LCD) &gt; LCD BRIGHTNESS&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DISPLAY(LCD) &gt; LCD BRIGHTNESS" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>LCDBrightness {
-    <span class="doccomment">/// Named &quot;1&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;1&quot;</span>)]
+    <span class="doccomment">/// Named "1" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"1"</span>)]
     </span>One = <span class="number">0x81</span>,
-    <span class="doccomment">/// Named &quot;2&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;2&quot;</span>)]
+    <span class="doccomment">/// Named "2" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"2"</span>)]
     </span>Two,
-    <span class="doccomment">/// Named &quot;3&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;3&quot;</span>)]
+    <span class="doccomment">/// Named "3" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"3"</span>)]
     #[default]
     </span>Three,
-    <span class="doccomment">/// Named &quot;4&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;4&quot;</span>)]
+    <span class="doccomment">/// Named "4" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"4"</span>)]
     </span>Four,
-    <span class="doccomment">/// Named &quot;5&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;5&quot;</span>)]
+    <span class="doccomment">/// Named "5" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"5"</span>)]
     </span>Five,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DISPLAY(LCD) &gt; JOG LCD BRIGHTNESS&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DISPLAY(LCD) &gt; JOG LCD BRIGHTNESS" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>JogLCDBrightness {
-    <span class="doccomment">/// Named &quot;1&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;1&quot;</span>)]
+    <span class="doccomment">/// Named "1" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"1"</span>)]
     </span>One = <span class="number">0x81</span>,
-    <span class="doccomment">/// Named &quot;2&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;2&quot;</span>)]
+    <span class="doccomment">/// Named "2" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"2"</span>)]
     </span>Two,
-    <span class="doccomment">/// Named &quot;3&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;3&quot;</span>)]
+    <span class="doccomment">/// Named "3" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"3"</span>)]
     #[default]
     </span>Three,
-    <span class="doccomment">/// Named &quot;4&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;4&quot;</span>)]
+    <span class="doccomment">/// Named "4" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"4"</span>)]
     </span>Four,
-    <span class="doccomment">/// Named &quot;5&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;5&quot;</span>)]
+    <span class="doccomment">/// Named "5" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"5"</span>)]
     </span>Five,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DISPLAY(LCD) &gt; JOG DISPLAY MODE&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DISPLAY(LCD) &gt; JOG DISPLAY MODE" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>JogDisplayMode {
-    <span class="doccomment">/// Named &quot;AUTO&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "AUTO" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>Auto = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;INFO&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "INFO" in the Rekordbox preferences.
     </span>Info,
-    <span class="doccomment">/// Named &quot;SIMPLE&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "SIMPLE" in the Rekordbox preferences.
     </span>Simple,
-    <span class="doccomment">/// Named &quot;ARTWORK&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "ARTWORK" in the Rekordbox preferences.
     </span>Artwork,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DISPLAY(INDICATOR) &gt; SLIP FLASHING&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DISPLAY(INDICATOR) &gt; SLIP FLASHING" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>SlipFlashing {
-    <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "OFF" in the Rekordbox preferences.
     </span>Off = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;ON&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "ON" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>On,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DISPLAY(INDICATOR) &gt; ON AIR DISPLAY&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DISPLAY(INDICATOR) &gt; ON AIR DISPLAY" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>OnAirDisplay {
-    <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "OFF" in the Rekordbox preferences.
     </span>Off = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;ON&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "ON" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>On,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DISPLAY(INDICATOR) &gt; JOG RING BRIGHTNESS&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DISPLAY(INDICATOR) &gt; JOG RING BRIGHTNESS" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>JogRingBrightness {
-    <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "OFF" in the Rekordbox preferences.
     </span>Off = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;1 (Dark)&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;1 (Dark)&quot;</span>)]
+    <span class="doccomment">/// Named "1 (Dark)" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"1 (Dark)"</span>)]
     </span>Dark,
-    <span class="doccomment">/// Named &quot;2 (Bright)&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;2 (Bright)&quot;</span>)]
+    <span class="doccomment">/// Named "2 (Bright)" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"2 (Bright)"</span>)]
     #[default]
     </span>Bright,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DISPLAY(INDICATOR) &gt; JOG RING INDICATOR&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DISPLAY(INDICATOR) &gt; JOG RING INDICATOR" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>JogRingIndicator {
-    <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "OFF" in the Rekordbox preferences.
     </span>Off = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;ON&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "ON" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>On,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DISPLAY(INDICATOR) &gt; DISC SLOT ILLUMINATION&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DISPLAY(INDICATOR) &gt; DISC SLOT ILLUMINATION" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>DiscSlotIllumination {
-    <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "OFF" in the Rekordbox preferences.
     </span>Off = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;1 (Dark)&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;1 (Dark)&quot;</span>)]
+    <span class="doccomment">/// Named "1 (Dark)" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"1 (Dark)"</span>)]
     </span>Dark,
-    <span class="doccomment">/// Named &quot;2 (Bright)&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;2 (Bright)&quot;</span>)]
+    <span class="doccomment">/// Named "2 (Bright)" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"2 (Bright)"</span>)]
     #[default]
     </span>Bright,
 }
 
-<span class="doccomment">/// Found at &quot;PLAYER &gt; DISPLAY(INDICATOR) &gt; PAD/BUTTON BRIGHTNESS&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "PLAYER &gt; DISPLAY(INDICATOR) &gt; PAD/BUTTON BRIGHTNESS" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>PadButtonBrightness {
-    <span class="doccomment">/// Named &quot;1&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;1&quot;</span>)]
+    <span class="doccomment">/// Named "1" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"1"</span>)]
     </span>One = <span class="number">0x81</span>,
-    <span class="doccomment">/// Named &quot;2&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;2&quot;</span>)]
+    <span class="doccomment">/// Named "2" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"2"</span>)]
     </span>Two,
-    <span class="doccomment">/// Named &quot;3&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;3&quot;</span>)]
+    <span class="doccomment">/// Named "3" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"3"</span>)]
     #[default]
     </span>Three,
-    <span class="doccomment">/// Named &quot;4&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;4&quot;</span>)]
+    <span class="doccomment">/// Named "4" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"4"</span>)]
     </span>Four,
 }
 
-<span class="doccomment">/// Found at &quot;MIXER &gt; DJ SETTING &gt; CH FADER CURVE&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "MIXER &gt; DJ SETTING &gt; CH FADER CURVE" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>ChannelFaderCurve {
     <span class="doccomment">/// Steep volume raise when the fader is moved near the top.
-    </span><span class="attr">#[display(<span class="string">&quot;Steep Top&quot;</span>)]
+    </span><span class="attr">#[display(<span class="string">"Steep Top"</span>)]
     </span>SteepTop = <span class="number">0x80</span>,
     <span class="doccomment">/// Linear volume raise when the fader is moved.
-    </span><span class="attr">#[display(<span class="string">&quot;Linear&quot;</span>)]
+    </span><span class="attr">#[display(<span class="string">"Linear"</span>)]
     #[default]
     </span>Linear,
     <span class="doccomment">/// Steep volume raise when the fader is moved near the bottom.
-    </span><span class="attr">#[display(<span class="string">&quot;Steep Bottom&quot;</span>)]
+    </span><span class="attr">#[display(<span class="string">"Steep Bottom"</span>)]
     </span>SteepBottom,
 }
 
-<span class="doccomment">/// Found at &quot;MIXER &gt; DJ SETTING &gt; CROSSFADER CURVE&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "MIXER &gt; DJ SETTING &gt; CROSSFADER CURVE" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>CrossfaderCurve {
     <span class="doccomment">/// Logarithmic volume raise of the other channel near the edges of the fader.
-    </span><span class="attr">#[display(<span class="string">&quot;Constant Power&quot;</span>)]
+    </span><span class="attr">#[display(<span class="string">"Constant Power"</span>)]
     </span>ConstantPower = <span class="number">0x80</span>,
     <span class="doccomment">/// Steep linear volume raise of the other channel near the edges of the fader, no volume
     /// change in the center.
-    </span><span class="attr">#[display(<span class="string">&quot;Slow Cut&quot;</span>)]
+    </span><span class="attr">#[display(<span class="string">"Slow Cut"</span>)]
     </span>SlowCut,
     <span class="doccomment">/// Steep linear volume raise of the other channel near the edges of the fader, no volume
     /// change in the center.
-    </span><span class="attr">#[display(<span class="string">&quot;Fast Cut&quot;</span>)]
+    </span><span class="attr">#[display(<span class="string">"Fast Cut"</span>)]
     #[default]
     </span>FastCut,
 }
 
-<span class="doccomment">/// Found at &quot;MIXER &gt; DJ SETTING &gt; CH FADER CURVE (LONG FADER)&quot; of the &quot;My Settings&quot; page in the
+<span class="doccomment">/// Found at "MIXER &gt; DJ SETTING &gt; CH FADER CURVE (LONG FADER)" of the "My Settings" page in the
 /// Rekordbox preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
@@ -2310,268 +2310,268 @@
     </span>Linear,
 }
 
-<span class="doccomment">/// Found at &quot;MIXER &gt; DJ SETTING &gt; HEADPHONES PRE EQ&quot; of the &quot;My Settings&quot; page in the
+<span class="doccomment">/// Found at "MIXER &gt; DJ SETTING &gt; HEADPHONES PRE EQ" of the "My Settings" page in the
 /// Rekordbox preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>HeadphonesPreEQ {
-    <span class="doccomment">/// Named &quot;POST EQ&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "POST EQ" in the Rekordbox preferences.
     </span><span class="attr">#[default]
-    #[display(<span class="string">&quot;Post EQ&quot;</span>)]
+    #[display(<span class="string">"Post EQ"</span>)]
     </span>PostEQ = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;PRE EQ&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;Pre EQ&quot;</span>)]
+    <span class="doccomment">/// Named "PRE EQ" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"Pre EQ"</span>)]
     </span>PreEQ,
 }
 
-<span class="doccomment">/// Found at &quot;MIXER &gt; DJ SETTING &gt; HEADPHONES MONO SPLIT&quot; of the &quot;My Settings&quot; page in the
+<span class="doccomment">/// Found at "MIXER &gt; DJ SETTING &gt; HEADPHONES MONO SPLIT" of the "My Settings" page in the
 /// Rekordbox preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>HeadphonesMonoSplit {
-    <span class="doccomment">/// Named &quot;MONO SPLIT&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;Mono Split&quot;</span>)]
+    <span class="doccomment">/// Named "MONO SPLIT" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"Mono Split"</span>)]
     </span>MonoSplit = <span class="number">0x81</span>,
-    <span class="doccomment">/// Named &quot;STEREO&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "STEREO" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>Stereo = <span class="number">0x80</span>,
 }
 
-<span class="doccomment">/// Found at &quot;MIXER &gt; DJ SETTING &gt; BEAT FX QUANTIZE&quot; of the &quot;My Settings&quot; page in the
+<span class="doccomment">/// Found at "MIXER &gt; DJ SETTING &gt; BEAT FX QUANTIZE" of the "My Settings" page in the
 /// Rekordbox preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>BeatFXQuantize {
-    <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "OFF" in the Rekordbox preferences.
     </span>Off = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;ON&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "ON" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>On,
 }
 
-<span class="doccomment">/// Found at &quot;MIXER &gt; DJ SETTING &gt; MIC LOW CUT&quot; of the &quot;My Settings&quot; page in the
+<span class="doccomment">/// Found at "MIXER &gt; DJ SETTING &gt; MIC LOW CUT" of the "My Settings" page in the
 /// Rekordbox preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>MicLowCut {
-    <span class="doccomment">/// Named &quot;OFF&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "OFF" in the Rekordbox preferences.
     </span>Off = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;ON(for MC)&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "ON(for MC)" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>On,
 }
 
-<span class="doccomment">/// Found at &quot;MIXER &gt; DJ SETTING &gt; TALK OVER MODE&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "MIXER &gt; DJ SETTING &gt; TALK OVER MODE" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>TalkOverMode {
-    <span class="doccomment">/// Named &quot;ADVANCED&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "ADVANCED" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>Advanced = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;NORMAL&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "NORMAL" in the Rekordbox preferences.
     </span>Normal,
 }
 
-<span class="doccomment">/// Found at &quot;MIXER &gt; DJ SETTING &gt; TALK OVER LEVEL&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "MIXER &gt; DJ SETTING &gt; TALK OVER LEVEL" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>TalkOverLevel {
-    <span class="doccomment">/// Named &quot;-24dB&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;-24dB&quot;</span>)]
+    <span class="doccomment">/// Named "-24dB" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"-24dB"</span>)]
     </span>Minus24dB = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;-18dB&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "-18dB" in the Rekordbox preferences.
     </span><span class="attr">#[default]
-    #[display(<span class="string">&quot;-18dB&quot;</span>)]
+    #[display(<span class="string">"-18dB"</span>)]
     </span>Minus18dB,
-    <span class="doccomment">/// Named &quot;-12dB&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;-12dB&quot;</span>)]
+    <span class="doccomment">/// Named "-12dB" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"-12dB"</span>)]
     </span>Minus12dB,
-    <span class="doccomment">/// Named &quot;-6dB&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;-6dB&quot;</span>)]
+    <span class="doccomment">/// Named "-6dB" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"-6dB"</span>)]
     </span>Minus6dB,
 }
 
-<span class="doccomment">/// Found at &quot;MIXER &gt; DJ SETTING &gt; MIDI CH&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "MIXER &gt; DJ SETTING &gt; MIDI CH" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>MidiChannel {
-    <span class="doccomment">/// Named &quot;1&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "1" in the Rekordbox preferences.
     </span><span class="attr">#[default]
-    #[display(<span class="string">&quot;1&quot;</span>)]
+    #[display(<span class="string">"1"</span>)]
     </span>One = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;2&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;2&quot;</span>)]
+    <span class="doccomment">/// Named "2" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"2"</span>)]
     </span>Two,
-    <span class="doccomment">/// Named &quot;3&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;3&quot;</span>)]
+    <span class="doccomment">/// Named "3" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"3"</span>)]
     </span>Three,
-    <span class="doccomment">/// Named &quot;4&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;4&quot;</span>)]
+    <span class="doccomment">/// Named "4" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"4"</span>)]
     </span>Four,
-    <span class="doccomment">/// Named &quot;5&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;5&quot;</span>)]
+    <span class="doccomment">/// Named "5" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"5"</span>)]
     </span>Five,
-    <span class="doccomment">/// Named &quot;6&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;6&quot;</span>)]
+    <span class="doccomment">/// Named "6" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"6"</span>)]
     </span>Six,
-    <span class="doccomment">/// Named &quot;7&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;7&quot;</span>)]
+    <span class="doccomment">/// Named "7" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"7"</span>)]
     </span>Seven,
-    <span class="doccomment">/// Named &quot;8&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;8&quot;</span>)]
+    <span class="doccomment">/// Named "8" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"8"</span>)]
     </span>Eight,
-    <span class="doccomment">/// Named &quot;9&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;9&quot;</span>)]
+    <span class="doccomment">/// Named "9" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"9"</span>)]
     </span>Nine,
-    <span class="doccomment">/// Named &quot;10&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;10&quot;</span>)]
+    <span class="doccomment">/// Named "10" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"10"</span>)]
     </span>Ten,
-    <span class="doccomment">/// Named &quot;11&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;11&quot;</span>)]
+    <span class="doccomment">/// Named "11" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"11"</span>)]
     </span>Eleven,
-    <span class="doccomment">/// Named &quot;12&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;12&quot;</span>)]
+    <span class="doccomment">/// Named "12" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"12"</span>)]
     </span>Twelve,
-    <span class="doccomment">/// Named &quot;13&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;13&quot;</span>)]
+    <span class="doccomment">/// Named "13" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"13"</span>)]
     </span>Thirteen,
-    <span class="doccomment">/// Named &quot;14&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;14&quot;</span>)]
+    <span class="doccomment">/// Named "14" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"14"</span>)]
     </span>Fourteen,
-    <span class="doccomment">/// Named &quot;15&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;15&quot;</span>)]
+    <span class="doccomment">/// Named "15" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"15"</span>)]
     </span>Fifteen,
-    <span class="doccomment">/// Named &quot;16&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;16&quot;</span>)]
+    <span class="doccomment">/// Named "16" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"16"</span>)]
     </span>Sixteen,
 }
 
-<span class="doccomment">/// Found at &quot;MIXER &gt; DJ SETTING &gt; MIDI BUTTON TYPE&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "MIXER &gt; DJ SETTING &gt; MIDI BUTTON TYPE" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>MidiButtonType {
     <span class="attr">#[default]
-    </span><span class="doccomment">/// Named &quot;TOGGLE&quot; in the Rekordbox preferences.
+    </span><span class="doccomment">/// Named "TOGGLE" in the Rekordbox preferences.
     </span>Toggle = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;TRIGGER&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "TRIGGER" in the Rekordbox preferences.
     </span>Trigger,
 }
 
-<span class="doccomment">/// Found at &quot;MIXER &gt; BRIGHTNESS &gt; DISPLAY&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "MIXER &gt; BRIGHTNESS &gt; DISPLAY" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>MixerDisplayBrightness {
-    <span class="doccomment">/// Named &quot;WHITE&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "WHITE" in the Rekordbox preferences.
     </span>White = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;1&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;1&quot;</span>)]
+    <span class="doccomment">/// Named "1" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"1"</span>)]
     </span>One,
-    <span class="doccomment">/// Named &quot;2&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;2&quot;</span>)]
+    <span class="doccomment">/// Named "2" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"2"</span>)]
     </span>Two,
-    <span class="doccomment">/// Named &quot;3&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;3&quot;</span>)]
+    <span class="doccomment">/// Named "3" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"3"</span>)]
     </span>Three,
-    <span class="doccomment">/// Named &quot;4&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;4&quot;</span>)]
+    <span class="doccomment">/// Named "4" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"4"</span>)]
     </span>Four,
-    <span class="doccomment">/// Named &quot;5&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "5" in the Rekordbox preferences.
     </span><span class="attr">#[default]
-    #[display(<span class="string">&quot;5&quot;</span>)]
+    #[display(<span class="string">"5"</span>)]
     </span>Five,
 }
 
-<span class="doccomment">/// Found at &quot;MIXER &gt; BRIGHTNESS &gt; INDICATOR&quot; of the &quot;My Settings&quot; page in the Rekordbox
+<span class="doccomment">/// Found at "MIXER &gt; BRIGHTNESS &gt; INDICATOR" of the "My Settings" page in the Rekordbox
 /// preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>MixerIndicatorBrightness {
-    <span class="doccomment">/// Named &quot;1&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;1&quot;</span>)]
+    <span class="doccomment">/// Named "1" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"1"</span>)]
     </span>One = <span class="number">0x80</span>,
-    <span class="doccomment">/// Named &quot;2&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;2&quot;</span>)]
+    <span class="doccomment">/// Named "2" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"2"</span>)]
     </span>Two,
-    <span class="doccomment">/// Named &quot;3&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;3&quot;</span>)]
+    <span class="doccomment">/// Named "3" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"3"</span>)]
     #[default]
     </span>Three,
 }
 
 <span class="doccomment">/// Waveform color displayed on the CDJ.
 ///
-/// Found on the &quot;General&quot; page in the Rekordbox preferences.
+/// Found on the "General" page in the Rekordbox preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>WaveformColor {
-    <span class="doccomment">/// Named &quot;BLUE&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "BLUE" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>Blue = <span class="number">0x01</span>,
-    <span class="doccomment">/// Named &quot;RGB&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;RGB&quot;</span>)]
+    <span class="doccomment">/// Named "RGB" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"RGB"</span>)]
     </span>Rgb = <span class="number">0x03</span>,
-    <span class="doccomment">/// Named &quot;3Band&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;3Band&quot;</span>)]
+    <span class="doccomment">/// Named "3Band" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"3Band"</span>)]
     </span>TriBand = <span class="number">0x04</span>,
 }
 
 <span class="doccomment">/// Waveform Current Position displayed on the CDJ.
 ///
-/// Found on the &quot;General&quot; page in the Rekordbox preferences.
+/// Found on the "General" page in the Rekordbox preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>WaveformCurrentPosition {
-    <span class="doccomment">/// Named &quot;LEFT&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "LEFT" in the Rekordbox preferences.
     </span>Left = <span class="number">0x02</span>,
-    <span class="doccomment">/// Named &quot;CENTER&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "CENTER" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>Center = <span class="number">0x01</span>,
 }
 
 <span class="doccomment">/// Type of the Overview Waveform displayed on the CDJ.
 ///
-/// Found on the &quot;General&quot; page in the Rekordbox preferences.
+/// Found on the "General" page in the Rekordbox preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>OverviewWaveformType {
-    <span class="doccomment">/// Named &quot;Half Waveform&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "Half Waveform" in the Rekordbox preferences.
     </span><span class="attr">#[default]
-    #[display(<span class="string">&quot;Half Waveform&quot;</span>)]
+    #[display(<span class="string">"Half Waveform"</span>)]
     </span>HalfWaveform = <span class="number">0x01</span>,
-    <span class="doccomment">/// Named &quot;Full Waveform&quot; in the Rekordbox preferences.
-    </span><span class="attr">#[display(<span class="string">&quot;Full Waveform&quot;</span>)]
+    <span class="doccomment">/// Named "Full Waveform" in the Rekordbox preferences.
+    </span><span class="attr">#[display(<span class="string">"Full Waveform"</span>)]
     </span>FullWaveform,
 }
 
 <span class="doccomment">/// The key display format displayed on the CDJ.
 ///
-/// Found on the &quot;General&quot; page in the Rekordbox preferences.
+/// Found on the "General" page in the Rekordbox preferences.
 </span><span class="attr">#[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
 #[brw(repr = u8)]
 </span><span class="kw">pub enum </span>KeyDisplayFormat {
-    <span class="doccomment">/// Named &quot;Classic&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "Classic" in the Rekordbox preferences.
     </span><span class="attr">#[default]
     </span>Classic = <span class="number">0x01</span>,
-    <span class="doccomment">/// Named &quot;Alphanumeric&quot; in the Rekordbox preferences.
+    <span class="doccomment">/// Named "Alphanumeric" in the Rekordbox preferences.
     </span>Alphanumeric,
 }
 </code></pre></div></section></main></body></html>
