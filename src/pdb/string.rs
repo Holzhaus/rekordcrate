@@ -161,7 +161,7 @@ enum DeviceSQLStringImpl {
         #[bw(calc = (((content.len() + 1) << 1) | 1) as u8)]
         header: u8,
 
-        #[br(count = (header >> 1) - 1)]
+        #[br(count = usize::from(header >> 1) - 1)]
         content: Vec<u8>,
     },
     /// Regular long form strings, containing possibly different encodings
@@ -193,10 +193,10 @@ enum LongBody {
     #[br(pre_assert(flags == 0x90))]
     Isrc(#[brw(magic = 0x3u8)] binrw::NullString),
     #[br(pre_assert(flags == 0x40))]
-    Ascii(#[br(count = len)] Vec<u8>),
+    Ascii(#[br(count = usize::from(len))] Vec<u8>),
     #[br(pre_assert(flags == 0x90))]
     #[br(pre_assert(len % 2 == 0))]
-    Ucs2le(#[br(count = len / 2)] Vec<u16>),
+    Ucs2le(#[br(count = usize::from(len / 2))] Vec<u16>),
 }
 
 impl LongBody {

@@ -357,6 +357,12 @@ pub struct ExtendedCue {
     unknown10: u32,
 }
 
+impl Default for WaveformPreviewColumn {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Single Column value in a Waveform Preview.
 #[bitfield]
 #[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy)]
@@ -367,6 +373,12 @@ pub struct WaveformPreviewColumn {
     pub height: B5,
     /// Shade of white.
     pub whiteness: B3,
+}
+
+impl Default for TinyWaveformPreviewColumn {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 /// Single Column value in a Tiny Waveform Preview.
@@ -401,6 +413,12 @@ pub struct WaveformColorPreviewColumn {
     pub energy_mid_third_freq: u8,
     /// Sound energy in the top of the frequency range.
     pub energy_top_third_freq: u8,
+}
+
+impl Default for WaveformColorDetailColumn {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 /// Single Column value in a Waveform Color Detail section.
@@ -614,7 +632,7 @@ pub struct CueList {
     /// Unknown field.
     memory_count: u32,
     /// Cues
-    #[br(count = len_cues)]
+    #[br(count = usize::from(len_cues))]
     pub cues: Vec<Cue>,
 }
 
@@ -635,7 +653,7 @@ pub struct ExtendedCueList {
     #[br(assert(unknown == 0))]
     unknown: u16,
     /// Cues
-    #[br(count = len_cues)]
+    #[br(count = usize::from(len_cues))]
     pub cues: Vec<ExtendedCue>,
 }
 
@@ -832,7 +850,7 @@ pub struct SongStructureData {
     /// Unknown field.
     unknown4: u8,
     /// Phrase entry data.
-    #[br(count = len_entries)]
+    #[br(count = usize::from(len_entries))]
     pub phrases: Vec<Phrase>,
 }
 
