@@ -12,18 +12,18 @@ edition = "2021"
 exclude = [".*"]
 
 [dependencies]
-binrw = "0.13"
+binrw = "0.14"
 modular-bitfield = "0.11"
 crc16 = "0.4"
-clap = { version = "4.0.10", features = ["derive"], optional = true }
-parse-display = "0.6.0"
+clap = { version = "4.0", features = ["derive"], optional = true }
+parse-display = "0.9"
 thiserror = "1.0"
 
 [build-dependencies]
 glob = "0.3"
 
 [dev-dependencies]
-pretty-hex = "0.3"
+pretty-hex = "0.4"
 pretty_assertions = "1"
 
 [features]
