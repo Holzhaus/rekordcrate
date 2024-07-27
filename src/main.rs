@@ -41,6 +41,15 @@ enum Commands {
         #[arg(value_name = "PDB_FILE")]
         path: PathBuf,
     },
+    /// Read a Pioneer Database (`.PDB`) file and write the serialization to a different place.
+    ReexportPDB {
+        /// File to parse.
+        #[arg(value_name = "PDB_IN_FILE")]
+        inpath: PathBuf,
+        /// File to write.
+        #[arg(value_name = "PDB_OUT_FILE")]
+        outpath: PathBuf,
+    },
     /// Parse and dump a Pioneer Settings (`*SETTING.DAT`) file.
     DumpSetting {
         /// File to parse.
@@ -150,6 +159,75 @@ fn dump_pdb(path: &PathBuf) -> rekordcrate::Result<()> {
     Ok(())
 }
 
+fn reexport_pdb(inpath: &PathBuf, outpath: &PathBuf) -> rekordcrate::Result<()> {
+    use binrw::BinWrite;
+    use rekordcrate::pdb::PageIndex;
+    use std::collections::HashMap;
+    use std::io::Seek;
+
+    let mut reader = std::fs::File::open(inpath)?;
+    let header = Header::read(&mut reader)?;
+
+    println!("Header {:?}", header);
+
+    let mut writer = std::fs::File::create(outpath)?;
+
+    let endian = binrw::Endian::NATIVE;
+    header.write_options(&mut writer, endian, ())?;
+
+    let writer_offset = writer.stream_position().map_err(binrw::Error::Io)?;
+
+    let header_padding: usize = (header.page_size - writer_offset as u32)
+        .try_into()
+        .unwrap();
+
+    vec![0u8; header_padding].write_options(&mut writer, endian, ())?;
+
+    let mut pages_hash_map = HashMap::new();
+    let mut max_page_index = 0;
+    for (_, table) in header.tables.iter().enumerate() {
+        for page in header
+            .read_pages(
+                &mut reader,
+                binrw::Endian::NATIVE,
+                (&table.first_page, &table.last_page),
+            )
+            .unwrap()
+            .into_iter()
+        {
+            println!("  {:?}", page);
+            let PageIndex(index) = page.page_index;
+
+            if index > max_page_index {
+                max_page_index = index;
+            }
+
+            pages_hash_map.insert(index, page);
+        }
+    }
+
+    for i in 1..(max_page_index + 1) {
+        if let Some(page) = pages_hash_map.get(&i) {
+            let PageIndex(next_index) = page.next_page;
+            let next_page_num_rows = if let Some(next_page) = pages_hash_map.get(&next_index) {
+                next_page.num_rows()
+            } else {
+                0
+            };
+
+            page.write_options(
+                &mut writer,
+                endian,
+                (header.page_size, next_page_num_rows as u32),
+            )?;
+        } else {
+            vec![0u8; header.page_size as usize].write_options(&mut writer, endian, ())?;
+        }
+    }
+
+    Ok(())
+}
+
 fn dump_setting(path: &PathBuf) -> rekordcrate::Result<()> {
     let mut reader = std::fs::File::open(path)?;
     let setting = Setting::read(&mut reader)?;
@@ -165,6 +243,7 @@ fn main() -> rekordcrate::Result<()> {
     match &cli.command {
         Commands::ListPlaylists { path } => list_playlists(path),
         Commands::DumpPDB { path } => dump_pdb(path),
+        Commands::ReexportPDB { inpath, outpath } => reexport_pdb(inpath, outpath),
         Commands::DumpANLZ { path } => dump_anlz(path),
         Commands::DumpSetting { path } => dump_setting(path),
     }
