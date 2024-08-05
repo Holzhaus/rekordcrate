@@ -162,9 +162,10 @@ impl Header {
     pub fn read_pages<R: Read + Seek>(
         &self,
         reader: &mut R,
-        endian: Endian,
+        _: Endian,
         args: (&PageIndex, &PageIndex),
     ) -> BinResult<Vec<Page>> {
+        let endian = Endian::Little;
         let (first_page, last_page) = args;
 
         let mut pages = vec![];
@@ -280,20 +281,6 @@ pub struct Page {
     #[br(temp)]
     #[br(calc = if num_rows_large > num_rows_small.into() && num_rows_large != 0x1fff { num_rows_large } else { num_rows_small.into() })]
     num_rows: u16,
-    /// Number of rows groups in this page.
-    ///
-    /// **Note:** This is a virtual field and not actually read from the file.
-    #[br(temp)]
-    // TODO: Use `num_rows.div_ceil(RowGroup::MAX_ROW_COUNT)` here when it becomes available
-    // (currently nightly-only, see https://github.com/rust-lang/rust/issues/88581).
-    #[br(calc = if num_rows > 0 { (num_rows - 1) / RowGroup::MAX_ROW_COUNT + 1 } else { 0 })]
-    num_row_groups: u16,
-    /// The offset at which row groups for this page are located.
-    ///
-    /// **Note:** This is a virtual field and not actually read from the file.
-    #[br(temp)]
-    #[br(calc = SeekFrom::Current(i64::from(page_size) - i64::from(Self::HEADER_SIZE) - i64::from(num_rows) * 2 - i64::from(num_row_groups) * 4))]
-    row_groups_offset: SeekFrom,
     /// The offset at which the row data for this page are located.
     ///
     /// **Note:** This is a virtual field and not actually read from the file.
@@ -301,8 +288,8 @@ pub struct Page {
     #[br(calc = page_index.offset(page_size) + u64::from(Self::HEADER_SIZE))]
     page_heap_offset: u64,
     /// Row groups belonging to this page.
-    #[br(seek_before(row_groups_offset), restore_position)]
-    #[br(parse_with = Self::parse_row_groups, args(page_type, page_heap_offset, num_rows, num_row_groups, page_flags))]
+    #[br(seek_before(SeekFrom::Current(i64::from(page_size) - i64::from(Self::HEADER_SIZE))), restore_position)]
+    #[br(parse_with = Self::parse_row_groups, args(page_type, page_heap_offset, num_rows, page_flags))]
     pub row_groups: Vec<RowGroup>,
 }
 
@@ -313,37 +300,41 @@ impl Page {
     /// Parse the row groups at the end of the page.
     fn parse_row_groups<R: Read + Seek>(
         reader: &mut R,
-        endian: Endian,
-        args: (PageType, u64, u16, u16, PageFlags),
+        _: Endian,
+        args: (PageType, u64, u16, PageFlags),
     ) -> BinResult<Vec<RowGroup>> {
-        let (page_type, page_heap_offset, num_rows, num_row_groups, page_flags) = args;
-        if num_row_groups == 0 || !page_flags.page_has_data() {
+        let endian = Endian::Little;
+
+        let (page_type, page_heap_offset, num_rows, page_flags) = args;
+        if num_rows == 0 || !page_flags.page_has_data() {
             return Ok(vec![]);
         }
 
-        let mut row_groups = Vec::with_capacity(num_row_groups.into());
+        let stream_position = reader.stream_position()?;
 
-        // Calculate number of rows in last row group
-        let mut num_rows_in_last_row_group = num_rows % RowGroup::MAX_ROW_COUNT;
-        if num_rows_in_last_row_group == 0 {
-            num_rows_in_last_row_group = RowGroup::MAX_ROW_COUNT;
-        }
-
-        // Read last row group
-        let row_group = RowGroup::read_options(
-            reader,
-            endian,
-            (page_type, page_heap_offset, num_rows_in_last_row_group),
-        )?;
-        row_groups.push(row_group);
-
-        // Read remaining row groups
-        for _ in 1..num_row_groups {
-            let row_group = RowGroup::read_options(
-                reader,
-                endian,
-                (page_type, page_heap_offset, RowGroup::MAX_ROW_COUNT),
+        // Read row groups
+        let estimated_number_of_row_groups = usize::from(num_rows)
+            .checked_sub(1)
+            .map(|x| x / RowGroup::MAX_ROW_COUNT)
+            .and_then(|x| x.checked_add(1))
+            .ok_or_else(|| binrw::Error::AssertFail {
+                pos: stream_position,
+                message: "Failed to calculate number of row groups".to_string(),
+            })?;
+        let mut row_groups = Vec::with_capacity(estimated_number_of_row_groups);
+        for i in 0..estimated_number_of_row_groups {
+            reader.seek(
+                u64::try_from(row_groups.len())
+                    .ok()
+                    .and_then(|index| index.checked_mul(36))
+                    .and_then(|x| stream_position.checked_sub(x))
+                    .map(SeekFrom::Start)
+                    .ok_or_else(|| binrw::Error::AssertFail {
+                        pos: stream_position,
+                        message: format!("Failed to calculate seek position for row group {}", i),
+                    })?,
             )?;
+            let row_group = RowGroup::read_options(reader, endian, (page_type, page_heap_offset))?;
             row_groups.insert(0, row_group);
         }
 
@@ -367,37 +358,17 @@ impl Page {
             self.num_rows_small.into()
         }
     }
-
-    #[must_use]
-    /// Number of row groups.
-    ///
-    /// All row groups except the last one consist of 16 rows (but that number includes rows that
-    /// have been flagged as missing by the row group.
-    pub fn num_row_groups(&self) -> u16 {
-        let num_rows = self.num_rows();
-        // TODO: Use `num_rows.div_ceil(RowGroup::MAX_ROW_COUNT)` here when it becomes available
-        // (currently nightly-only, see https://github.com/rust-lang/rust/issues/88581).
-        if num_rows > 0 {
-            (num_rows - 1) / RowGroup::MAX_ROW_COUNT + 1
-        } else {
-            0
-        }
-    }
 }
 
 /// A group of row indices, which are built backwards from the end of the page. Holds up to sixteen
 /// row offsets, along with a bit mask that indicates whether each row is actually present in the
 /// table.
-#[binread]
 #[derive(Debug, PartialEq)]
-#[brw(little)]
-#[br(import(page_type: PageType, page_heap_offset: u64, num_rows: u16))]
 pub struct RowGroup {
     /// An offset which points to a row in the table, whose actual presence is controlled by one of the
     /// bits in `row_present_flags`. This instance allows the row itself to be lazily loaded, unless it
     /// is not present, in which case there is no content to be loaded.
-    #[br(args { count: num_rows.into(), inner: FilePtrArgs { inner: (page_type,), offset: page_heap_offset }})]
-    rows: Vec<FilePtr16<Row>>,
+    rows: [Option<FilePtr16<Row>>; Self::MAX_ROW_COUNT],
     row_presence_flags: u16,
     /// Unknown field, probably padding.
     ///
@@ -406,25 +377,78 @@ pub struct RowGroup {
 }
 
 impl RowGroup {
-    const MAX_ROW_COUNT: u16 = 16;
+    const MAX_ROW_COUNT: usize = 16;
 
     /// Return the ordered list of row offsets that are actually present.
     pub fn present_rows(&self) -> impl Iterator<Item = Row> + '_ {
         self.rows
             .iter()
             .rev()
-            .enumerate()
-            .filter_map(|(i, row_offset)| {
-                if (self.row_presence_flags & (1 << i)) != 0 {
-                    // TODO: the explicit clone is probably quite expensive
-                    // but the simplest way to make the borrow checker happy for now.
-                    // This is forced by the changes to FilePtr in binrw 0.12.
-                    // We should investigate how to remove the clone in the future.
-                    Some(row_offset.value.clone())
-                } else {
-                    None
+            .filter_map(|row_offset| row_offset.as_ref().map(|r| r.value.clone()))
+    }
+}
+
+impl BinRead for RowGroup {
+    type Args<'a> = (PageType, u64);
+
+    /// Read a row group from the reader.
+    ///
+    /// Note: For this to work, the read position needs to be at the *end* of the row group. For
+    /// the first row group, this is the end of the page heap.
+    fn read_options<R: Read + Seek>(
+        reader: &mut R,
+        endian: Endian,
+        (page_type, page_heap_offset): Self::Args<'_>,
+    ) -> BinResult<Self> {
+        let stream_position = reader.stream_position()?;
+        reader.seek(SeekFrom::Current(-4))?;
+        let row_presence_flags = u16::read_options(reader, endian, ())?;
+        let unknown = u16::read_options(reader, endian, ())?;
+        debug_assert!(stream_position == reader.stream_position()?);
+
+        const MISSING_ROW: Option<FilePtr16<Row>> = None;
+
+        let mut rows: [Option<FilePtr16<Row>>; Self::MAX_ROW_COUNT] =
+            [MISSING_ROW; Self::MAX_ROW_COUNT];
+        if row_presence_flags.count_ones() == 0 {
+            return Ok(RowGroup {
+                rows,
+                row_presence_flags,
+                unknown,
+            });
+        }
+
+        let mut needs_seek = true;
+        for i in (0..RowGroup::MAX_ROW_COUNT).rev() {
+            let row_present = row_presence_flags & (1 << i) != 0;
+            if row_present {
+                if needs_seek {
+                    let index = u64::try_from(i).map_err(|_| binrw::Error::AssertFail {
+                        pos: stream_position,
+                        message: format!("Failed to calculate row index {}", i),
+                    })?;
+                    reader.seek(SeekFrom::Start(stream_position - 4 - 2 * (index + 1)))?;
                 }
-            })
+                let row = FilePtr16::read_options(
+                    reader,
+                    endian,
+                    FilePtrArgs {
+                        offset: page_heap_offset,
+                        inner: (page_type,),
+                    },
+                )?;
+                needs_seek = false;
+                rows[i] = Some(row);
+            } else {
+                needs_seek = true;
+            }
+        }
+
+        Ok(RowGroup {
+            rows,
+            row_presence_flags,
+            unknown,
+        })
     }
 }
 
