@@ -313,14 +313,8 @@ impl Page {
         let stream_position = reader.stream_position()?;
 
         // Read row groups
-        let estimated_number_of_row_groups = usize::from(num_rows)
-            .checked_sub(1)
-            .map(|x| x / RowGroup::MAX_ROW_COUNT)
-            .and_then(|x| x.checked_add(1))
-            .ok_or_else(|| binrw::Error::AssertFail {
-                pos: stream_position,
-                message: "Failed to calculate number of row groups".to_string(),
-            })?;
+        let estimated_number_of_row_groups =
+            usize::from(num_rows).div_ceil(RowGroup::MAX_ROW_COUNT);
         let mut row_groups = Vec::with_capacity(estimated_number_of_row_groups);
         for i in 0..estimated_number_of_row_groups {
             reader.seek(
