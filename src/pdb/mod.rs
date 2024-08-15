@@ -394,11 +394,11 @@ impl BinRead for RowGroup {
         endian: Endian,
         (page_type, page_heap_offset): Self::Args<'_>,
     ) -> BinResult<Self> {
-        let table_page_end_position = reader.stream_position()?;
+        let row_group_end_position = reader.stream_position()?;
         reader.seek(SeekFrom::Current(-4))?;
         let row_presence_flags = u16::read_options(reader, endian, ())?;
         let unknown = u16::read_options(reader, endian, ())?;
-        debug_assert!(table_page_end_position == reader.stream_position()?);
+        debug_assert!(row_group_end_position == reader.stream_position()?);
 
         const MISSING_ROW: Option<FilePtr16<Row>> = None;
 
@@ -419,11 +419,11 @@ impl BinRead for RowGroup {
             if row_present {
                 if needs_seek {
                     let index = u64::try_from(i).map_err(|_| binrw::Error::AssertFail {
-                        pos: table_page_end_position,
+                        pos: row_group_end_position,
                         message: format!("Failed to calculate row index {}", i),
                     })?;
                     reader.seek(SeekFrom::Start(
-                        table_page_end_position - 4 - 2 * (index + 1),
+                        row_group_end_position - 4 - 2 * (index + 1),
                     ))?;
                 }
                 let row = FilePtr16::read_options(
@@ -439,7 +439,7 @@ impl BinRead for RowGroup {
             needs_seek = !row_present;
         }
 
-        reader.seek(SeekFrom::Start(table_page_end_position))?;
+        reader.seek(SeekFrom::Start(row_group_end_position))?;
 
         Ok(RowGroup {
             rows,
