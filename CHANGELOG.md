@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [unreleased]
+
+### Bug Fixes
+
+- Always read all 16 rows potential from each row group
+
+### Refactor
+
+- Avoid temporary Vec allocation in assert_pdb_row_count
+- Use div_ceil instead of handrolled checked arithmatic
+- Improve `BinRead` impl of `RowGroup`
+
+### Testing
+
+- Add regression tests to ensure all rows are read
+
 ## [0.2.1] - 2023-11-30
 
 ### Bug Fixes
