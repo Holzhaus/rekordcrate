@@ -65,7 +65,7 @@ fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
                 println!(
                     "{}{} {}",
                     "    ".repeat(level),
-                    if node.is_folder() { "🗀" } else { "🗎" },
+                    if node.is_folder() { "+" } else { "-" },
                     node.name.clone().into_string().unwrap(),
                 );
                 print_children_of(tree, node.id, level + 1);
