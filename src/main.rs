@@ -81,31 +81,15 @@ fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
         .tables
         .iter()
         .filter(|table| table.page_type == PageType::PlaylistTree)
-        .flat_map(|table| {
+        .for_each(|table| {
             header
-                .read_pages(
-                    &mut reader,
-                    binrw::Endian::NATIVE,
-                    (&table.first_page, &table.last_page),
-                )
-                .unwrap()
-                .into_iter()
-                .flat_map(|page| page.row_groups.into_iter())
-                .flat_map(|row_group| {
-                    row_group
-                        .present_rows()
-                        .map(|row| {
-                            if let Row::PlaylistTreeNode(playlist_tree) = row {
-                                playlist_tree
-                            } else {
-                                unreachable!("encountered non-playlist tree row in playlist table");
-                            }
-                        })
-                        .collect::<Vec<PlaylistTreeNode>>()
-                        .into_iter()
+                .read_table_rows(&mut reader, table)
+                .map(|row| match row {
+                    Row::PlaylistTreeNode(playlist_tree) => playlist_tree,
+                    _ => unreachable!(),
                 })
-        })
-        .for_each(|row| tree.entry(row.parent_id).or_default().push(row));
+                .for_each(|row| tree.entry(row.parent_id).or_default().push(row))
+        });
 
     print_children_of(&tree, PlaylistTreeNodeId(0), 0);
 
@@ -128,15 +112,7 @@ fn dump_pdb(path: &PathBuf) -> rekordcrate::Result<()> {
 
     for (i, table) in header.tables.iter().enumerate() {
         println!("Table {}: {:?}", i, table.page_type);
-        for page in header
-            .read_pages(
-                &mut reader,
-                binrw::Endian::NATIVE,
-                (&table.first_page, &table.last_page),
-            )
-            .unwrap()
-            .into_iter()
-        {
+        for page in header.read_pages(&mut reader, table.first_page.clone(), &table.last_page) {
             println!("  {:?}", page);
             page.row_groups.iter().for_each(|row_group| {
                 println!("    {:?}", row_group);

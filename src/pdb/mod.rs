@@ -158,31 +158,42 @@ pub struct Header {
 }
 
 impl Header {
-    /// Returns pages for the given Table.
-    pub fn read_pages<R: Read + Seek>(
-        &self,
-        reader: &mut R,
-        _: Endian,
-        args: (&PageIndex, &PageIndex),
-    ) -> BinResult<Vec<Page>> {
-        let endian = Endian::Little;
-        let (first_page, last_page) = args;
+    /// Reads a page from the given table.
+    fn read_page<R: Read + Seek>(&self, reader: &mut R, page_index: &PageIndex) -> BinResult<Page> {
+        let page_offset = SeekFrom::Start(page_index.offset(self.page_size));
+        reader.seek(page_offset).map_err(binrw::Error::Io)?;
+        Page::read_options(reader, Endian::Little, (self.page_size,))
+    }
 
-        let mut pages = vec![];
-        let mut page_index = first_page.clone();
-        loop {
-            let page_offset = SeekFrom::Start(page_index.offset(self.page_size));
-            reader.seek(page_offset).map_err(binrw::Error::Io)?;
-            let page = Page::read_options(reader, endian, (self.page_size,))?;
-            let is_last_page = &page.page_index == last_page;
-            page_index = page.next_page.clone();
-            pages.push(page);
-
+    /// Iterates over all pages from `first_page` until `last_page` is reached.
+    pub fn read_pages<'a, R: Read + Seek>(
+        &'a self,
+        reader: &'a mut R,
+        first_page: PageIndex,
+        last_page: &'a PageIndex,
+    ) -> impl Iterator<Item = Page> + 'a {
+        let mut page_index = first_page;
+        let mut is_last_page = false;
+        std::iter::from_fn(move || {
             if is_last_page {
-                break;
+                return None;
             }
-        }
-        Ok(pages)
+
+            let page = self.read_page(reader, &page_index).ok()?;
+            is_last_page = &page.page_index == last_page;
+            page_index = page.next_page.clone();
+            Some(page)
+        })
+    }
+
+    /// Iterates over all rows in the table.
+    pub fn read_table_rows<'a, R: Read + Seek>(
+        &'a self,
+        reader: &'a mut R,
+        table: &'a Table,
+    ) -> impl Iterator<Item = Row> + 'a {
+        self.read_pages(reader, table.first_page.clone(), &table.last_page)
+            .flat_map(Page::into_rows)
     }
 }
 
@@ -352,6 +363,18 @@ impl Page {
             self.num_rows_small.into()
         }
     }
+
+    /// Iterates over all rows in the page.
+    pub fn rows(&self) -> impl Iterator<Item = Row> + '_ {
+        self.row_groups.iter().flat_map(RowGroup::present_rows)
+    }
+
+    /// Iterates over all rows in the page.
+    pub fn into_rows(self) -> impl Iterator<Item = Row> {
+        self.row_groups
+            .into_iter()
+            .flat_map(RowGroup::into_present_rows)
+    }
 }
 
 /// A group of row indices, which are built backwards from the end of the page. Holds up to sixteen
@@ -372,6 +395,14 @@ pub struct RowGroup {
 
 impl RowGroup {
     const MAX_ROW_COUNT: usize = 16;
+
+    /// Return the ordered list of row offsets that are actually present.
+    pub fn into_present_rows(self) -> impl Iterator<Item = Row> {
+        self.rows
+            .into_iter()
+            .rev()
+            .filter_map(|row_offset| row_offset.map(|r| r.value))
+    }
 
     /// Return the ordered list of row offsets that are actually present.
     pub fn present_rows(&self) -> impl Iterator<Item = Row> + '_ {

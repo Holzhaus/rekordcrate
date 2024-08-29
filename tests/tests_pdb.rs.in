@@ -9,14 +9,11 @@ fn pdb_{name}() {{
 
     for (i, table) in header.tables.iter().enumerate() {{
         println!("Table {{}}: {{:?}}", i, table.page_type);
-        let pages = header.read_pages(
-                &mut reader,
-                binrw::Endian::NATIVE,
-                (&table.first_page, &table.last_page),
-            )
-            .expect("failed to read pages");
-
-        for page in pages.into_iter() {{
+        for page in header.read_pages(
+            &mut reader,
+            table.first_page.clone(),
+            &table.last_page,
+        ) {{
             println!("  {{:?}}", page);
         }}
     }}

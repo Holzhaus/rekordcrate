@@ -20,13 +20,7 @@ fn assert_pdb_row_count(page_type: PageType, expected_row_count: usize) {
         .iter()
         .find(|table| table.page_type == page_type)
         .expect("Failed to find table of given type");
-    let pages = header
-        .read_pages(
-            &mut reader,
-            binrw::Endian::NATIVE,
-            (&table.first_page, &table.last_page),
-        )
-        .expect("failed to read pages");
+    let pages = header.read_pages(&mut reader, table.first_page.clone(), &table.last_page);
 
     let actual_row_count: usize = pages
         .into_iter()
