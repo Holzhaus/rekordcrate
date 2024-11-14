@@ -8,10 +8,14 @@ All notable changes to this project will be documented in this file.
 
 - Always read all 16 rows potential from each row group
 
+### Documentation
+
+- changelog: Fix typo
+
 ### Refactor
 
 - Avoid temporary Vec allocation in assert_pdb_row_count
-- Use div_ceil instead of handrolled checked arithmetic
+- Use div_ceil instead of handrolled checked arithmatic
 - Improve `BinRead` impl of `RowGroup`
 
 ### Testing
