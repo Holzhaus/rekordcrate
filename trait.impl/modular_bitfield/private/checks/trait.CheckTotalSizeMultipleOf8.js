@@ -1,3 +1,9 @@
-(function() {var implementors = {
-"rekordcrate":[["impl CheckTotalSizeMultipleOf8 for <a class=\"struct\" href=\"rekordcrate/anlz/struct.TinyWaveformPreviewColumn.html\" title=\"struct rekordcrate::anlz::TinyWaveformPreviewColumn\">TinyWaveformPreviewColumn</a>"],["impl CheckTotalSizeMultipleOf8 for <a class=\"struct\" href=\"rekordcrate/anlz/struct.WaveformColorDetailColumn.html\" title=\"struct rekordcrate::anlz::WaveformColorDetailColumn\">WaveformColorDetailColumn</a>"],["impl CheckTotalSizeMultipleOf8 for <a class=\"struct\" href=\"rekordcrate/anlz/struct.WaveformPreviewColumn.html\" title=\"struct rekordcrate::anlz::WaveformPreviewColumn\">WaveformPreviewColumn</a>"]]
-};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
+(function() {
+    var implementors = Object.fromEntries([["rekordcrate",[["impl CheckTotalSizeMultipleOf8 for <a class=\"struct\" href=\"rekordcrate/anlz/struct.TinyWaveformPreviewColumn.html\" title=\"struct rekordcrate::anlz::TinyWaveformPreviewColumn\">TinyWaveformPreviewColumn</a>"],["impl CheckTotalSizeMultipleOf8 for <a class=\"struct\" href=\"rekordcrate/anlz/struct.WaveformColorDetailColumn.html\" title=\"struct rekordcrate::anlz::WaveformColorDetailColumn\">WaveformColorDetailColumn</a>"],["impl CheckTotalSizeMultipleOf8 for <a class=\"struct\" href=\"rekordcrate/anlz/struct.WaveformPreviewColumn.html\" title=\"struct rekordcrate::anlz::WaveformPreviewColumn\">WaveformPreviewColumn</a>"]]]]);
+    if (window.register_implementors) {
+        window.register_implementors(implementors);
+    } else {
+        window.pending_implementors = implementors;
+    }
+})()
+//{"start":57,"fragment_lengths":[650]}
