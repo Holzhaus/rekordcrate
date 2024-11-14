@@ -11,7 +11,7 @@ All notable changes to this project will be documented in this file.
 ### Refactor
 
 - Avoid temporary Vec allocation in assert_pdb_row_count
-- Use div_ceil instead of handrolled checked arithmatic
+- Use div_ceil instead of handrolled checked arithmetic
 - Improve `BinRead` impl of `RowGroup`
 
 ### Testing
