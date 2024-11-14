@@ -22,7 +22,7 @@ jobs:
       uses: actions/setup-python@v2
 
     - name: Detect code style issues
-      uses: pre-commit/action@v2.0.0
+      uses: pre-commit/action@v3.0.1
       env:
         SKIP: no-commit-to-branch
 
