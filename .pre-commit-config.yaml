@@ -25,6 +25,8 @@ repos:
     args: [
       --ignore-words=.codespellignore
     ]
+    # We cannot fix spelling errors in past commit message without force-push.
+    exclude: ^CHANGELOG.md$
 - repo: https://github.com/doublify/pre-commit-rust
   rev: v1.0
   hooks:
