@@ -16,7 +16,7 @@ binrw = "0.14"
 modular-bitfield = "0.11"
 crc16 = "0.4"
 clap = { version = "4.0", features = ["derive"], optional = true }
-parse-display = "0.9"
+parse-display = "0.10"
 thiserror = "1.0"
 
 [build-dependencies]
