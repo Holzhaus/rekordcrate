@@ -176,7 +176,7 @@ enum DeviceSQLStringImpl {
         length: u16,
 
         #[brw(magic(0u8))] // padding
-        #[br(args(flags, length - 4))]
+        #[br(args(flags, length.checked_sub(4).unwrap_or(0)))]
         content: LongBody,
     },
 }
