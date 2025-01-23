@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["anlz","pdb","setting","util"]};
+window.SIDEBAR_ITEMS = {"mod":["anlz","pdb","setting","util","xml"]};
