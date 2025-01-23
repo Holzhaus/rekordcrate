@@ -12,6 +12,10 @@ All notable changes to this project will be documented in this file.
 
 - changelog: Fix typo
 
+### Features
+
+- xml: Add support for Rekordbox XML format
+
 ### Refactor
 
 - Avoid temporary Vec allocation in assert_pdb_row_count
