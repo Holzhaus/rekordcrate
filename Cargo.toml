@@ -1,6 +1,6 @@
 [package]
 name = "rekordcrate"
-version = "0.2.1"
+version = "0.3.0"
 authors = ["Jan Holthuis <jan.holthuis@ruhr-uni-bochum.de>"]
 description = "Library for parsing Pioneer Rekordbox device exports"
 readme = "README.md"
