@@ -282,7 +282,7 @@ mod test {
         const TOO_LARGE_STR_SIZE: usize = (u16::MAX as usize) + 1;
         const INIT_CHAR: char = 'A';
         const _: () = assert!(INIT_CHAR.is_ascii());
-        const HUMONGOUS_ARRAY: [u8; TOO_LARGE_STR_SIZE] = [INIT_CHAR as u8; TOO_LARGE_STR_SIZE];
+        static HUMONGOUS_ARRAY: [u8; TOO_LARGE_STR_SIZE] = [INIT_CHAR as u8; TOO_LARGE_STR_SIZE];
 
         // Since we already know that the string only contains ascii at compile time,
         // we could probably skip the validation, but that requires unsafe code which I'd consider overkill.
