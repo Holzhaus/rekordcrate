@@ -55,13 +55,36 @@ struct Product {
 }
 
 /// The information of the tracks who are not included in any playlist are unnecessary.
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Deserialize)]
 struct Collection {
-    /// Number of TRACK in COLLECTION
-    #[serde(rename = "@Entries")]
-    entries: i32,
+    // The "Entries" attribute that contains the "Number of TRACK in COLLECTION" is omitted here,
+    // because we can just take the number of elements in the `tracks` vector instead.
     #[serde(rename = "TRACK")]
-    track: Vec<Track>,
+    tracks: Vec<Track>,
+}
+
+impl Serialize for Collection {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        #[derive(Serialize)]
+        struct Value<'a> {
+            /// Number of TRACK in COLLECTION
+            #[serde(rename = "@Entries")]
+            entries: usize,
+            /// Tracks
+            #[serde(rename = "TRACK")]
+            tracks: &'a Vec<Track>,
+        }
+
+        let value = Value {
+            entries: self.tracks.len(),
+            tracks: &self.tracks,
+        };
+
+        value.serialize(serializer)
+    }
 }
 
 /// "Location" is essential for each track ;
