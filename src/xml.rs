@@ -63,16 +63,38 @@ pub struct Product {
     pub company: String,
 }
 
-/// The collection of all imported tracks in rekordbox.
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+/// The information of the tracks who are not included in any playlist are unnecessary.
+#[derive(Debug, PartialEq, Clone, Deserialize)]
 pub struct Collection {
-    /// Number of TRACK in COLLECTION.
-    #[serde(rename = "@Entries")]
-    pub entries: i32,
-
-    /// Track entries of collection.
+    /// Tracks in the collection.
+    // The "Entries" attribute that contains the "Number of TRACK in COLLECTION" is omitted here,
+    // because we can just take the number of elements in the `tracks` vector instead.
     #[serde(rename = "TRACK")]
-    pub track: Vec<Track>,
+    pub tracks: Vec<Track>,
+}
+
+impl Serialize for Collection {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        #[derive(Serialize)]
+        struct Value<'a> {
+            /// Number of TRACK in COLLECTION
+            #[serde(rename = "@Entries")]
+            entries: usize,
+            /// Tracks
+            #[serde(rename = "TRACK")]
+            tracks: &'a Vec<Track>,
+        }
+
+        let value = Value {
+            entries: self.tracks.len(),
+            tracks: &self.tracks,
+        };
+
+        value.serialize(serializer)
+    }
 }
 
 /// A track imported to rekordbox.
