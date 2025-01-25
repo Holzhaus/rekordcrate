@@ -66,9 +66,9 @@ pub struct Product {
 /// The information of the tracks who are not included in any playlist are unnecessary.
 #[derive(Debug, PartialEq, Clone, Deserialize)]
 pub struct Collection {
-    /// Tracks in the collection.
     // The "Entries" attribute that contains the "Number of TRACK in COLLECTION" is omitted here,
     // because we can just take the number of elements in the `tracks` vector instead.
+    /// Tracks in the collection.
     #[serde(rename = "TRACK")]
     pub tracks: Vec<Track>,
 }
@@ -121,7 +121,7 @@ pub struct Track {
     #[serde(rename = "@Album")]
     pub album: Option<String>,
 
-    /// Name of goupe
+    /// Name of group
     #[serde(rename = "@Grouping")]
     pub grouping: Option<String>,
 
@@ -137,7 +137,6 @@ pub struct Track {
     /// Unit : Octet
     #[serde(rename = "@Size")]
     pub size: Option<i64>,
-
     /// Duration of track
     /// Unit : Second (without decimal numbers)
     #[serde(rename = "@TotalTime")]
@@ -159,24 +158,20 @@ pub struct Track {
     /// Unit : Second (with decimal numbers)
     #[serde(rename = "@AverageBpm")]
     pub averagebpm: Option<f64>,
-
     /// Date of last modification
     /// Format : yyyy- mm- dd ; ex. : 2010- 08- 21
     #[serde(rename = "@DateModified")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub datemodified: Option<NaiveDate>,
-
     /// Date of addition
     /// Format : yyyy- mm- dd ; ex. : 2010- 08- 21
     #[serde(rename = "@DateAdded")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub dateadded: Option<NaiveDate>,
-
     /// Encoding bit rate
     /// Unit : Kbps
     #[serde(rename = "@BitRate")]
     pub bitrate: Option<i32>,
-
     /// Frequency of sampling
     /// Unit : Hertz
     #[serde(rename = "@SampleRate")]
@@ -195,12 +190,10 @@ pub struct Track {
     #[serde(rename = "@LastPlayed")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub lastplayed: Option<NaiveDate>,
-
     /// Rating of the track
     /// 0 star = "@0", 1 star = "51", 2 stars = "102", 3 stars = "153", 4 stars = "204", 5 stars = "255"
     #[serde(rename = "@Rating")]
     pub rating: Option<i32>, // TODO: Use StarRating type here
-
     /// Location of the file
     /// includes the file name (URI formatted)
     #[serde(rename = "@Location")]
@@ -228,7 +221,7 @@ pub struct Track {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub colour: Option<String>,
 
-    /// Tempo analysis results.
+    /// Tempo Markers (Beatgrid)
     #[serde(rename = "TEMPO")]
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[serde(default)]
@@ -275,17 +268,14 @@ pub struct Tempo {
     /// Unit : Second (with decimal numbers)
     #[serde(rename = "@Inizio")]
     pub inizio: f64,
-
     /// Value of BPM
     /// Unit : Second (with decimal numbers)
     #[serde(rename = "@Bpm")]
     pub bpm: f64,
-
     /// Kind of musical meter (formatted)
     /// ex. 3/ 4, 4/ 4, 7/ 8…
     #[serde(rename = "@Metro")]
     pub metro: String,
-
     /// Beat number in the bar
     /// If the value of "Metro" is 4/ 4, the value should be 1, 2, 3 or 4.
     #[serde(rename = "@Battito")]
@@ -299,46 +289,43 @@ pub struct PositionMark {
     /// Name of position mark
     #[serde(rename = "@Name")]
     pub name: String,
-
     /// Type of position mark
     /// Cue = "@0", Fade- In = "1", Fade- Out = "2", Load = "3",  Loop = " 4"
     #[serde(rename = "@Type")]
     pub mark_type: i32,
-
     /// Start position of position mark
     /// Unit : Second (with decimal numbers)
     #[serde(rename = "@Start")]
     pub start: f64,
-
     /// End position of position mark
     /// Unit : Second (with decimal numbers)
     #[serde(rename = "@End")]
     #[serde(skip_serializing_if = "Option::is_none")]
     pub end: Option<f64>,
-
     /// Number for identification of the position mark
     /// rekordbox : Hot Cue A,  B,  C : "0", "1", "2"; Memory Cue : "- 1"
     #[serde(rename = "@Num")]
     pub num: i32,
 }
 
-/// Playlist collection.
+/// The Playlist Tree
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct Playlists {
-    /// The root node of all playlists.
+    /// Root node of the tree.
     #[serde(rename = "NODE")]
     pub node: PlaylistFolderNode,
 }
 
-/// The type of a playlist node.
+/// Node in the playlist tree.
+///
+/// Can be either a folder or a playlist.
 #[derive(Debug, PartialEq, Clone, Serialize)]
 #[serde(tag = "@Type")]
 pub enum PlaylistGenericNode {
-    /// A folder containing more playlists.
+    /// A folder in the playlist tree.
     #[serde(rename = "0")]
     Folder(PlaylistFolderNode),
-
-    /// A playlist.
+    /// A playlist in the playlist tree.
     #[serde(rename = "1")]
     Playlist(PlaylistPlaylistNode),
 }
@@ -455,13 +442,12 @@ impl<'de> Deserialize<'de> for PlaylistGenericNode {
     }
 }
 
-/// A folder containing more playlists.
+/// A folder in the playlist tree.
 #[derive(Debug, PartialEq, Clone, Deserialize)]
 pub struct PlaylistFolderNode {
     /// Name of NODE
     #[serde(rename = "@Name")]
     pub name: String,
-
     // The "Count" attribute that contains the "Number of NODE in NODE" is omitted here, because we
     // can just take the number of elements in the `tracks` vector instead.
     /// Nodes
@@ -497,13 +483,12 @@ impl Serialize for PlaylistFolderNode {
     }
 }
 
-/// A playlist.
+/// A playlist in the playlist tree.
 #[derive(Debug, PartialEq, Clone, Deserialize)]
 pub struct PlaylistPlaylistNode {
     /// Name of NODE
     #[serde(rename = "@Name")]
     pub name: String,
-
     // The "Entries" attribute that contains the "Number of TRACK in PLAYLIST" is omitted here,
     // because we can just take the number of elements in the `tracks` vector instead.
     /// Kind of identification
@@ -549,7 +534,7 @@ impl Serialize for PlaylistPlaylistNode {
     }
 }
 
-/// A playlist entry.
+/// A track in the playlist.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct PlaylistTrack {
     /// Identification of track
