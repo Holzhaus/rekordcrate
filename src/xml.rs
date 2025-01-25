@@ -18,7 +18,7 @@
 
 #![cfg(feature = "xml")]
 
-type NaiveDate = String; //Replace with "use chrono::naive::NaiveDate;"
+use chrono::naive::NaiveDate;
 use serde::{de::Error, ser::Serializer, Deserialize, Serialize};
 use std::borrow::Cow;
 
