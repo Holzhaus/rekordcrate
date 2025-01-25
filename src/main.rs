@@ -13,7 +13,6 @@ use rekordcrate::device::get_playlists;
 use rekordcrate::pdb::io::Database;
 use rekordcrate::pdb::*;
 use rekordcrate::setting::{Setting, SettingType};
-use rekordcrate::xml::Document;
 use rekordcrate::{anlz::ANLZ, util::TableIndex};
 use std::collections::BTreeMap;
 use std::fs::File;
@@ -78,6 +77,7 @@ enum Commands {
         setting_type: Option<String>,
     },
     /// Parse and dump a Pioneer XML (`*.xml`) file.
+    #[cfg(feature = "xml")]
     DumpXML {
         /// File to parse.
         #[arg(value_name = "XML_FILE")]
@@ -329,10 +329,12 @@ fn dump_setting(path: &Path, setting_type: SettingType) -> rekordcrate::Result<(
     Ok(())
 }
 
+#[cfg(feature = "xml")]
 fn dump_xml(path: &Path) -> rekordcrate::Result<()> {
-    let file = File::open(path)?;
+    let file = std::fs::File::open(path)?;
     let reader = std::io::BufReader::new(file);
-    let document: Document = quick_xml::de::from_reader(reader).expect("failed to deserialize XML");
+    let document: rekordcrate::xml::Document =
+        quick_xml::de::from_reader(reader).expect("failed to deserialize XML");
     println!("{:#?}", document);
 
     Ok(())
@@ -436,6 +438,7 @@ fn main() -> rekordcrate::Result<()> {
             };
             dump_setting(path, setting_type)
         }
+        #[cfg(feature = "xml")]
         Commands::DumpXML { path } => dump_xml(path),
     }
 }

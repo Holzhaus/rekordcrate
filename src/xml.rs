@@ -15,6 +15,9 @@
 //! - <https://rekordbox.com/en/support/developer/>
 //! - <https://cdn.rekordbox.com/files/20200410160904/xml_format_list.pdf>
 //! - <https://pyrekordbox.readthedocs.io/en/stable/formats/xml.html>
+
+#![cfg(feature = "xml")]
+
 type NaiveDate = String; //Replace with "use chrono::naive::NaiveDate;"
 use serde::{de::Error, ser::Serializer, Deserialize, Serialize};
 use std::borrow::Cow;
