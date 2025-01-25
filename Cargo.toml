@@ -20,6 +20,7 @@ parse-display = "0.10"
 thiserror = "2.0"
 quick-xml = { version = "0.38.3", features = ["serialize", "serde-types"], optional = true }
 serde = { version = "1.0", features = ["derive"], optional = true }
+serde_repr = { version = "0.1.19", optional = true }
 chrono = { version = "0.4", features = ["serde"], optional = true }
 
 [build-dependencies]
@@ -32,7 +33,7 @@ pretty_assertions = "1"
 [features]
 default = ["cli", "xml"]
 cli = ["dep:clap"]
-xml = ["dep:serde", "dep:quick-xml", "dep:chrono"]
+xml = ["dep:serde", "dep:serde_repr", "dep:quick-xml", "dep:chrono"]
 
 [[bin]]
 name = "rekordcrate"

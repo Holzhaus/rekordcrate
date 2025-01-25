@@ -20,6 +20,7 @@
 
 use chrono::naive::NaiveDate;
 use serde::{de::Error, ser::Serializer, Deserialize, Serialize};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::borrow::Cow;
 
 /// The XML root element of a rekordbox XML file.
@@ -172,7 +173,7 @@ pub struct Track {
     /// Rating of the track
     /// 0 star = "@0", 1 star = "51", 2 stars = "102", 3 stars = "153", 4 stars = "204", 5 stars = "255"
     #[serde(rename = "@Rating")]
-    pub rating: Option<i32>, // TODO: Use StarRating type here
+    pub rating: Option<StarRating>,
     /// Location of the file
     /// includes the file name (URI formatted)
     #[serde(rename = "@Location")]
@@ -209,22 +210,21 @@ pub struct Track {
 /// Star Rating
 ///
 /// 0 star = "@0", 1 star = "51", 2 stars = "102", 3 stars = "153", 4 stars = "204", 5 stars = "255"
-#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize_repr, Deserialize_repr)]
+#[repr(u8)]
 pub enum StarRating {
     /// Zero Stars
-    Zero,
-    /// One Start
-    One,
+    Zero = 0x00,
+    /// One Star
+    One = 0x33,
     /// Two Stars
-    Two,
+    Two = 0x66,
     /// Three Stars
-    Three,
+    Three = 0x99,
     /// Four Stars
-    Four,
+    Four = 0xCC,
     /// Five Stars
-    Five,
-    /// Unknown Value
-    Unknown(i32),
+    Five = 0xFF,
 }
 
 /// For BeatGrid; More than two "TEMPO" can exist for each track
