@@ -20,6 +20,7 @@
 
 use chrono::naive::NaiveDate;
 use serde::{de::Error, ser::Serializer, Deserialize, Serialize};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::borrow::Cow;
 
 /// The XML root element of a rekordbox XML file.
@@ -193,7 +194,7 @@ pub struct Track {
     /// Rating of the track
     /// 0 star = "@0", 1 star = "51", 2 stars = "102", 3 stars = "153", 4 stars = "204", 5 stars = "255"
     #[serde(rename = "@Rating")]
-    pub rating: Option<i32>, // TODO: Use StarRating type here
+    pub rating: Option<StarRating>,
     /// Location of the file
     /// includes the file name (URI formatted)
     #[serde(rename = "@Location")]
@@ -236,28 +237,21 @@ pub struct Track {
 
 /// User rating of a track.
 /// 0 star = "@0", 1 star = "51", 2 stars = "102", 3 stars = "153", 4 stars = "204", 5 stars = "255"
-#[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Copy, Serialize_repr, Deserialize_repr)]
+#[repr(u8)]
 pub enum StarRating {
-    /// Zero stars.
-    Zero,
-
-    /// One star.
-    One,
-
-    /// Two stars.
-    Two,
-
-    /// Three stars.
-    Three,
-
-    /// Four stars.
-    Four,
-
-    /// Five stars.
-    Five,
-
-    /// An unknown rating with its value.
-    Unknown(i32),
+    /// Zero Stars
+    Zero = 0x00,
+    /// One Star
+    One = 0x33,
+    /// Two Stars
+    Two = 0x66,
+    /// Three Stars
+    Three = 0x99,
+    /// Four Stars
+    Four = 0xCC,
+    /// Five Stars
+    Five = 0xFF,
 }
 
 /// Tempo analysis result of a track.
