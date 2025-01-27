@@ -19,9 +19,11 @@
 #![cfg(feature = "xml")]
 
 use chrono::naive::NaiveDate;
+use rgb::RGB8;
 use serde::{de::Error, ser::Serializer, Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use std::borrow::Cow;
+use std::fmt;
 
 /// The XML root element of a rekordbox XML file.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -194,7 +196,7 @@ pub struct Track {
     /// RGB format (3 bytes) ; rekordbox : Rose(0xFF007F), Red(0xFF0000), Orange(0xFFA500), Lemon(0xFFFF00), Green(0x00FF00), Turquoise(0x25FDE9),  Blue(0x0000FF), Violet(0x660099)
     #[serde(rename = "@Colour")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub colour: Option<String>,
+    pub colour: Option<Color>,
     /// Tempo Markers (Beatgrid)
     #[serde(rename = "TEMPO")]
     #[serde(skip_serializing_if = "Vec::is_empty")]
@@ -205,6 +207,169 @@ pub struct Track {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[serde(default)]
     pub position_marks: Vec<PositionMark>,
+}
+
+/// Color of a Cue Point.
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum Color {
+    /// Rose Color
+    Rose,
+    /// Red Color
+    Red,
+    /// Orange Color
+    Orange,
+    /// Lemon Color
+    Lemon,
+    /// Green Color
+    Green,
+    /// Turquoise Color
+    Turquoise,
+    /// Blue Color
+    Blue,
+    /// Violet Color
+    Violet,
+    /// Custom RGB Color
+    Custom(RGB8),
+}
+
+impl Color {
+    const RGB_ROSE: RGB8 = RGB8::new(0xFF, 0x00, 0x7F);
+    const RGB_RED: RGB8 = RGB8::new(0xFF, 0x00, 0x00);
+    const RGB_ORANGE: RGB8 = RGB8::new(0xFF, 0xA5, 0x00);
+    const RGB_LEMON: RGB8 = RGB8::new(0xFF, 0xFF, 0x00);
+    const RGB_GREEN: RGB8 = RGB8::new(0x00, 0xFF, 0x00);
+    const RGB_TURQUOISE: RGB8 = RGB8::new(0x25, 0xFD, 0xE9);
+    const RGB_BLUE: RGB8 = RGB8::new(0x00, 0x00, 0xFF);
+    const RGB_VIOLET: RGB8 = RGB8::new(0x66, 0x00, 0x99);
+
+    /// Get RGB value for this color.
+    #[must_use]
+    pub fn rgb(&self) -> &RGB8 {
+        match self {
+            Self::Rose => &Self::RGB_ROSE,
+            Self::Red => &Self::RGB_RED,
+            Self::Orange => &Self::RGB_ORANGE,
+            Self::Lemon => &Self::RGB_LEMON,
+            Self::Green => &Self::RGB_GREEN,
+            Self::Turquoise => &Self::RGB_TURQUOISE,
+            Self::Blue => &Self::RGB_BLUE,
+            Self::Violet => &Self::RGB_VIOLET,
+            Self::Custom(rgb_color) => rgb_color,
+        }
+    }
+
+    #[must_use]
+    fn from_hex<S: AsRef<str>>(value: S) -> Option<RGB8> {
+        let hexstr = value
+            .as_ref()
+            .strip_prefix("#")
+            .or_else(|| value.as_ref().strip_prefix("0x"))
+            .unwrap_or(value.as_ref());
+        match hexstr.len() {
+            3 => {
+                let mut r = u8::from_str_radix(hexstr.get(0..1)?, 16).ok()?;
+                r |= r << 4;
+                let mut g = u8::from_str_radix(hexstr.get(1..2)?, 16).ok()?;
+                g |= g << 4;
+                let mut b = u8::from_str_radix(hexstr.get(2..3)?, 16).ok()?;
+                b |= b << 4;
+                Some(RGB8 { r, g, b })
+            }
+            6 => {
+                let r = u8::from_str_radix(hexstr.get(0..=1)?, 16).ok()?;
+                let g = u8::from_str_radix(hexstr.get(2..=3)?, 16).ok()?;
+                let b = u8::from_str_radix(hexstr.get(4..=5)?, 16).ok()?;
+                Some(RGB8 { r, g, b })
+            }
+            _ => None,
+        }
+    }
+}
+
+impl From<RGB8> for Color {
+    fn from(rgb_color: RGB8) -> Self {
+        match rgb_color {
+            Self::RGB_ROSE => Self::Rose,
+            Self::RGB_RED => Self::Red,
+            Self::RGB_ORANGE => Self::Orange,
+            Self::RGB_LEMON => Self::Lemon,
+            Self::RGB_GREEN => Self::Green,
+            Self::RGB_TURQUOISE => Self::Turquoise,
+            Self::RGB_BLUE => Self::Blue,
+            Self::RGB_VIOLET => Self::Violet,
+            rgb_color => Self::Custom(rgb_color),
+        }
+    }
+}
+
+impl<'a> TryFrom<&'a str> for Color {
+    type Error = &'a str;
+
+    fn try_from(value: &'a str) -> Result<Self, Self::Error> {
+        match value {
+            "Rose" => Ok(Self::Rose),
+            "Red" => Ok(Self::Red),
+            "Orange" => Ok(Self::Orange),
+            "Lemon" => Ok(Self::Lemon),
+            "Green" => Ok(Self::Green),
+            "Turquoise" => Ok(Self::Turquoise),
+            "Blue" => Ok(Self::Blue),
+            "Violet" => Ok(Self::Violet),
+            color_str => Color::from_hex(color_str)
+                .map(Color::Custom)
+                .ok_or(value.as_ref()),
+        }
+    }
+}
+
+impl fmt::Display for Color {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Rose => write!(f, "Rose"),
+            Self::Red => write!(f, "Red"),
+            Self::Orange => write!(f, "Orange"),
+            Self::Lemon => write!(f, "Lemon"),
+            Self::Green => write!(f, "Green"),
+            Self::Turquoise => write!(f, "Turquoise"),
+            Self::Blue => write!(f, "Blue"),
+            Self::Violet => write!(f, "Violet"),
+            Self::Custom(rgb) => write!(f, "#{:02X}{:02X}{:02X}", rgb.r, rgb.g, rgb.b),
+        }
+    }
+}
+
+impl Serialize for Color {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.to_string().serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for Color {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        struct ColorVisitor;
+        impl serde::de::Visitor<'_> for ColorVisitor {
+            type Value = Color;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+                formatter.write_str("a color name or hex code")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                Color::try_from(value)
+                    .map_err(|_| E::invalid_value(serde::de::Unexpected::Str(value), &self))
+            }
+        }
+        deserializer.deserialize_str(ColorVisitor)
+    }
 }
 
 /// Star Rating
