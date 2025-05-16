@@ -153,7 +153,7 @@ pub enum CueListType {
 #[brw(repr = u8)]
 pub enum CueType {
     /// Cue is a single point.
-    Point = 0,
+    Point = 1,
     /// Cue is a loop.
     Loop = 2,
 }
