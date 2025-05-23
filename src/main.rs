@@ -11,7 +11,6 @@ use clap::{Parser, Subcommand};
 use rekordcrate::anlz::ANLZ;
 use rekordcrate::pdb::{Header, PageType, Row};
 use rekordcrate::setting::Setting;
-use rekordcrate::xml::Document;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -49,6 +48,7 @@ enum Commands {
         path: PathBuf,
     },
     /// Parse and dump a Pioneer XML (`*.xml`) file.
+    #[cfg(feature = "xml")]
     DumpXML {
         /// File to parse.
         #[arg(value_name = "XML_FILE")]
@@ -166,10 +166,12 @@ fn dump_setting(path: &PathBuf) -> rekordcrate::Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "xml")]
 fn dump_xml(path: &PathBuf) -> rekordcrate::Result<()> {
     let file = std::fs::File::open(path)?;
     let reader = std::io::BufReader::new(file);
-    let document: Document = quick_xml::de::from_reader(reader).expect("failed to deserialize XML");
+    let document: rekordcrate::xml::Document =
+        quick_xml::de::from_reader(reader).expect("failed to deserialize XML");
     println!("{:#?}", document);
 
     Ok(())
@@ -183,6 +185,7 @@ fn main() -> rekordcrate::Result<()> {
         Commands::DumpPDB { path } => dump_pdb(path),
         Commands::DumpANLZ { path } => dump_anlz(path),
         Commands::DumpSetting { path } => dump_setting(path),
+        #[cfg(feature = "xml")]
         Commands::DumpXML { path } => dump_xml(path),
     }
 }
