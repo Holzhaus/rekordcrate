@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [unreleased]
+
+### Bug Fixes
+
+- Plain Hotcues being rejected due to cuetype mismatch
+
 ## [0.3.0] - 2025-01-23
 
 ### Bug Fixes
