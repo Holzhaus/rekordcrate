@@ -67,7 +67,7 @@ pub struct Setting {
     /// See <https://reveng.sourceforge.io/crc-catalogue/all.htm#crc.cat.crc-16-xmodem> for
     /// details.
     #[br(temp)]
-    #[bw(calc = no_checksum.then_some(0).unwrap_or_else(|| self.calculate_checksum()))]
+    #[bw(calc = if no_checksum { 0 } else { self.calculate_checksum() })]
     _checksum: u16,
     /// Unknown field (apparently always `0000`).
     #[br(temp)]

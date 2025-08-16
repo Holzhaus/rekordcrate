@@ -13,7 +13,7 @@ jobs:
         name: Update Docs
         runs-on: ubuntu-latest
         permissions:
-            contents: read
+            contents: write  # needed because peaceiris/actions-gh-pages writes to the gh-pages branch
             pages: write
         steps:
             - name: Check out repository

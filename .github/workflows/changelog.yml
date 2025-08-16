@@ -19,7 +19,7 @@ jobs:
               uses: actions/checkout@v4
               with:
                   fetch-depth: 0
-                  persist-credentials: false
+                  persist-credentials: true  # Required by EndBug/add-and-commit
 
             - name: Use cached artifacts
               uses: Swatinem/rust-cache@v2
