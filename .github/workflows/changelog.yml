@@ -16,7 +16,7 @@ jobs:
             contents: write
         steps:
             - name: Check out repository
-              uses: actions/checkout@v4
+              uses: actions/checkout@v5
               with:
                   fetch-depth: 0
                   persist-credentials: true  # Required by EndBug/add-and-commit
