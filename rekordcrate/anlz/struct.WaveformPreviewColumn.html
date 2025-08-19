@@ -5,65 +5,65 @@
 <p>The returned byte array is layed out in the same way as described
 <a href="https://docs.rs/modular-bitfield/#generated-structure">here</a>.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.from_bytes" class="method"><a class="src rightside" href="../../src/rekordcrate/anlz.rs.html#366">Source</a><h4 class="code-header">pub const fn <a href="#method.from_bytes" class="fn">from_bytes</a>(bytes: [<a class="primitive" href="https://doc.rust-lang.org/1.89.0/std/primitive.u8.html">u8</a>; <a class="primitive" href="https://doc.rust-lang.org/1.89.0/std/primitive.array.html">1</a>]) -&gt; Self</h4></section></summary><div class="docblock"><p>Converts the given bytes directly into the bitfield struct.</p>
-</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-WaveformPreviewColumn-2" class="impl"><a class="src rightside" href="../../src/rekordcrate/anlz.rs.html#366">Source</a><a href="#impl-WaveformPreviewColumn-2" class="anchor">§</a><h3 class="code-header">impl <a class="struct" href="struct.WaveformPreviewColumn.html" title="struct rekordcrate::anlz::WaveformPreviewColumn">WaveformPreviewColumn</a></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.height" class="method"><a class="src rightside" href="../../src/rekordcrate/anlz.rs.html#372-373">Source</a><h4 class="code-header">pub fn <a href="#method.height" class="fn">height</a>(&amp;self) -&gt; &lt;B5 as Specifier&gt;::InOut</h4></section></summary><div class="docblock"><p>Returns the value of height.
+</div></details></div></details><details class="toggle implementors-toggle" open><summary><section id="impl-WaveformPreviewColumn-2" class="impl"><a class="src rightside" href="../../src/rekordcrate/anlz.rs.html#366">Source</a><a href="#impl-WaveformPreviewColumn-2" class="anchor">§</a><h3 class="code-header">impl <a class="struct" href="struct.WaveformPreviewColumn.html" title="struct rekordcrate::anlz::WaveformPreviewColumn">WaveformPreviewColumn</a></h3></section></summary><div class="impl-items"><details class="toggle method-toggle" open><summary><section id="method.height" class="method"><a class="src rightside" href="../../src/rekordcrate/anlz.rs.html#372-373">Source</a><h4 class="code-header">pub fn <a href="#method.height" class="fn">height</a>(&amp;self) -&gt; &lt;B5 as Specifier&gt;::InOut</h4></section></summary><div class="docblock"><p>Returns the value of <code>height</code>.
 Height of the Column in pixels.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.height_or_err" class="method"><a class="src rightside" href="../../src/rekordcrate/anlz.rs.html#372-373">Source</a><h4 class="code-header">pub fn <a href="#method.height_or_err" class="fn">height_or_err</a>(
     &amp;self,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.89.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;&lt;B5 as Specifier&gt;::InOut, InvalidBitPattern&lt;&lt;B5 as Specifier&gt;::Bytes&gt;&gt;</h4></section></summary><div class="docblock"><p>Returns the value of height.</p>
-<p>#Errors</p>
-<p>If the returned value contains an invalid bit pattern for height.
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.89.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;&lt;B5 as Specifier&gt;::InOut, InvalidBitPattern&lt;&lt;B5 as Specifier&gt;::Bytes&gt;&gt;</h4></section></summary><div class="docblock"><p>Returns the value of <code>height</code>.</p>
+<h5 id="errors"><a class="doc-anchor" href="#errors">§</a>Errors</h5>
+<p>If the returned value contains an invalid bit pattern for <code>height</code>.
 Height of the Column in pixels.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.with_height" class="method"><a class="src rightside" href="../../src/rekordcrate/anlz.rs.html#372-373">Source</a><h4 class="code-header">pub fn <a href="#method.with_height" class="fn">with_height</a>(self, new_val: &lt;B5 as Specifier&gt;::InOut) -&gt; Self</h4></section></summary><div class="docblock"><p>Returns a copy of the bitfield with the value of height set to the given value.</p>
-<p>#Panics</p>
-<p>If the given value is out of bounds for height.
+</div></details><details class="toggle method-toggle" open><summary><section id="method.with_height" class="method"><a class="src rightside" href="../../src/rekordcrate/anlz.rs.html#372-373">Source</a><h4 class="code-header">pub fn <a href="#method.with_height" class="fn">with_height</a>(self, new_val: &lt;B5 as Specifier&gt;::InOut) -&gt; Self</h4></section></summary><div class="docblock"><p>Returns a copy of the bitfield with the value of <code>height</code> set to the given value.</p>
+<h5 id="panics"><a class="doc-anchor" href="#panics">§</a>Panics</h5>
+<p>If the given value is out of bounds for <code>height</code>.
 Height of the Column in pixels.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.with_height_checked" class="method"><a class="src rightside" href="../../src/rekordcrate/anlz.rs.html#372-373">Source</a><h4 class="code-header">pub fn <a href="#method.with_height_checked" class="fn">with_height_checked</a>(
     self,
     new_val: &lt;B5 as Specifier&gt;::InOut,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.89.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Self, OutOfBounds&gt;</h4></section></summary><div class="docblock"><p>Returns a copy of the bitfield with the value of height set to the given value.</p>
-<p>#Errors</p>
-<p>If the given value is out of bounds for height.
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.89.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Self, OutOfBounds&gt;</h4></section></summary><div class="docblock"><p>Returns a copy of the bitfield with the value of <code>height</code> set to the given value.</p>
+<h5 id="errors-1"><a class="doc-anchor" href="#errors-1">§</a>Errors</h5>
+<p>If the given value is out of bounds for <code>height</code>.
 Height of the Column in pixels.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.set_height" class="method"><a class="src rightside" href="../../src/rekordcrate/anlz.rs.html#372-373">Source</a><h4 class="code-header">pub fn <a href="#method.set_height" class="fn">set_height</a>(&amp;mut self, new_val: &lt;B5 as Specifier&gt;::InOut)</h4></section></summary><div class="docblock"><p>Sets the value of height to the given value.</p>
-<p>#Panics</p>
-<p>If the given value is out of bounds for height.
+</div></details><details class="toggle method-toggle" open><summary><section id="method.set_height" class="method"><a class="src rightside" href="../../src/rekordcrate/anlz.rs.html#372-373">Source</a><h4 class="code-header">pub fn <a href="#method.set_height" class="fn">set_height</a>(&amp;mut self, new_val: &lt;B5 as Specifier&gt;::InOut)</h4></section></summary><div class="docblock"><p>Sets the value of <code>height</code> to the given value.</p>
+<h5 id="panics-1"><a class="doc-anchor" href="#panics-1">§</a>Panics</h5>
+<p>If the given value is out of bounds for <code>height</code>.
 Height of the Column in pixels.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.set_height_checked" class="method"><a class="src rightside" href="../../src/rekordcrate/anlz.rs.html#372-373">Source</a><h4 class="code-header">pub fn <a href="#method.set_height_checked" class="fn">set_height_checked</a>(
     &amp;mut self,
     new_val: &lt;B5 as Specifier&gt;::InOut,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.89.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.89.0/std/primitive.unit.html">()</a>, OutOfBounds&gt;</h4></section></summary><div class="docblock"><p>Sets the value of height to the given value.</p>
-<p>#Errors</p>
-<p>If the given value is out of bounds for height.
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.89.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.89.0/std/primitive.unit.html">()</a>, OutOfBounds&gt;</h4></section></summary><div class="docblock"><p>Sets the value of <code>height</code> to the given value.</p>
+<h5 id="errors-2"><a class="doc-anchor" href="#errors-2">§</a>Errors</h5>
+<p>If the given value is out of bounds for <code>height</code>.
 Height of the Column in pixels.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.whiteness" class="method"><a class="src rightside" href="../../src/rekordcrate/anlz.rs.html#374-375">Source</a><h4 class="code-header">pub fn <a href="#method.whiteness" class="fn">whiteness</a>(&amp;self) -&gt; &lt;B3 as Specifier&gt;::InOut</h4></section></summary><div class="docblock"><p>Returns the value of whiteness.
+</div></details><details class="toggle method-toggle" open><summary><section id="method.whiteness" class="method"><a class="src rightside" href="../../src/rekordcrate/anlz.rs.html#374-375">Source</a><h4 class="code-header">pub fn <a href="#method.whiteness" class="fn">whiteness</a>(&amp;self) -&gt; &lt;B3 as Specifier&gt;::InOut</h4></section></summary><div class="docblock"><p>Returns the value of <code>whiteness</code>.
 Shade of white.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.whiteness_or_err" class="method"><a class="src rightside" href="../../src/rekordcrate/anlz.rs.html#374-375">Source</a><h4 class="code-header">pub fn <a href="#method.whiteness_or_err" class="fn">whiteness_or_err</a>(
     &amp;self,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.89.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;&lt;B3 as Specifier&gt;::InOut, InvalidBitPattern&lt;&lt;B3 as Specifier&gt;::Bytes&gt;&gt;</h4></section></summary><div class="docblock"><p>Returns the value of whiteness.</p>
-<p>#Errors</p>
-<p>If the returned value contains an invalid bit pattern for whiteness.
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.89.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;&lt;B3 as Specifier&gt;::InOut, InvalidBitPattern&lt;&lt;B3 as Specifier&gt;::Bytes&gt;&gt;</h4></section></summary><div class="docblock"><p>Returns the value of <code>whiteness</code>.</p>
+<h5 id="errors-3"><a class="doc-anchor" href="#errors-3">§</a>Errors</h5>
+<p>If the returned value contains an invalid bit pattern for <code>whiteness</code>.
 Shade of white.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.with_whiteness" class="method"><a class="src rightside" href="../../src/rekordcrate/anlz.rs.html#374-375">Source</a><h4 class="code-header">pub fn <a href="#method.with_whiteness" class="fn">with_whiteness</a>(self, new_val: &lt;B3 as Specifier&gt;::InOut) -&gt; Self</h4></section></summary><div class="docblock"><p>Returns a copy of the bitfield with the value of whiteness set to the given value.</p>
-<p>#Panics</p>
-<p>If the given value is out of bounds for whiteness.
+</div></details><details class="toggle method-toggle" open><summary><section id="method.with_whiteness" class="method"><a class="src rightside" href="../../src/rekordcrate/anlz.rs.html#374-375">Source</a><h4 class="code-header">pub fn <a href="#method.with_whiteness" class="fn">with_whiteness</a>(self, new_val: &lt;B3 as Specifier&gt;::InOut) -&gt; Self</h4></section></summary><div class="docblock"><p>Returns a copy of the bitfield with the value of <code>whiteness</code> set to the given value.</p>
+<h5 id="panics-2"><a class="doc-anchor" href="#panics-2">§</a>Panics</h5>
+<p>If the given value is out of bounds for <code>whiteness</code>.
 Shade of white.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.with_whiteness_checked" class="method"><a class="src rightside" href="../../src/rekordcrate/anlz.rs.html#374-375">Source</a><h4 class="code-header">pub fn <a href="#method.with_whiteness_checked" class="fn">with_whiteness_checked</a>(
     self,
     new_val: &lt;B3 as Specifier&gt;::InOut,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.89.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Self, OutOfBounds&gt;</h4></section></summary><div class="docblock"><p>Returns a copy of the bitfield with the value of whiteness set to the given value.</p>
-<p>#Errors</p>
-<p>If the given value is out of bounds for whiteness.
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.89.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Self, OutOfBounds&gt;</h4></section></summary><div class="docblock"><p>Returns a copy of the bitfield with the value of <code>whiteness</code> set to the given value.</p>
+<h5 id="errors-4"><a class="doc-anchor" href="#errors-4">§</a>Errors</h5>
+<p>If the given value is out of bounds for <code>whiteness</code>.
 Shade of white.</p>
-</div></details><details class="toggle method-toggle" open><summary><section id="method.set_whiteness" class="method"><a class="src rightside" href="../../src/rekordcrate/anlz.rs.html#374-375">Source</a><h4 class="code-header">pub fn <a href="#method.set_whiteness" class="fn">set_whiteness</a>(&amp;mut self, new_val: &lt;B3 as Specifier&gt;::InOut)</h4></section></summary><div class="docblock"><p>Sets the value of whiteness to the given value.</p>
-<p>#Panics</p>
-<p>If the given value is out of bounds for whiteness.
+</div></details><details class="toggle method-toggle" open><summary><section id="method.set_whiteness" class="method"><a class="src rightside" href="../../src/rekordcrate/anlz.rs.html#374-375">Source</a><h4 class="code-header">pub fn <a href="#method.set_whiteness" class="fn">set_whiteness</a>(&amp;mut self, new_val: &lt;B3 as Specifier&gt;::InOut)</h4></section></summary><div class="docblock"><p>Sets the value of <code>whiteness</code> to the given value.</p>
+<h5 id="panics-3"><a class="doc-anchor" href="#panics-3">§</a>Panics</h5>
+<p>If the given value is out of bounds for <code>whiteness</code>.
 Shade of white.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.set_whiteness_checked" class="method"><a class="src rightside" href="../../src/rekordcrate/anlz.rs.html#374-375">Source</a><h4 class="code-header">pub fn <a href="#method.set_whiteness_checked" class="fn">set_whiteness_checked</a>(
     &amp;mut self,
     new_val: &lt;B3 as Specifier&gt;::InOut,
-) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.89.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.89.0/std/primitive.unit.html">()</a>, OutOfBounds&gt;</h4></section></summary><div class="docblock"><p>Sets the value of whiteness to the given value.</p>
-<p>#Errors</p>
-<p>If the given value is out of bounds for whiteness.
+) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.89.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.89.0/std/primitive.unit.html">()</a>, OutOfBounds&gt;</h4></section></summary><div class="docblock"><p>Sets the value of <code>whiteness</code> to the given value.</p>
+<h5 id="errors-5"><a class="doc-anchor" href="#errors-5">§</a>Errors</h5>
+<p>If the given value is out of bounds for <code>whiteness</code>.
 Shade of white.</p>
 </div></details></div></details></div><h2 id="trait-implementations" class="section-header">Trait Implementations<a href="#trait-implementations" class="anchor">§</a></h2><div id="trait-implementations-list"><details class="toggle implementors-toggle" open><summary><section id="impl-BinRead-for-WaveformPreviewColumn" class="impl"><a class="src rightside" href="../../src/rekordcrate/anlz.rs.html#368">Source</a><a href="#impl-BinRead-for-WaveformPreviewColumn" class="anchor">§</a><h3 class="code-header">impl BinRead for <a class="struct" href="struct.WaveformPreviewColumn.html" title="struct rekordcrate::anlz::WaveformPreviewColumn">WaveformPreviewColumn</a></h3></section></summary><div class="impl-items"><details class="toggle" open><summary><section id="associatedtype.Args" class="associatedtype trait-impl"><a class="src rightside" href="../../src/rekordcrate/anlz.rs.html#368">Source</a><a href="#associatedtype.Args" class="anchor">§</a><h4 class="code-header">type <a class="associatedtype">Args</a>&lt;'__binrw_generated_args_lifetime&gt; = <a class="primitive" href="https://doc.rust-lang.org/1.89.0/std/primitive.unit.html">()</a></h4></section></summary><div class='docblock'>The type used for the <code>args</code> parameter of <a href="Self::read_args"><code>read_args()</code></a> and
 <a href="Self::read_options"><code>read_options()</code></a>. <a>Read more</a></div></details><details class="toggle method-toggle" open><summary><section id="method.read_options" class="method trait-impl"><a class="src rightside" href="../../src/rekordcrate/anlz.rs.html#368">Source</a><a href="#method.read_options" class="anchor">§</a><h4 class="code-header">fn <a class="fn">read_options</a>&lt;R: <a class="trait" href="https://doc.rust-lang.org/1.89.0/std/io/trait.Read.html" title="trait std::io::Read">Read</a> + <a class="trait" href="https://doc.rust-lang.org/1.89.0/std/io/trait.Seek.html" title="trait std::io::Seek">Seek</a>&gt;(
