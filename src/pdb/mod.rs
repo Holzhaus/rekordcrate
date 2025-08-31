@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Jan Holthuis <jan.holthuis@rub.de>
+// Copyright (c) 2025 Jan Holthuis <jan.holthuis@rub.de>
 //
 // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy
 // of the MPL was not distributed with this file, You can obtain one at
@@ -519,66 +519,48 @@ impl RowGroup {
 
         let (page_offset, relative_row_offset) = args;
 
-        // TODO(Swiftb0y): DeviceSQL seems to write RowGroups so that the Rows
+        // DeviceSQL seems to write RowGroups so that the Rows
         // with the lowest offset have their offset written at the end of the
         // page. So If the Rows appeared in order Row1,Row2,Row3 in the heap/page
         // their offsets would be stored in reverse order &Row3,&Row2,&Row1.
         // It probably doesn't change the correctness of the (de-)serialization,
-        // but it makes sense to strive to be as close as possible to DeviceSQL
+        // but it makes sense to strive to be as close as possible to DeviceSQL.
+        // This is implemented by writing the rows first, recording their
+        // offset and then writing them in a second pass.
+
+        let row_offsets_start = writer.stream_position()?;
+
+        let heap_start = page_offset + relative_row_offset;
+        const INVALID_OFFSET: u16 = 0xFFFF;
+        let mut row_offsets = [INVALID_OFFSET; Self::MAX_ROW_COUNT as usize];
 
         // Write rows
-        let mut offset = page_offset + relative_row_offset;
-        for row in &self.rows {
-            let row_offset: u16 = (offset - page_offset)
-                .try_into()
-                .ok()
-                .ok_or_else(|| binrw::Error::AssertFail {
-                    pos: offset,
-                    message: "Wraparound while calculating row offset".to_string(),
-                })?;
-            row_offset.write_options(writer, &options, ())?;
-            let restore_position = writer.stream_position()?;
-
-            // TODO(Swiftb0y): Write with proper alignment.
-            // Rows don't seem to be directly adjacent to each other
-            // but instead have gaps in between. They probably adhere to their
-            // member variable alignment.
-            // I have seen gaps of 52 to 55 bytes (ending after the last char
-            // of the previous row and the first byte of the next row).
-            // I have 0 idea why these gaps are this big or how to accurately
-            // guess their size.
-            // Rows also don't have a fixed size. Their sizes seem to fluctuate
-            // between 0 and 48 bytes in size (though the fluctuations always
-            // were multiple of 12)
-
-            // Write actual row content
-            writer.seek(SeekFrom::Start(offset))?;
+        writer.seek(SeekFrom::Start(heap_start))?;
+        for (i, row) in self.rows.iter().enumerate() {
+            let row_position = writer.stream_position()?;
             row.write_options(writer, &options, ())?;
-            let end_of_row = writer.stream_position()?;
 
-            // Add padding
-            let mut padding_base = 0x34;
-            if let Row::Track(track) = row {
-                // This is a heuristic that seems to match the padding behavior of the
-                // original file for the `track_page` test case. The actual logic
-                // is unknown.
-                // We're assigning a different padding base for even and odd tracks
-                if track.id.0 % 2 == 0 {
-                    padding_base += 4;
+            row_offsets[i] = (row_position - heap_start).try_into().ok().ok_or_else(|| {
+                binrw::Error::AssertFail {
+                    pos: heap_start,
+                    message: "Wraparound while calculating row offset".to_string(),
                 }
-            }
-            offset = (end_of_row + padding_base) & !3;
-
-            // Seek back to row offset
-            writer.seek(SeekFrom::Start(restore_position))?;
+            })?;
         }
-        let new_relative_row_offset = offset - page_offset;
-
+        let heap_end = writer.stream_position()?;
+        writer.seek(SeekFrom::Start(row_offsets_start))?;
+        for offset in row_offsets
+            .into_iter()
+            .rev()
+            .filter(|&offset| (offset != INVALID_OFFSET))
+        {
+            offset.write_options(writer, &options, ())?;
+        }
         self.row_presence_flags
             .write_options(writer, &options, ())?;
         self.unknown.write_options(writer, &options, ())?;
 
-        Ok(new_relative_row_offset)
+        Ok(heap_end - page_offset)
     }
 }
 
@@ -1099,6 +1081,29 @@ impl BinWrite for Track {
         writer.seek(SeekFrom::Start(start_of_string_section))?;
         string_offsets.write_options(writer, options, ())?;
         writer.seek(SeekFrom::Start(end_of_row))?;
+
+        // TODO(Swiftb0y): encapsulate this properly
+        // Rows don't seem to be directly adjacent to each other
+        // but instead have gaps in between. They probably adhere to their
+        // member variable alignment.
+        // I have seen gaps of 52 to 55 bytes (ending after the last char
+        // of the previous row and the first byte of the next row).
+        // I have 0 idea why these gaps are this big or how to accurately
+        // guess their size.
+        // Rows also don't have a fixed size. Their sizes seem to fluctuate
+        // between 0 and 48 bytes in size (though the fluctuations always
+        // were multiple of 12)
+
+        let mut padding_base = 0x34;
+        // This is a heuristic that seems to match the padding behavior of the
+        // original file for the `track_page` test case. The actual logic
+        // is unknown.
+        // We're assigning a different padding base for even and odd tracks
+        if self.id.0 % 2 == 0 {
+            padding_base += 4;
+        }
+        padding_base = ((end_of_row + padding_base) & !0b11) - end_of_row;
+        writer.seek(SeekFrom::Current(padding_base as i64))?;
 
         Ok(())
     }
