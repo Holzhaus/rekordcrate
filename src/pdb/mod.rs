@@ -23,7 +23,7 @@ pub mod string;
 use std::convert::TryInto;
 
 use crate::pdb::string::DeviceSQLString;
-use crate::util::{align_by, ColorIndex};
+use crate::util::{ColorIndex};
 use binrw::{
     binread, binrw,
     io::{Read, Seek, SeekFrom, Write},
@@ -1185,6 +1185,9 @@ pub enum Row {
 }
 
 impl Row {
+    // TODO We should survey all the different kind of rows and ensure they're 
+    // aligned properly. Temporally allowed unused
+    #[allow(unused)]
     #[must_use]
     const fn get_alignment(&self) -> Option<std::num::NonZeroU64> {
         use crate::pdb::Row::*;
