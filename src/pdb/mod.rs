@@ -207,6 +207,9 @@ impl PageFlags {
 #[br(little, magic = 0u32)]
 #[br(import(page_size: u32))]
 pub struct Page {
+    /// Stream position immediately after magic; used to compute heap base for standalone buffers.
+    #[br(temp, parse_with = current_offset)]
+    page_pos_after_magic: u64,
     /// Index of the page.
     ///
     /// Should match the index used for lookup and can be used to verify that the correct page was loaded.
@@ -290,7 +293,7 @@ pub struct Page {
     ///
     /// **Note:** This is a virtual field and not actually read from the file.
     #[br(temp)]
-    #[br(calc = page_index.offset(page_size) + u64::from(Self::HEADER_SIZE))]
+    #[br(calc = (page_pos_after_magic - 4) + u64::from(Self::HEADER_SIZE))]
     page_heap_offset: u64,
     /// Row groups belonging to this page.
     #[br(seek_before(SeekFrom::Current(Page::row_groups_offset(
@@ -353,11 +356,33 @@ impl BinWrite for Page {
 
         // Row Groups
         let mut relative_row_offset: u64 = Self::HEADER_SIZE.into();
-        for row_group in &self.row_groups {
+        let total_rows: u16 = if self.num_rows_large > self.num_rows_small.into()
+            && self.num_rows_large != 0x1fff
+        {
+            self.num_rows_large
+        } else {
+            self.num_rows_small.into()
+        };
+
+        let num_groups: u16 = if total_rows > 0 {
+            (total_rows - 1) / RowGroup::MAX_ROW_COUNT + 1
+        } else {
+            0
+        };
+        for (idx, row_group) in self.row_groups.iter().enumerate() {
+            let is_last = (idx as u16) == num_groups.saturating_sub(1);
+            let mut rows_in_group = if is_last {
+                total_rows % RowGroup::MAX_ROW_COUNT
+            } else {
+                RowGroup::MAX_ROW_COUNT
+            };
+            if rows_in_group == 0 && total_rows > 0 {
+                rows_in_group = RowGroup::MAX_ROW_COUNT;
+            }
             relative_row_offset = row_group.write_options_and_get_row_offset(
                 writer,
                 &options,
-                (page_offset, relative_row_offset),
+                (page_offset, relative_row_offset, rows_in_group),
             )?;
         }
         Ok(())
@@ -486,7 +511,7 @@ impl RowGroup {
 
     /// Return the ordered list of row offsets that are actually present.
     pub fn present_rows(&self) -> impl Iterator<Item = &Row> {
-        self.rows.iter().rev().enumerate().filter_map(|(i, row)| {
+        self.rows.iter().enumerate().filter_map(|(i, row)| {
             if (self.row_presence_flags & (1 << i)) != 0 {
                 Some(row)
             } else {
@@ -505,6 +530,8 @@ impl RowGroup {
             let row = FilePtr16::<Row>::parse(reader, options, args.inner)?;
             rows.push(row);
         }
+        // Offsets are stored in reverse order in the footer. Reverse to restore logical order.
+        rows.reverse();
 
         Ok(rows)
     }
@@ -513,11 +540,11 @@ impl RowGroup {
         &self,
         writer: &mut W,
         options: &WriteOptions,
-        args: (u64, u64),
+        args: (u64, u64, u16),
     ) -> binrw::BinResult<u64> {
         let options = options.with_endian(Endian::Little);
 
-        let (page_offset, relative_row_offset) = args;
+        let (page_offset, relative_row_offset, rows_in_group) = args;
 
         // DeviceSQL seems to write RowGroups so that the Rows
         // with the lowest offset have their offset written at the end of the
@@ -531,8 +558,7 @@ impl RowGroup {
         let row_offsets_start = writer.stream_position()?;
 
         let heap_start = page_offset + relative_row_offset;
-        const INVALID_OFFSET: u16 = 0xFFFF;
-        let mut row_offsets = [INVALID_OFFSET; Self::MAX_ROW_COUNT as usize];
+        let mut row_offsets = vec![0u16; rows_in_group as usize];
 
         // Write rows
         writer.seek(SeekFrom::Start(heap_start))?;
@@ -540,20 +566,17 @@ impl RowGroup {
             let row_position = writer.stream_position()?;
             row.write_options(writer, &options, ())?;
 
-            row_offsets[i] = (row_position - heap_start).try_into().ok().ok_or_else(|| {
-                binrw::Error::AssertFail {
+            row_offsets[i] = (row_position - heap_start)
+                .try_into()
+                .ok()
+                .ok_or_else(|| binrw::Error::AssertFail {
                     pos: heap_start,
                     message: "Wraparound while calculating row offset".to_string(),
-                }
-            })?;
+                })?;
         }
         let heap_end = writer.stream_position()?;
         writer.seek(SeekFrom::Start(row_offsets_start))?;
-        for offset in row_offsets
-            .into_iter()
-            .rev()
-            .filter(|&offset| (offset != INVALID_OFFSET))
-        {
+        for offset in row_offsets.into_iter().rev() {
             offset.write_options(writer, &options, ())?;
         }
         self.row_presence_flags
@@ -565,7 +588,7 @@ impl RowGroup {
 }
 
 impl BinWrite for RowGroup {
-    type Args = (u64, u64);
+    type Args = (u64, u64, u16);
 
     fn write_options<W: Write + Seek>(
         &self,
