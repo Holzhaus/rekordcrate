@@ -204,12 +204,16 @@ impl PageFlags {
 /// offset found in the page footer at the end of the page.
 #[binread]
 #[derive(Debug, PartialEq)]
-#[br(little, magic = 0u32)]
+#[br(little)]
 #[br(import(page_size: u32))]
 pub struct Page {
-    /// Stream position immediately after magic; used to compute heap base for standalone buffers.
+    /// Stream position at the beginning of the page; used to compute heap base for standalone buffers.
     #[br(temp, parse_with = current_offset)]
-    page_pos_after_magic: u64,
+    page_start_pos: u64,
+    /// Magic signature for pages (must be 0).
+    #[br(temp, assert(magic == 0u32))]
+    #[bw(ignore)]
+    magic: u32,
     /// Index of the page.
     ///
     /// Should match the index used for lookup and can be used to verify that the correct page was loaded.
@@ -285,15 +289,13 @@ pub struct Page {
     ///
     /// **Note:** This is a virtual field and not actually read from the file.
     #[br(temp)]
-    // TODO: Use `num_rows.div_ceil(RowGroup::MAX_ROW_COUNT)` here when it becomes available
-    // (currently nightly-only, see https://github.com/rust-lang/rust/issues/88581).
-    #[br(calc = if num_rows > 0 { (num_rows - 1) / RowGroup::MAX_ROW_COUNT + 1 } else { 0 })]
+    #[br(calc = num_rows.div_ceil(RowGroup::MAX_ROW_COUNT))]
     num_row_groups: u16,
     /// The offset at which the row data for this page are located.
     ///
     /// **Note:** This is a virtual field and not actually read from the file.
     #[br(temp)]
-    #[br(calc = (page_pos_after_magic - 4) + u64::from(Self::HEADER_SIZE))]
+    #[br(calc = page_start_pos + u64::from(Self::HEADER_SIZE))]
     page_heap_offset: u64,
     /// Row groups belonging to this page.
     #[br(seek_before(SeekFrom::Current(Page::row_groups_offset(
@@ -356,33 +358,12 @@ impl BinWrite for Page {
 
         // Row Groups
         let mut relative_row_offset: u64 = Self::HEADER_SIZE.into();
-        let total_rows: u16 = if self.num_rows_large > self.num_rows_small.into()
-            && self.num_rows_large != 0x1fff
-        {
-            self.num_rows_large
-        } else {
-            self.num_rows_small.into()
-        };
 
-        let num_groups: u16 = if total_rows > 0 {
-            (total_rows - 1) / RowGroup::MAX_ROW_COUNT + 1
-        } else {
-            0
-        };
-        for (idx, row_group) in self.row_groups.iter().enumerate() {
-            let is_last = (idx as u16) == num_groups.saturating_sub(1);
-            let mut rows_in_group = if is_last {
-                total_rows % RowGroup::MAX_ROW_COUNT
-            } else {
-                RowGroup::MAX_ROW_COUNT
-            };
-            if rows_in_group == 0 && total_rows > 0 {
-                rows_in_group = RowGroup::MAX_ROW_COUNT;
-            }
+        for row_group in &self.row_groups {
             relative_row_offset = row_group.write_options_and_get_row_offset(
                 writer,
                 &options,
-                (page_offset, relative_row_offset, rows_in_group),
+                (page_offset, relative_row_offset),
             )?;
         }
         Ok(())
@@ -399,11 +380,7 @@ impl Page {
         } else {
             num_rows_small.into()
         };
-        let num_row_groups = if num_rows > 0 {
-            (num_rows - 1) / RowGroup::MAX_ROW_COUNT + 1
-        } else {
-            0
-        };
+        let num_row_groups = num_rows.div_ceil(RowGroup::MAX_ROW_COUNT);
 
         let row_groups_size = num_rows * 2 + num_row_groups * 4;
         dbg!(row_groups_size);
@@ -540,11 +517,12 @@ impl RowGroup {
         &self,
         writer: &mut W,
         options: &WriteOptions,
-        args: (u64, u64, u16),
+        args: (u64, u64),
     ) -> binrw::BinResult<u64> {
         let options = options.with_endian(Endian::Little);
 
-        let (page_offset, relative_row_offset, rows_in_group) = args;
+        let (page_offset, relative_row_offset) = args;
+        let rows_in_group: u16 = self.rows.len() as u16;
 
         // DeviceSQL seems to write RowGroups so that the Rows
         // with the lowest offset have their offset written at the end of the
@@ -588,7 +566,7 @@ impl RowGroup {
 }
 
 impl BinWrite for RowGroup {
-    type Args = (u64, u64, u16);
+    type Args = (u64, u64);
 
     fn write_options<W: Write + Seek>(
         &self,
