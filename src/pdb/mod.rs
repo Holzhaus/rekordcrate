@@ -522,7 +522,26 @@ impl RowGroup {
         let options = options.with_endian(Endian::Little);
 
         let (page_offset, relative_row_offset) = args;
-        let rows_in_group: u16 = self.rows.len() as u16;
+
+        // Ensure rows_in_group fits into u16 and does not exceed the maximum supported per group.
+        let rows_in_group: u16 = self
+            .rows
+            .len()
+            .try_into()
+            .map_err(|_| binrw::Error::AssertFail {
+                pos: page_offset,
+                message: "RowGroup row count does not fit into u16".to_string(),
+            })?;
+        if rows_in_group > Self::MAX_ROW_COUNT {
+            return Err(binrw::Error::AssertFail {
+                pos: page_offset,
+                message: format!(
+                    "RowGroup contains {} rows, exceeds MAX_ROW_COUNT ({})",
+                    self.rows.len(),
+                    Self::MAX_ROW_COUNT
+                ),
+            });
+        }
 
         // DeviceSQL seems to write RowGroups so that the Rows
         // with the lowest offset have their offset written at the end of the
