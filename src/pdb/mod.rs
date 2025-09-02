@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Jan Holthuis <jan.holthuis@rub.de>
+// Copyright (c) 2025 Jan Holthuis <jan.holthuis@rub.de>
 //
 // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy
 // of the MPL was not distributed with this file, You can obtain one at
@@ -23,7 +23,7 @@ pub mod string;
 use std::convert::TryInto;
 
 use crate::pdb::string::DeviceSQLString;
-use crate::util::{align_by, ColorIndex};
+use crate::util::{ColorIndex};
 use binrw::{
     binread, binrw,
     io::{Read, Seek, SeekFrom, Write},
@@ -204,9 +204,16 @@ impl PageFlags {
 /// offset found in the page footer at the end of the page.
 #[binread]
 #[derive(Debug, PartialEq)]
-#[br(little, magic = 0u32)]
+#[br(little)]
 #[br(import(page_size: u32))]
 pub struct Page {
+    /// Stream position at the beginning of the page; used to compute heap base for standalone buffers.
+    #[br(temp, parse_with = current_offset)]
+    page_start_pos: u64,
+    /// Magic signature for pages (must be 0).
+    #[br(temp, assert(magic == 0u32))]
+    #[bw(ignore)]
+    magic: u32,
     /// Index of the page.
     ///
     /// Should match the index used for lookup and can be used to verify that the correct page was loaded.
@@ -282,15 +289,13 @@ pub struct Page {
     ///
     /// **Note:** This is a virtual field and not actually read from the file.
     #[br(temp)]
-    // TODO: Use `num_rows.div_ceil(RowGroup::MAX_ROW_COUNT)` here when it becomes available
-    // (currently nightly-only, see https://github.com/rust-lang/rust/issues/88581).
-    #[br(calc = if num_rows > 0 { (num_rows - 1) / RowGroup::MAX_ROW_COUNT + 1 } else { 0 })]
+    #[br(calc = num_rows.div_ceil(RowGroup::MAX_ROW_COUNT))]
     num_row_groups: u16,
     /// The offset at which the row data for this page are located.
     ///
     /// **Note:** This is a virtual field and not actually read from the file.
     #[br(temp)]
-    #[br(calc = page_index.offset(page_size) + u64::from(Self::HEADER_SIZE))]
+    #[br(calc = page_start_pos + u64::from(Self::HEADER_SIZE))]
     page_heap_offset: u64,
     /// Row groups belonging to this page.
     #[br(seek_before(SeekFrom::Current(Page::row_groups_offset(
@@ -353,6 +358,7 @@ impl BinWrite for Page {
 
         // Row Groups
         let mut relative_row_offset: u64 = Self::HEADER_SIZE.into();
+
         for row_group in &self.row_groups {
             relative_row_offset = row_group.write_options_and_get_row_offset(
                 writer,
@@ -374,11 +380,7 @@ impl Page {
         } else {
             num_rows_small.into()
         };
-        let num_row_groups = if num_rows > 0 {
-            (num_rows - 1) / RowGroup::MAX_ROW_COUNT + 1
-        } else {
-            0
-        };
+        let num_row_groups = num_rows.div_ceil(RowGroup::MAX_ROW_COUNT);
 
         let row_groups_size = num_rows * 2 + num_row_groups * 4;
         dbg!(row_groups_size);
@@ -486,7 +488,7 @@ impl RowGroup {
 
     /// Return the ordered list of row offsets that are actually present.
     pub fn present_rows(&self) -> impl Iterator<Item = &Row> {
-        self.rows.iter().rev().enumerate().filter_map(|(i, row)| {
+        self.rows.iter().enumerate().filter_map(|(i, row)| {
             if (self.row_presence_flags & (1 << i)) != 0 {
                 Some(row)
             } else {
@@ -505,6 +507,8 @@ impl RowGroup {
             let row = FilePtr16::<Row>::parse(reader, options, args.inner)?;
             rows.push(row);
         }
+        // Offsets are stored in reverse order in the footer. Reverse to restore logical order.
+        rows.reverse();
 
         Ok(rows)
     }
@@ -519,63 +523,64 @@ impl RowGroup {
 
         let (page_offset, relative_row_offset) = args;
 
-        // TODO(Swiftb0y): DeviceSQL seems to write RowGroups so that the Rows
+        // Ensure rows_in_group fits into u16 and does not exceed the maximum supported per group.
+        let rows_in_group: u16 = self
+            .rows
+            .len()
+            .try_into()
+            .map_err(|_| binrw::Error::AssertFail {
+                pos: page_offset,
+                message: "RowGroup row count does not fit into u16".to_string(),
+            })?;
+        if rows_in_group > Self::MAX_ROW_COUNT {
+            return Err(binrw::Error::AssertFail {
+                pos: page_offset,
+                message: format!(
+                    "RowGroup contains {} rows, exceeds MAX_ROW_COUNT ({})",
+                    self.rows.len(),
+                    Self::MAX_ROW_COUNT
+                ),
+            });
+        }
+
+        // DeviceSQL seems to write RowGroups so that the Rows
         // with the lowest offset have their offset written at the end of the
         // page. So If the Rows appeared in order Row1,Row2,Row3 in the heap/page
         // their offsets would be stored in reverse order &Row3,&Row2,&Row1.
         // It probably doesn't change the correctness of the (de-)serialization,
-        // but it makes sense to strive to be as close as possible to DeviceSQL
+        // but it makes sense to strive to be as close as possible to DeviceSQL.
+        // This is implemented by writing the rows first, recording their
+        // offset and then writing them in a second pass.
+
+        let row_offsets_start = writer.stream_position()?;
+
+        let heap_start = page_offset + relative_row_offset;
+        let mut row_offsets = vec![0u16; rows_in_group as usize];
 
         // Write rows
-        let mut offset = page_offset + relative_row_offset;
-        for row in &self.rows {
-            let alignment = row
-                .get_alignment()
+        writer.seek(SeekFrom::Start(heap_start))?;
+        for (i, row) in self.rows.iter().enumerate() {
+            let row_position = writer.stream_position()?;
+            row.write_options(writer, &options, ())?;
+
+            row_offsets[i] = (row_position - heap_start)
+                .try_into()
+                .ok()
                 .ok_or_else(|| binrw::Error::AssertFail {
-                    pos: offset,
-                    message: "Unexpected Row Alignment".to_string(),
-                })?
-                .get();
-            // Write row offset
-            let row_offset: u16 = offset
-                .checked_sub(page_offset)
-                .map(|offset| align_by(alignment, offset))
-                .and_then(|v| u16::try_from(v).ok())
-                .ok_or_else(|| binrw::Error::AssertFail {
-                    pos: offset,
+                    pos: heap_start,
                     message: "Wraparound while calculating row offset".to_string(),
                 })?;
-            row_offset.write_options(writer, &options, ())?;
-            let restore_position = writer.stream_position()?;
-
-            // TODO(Swiftb0y): Write with proper alignment.
-            // Rows don't seem to be directly adjacent to each other
-            // but instead have gaps in between. They probably adhere to their
-            // member variable alignment.
-            // I have seen gaps of 52 to 55 bytes (ending after the last char
-            // of the previous row and the first byte of the next row).
-            // I have 0 idea why these gaps are this big or how to accurately
-            // guess their size.
-            // Rows also don't have a fixed size. Their sizes seem to fluctuate
-            // between 0 and 48 bytes in size (though the fluctuations always
-            // were multiple of 12)
-
-            // Write actual row content
-            let offset_before_write = writer.seek(SeekFrom::Start(offset))?;
-            row.write_options(writer, &options, ())?;
-            let offset_after_write = writer.stream_position()?;
-            offset += offset_after_write - offset_before_write;
-
-            // Seek back to row offset
-            writer.seek(SeekFrom::Start(restore_position))?;
         }
-        let new_relative_row_offset = offset - page_offset;
-
+        let heap_end = writer.stream_position()?;
+        writer.seek(SeekFrom::Start(row_offsets_start))?;
+        for offset in row_offsets.into_iter().rev() {
+            offset.write_options(writer, &options, ())?;
+        }
         self.row_presence_flags
             .write_options(writer, &options, ())?;
         self.unknown.write_options(writer, &options, ())?;
 
-        Ok(new_relative_row_offset)
+        Ok(heap_end - page_offset)
     }
 }
 
@@ -1097,6 +1102,29 @@ impl BinWrite for Track {
         string_offsets.write_options(writer, options, ())?;
         writer.seek(SeekFrom::Start(end_of_row))?;
 
+        // TODO(Swiftb0y): encapsulate this properly
+        // Rows don't seem to be directly adjacent to each other
+        // but instead have gaps in between. They probably adhere to their
+        // member variable alignment.
+        // I have seen gaps of 52 to 55 bytes (ending after the last char
+        // of the previous row and the first byte of the next row).
+        // I have 0 idea why these gaps are this big or how to accurately
+        // guess their size.
+        // Rows also don't have a fixed size. Their sizes seem to fluctuate
+        // between 0 and 48 bytes in size (though the fluctuations always
+        // were multiple of 12)
+
+        let mut padding_base = 0x34;
+        // This is a heuristic that seems to match the padding behavior of the
+        // original file for the `track_page` test case. The actual logic
+        // is unknown.
+        // We're assigning a different padding base for even and odd tracks
+        if self.id.0 % 2 == 0 {
+            padding_base += 4;
+        }
+        padding_base = ((end_of_row + padding_base) & !0b11) - end_of_row;
+        writer.seek(SeekFrom::Current(padding_base as i64))?;
+
         Ok(())
     }
 }
@@ -1157,6 +1185,9 @@ pub enum Row {
 }
 
 impl Row {
+    // TODO We should survey all the different kind of rows and ensure they're 
+    // aligned properly. Temporally allowed unused
+    #[allow(unused)]
     #[must_use]
     const fn get_alignment(&self) -> Option<std::num::NonZeroU64> {
         use crate::pdb::Row::*;
