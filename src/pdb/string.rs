@@ -41,7 +41,7 @@ pub enum StringError {
 /// # pub fn main() -> binrw::BinResult<()> {
 /// use rekordcrate::pdb::string::DeviceSQLString;
 /// use binrw::{BinWrite, BinRead};
-/// let string = DeviceSQLString::new("foo".to_owned()).unwrap();
+/// let string = "foo".parse::<DeviceSQLString>().unwrap();
 /// let binary = vec![0x9, 0x66, 0x6F, 0x6F];
 ///
 /// let mut writer = binrw::io::Cursor::new(vec![]);
