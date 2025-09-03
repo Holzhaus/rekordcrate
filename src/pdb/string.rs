@@ -12,7 +12,7 @@
 //! See <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/exports.html#devicesql-strings>
 
 use binrw::binrw;
-use std::{convert::TryInto, fmt};
+use std::{convert::TryInto, fmt, str::FromStr};
 use thiserror::Error;
 
 const MAX_SHORTSTR_SIZE: usize = ((u8::MAX >> 1) - 1) as usize;
@@ -60,17 +60,17 @@ pub enum StringError {
 pub struct DeviceSQLString(DeviceSQLStringImpl);
 impl DeviceSQLString {
     /// Initializes a [`DeviceSQLString`] from a plain Rust [`std::string::String`]
-    pub fn new(string: String) -> Result<Self, StringError> {
+    pub fn new(string: &str) -> Result<Self, StringError> {
         let len = string.len();
         let only_ascii = string.is_ascii();
         if only_ascii && len <= MAX_SHORTSTR_SIZE {
             Ok(Self(DeviceSQLStringImpl::ShortASCII {
-                content: string.into_bytes(),
+                content: string.as_bytes().to_owned(),
             }))
         } else if len <= (i16::MAX as usize) {
             if only_ascii {
                 Ok(Self(DeviceSQLStringImpl::Long {
-                    content: LongBody::Ascii(string.into_bytes()),
+                    content: LongBody::Ascii(string.as_bytes().to_owned()),
                 }))
             } else {
                 Ok(Self(DeviceSQLStringImpl::Long {
@@ -142,6 +142,16 @@ impl fmt::Debug for DeviceSQLString {
             .into_string()
             .unwrap_or_else(|_| "<string error>".to_string());
         fmt.debug_tuple("DeviceSQLString").field(&value).finish()
+    }
+}
+/// support `"somestr".parse()`.
+/// ISRCs are an edge case that need to be constructed
+/// using DeviceSQLString::new_isrc
+impl FromStr for DeviceSQLString {
+    type Err = StringError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::new(s)
     }
 }
 
@@ -237,10 +247,7 @@ mod test {
 
     #[test]
     fn short_ascii_string() -> Result<(), StringError> {
-        test_roundtrip(
-            &[0x9, 0x66, 0x6F, 0x6F],
-            DeviceSQLString::new("foo".to_owned())?,
-        );
+        test_roundtrip(&[0x9, 0x66, 0x6F, 0x6F], DeviceSQLString::new("foo")?);
         Ok(())
     }
 
@@ -259,10 +266,7 @@ mod test {
             0x20, 0x64, 0x6F, 0x6C, 0x6F, 0x72, 0x65, 0x20, 0x6D, 0x61, 0x67, 0x6E, 0x61, 0x20,
             0x61, 0x6C, 0x69, 0x71, 0x75,
         ];
-        test_roundtrip(
-            &long_string_serialized,
-            DeviceSQLString::new(long_string.to_owned())?,
-        );
+        test_roundtrip(&long_string_serialized, DeviceSQLString::new(long_string)?);
         Ok(())
     }
 
@@ -272,7 +276,7 @@ mod test {
             0x90, 0x14, 0x00, 0x00, 0x49, 0x00, 0x20, 0x00, 0x64, 0x27, 0x20, 0x00, 0x52, 0x00,
             0x75, 0x00, 0x73, 0x00, 0x74, 0x00,
         ];
-        test_roundtrip(&serialized, DeviceSQLString::new("I ❤ Rust".to_string())?);
+        test_roundtrip(&serialized, DeviceSQLString::new("I ❤ Rust")?);
         Ok(())
     }
 
@@ -289,7 +293,7 @@ mod test {
         let humongous_string = String::from_utf8(HUMONGOUS_ARRAY.to_vec()).unwrap();
 
         assert_eq!(
-            DeviceSQLString::new(humongous_string).unwrap_err(),
+            DeviceSQLString::new(&humongous_string).unwrap_err(),
             StringError::TooLong
         );
     }
@@ -311,6 +315,23 @@ mod test {
             StringError::InvalidISRC
         );
 
+        Ok(())
+    }
+    #[test]
+    fn from_str_parse() -> Result<(), StringError> {
+        assert_eq!(
+            "foo".parse::<DeviceSQLString>()?,
+            DeviceSQLString::new("foo")?
+        );
+        assert_eq!(
+            "I ❤ FromStr".parse::<DeviceSQLString>()?,
+            DeviceSQLString::new("I ❤ FromStr")?
+        );
+        let long_string = "Lorem ipsum dolor sit amet, consetetur sadipscing elitr, sed diam nonumy eirmod tempor invidunt ut labore et dolore magna aliqu";
+        assert_eq!(
+            long_string.parse::<DeviceSQLString>()?,
+            DeviceSQLString::new(long_string)?
+        );
         Ok(())
     }
 }
