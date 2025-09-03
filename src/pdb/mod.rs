@@ -301,7 +301,6 @@ pub struct Page {
     pub row_groups: Vec<RowGroup>,
 }
 
-// MERGE: Keep the BinWrite implementation from HEAD.
 // #[bw(little)] on #[binread] types does not seem to work so we manually define the endianness here.
 impl binrw::meta::WriteEndian for Page {
     const ENDIAN: binrw::meta::EndianKind = binrw::meta::EndianKind::Endian(Endian::Little);
@@ -361,9 +360,7 @@ impl Page {
     /// Size of the page header in bytes.
     pub const HEADER_SIZE: u32 = 0x28;
 
-    /// Parse the row groups at the end of the page.
-    // MERGE: Keep the calculation helper from HEAD but rename for clarity.
-    // This calculates the size of the empty space between the header and the footer.
+    /// Calculate the size of the empty space between the header and the footer.
     fn heap_padding_size(page_size: u32, num_rows: u16, num_row_groups: u16) -> usize {
         // Size of all row offsets (2 bytes each) + all group footers (4 bytes each)
         let row_groups_footer_size = num_rows as u32 * 2 + num_row_groups as u32 * 4;
@@ -383,28 +380,21 @@ impl Page {
 
         let mut row_groups = Vec::with_capacity(num_row_groups as usize);
 
+        // The reader is positioned at the very end of the page footer area.
+        // The RowGroup reader will now be responsible for all seeking.
         for _ in 0..num_row_groups {
-            // Parse backwards and restore the stream position.
+            // Parse one group. The read_options impl will read its data
+            // and leave the stream pointer at its start.
             let group = RowGroup::read_options(reader, endian, (page_type, page_heap_offset))?;
 
-            // We now know the size of the footer we just read.
-            let num_present_rows = group.row_presence_flags.count_ones();
-            let footer_size = (u64::from(num_present_rows) * 2) + 4; // 2 bytes/offset + 4 for flags/unknown
-
-            // Seek to the beginning of this footer, which is the end of the previous one.
-            let current_pos = reader.stream_position()?;
-            reader.seek(SeekFrom::Start(current_pos - footer_size))?;
-
-            // Since we're parsing from last-to-first, insert at the front to maintain order.
+            // Since we parse backwards, insert at the front to maintain order.
             row_groups.insert(0, group);
         }
 
         Ok(row_groups)
     }
-
     #[must_use]
     /// Returns `true` if the page actually contains row data.
-    // MERGE: Keep this helper from `main`.
     pub fn has_data(&self) -> bool {
         self.page_flags.page_has_data()
     }
@@ -446,9 +436,6 @@ impl RowGroup {
     const MAX_ROW_COUNT: usize = 16;
 
     /// Return the ordered list of row offsets that are actually present.
-    // MERGE: Combined approaches. Iterates over the lazy-loaded pointers like `main`,
-    // but returns a reference `&Row` like `HEAD` to avoid expensive clones.
-    // The `.rev()` is kept from `main` to restore the logical order of rows.
     pub fn present_rows(&self) -> impl Iterator<Item = &Row> + '_ {
         self.rows
             .iter()
@@ -456,51 +443,39 @@ impl RowGroup {
     }
 }
 
-// MERGE: Kept the custom `BinRead` implementation from `main` as it's
-// designed for the lazy-loading data structure.
 impl BinRead for RowGroup {
     type Args<'a> = (PageType, u64);
 
-    /// Read a row group from the reader.
-    ///
-    /// Note: For this to work, the read position needs to be at the *end* of the row group. For
-    /// the first row group, this is the end of the page heap.
     fn read_options<R: Read + Seek>(
         reader: &mut R,
         endian: Endian,
-        (page_type, page_heap_offset): Self::Args<'_>,
+        args: Self::Args<'_>,
     ) -> BinResult<Self> {
-        let row_group_end_position = reader.stream_position()?;
-        reader.seek(SeekFrom::Current(-4))?;
+        let (page_type, page_heap_offset) = args;
+        // The reader is at the end of the data for this group's footer.
+        let group_footer_end_pos = reader.stream_position()?;
+
+        // Seek back and read the fixed-size part of the footer (flags + unknown).
+        reader.seek(SeekFrom::Start(group_footer_end_pos - 4))?;
         let row_presence_flags = u16::read_options(reader, endian, ())?;
         let unknown = u16::read_options(reader, endian, ())?;
-        debug_assert!(row_group_end_position == reader.stream_position()?);
 
-        const MISSING_ROW: Option<FilePtr16<Row>> = None;
+        // (16 offsets * 2 bytes/offset) + 4 bytes for flags/unknown = 36 bytes.
+        let group_footer_start_pos = group_footer_end_pos - 36;
 
-        let mut rows: [Option<FilePtr16<Row>>; Self::MAX_ROW_COUNT] =
-            [MISSING_ROW; Self::MAX_ROW_COUNT];
-        if row_presence_flags.count_ones() == 0 {
-            return Ok(RowGroup {
-                rows,
-                row_presence_flags,
-                unknown,
-            });
-        }
+        // Seek to the start of the offset slots to read them sequentially.
+        reader.seek(SeekFrom::Start(group_footer_start_pos))?;
 
-        // TODO streamline this using iterators once std::iter::Iterator::map_windows is stable
-        let mut needs_seek = true;
-        for i in (0..RowGroup::MAX_ROW_COUNT).rev() {
-            let row_present = row_presence_flags & (1 << i) != 0;
-            if row_present {
-                if needs_seek {
-                    // The original `main` branch code had a potential bug in calculating the seek offset.
-                    // The number of pointers to skip is `i + 1`. The total size is `4` (for flags/unknown) + `2 * num_pointers`.
-                    let read_pos =
-                        row_group_end_position - 4 - 2 * (row_presence_flags.count_ones() as u64);
-                    reader.seek(SeekFrom::Start(read_pos))?;
-                }
-                let row = FilePtr16::read_options(
+        // Parse the 16 offset slots.
+        let mut rows = [const { None }; Self::MAX_ROW_COUNT];
+        // The offsets are stored on disk in descending row-index order (15, 14, ... 0).
+        // We read them sequentially from the start of the block.
+        for i in (0..Self::MAX_ROW_COUNT).rev() {
+            if (row_presence_flags & (1 << i)) != 0 {
+                // This row exists. Let FilePtr::read_options read the u16 offset
+                // from the current stream position and create the lazy pointer. This is
+                // the idiomatic way.
+                let row_ptr = FilePtr16::read_options(
                     reader,
                     endian,
                     FilePtrArgs {
@@ -508,23 +483,26 @@ impl BinRead for RowGroup {
                         inner: (page_type,),
                     },
                 )?;
-                rows[i] = Some(row);
+                rows[i] = Some(row_ptr);
+            } else {
+                // This row does not exist. We must still consume the 2-byte
+                // placeholder offset from the stream to advance the cursor correctly.
+                let _ = u16::read_options(reader, endian, ())?;
             }
-            needs_seek = !row_present;
         }
 
-        reader.seek(SeekFrom::Start(row_group_end_position))?;
+        // Leave the stream at the beginning of the footer we just consumed,
+        // so the calling loop can start parsing the *next* group.
+        reader.seek(SeekFrom::Start(group_footer_start_pos))?;
 
-        Ok(RowGroup {
-            rows,
+        Ok(Self {
             row_presence_flags,
             unknown,
+            rows,
         })
     }
 }
 
-// MERGE: Adapted the `BinWrite` implementation from `HEAD` to work with the
-// lazy-loading `[Option<FilePtr16<Row>>]` structure.
 impl BinWrite for RowGroup {
     type Args<'a> = (u64, u64);
 
@@ -568,7 +546,6 @@ impl RowGroup {
 
         // Write rows
         writer.seek(SeekFrom::Start(heap_start))?;
-        // MERGE ADAPTATION: Iterate over our collected `present_rows`
         for (i, row) in present_rows.iter().enumerate() {
             let row_position = writer.stream_position()?;
             row.write_options(writer, endian, ())?;
