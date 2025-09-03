@@ -217,10 +217,17 @@ pub struct Page {
     #[bw(ignore)]
     magic: u32,
     /// Index of the page.
+    ///
+    /// Should match the index used for lookup and can be used to verify that the correct page was loaded.
     pub page_index: PageIndex,
     /// Type of information that the rows of this page contain.
+    ///
+    /// Should match the page type of the table that this page belongs to.
     pub page_type: PageType,
     /// Index of the next page with the same page type.
+    ///
+    /// If this page is the last one of that type, the page index stored in the field will point
+    /// past the end of the file.
     pub next_page: PageIndex,
     /// Unknown field.
     #[allow(dead_code)]
@@ -229,37 +236,62 @@ pub struct Page {
     #[allow(dead_code)]
     unknown2: u32,
     /// Number of rows in this table (8-bit version).
+    ///
+    /// Used if `num_rows_large` not greater than this value and not equal to `0x1FFF`, which means
+    /// that the number of rows fits into a single byte.
     pub num_rows_small: u8,
     /// Unknown field.
+    ///
+    /// According to [@flesniak](https://github.com/flesniak):
+    /// > a bitmask (first track: 32)
     #[allow(dead_code)]
     unknown3: u8,
     /// Unknown field.
+    ///
+    /// According to [@flesniak](https://github.com/flesniak):
+    /// > often 0, sometimes larger, esp. for pages with high real_entry_count (e.g. 12 for 101 entries)
     #[allow(dead_code)]
     unknown4: u8,
     /// Page flags.
+    ///
+    /// According to [@flesniak](https://github.com/flesniak):
+    /// > strange pages: 0x44, 0x64; otherwise seen: 0x24, 0x34
     page_flags: PageFlags,
     /// Free space in bytes in the data section of the page (excluding the row offsets in the page footer).
     pub free_size: u16,
     /// Used space in bytes in the data section of the page.
     pub used_size: u16,
     /// Unknown field.
+    ///
+    /// According to [@flesniak](https://github.com/flesniak):
+    /// > (0->1: 2)
     #[allow(dead_code)]
     unknown5: u16,
     /// Number of rows in this table (16-bit version).
+    ///
+    /// Used when the number of rows does not fit into a single byte. In that case,`num_rows_large`
+    /// is greater than `num_rows_small`, but is not equal to `0x1FFF`.
     pub num_rows_large: u16,
     /// Unknown field.
     #[allow(dead_code)]
     unknown6: u16,
     /// Unknown field.
+    ///
+    /// According to [@flesniak](https://github.com/flesniak):
+    /// > always 0, except 1 for history pages, num entries for strange pages?"
     #[allow(dead_code)]
     unknown7: u16,
     /// Number of rows in this page.
+    ///
+    /// **Note:** This is a virtual field and not actually read from the file.
     #[br(temp, calc = Self::calculate_num_rows(num_rows_small, num_rows_large))]
     num_rows: u16,
     /// Number of rows groups in this page.
     #[br(temp, calc = num_rows.div_ceil(RowGroup::MAX_ROW_COUNT as u16))]
     num_row_groups: u16,
     /// The offset at which the row data for this page are located.
+    ///
+    /// **Note:** This is a virtual field and not actually read from the file.
     #[br(temp, calc = page_start_pos + u64::from(Self::HEADER_SIZE))]
     page_heap_offset: u64,
     /// Row groups belonging to this page.
@@ -333,6 +365,7 @@ impl Page {
     /// Size of the page header in bytes.
     pub const HEADER_SIZE: u32 = 0x28;
 
+    /// Parse the row groups at the end of the page.
     // MERGE: Keep the calculation helper from HEAD but rename for clarity.
     // This calculates the size of the empty space between the header and the footer.
     fn heap_padding_size(page_size: u32, num_rows: u16, num_row_groups: u16) -> usize {
@@ -390,7 +423,8 @@ impl Page {
 
     #[must_use]
     /// Number of rows on this page.
-    // MERGE: Keep and reuse this helper from `main`.
+    ///
+    /// Note that this number includes rows that have been flagged as missing by the row group.
     pub fn num_rows(&self) -> u16 {
         Self::calculate_num_rows(self.num_rows_small, self.num_rows_large)
     }
@@ -412,7 +446,6 @@ pub struct RowGroup {
     /// An offset which points to a row in the table, whose actual presence is controlled by one of the
     /// bits in `row_present_flags`. This instance allows the row itself to be lazily loaded, unless it
     /// is not present, in which case there is no content to be loaded.
-    // MERGE: Adopted the lazy-loading structure from `main`. We will handle serialization manually.
     rows: [Option<FilePtr16<Row>>; Self::MAX_ROW_COUNT],
     row_presence_flags: u16,
     /// Unknown field, probably padding.
@@ -453,8 +486,7 @@ impl BinRead for RowGroup {
         reader.seek(SeekFrom::Current(-4))?;
         let row_presence_flags = u16::read_options(reader, endian, ())?;
         let unknown = u16::read_options(reader, endian, ())?;
-        // binrw has an issue with debug_assert and stream_position so this was removed
-        // https://github.com/jam1garner/binrw/issues/113
+        debug_assert!(row_group_end_position == reader.stream_position()?);
 
         const MISSING_ROW: Option<FilePtr16<Row>> = None;
 
@@ -529,10 +561,6 @@ impl RowGroup {
     ) -> binrw::BinResult<u64> {
         let (page_offset, relative_row_offset) = args;
 
-        // MERGE ADAPTATION:
-        // Collect the actual rows that are present. The `present_rows()` helper we defined
-        // is perfect for this. We collect into a Vec to simplify the writing logic below,
-        // which was originally designed for a Vec.
         let present_rows: Vec<&Row> = self.present_rows().collect();
 
         let rows_to_write_count = present_rows.len();
