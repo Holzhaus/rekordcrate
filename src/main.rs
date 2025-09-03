@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Jan Holthuis <jan.holthuis@rub.de>
+// Copyright (c) 2025 Jan Holthuis <jan.holthuis@rub.de>
 //
 // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy
 // of the MPL was not distributed with this file, You can obtain one at
@@ -6,11 +6,12 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-use binrw::{BinRead, ReadOptions};
+use binrw::BinRead;
 use clap::{Parser, Subcommand};
 use rekordcrate::anlz::ANLZ;
 use rekordcrate::pdb::{Header, PageType, Row};
 use rekordcrate::setting::Setting;
+use rekordcrate::xml::Document;
 use std::path::PathBuf;
 
 #[derive(Parser)]
@@ -45,6 +46,12 @@ enum Commands {
     DumpSetting {
         /// File to parse.
         #[arg(value_name = "SETTING_FILE")]
+        path: PathBuf,
+    },
+    /// Parse and dump a Pioneer XML (`*.xml`) file.
+    DumpXML {
+        /// File to parse.
+        #[arg(value_name = "XML_FILE")]
         path: PathBuf,
     },
 }
@@ -85,7 +92,7 @@ fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
             header
                 .read_pages(
                     &mut reader,
-                    &ReadOptions::new(binrw::Endian::NATIVE),
+                    binrw::Endian::NATIVE,
                     (&table.first_page, &table.last_page),
                 )
                 .unwrap()
@@ -96,12 +103,11 @@ fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
                         .present_rows()
                         .map(|row| {
                             if let Row::PlaylistTreeNode(playlist_tree) = row {
-                                playlist_tree
+                                playlist_tree.clone()
                             } else {
                                 unreachable!("encountered non-playlist tree row in playlist table");
                             }
                         })
-                        .cloned()
                         .collect::<Vec<PlaylistTreeNode>>()
                         .into_iter()
                 })
@@ -132,7 +138,7 @@ fn dump_pdb(path: &PathBuf) -> rekordcrate::Result<()> {
         for page in header
             .read_pages(
                 &mut reader,
-                &ReadOptions::new(binrw::Endian::NATIVE),
+                binrw::Endian::NATIVE,
                 (&table.first_page, &table.last_page),
             )
             .unwrap()
@@ -160,6 +166,15 @@ fn dump_setting(path: &PathBuf) -> rekordcrate::Result<()> {
     Ok(())
 }
 
+fn dump_xml(path: &PathBuf) -> rekordcrate::Result<()> {
+    let file = std::fs::File::open(path)?;
+    let reader = std::io::BufReader::new(file);
+    let document: Document = quick_xml::de::from_reader(reader).expect("failed to deserialize XML");
+    println!("{:#?}", document);
+
+    Ok(())
+}
+
 fn main() -> rekordcrate::Result<()> {
     let cli = Cli::parse();
 
@@ -168,5 +183,6 @@ fn main() -> rekordcrate::Result<()> {
         Commands::DumpPDB { path } => dump_pdb(path),
         Commands::DumpANLZ { path } => dump_anlz(path),
         Commands::DumpSetting { path } => dump_setting(path),
+        Commands::DumpXML { path } => dump_xml(path),
     }
 }

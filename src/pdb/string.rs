@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Nikolaus Einhauser
+// Copyright (c) 2025 Nikolaus Einhauser
 //
 // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy
 // of the MPL was not distributed with this file, You can obtain one at
@@ -161,7 +161,7 @@ enum DeviceSQLStringImpl {
         #[bw(calc = (((content.len() + 1) << 1) | 1) as u8)]
         header: u8,
 
-        #[br(count = (header >> 1) - 1)]
+        #[br(count = usize::from(header >> 1) - 1)]
         content: Vec<u8>,
     },
     /// Regular long form strings, containing possibly different encodings
@@ -193,10 +193,10 @@ enum LongBody {
     #[br(pre_assert(flags == 0x90))]
     Isrc(#[brw(magic = 0x3u8)] binrw::NullString),
     #[br(pre_assert(flags == 0x40))]
-    Ascii(#[br(count = len)] Vec<u8>),
+    Ascii(#[br(count = usize::from(len))] Vec<u8>),
     #[br(pre_assert(flags == 0x90))]
     #[br(pre_assert(len % 2 == 0))]
-    Ucs2le(#[br(count = len / 2)] Vec<u16>),
+    Ucs2le(#[br(count = usize::from(len / 2))] Vec<u16>),
 }
 
 impl LongBody {
@@ -282,7 +282,7 @@ mod test {
         const TOO_LARGE_STR_SIZE: usize = (u16::MAX as usize) + 1;
         const INIT_CHAR: char = 'A';
         const _: () = assert!(INIT_CHAR.is_ascii());
-        const HUMONGOUS_ARRAY: [u8; TOO_LARGE_STR_SIZE] = [INIT_CHAR as u8; TOO_LARGE_STR_SIZE];
+        static HUMONGOUS_ARRAY: [u8; TOO_LARGE_STR_SIZE] = [INIT_CHAR as u8; TOO_LARGE_STR_SIZE];
 
         // Since we already know that the string only contains ascii at compile time,
         // we could probably skip the validation, but that requires unsafe code which I'd consider overkill.

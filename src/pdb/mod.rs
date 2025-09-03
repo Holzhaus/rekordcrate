@@ -23,15 +23,16 @@ pub mod string;
 use std::convert::TryInto;
 
 use crate::pdb::string::DeviceSQLString;
-use crate::util::{ColorIndex};
+use crate::util::ColorIndex;
 use binrw::{
     binread, binrw,
+    file_ptr::FilePtrArgs,
     io::{Read, Seek, SeekFrom, Write},
-    BinRead, BinResult, BinWrite, Endian, FilePtr16, FilePtr8, ReadOptions, VecArgs, WriteOptions,
+    BinRead, BinResult, BinWrite, Endian, FilePtr16, FilePtr8,
 };
 
 /// Do not read anything, but the return the current stream position of `reader`.
-fn current_offset<R: Read + Seek>(reader: &mut R, _: &ReadOptions, _: ()) -> BinResult<u64> {
+fn current_offset<R: Read + Seek>(reader: &mut R, _: Endian, _: ()) -> BinResult<u64> {
     reader.stream_position().map_err(binrw::Error::Io)
 }
 
@@ -163,9 +164,10 @@ impl Header {
     pub fn read_pages<R: Read + Seek>(
         &self,
         reader: &mut R,
-        ro: &ReadOptions,
+        _: Endian,
         args: (&PageIndex, &PageIndex),
     ) -> BinResult<Vec<Page>> {
+        let endian = Endian::Little;
         let (first_page, last_page) = args;
 
         let mut pages = vec![];
@@ -173,7 +175,7 @@ impl Header {
         loop {
             let page_offset = SeekFrom::Start(page_index.offset(self.page_size));
             reader.seek(page_offset).map_err(binrw::Error::Io)?;
-            let page = Page::read_options(reader, ro, (self.page_size,))?;
+            let page = Page::read_options(reader, endian, (self.page_size,))?;
             let is_last_page = &page.page_index == last_page;
             page_index = page.next_page.clone();
             pages.push(page);
@@ -215,17 +217,10 @@ pub struct Page {
     #[bw(ignore)]
     magic: u32,
     /// Index of the page.
-    ///
-    /// Should match the index used for lookup and can be used to verify that the correct page was loaded.
     pub page_index: PageIndex,
     /// Type of information that the rows of this page contain.
-    ///
-    /// Should match the page type of the table that this page belongs to.
     pub page_type: PageType,
     /// Index of the next page with the same page type.
-    ///
-    /// If this page is the last one of that type, the page index stored in the field will point
-    /// past the end of the file.
     pub next_page: PageIndex,
     /// Unknown field.
     #[allow(dead_code)]
@@ -234,135 +229,99 @@ pub struct Page {
     #[allow(dead_code)]
     unknown2: u32,
     /// Number of rows in this table (8-bit version).
-    ///
-    /// Used if `num_rows_large` not greater than this value and not equal to `0x1FFF`, which means
-    /// that the number of rows fits into a single byte.
     pub num_rows_small: u8,
     /// Unknown field.
-    ///
-    /// According to [@flesniak](https://github.com/flesniak):
-    /// > a bitmask (first track: 32)
     #[allow(dead_code)]
     unknown3: u8,
     /// Unknown field.
-    ///
-    /// According to [@flesniak](https://github.com/flesniak):
-    /// > often 0, sometimes larger, esp. for pages with high real_entry_count (e.g. 12 for 101 entries)
     #[allow(dead_code)]
     unknown4: u8,
     /// Page flags.
-    ///
-    /// According to [@flesniak](https://github.com/flesniak):
-    /// > strange pages: 0x44, 0x64; otherwise seen: 0x24, 0x34
     page_flags: PageFlags,
     /// Free space in bytes in the data section of the page (excluding the row offsets in the page footer).
     pub free_size: u16,
     /// Used space in bytes in the data section of the page.
     pub used_size: u16,
     /// Unknown field.
-    ///
-    /// According to [@flesniak](https://github.com/flesniak):
-    /// > (0->1: 2)
     #[allow(dead_code)]
     unknown5: u16,
     /// Number of rows in this table (16-bit version).
-    ///
-    /// Used when the number of rows does not fit into a single byte. In that case,`num_rows_large`
-    /// is greater than `num_rows_small`, but is not equal to `0x1FFF`.
     pub num_rows_large: u16,
     /// Unknown field.
     #[allow(dead_code)]
     unknown6: u16,
     /// Unknown field.
-    ///
-    /// According to [@flesniak](https://github.com/flesniak):
-    /// > always 0, except 1 for history pages, num entries for strange pages?"
     #[allow(dead_code)]
     unknown7: u16,
     /// Number of rows in this page.
-    ///
-    /// **Note:** This is a virtual field and not actually read from the file.
-    #[br(temp)]
-    #[br(calc = if num_rows_large > num_rows_small.into() && num_rows_large != 0x1fff { num_rows_large } else { num_rows_small.into() })]
+    #[br(temp, calc = Self::calculate_num_rows(num_rows_small, num_rows_large))]
     num_rows: u16,
     /// Number of rows groups in this page.
-    ///
-    /// **Note:** This is a virtual field and not actually read from the file.
-    #[br(temp)]
-    #[br(calc = num_rows.div_ceil(RowGroup::MAX_ROW_COUNT))]
+    #[br(temp, calc = num_rows.div_ceil(RowGroup::MAX_ROW_COUNT as u16))]
     num_row_groups: u16,
     /// The offset at which the row data for this page are located.
-    ///
-    /// **Note:** This is a virtual field and not actually read from the file.
-    #[br(temp)]
-    #[br(calc = page_start_pos + u64::from(Self::HEADER_SIZE))]
+    #[br(temp, calc = page_start_pos + u64::from(Self::HEADER_SIZE))]
     page_heap_offset: u64,
     /// Row groups belonging to this page.
-    #[br(seek_before(SeekFrom::Current(Page::row_groups_offset(
+    // MERGE: Use the seek strategy from HEAD, and the parsing strategy from HEAD's arguments.
+    #[br(seek_before(SeekFrom::Current(Self::heap_padding_size(
         page_size,
-        num_rows_small,
-        num_rows_large
-    ))))]
+        num_rows,
+        num_row_groups
+    ) as i64)))]
     #[br(parse_with = Self::parse_row_groups, args(page_type, page_heap_offset, num_rows, num_row_groups, page_flags))]
     pub row_groups: Vec<RowGroup>,
 }
 
-// #[bw(little)] on #[binread] types does
-// not seem to work so we manually define the endianness here.
+// MERGE: Keep the BinWrite implementation from HEAD.
+// #[bw(little)] on #[binread] types does not seem to work so we manually define the endianness here.
 impl binrw::meta::WriteEndian for Page {
     const ENDIAN: binrw::meta::EndianKind = binrw::meta::EndianKind::Endian(Endian::Little);
 }
 
 impl BinWrite for Page {
-    type Args = (u32,);
+    type Args<'a> = (u32,); // page_size
 
     fn write_options<W: Write + Seek>(
         &self,
         writer: &mut W,
-        options: &WriteOptions,
-        args: Self::Args,
+        endian: Endian,
+        args: Self::Args<'_>,
     ) -> BinResult<()> {
-        let options = options.with_endian(Endian::Little);
-
-        let page_offset = writer.stream_position().map_err(binrw::Error::Io)?;
+        let (page_size,) = args;
+        let page_offset = writer.stream_position()?;
 
         // Header
-        0u32.write_options(writer, &options, ())?;
-        self.page_index.write_options(writer, &options, ())?;
-        self.page_type.write_options(writer, &options, ())?;
-        self.next_page.write_options(writer, &options, ())?;
-        self.unknown1.write_options(writer, &options, ())?;
-        self.unknown2.write_options(writer, &options, ())?;
-        self.num_rows_small.write_options(writer, &options, ())?;
-        self.unknown3.write_options(writer, &options, ())?;
-        self.unknown4.write_options(writer, &options, ())?;
-        self.page_flags.write_options(writer, &options, ())?;
-        self.free_size.write_options(writer, &options, ())?;
-        self.used_size.write_options(writer, &options, ())?;
-        self.unknown5.write_options(writer, &options, ())?;
-        self.num_rows_large.write_options(writer, &options, ())?;
-        self.unknown6.write_options(writer, &options, ())?;
-        self.unknown7.write_options(writer, &options, ())?;
+        0u32.write_options(writer, endian, ())?;
+        self.page_index.write_options(writer, endian, ())?;
+        self.page_type.write_options(writer, endian, ())?;
+        self.next_page.write_options(writer, endian, ())?;
+        self.unknown1.write_options(writer, endian, ())?;
+        self.unknown2.write_options(writer, endian, ())?;
+        self.num_rows_small.write_options(writer, endian, ())?;
+        self.unknown3.write_options(writer, endian, ())?;
+        self.unknown4.write_options(writer, endian, ())?;
+        self.page_flags.write_options(writer, endian, ())?;
+        self.free_size.write_options(writer, endian, ())?;
+        self.used_size.write_options(writer, endian, ())?;
+        self.unknown5.write_options(writer, endian, ())?;
+        self.num_rows_large.write_options(writer, endian, ())?;
+        self.unknown6.write_options(writer, endian, ())?;
+        self.unknown7.write_options(writer, endian, ())?;
 
-        let (page_size,) = args;
+        // Padding between header and row group footers
+        let num_rows = self.num_rows();
+        let num_row_groups = num_rows.div_ceil(RowGroup::MAX_ROW_COUNT as u16);
+        let padding_size = Self::heap_padding_size(page_size, num_rows, num_row_groups);
+        vec![0u8; padding_size].write_options(writer, endian, ())?;
 
-        // Padding
-        let page_heap_size: usize =
-            Self::row_groups_offset(page_size, self.num_rows_small, self.num_rows_large)
-                .try_into()
-                .map_err(|e| binrw::Error::Custom {
-                    pos: (page_offset + u64::from(Self::HEADER_SIZE)),
-                    err: Box::new(e),
-                })?;
-        vec![0u8; page_heap_size].write_options(writer, &options, ())?;
-
-        // Row Groups
+        // Row Groups (this also writes the actual row data to the heap area)
         let mut relative_row_offset: u64 = Self::HEADER_SIZE.into();
 
         for row_group in &self.row_groups {
             relative_row_offset = row_group.write_options_and_get_row_offset(
                 writer,
-                &options,
+                endian,
                 (page_offset, relative_row_offset),
             )?;
         }
@@ -374,55 +333,49 @@ impl Page {
     /// Size of the page header in bytes.
     pub const HEADER_SIZE: u32 = 0x28;
 
-    fn row_groups_offset(page_size: u32, num_rows_small: u8, num_rows_large: u16) -> i64 {
-        let num_rows = if num_rows_large > num_rows_small.into() && num_rows_large != 0x1fff {
-            num_rows_large
-        } else {
-            num_rows_small.into()
-        };
-        let num_row_groups = num_rows.div_ceil(RowGroup::MAX_ROW_COUNT);
-
-        let row_groups_size = num_rows * 2 + num_row_groups * 4;
-        dbg!(row_groups_size);
-
-        i64::from(page_size) - i64::from(Self::HEADER_SIZE) - i64::from(row_groups_size)
+    // MERGE: Keep the calculation helper from HEAD but rename for clarity.
+    // This calculates the size of the empty space between the header and the footer.
+    fn heap_padding_size(page_size: u32, num_rows: u16, num_row_groups: u16) -> usize {
+        // Size of all row offsets (2 bytes each) + all group footers (4 bytes each)
+        let row_groups_footer_size = num_rows as u32 * 2 + num_row_groups as u32 * 4;
+        (page_size - Self::HEADER_SIZE - row_groups_footer_size) as usize
     }
 
-    /// Parse the row groups at the end of the page.
+    /// MERGE: A new parser combining the best of both branches.
+    /// It uses HEAD's strategy of reading groups sequentially, but adapts to `main`'s
+    /// backward-reading `RowGroup` parser by repositioning the stream for each call.
     fn parse_row_groups<R: Read + Seek>(
         reader: &mut R,
-        ro: &ReadOptions,
+        endian: Endian,
         args: (PageType, u64, u16, u16, PageFlags),
     ) -> BinResult<Vec<RowGroup>> {
         let (page_type, page_heap_offset, num_rows, num_row_groups, page_flags) = args;
-        if num_row_groups == 0 || !page_flags.page_has_data() {
+
+        if num_rows == 0 || !page_flags.page_has_data() {
             return Ok(vec![]);
         }
 
-        let mut row_groups = Vec::with_capacity(num_row_groups.into());
+        let mut row_groups = Vec::with_capacity(num_row_groups as usize);
+        let mut rows_left = num_rows;
 
-        // Calculate number of rows in last row group
-        let mut num_rows_in_last_row_group = num_rows % RowGroup::MAX_ROW_COUNT;
-        if num_rows_in_last_row_group == 0 {
-            num_rows_in_last_row_group = RowGroup::MAX_ROW_COUNT;
-        }
+        for _ in 0..num_row_groups {
+            let rows_in_this_group = std::cmp::min(rows_left, RowGroup::MAX_ROW_COUNT as u16);
+            let group_footer_size = (rows_in_this_group as i64 * 2) + 4; // (offsets * 2) + flags + unknown
 
-        // Read last row group
-        let row_group = RowGroup::read_options(
-            reader,
-            ro,
-            (page_type, page_heap_offset, num_rows_in_last_row_group),
-        )?;
-        row_groups.push(row_group);
+            // We are at the start of the current group's footer. The RowGroup parser
+            // needs to be at the END of it to read backwards.
+            let group_start_pos = reader.stream_position()?;
+            reader.seek(SeekFrom::Current(group_footer_size))?;
 
-        // Read remaining row groups
-        for _ in 1..num_row_groups {
-            let row_group = RowGroup::read_options(
-                reader,
-                ro,
-                (page_type, page_heap_offset, RowGroup::MAX_ROW_COUNT),
-            )?;
-            row_groups.insert(0, row_group);
+            // RowGroup::read_options parses backwards and then restores the stream position
+            // to where it was (i.e., the end of this group's footer).
+            let group = RowGroup::read_options(reader, endian, (page_type, page_heap_offset))?;
+            row_groups.push(group);
+
+            // Ensure the reader is positioned at the start of the next group footer.
+            reader.seek(SeekFrom::Start(group_start_pos + group_footer_size as u64))?;
+
+            rows_left -= rows_in_this_group;
         }
 
         Ok(row_groups)
@@ -430,35 +383,23 @@ impl Page {
 
     #[must_use]
     /// Returns `true` if the page actually contains row data.
+    // MERGE: Keep this helper from `main`.
     pub fn has_data(&self) -> bool {
         self.page_flags.page_has_data()
     }
 
     #[must_use]
     /// Number of rows on this page.
-    ///
-    /// Note that this number includes rows that have been flagged as missing by the row group.
+    // MERGE: Keep and reuse this helper from `main`.
     pub fn num_rows(&self) -> u16 {
-        if self.num_rows_large > self.num_rows_small.into() && self.num_rows_large != 0x1fff {
-            self.num_rows_large
-        } else {
-            self.num_rows_small.into()
-        }
+        Self::calculate_num_rows(self.num_rows_small, self.num_rows_large)
     }
 
-    #[must_use]
-    /// Number of row groups.
-    ///
-    /// All row groups except the last one consist of 16 rows (but that number includes rows that
-    /// have been flagged as missing by the row group.
-    pub fn num_row_groups(&self) -> u16 {
-        let num_rows = self.num_rows();
-        // TODO: Use `num_rows.div_ceil(RowGroup::MAX_ROW_COUNT)` here when it becomes available
-        // (currently nightly-only, see https://github.com/rust-lang/rust/issues/88581).
-        if num_rows > 0 {
-            (num_rows - 1) / RowGroup::MAX_ROW_COUNT + 1
+    fn calculate_num_rows(num_rows_small: u8, num_rows_large: u16) -> u16 {
+        if num_rows_large > num_rows_small.into() && num_rows_large != 0x1fff {
+            num_rows_large
         } else {
-            0
+            num_rows_small.into()
         }
     }
 }
@@ -466,16 +407,13 @@ impl Page {
 /// A group of row indices, which are built backwards from the end of the page. Holds up to sixteen
 /// row offsets, along with a bit mask that indicates whether each row is actually present in the
 /// table.
-#[binread]
 #[derive(Debug, PartialEq)]
-#[brw(little)]
-#[br(import(page_type: PageType, page_heap_offset: u64, num_rows: u16))]
 pub struct RowGroup {
     /// An offset which points to a row in the table, whose actual presence is controlled by one of the
     /// bits in `row_present_flags`. This instance allows the row itself to be lazily loaded, unless it
     /// is not present, in which case there is no content to be loaded.
-    #[br(offset = page_heap_offset, parse_with = Self::parse_rows, args { count: num_rows.into(), inner: (page_type,) })]
-    rows: Vec<Row>,
+    // MERGE: Adopted the lazy-loading structure from `main`. We will handle serialization manually.
+    rows: [Option<FilePtr16<Row>>; Self::MAX_ROW_COUNT],
     row_presence_flags: u16,
     /// Unknown field, probably padding.
     ///
@@ -484,117 +422,160 @@ pub struct RowGroup {
 }
 
 impl RowGroup {
-    const MAX_ROW_COUNT: u16 = 16;
+    const MAX_ROW_COUNT: usize = 16;
 
     /// Return the ordered list of row offsets that are actually present.
-    pub fn present_rows(&self) -> impl Iterator<Item = &Row> {
-        self.rows.iter().enumerate().filter_map(|(i, row)| {
-            if (self.row_presence_flags & (1 << i)) != 0 {
-                Some(row)
-            } else {
-                None
-            }
-        })
-    }
-
-    fn parse_rows<R: Read + Seek>(
-        reader: &mut R,
-        options: &ReadOptions,
-        args: VecArgs<(PageType,)>,
-    ) -> BinResult<Vec<Row>> {
-        let mut rows = Vec::<Row>::with_capacity(args.count);
-        for _ in 0..args.count {
-            let row = FilePtr16::<Row>::parse(reader, options, args.inner)?;
-            rows.push(row);
-        }
-        // Offsets are stored in reverse order in the footer. Reverse to restore logical order.
-        rows.reverse();
-
-        Ok(rows)
-    }
-
-    fn write_options_and_get_row_offset<W: Write + Seek>(
-        &self,
-        writer: &mut W,
-        options: &WriteOptions,
-        args: (u64, u64),
-    ) -> binrw::BinResult<u64> {
-        let options = options.with_endian(Endian::Little);
-
-        let (page_offset, relative_row_offset) = args;
-
-        // Ensure rows_in_group fits into u16 and does not exceed the maximum supported per group.
-        let rows_in_group: u16 = self
-            .rows
-            .len()
-            .try_into()
-            .map_err(|_| binrw::Error::AssertFail {
-                pos: page_offset,
-                message: "RowGroup row count does not fit into u16".to_string(),
-            })?;
-        if rows_in_group > Self::MAX_ROW_COUNT {
-            return Err(binrw::Error::AssertFail {
-                pos: page_offset,
-                message: format!(
-                    "RowGroup contains {} rows, exceeds MAX_ROW_COUNT ({})",
-                    self.rows.len(),
-                    Self::MAX_ROW_COUNT
-                ),
-            });
-        }
-
-        // DeviceSQL seems to write RowGroups so that the Rows
-        // with the lowest offset have their offset written at the end of the
-        // page. So If the Rows appeared in order Row1,Row2,Row3 in the heap/page
-        // their offsets would be stored in reverse order &Row3,&Row2,&Row1.
-        // It probably doesn't change the correctness of the (de-)serialization,
-        // but it makes sense to strive to be as close as possible to DeviceSQL.
-        // This is implemented by writing the rows first, recording their
-        // offset and then writing them in a second pass.
-
-        let row_offsets_start = writer.stream_position()?;
-
-        let heap_start = page_offset + relative_row_offset;
-        let mut row_offsets = vec![0u16; rows_in_group as usize];
-
-        // Write rows
-        writer.seek(SeekFrom::Start(heap_start))?;
-        for (i, row) in self.rows.iter().enumerate() {
-            let row_position = writer.stream_position()?;
-            row.write_options(writer, &options, ())?;
-
-            row_offsets[i] = (row_position - heap_start)
-                .try_into()
-                .ok()
-                .ok_or_else(|| binrw::Error::AssertFail {
-                    pos: heap_start,
-                    message: "Wraparound while calculating row offset".to_string(),
-                })?;
-        }
-        let heap_end = writer.stream_position()?;
-        writer.seek(SeekFrom::Start(row_offsets_start))?;
-        for offset in row_offsets.into_iter().rev() {
-            offset.write_options(writer, &options, ())?;
-        }
-        self.row_presence_flags
-            .write_options(writer, &options, ())?;
-        self.unknown.write_options(writer, &options, ())?;
-
-        Ok(heap_end - page_offset)
+    // MERGE: Combined approaches. Iterates over the lazy-loaded pointers like `main`,
+    // but returns a reference `&Row` like `HEAD` to avoid expensive clones.
+    // The `.rev()` is kept from `main` to restore the logical order of rows.
+    pub fn present_rows(&self) -> impl Iterator<Item = &Row> + '_ {
+        self.rows
+            .iter()
+            .rev()
+            .filter_map(|row_offset| row_offset.as_ref().map(|ptr| &ptr.value))
     }
 }
 
+// MERGE: Kept the custom `BinRead` implementation from `main` as it's
+// designed for the lazy-loading data structure.
+impl BinRead for RowGroup {
+    type Args<'a> = (PageType, u64);
+
+    /// Read a row group from the reader.
+    ///
+    /// Note: For this to work, the read position needs to be at the *end* of the row group. For
+    /// the first row group, this is the end of the page heap.
+    fn read_options<R: Read + Seek>(
+        reader: &mut R,
+        endian: Endian,
+        (page_type, page_heap_offset): Self::Args<'_>,
+    ) -> BinResult<Self> {
+        let row_group_end_position = reader.stream_position()?;
+        reader.seek(SeekFrom::Current(-4))?;
+        let row_presence_flags = u16::read_options(reader, endian, ())?;
+        let unknown = u16::read_options(reader, endian, ())?;
+        // binrw has an issue with debug_assert and stream_position so this was removed
+        // https://github.com/jam1garner/binrw/issues/113
+
+        const MISSING_ROW: Option<FilePtr16<Row>> = None;
+
+        let mut rows: [Option<FilePtr16<Row>>; Self::MAX_ROW_COUNT] =
+            [MISSING_ROW; Self::MAX_ROW_COUNT];
+        if row_presence_flags.count_ones() == 0 {
+            return Ok(RowGroup {
+                rows,
+                row_presence_flags,
+                unknown,
+            });
+        }
+
+        // TODO streamline this using iterators once std::iter::Iterator::map_windows is stable
+        let mut needs_seek = true;
+        for i in (0..RowGroup::MAX_ROW_COUNT).rev() {
+            let row_present = row_presence_flags & (1 << i) != 0;
+            if row_present {
+                if needs_seek {
+                    // The original `main` branch code had a potential bug in calculating the seek offset.
+                    // The number of pointers to skip is `i + 1`. The total size is `4` (for flags/unknown) + `2 * num_pointers`.
+                    let read_pos =
+                        row_group_end_position - 4 - 2 * (row_presence_flags.count_ones() as u64);
+                    reader.seek(SeekFrom::Start(read_pos))?;
+                }
+                let row = FilePtr16::read_options(
+                    reader,
+                    endian,
+                    FilePtrArgs {
+                        offset: page_heap_offset,
+                        inner: (page_type,),
+                    },
+                )?;
+                rows[i] = Some(row);
+            }
+            needs_seek = !row_present;
+        }
+
+        reader.seek(SeekFrom::Start(row_group_end_position))?;
+
+        Ok(RowGroup {
+            rows,
+            row_presence_flags,
+            unknown,
+        })
+    }
+}
+
+// MERGE: Adapted the `BinWrite` implementation from `HEAD` to work with the
+// lazy-loading `[Option<FilePtr16<Row>>]` structure.
 impl BinWrite for RowGroup {
-    type Args = (u64, u64);
+    type Args<'a> = (u64, u64);
 
     fn write_options<W: Write + Seek>(
         &self,
         writer: &mut W,
-        options: &WriteOptions,
-        args: Self::Args,
+        endian: Endian,
+        args: Self::Args<'_>,
     ) -> binrw::BinResult<()> {
-        self.write_options_and_get_row_offset(writer, options, args)?;
+        Self::write_options_and_get_row_offset(self, writer, endian, args)?;
         Ok(())
+    }
+}
+
+impl RowGroup {
+    // This helper function now lives in the main impl block for RowGroup
+    fn write_options_and_get_row_offset<W: Write + Seek>(
+        &self,
+        writer: &mut W,
+        endian: Endian,
+        args: (u64, u64),
+    ) -> binrw::BinResult<u64> {
+        let (page_offset, relative_row_offset) = args;
+
+        // MERGE ADAPTATION:
+        // Collect the actual rows that are present. The `present_rows()` helper we defined
+        // is perfect for this. We collect into a Vec to simplify the writing logic below,
+        // which was originally designed for a Vec.
+        let present_rows: Vec<&Row> = self.present_rows().collect();
+
+        let rows_to_write_count = present_rows.len();
+
+        // The number of flags set should match the number of present rows.
+        if rows_to_write_count != self.row_presence_flags.count_ones() as usize {
+            return Err(binrw::Error::AssertFail {
+                pos: page_offset,
+                message: "Mismatch between present row count and row_presence_flags".to_string(),
+            });
+        }
+
+        let row_offsets_start = writer.stream_position()?;
+
+        let heap_start = page_offset + relative_row_offset;
+        let mut row_offsets = vec![0u16; rows_to_write_count];
+
+        // Write rows
+        writer.seek(SeekFrom::Start(heap_start))?;
+        // MERGE ADAPTATION: Iterate over our collected `present_rows`
+        for (i, row) in present_rows.iter().enumerate() {
+            let row_position = writer.stream_position()?;
+            row.write_options(writer, endian, ())?;
+
+            row_offsets[i] = (row_position - heap_start).try_into().ok().ok_or_else(|| {
+                binrw::Error::AssertFail {
+                    pos: heap_start,
+                    message: "Wraparound while calculating row offset".to_string(),
+                }
+            })?;
+        }
+        let heap_end = writer.stream_position()?;
+        writer.seek(SeekFrom::Start(row_offsets_start))?;
+
+        // Write the offsets in reverse order, which matches the file format.
+        for offset in row_offsets.into_iter().rev() {
+            offset.write_options(writer, endian, ())?;
+        }
+        self.row_presence_flags.write_options(writer, endian, ())?;
+        self.unknown.write_options(writer, endian, ())?;
+
+        Ok(heap_end - page_offset)
     }
 }
 
@@ -1010,48 +991,48 @@ impl binrw::meta::WriteEndian for Track {
 }
 
 impl BinWrite for Track {
-    type Args = ();
+    type Args<'a> = ();
 
     fn write_options<W: Write + Seek>(
         &self,
         writer: &mut W,
-        options: &WriteOptions,
-        _args: Self::Args,
+        endian: Endian,
+        _args: Self::Args<'_>,
     ) -> BinResult<()> {
-        debug_assert!(options.endian() == Endian::Little);
+        debug_assert!(endian == Endian::Little);
 
         let base_position = writer.stream_position()?;
-        self.unknown1.write_options(writer, options, ())?;
-        self.index_shift.write_options(writer, options, ())?;
-        self.bitmask.write_options(writer, options, ())?;
-        self.sample_rate.write_options(writer, options, ())?;
-        self.composer_id.write_options(writer, options, ())?;
-        self.file_size.write_options(writer, options, ())?;
-        self.unknown2.write_options(writer, options, ())?;
-        self.unknown3.write_options(writer, options, ())?;
-        self.unknown4.write_options(writer, options, ())?;
-        self.artwork_id.write_options(writer, options, ())?;
-        self.key_id.write_options(writer, options, ())?;
-        self.orig_artist_id.write_options(writer, options, ())?;
-        self.label_id.write_options(writer, options, ())?;
-        self.remixer_id.write_options(writer, options, ())?;
-        self.bitrate.write_options(writer, options, ())?;
-        self.track_number.write_options(writer, options, ())?;
-        self.tempo.write_options(writer, options, ())?;
-        self.genre_id.write_options(writer, options, ())?;
-        self.album_id.write_options(writer, options, ())?;
-        self.artist_id.write_options(writer, options, ())?;
-        self.id.write_options(writer, options, ())?;
-        self.disc_number.write_options(writer, options, ())?;
-        self.play_count.write_options(writer, options, ())?;
-        self.year.write_options(writer, options, ())?;
-        self.sample_depth.write_options(writer, options, ())?;
-        self.duration.write_options(writer, options, ())?;
-        self.unknown5.write_options(writer, options, ())?;
-        self.color.write_options(writer, options, ())?;
-        self.rating.write_options(writer, options, ())?;
-        self.unknown6.write_options(writer, options, ())?;
-        self.unknown7.write_options(writer, options, ())?;
+        self.unknown1.write_options(writer, endian, ())?;
+        self.index_shift.write_options(writer, endian, ())?;
+        self.bitmask.write_options(writer, endian, ())?;
+        self.sample_rate.write_options(writer, endian, ())?;
+        self.composer_id.write_options(writer, endian, ())?;
+        self.file_size.write_options(writer, endian, ())?;
+        self.unknown2.write_options(writer, endian, ())?;
+        self.unknown3.write_options(writer, endian, ())?;
+        self.unknown4.write_options(writer, endian, ())?;
+        self.artwork_id.write_options(writer, endian, ())?;
+        self.key_id.write_options(writer, endian, ())?;
+        self.orig_artist_id.write_options(writer, endian, ())?;
+        self.label_id.write_options(writer, endian, ())?;
+        self.remixer_id.write_options(writer, endian, ())?;
+        self.bitrate.write_options(writer, endian, ())?;
+        self.track_number.write_options(writer, endian, ())?;
+        self.tempo.write_options(writer, endian, ())?;
+        self.genre_id.write_options(writer, endian, ())?;
+        self.album_id.write_options(writer, endian, ())?;
+        self.artist_id.write_options(writer, endian, ())?;
+        self.id.write_options(writer, endian, ())?;
+        self.disc_number.write_options(writer, endian, ())?;
+        self.play_count.write_options(writer, endian, ())?;
+        self.year.write_options(writer, endian, ())?;
+        self.sample_depth.write_options(writer, endian, ())?;
+        self.duration.write_options(writer, endian, ())?;
+        self.unknown5.write_options(writer, endian, ())?;
+        self.color.write_options(writer, endian, ())?;
+        self.rating.write_options(writer, endian, ())?;
+        self.unknown6.write_options(writer, endian, ())?;
+        self.unknown7.write_options(writer, endian, ())?;
 
         let start_of_string_section = writer.stream_position()?;
         debug_assert_eq!(start_of_string_section - base_position, 0x5e);
@@ -1094,12 +1075,12 @@ impl BinWrite for Track {
                     message: "Wraparound while calculating row offset".to_string(),
                 })?;
             string_offsets[i] = offset;
-            string.write_options(writer, options, ())?;
+            string.write_options(writer, endian, ())?;
         }
 
         let end_of_row = writer.stream_position()?;
         writer.seek(SeekFrom::Start(start_of_string_section))?;
-        string_offsets.write_options(writer, options, ())?;
+        string_offsets.write_options(writer, endian, ())?;
         writer.seek(SeekFrom::Start(end_of_row))?;
 
         // TODO(Swiftb0y): encapsulate this properly
@@ -1185,7 +1166,7 @@ pub enum Row {
 }
 
 impl Row {
-    // TODO We should survey all the different kind of rows and ensure they're 
+    // TODO We should survey all the different kind of rows and ensure they're
     // aligned properly. Temporally allowed unused
     #[allow(unused)]
     #[must_use]
@@ -1219,6 +1200,8 @@ impl Row {
 
 #[cfg(test)]
 mod test {
+    use binrw::FilePtr;
+
     use super::*;
     use crate::util::testing::{test_roundtrip, test_roundtrip_with_args};
 
@@ -1549,6 +1532,449 @@ mod test {
 
     #[test]
     fn track_page() {
+        let mut rows_array: [Option<FilePtr16<Row>>; 16] = Default::default();
+        rows_array[6] = Some(FilePtr {
+            ptr: 0,
+            value: Row::Track(Track {
+                unknown1: 36,
+                index_shift: 0,
+                bitmask: 788224,
+                sample_rate: 44100,
+                composer_id: ArtistId(0),
+                file_size: 1382226,
+                unknown2: 191204207,
+                unknown3: 64128,
+                unknown4: 1511,
+                artwork_id: ArtworkId(0),
+                key_id: KeyId(1),
+                orig_artist_id: ArtistId(0),
+                label_id: LabelId(0),
+                remixer_id: ArtistId(0),
+                bitrate: 2116,
+                track_number: 0,
+                tempo: 0,
+                genre_id: GenreId(0),
+                album_id: AlbumId(0),
+                artist_id: ArtistId(0),
+                id: TrackId(1),
+                disc_number: 0,
+                play_count: 0,
+                year: 0,
+                sample_depth: 24,
+                duration: 5,
+                unknown5: 41,
+                color: ColorIndex::None,
+                rating: 0,
+                unknown6: 11,
+                unknown7: 3,
+                isrc: DeviceSQLString::new_isrc("".to_string()).unwrap(),
+                unknown_string1: DeviceSQLString::empty(),
+                unknown_string2: DeviceSQLString::new("3".to_string()).unwrap(),
+                unknown_string3: DeviceSQLString::new("2".to_string()).unwrap(),
+                unknown_string4: DeviceSQLString::empty(),
+                message: DeviceSQLString::empty(),
+                kuvo_public: DeviceSQLString::empty(),
+                autoload_hotcues: DeviceSQLString::new("ON".to_string()).unwrap(),
+                unknown_string5: DeviceSQLString::empty(),
+                unknown_string6: DeviceSQLString::empty(),
+                date_added: DeviceSQLString::new("2015-09-07".to_string()).unwrap(),
+                release_date: DeviceSQLString::empty(),
+                mix_name: DeviceSQLString::empty(),
+                unknown_string7: DeviceSQLString::empty(),
+                analyze_path: DeviceSQLString::new(
+                    "/PIONEER/USBANLZ/P019/00020AA9/ANLZ0000.DAT".to_string(),
+                )
+                .unwrap(),
+                analyze_date: DeviceSQLString::new("2022-02-02".to_string()).unwrap(),
+                comment: DeviceSQLString::empty(),
+                title: DeviceSQLString::new("NOISE".to_string()).unwrap(),
+                unknown_string8: DeviceSQLString::empty(),
+                filename: DeviceSQLString::new("NOISE.wav".to_string()).unwrap(),
+                file_path: DeviceSQLString::new(
+                    "/Contents/UnknownArtist/UnknownAlbum/NOISE.wav".to_string(),
+                )
+                .unwrap(),
+            }),
+        });
+        rows_array[5] = Some(FilePtr {
+            ptr: 0,
+            value: Row::Track(Track {
+                unknown1: 36,
+                index_shift: 32,
+                bitmask: 788224,
+                sample_rate: 44100,
+                composer_id: ArtistId(0),
+                file_size: 1515258,
+                unknown2: 34882935,
+                unknown3: 64128,
+                unknown4: 1511,
+                artwork_id: ArtworkId(0),
+                key_id: KeyId(2),
+                orig_artist_id: ArtistId(0),
+                label_id: LabelId(0),
+                remixer_id: ArtistId(0),
+                bitrate: 2116,
+                track_number: 0,
+                tempo: 0,
+                genre_id: GenreId(0),
+                album_id: AlbumId(0),
+                artist_id: ArtistId(0),
+                id: TrackId(2),
+                disc_number: 0,
+                play_count: 0,
+                year: 0,
+                sample_depth: 24,
+                duration: 5,
+                unknown5: 41,
+                color: ColorIndex::None,
+                rating: 0,
+                unknown6: 11,
+                unknown7: 3,
+                isrc: DeviceSQLString::new_isrc("".to_string()).unwrap(),
+                unknown_string1: DeviceSQLString::empty(),
+                unknown_string2: DeviceSQLString::new("3".to_string()).unwrap(),
+                unknown_string3: DeviceSQLString::new("2".to_string()).unwrap(),
+                unknown_string4: DeviceSQLString::empty(),
+                message: DeviceSQLString::empty(),
+                kuvo_public: DeviceSQLString::empty(),
+                autoload_hotcues: DeviceSQLString::new("ON".to_string()).unwrap(),
+                unknown_string5: DeviceSQLString::empty(),
+                unknown_string6: DeviceSQLString::empty(),
+                date_added: DeviceSQLString::new("2015-09-07".to_string()).unwrap(),
+                release_date: DeviceSQLString::empty(),
+                mix_name: DeviceSQLString::empty(),
+                unknown_string7: DeviceSQLString::empty(),
+                analyze_path: DeviceSQLString::new(
+                    "/PIONEER/USBANLZ/P043/00011517/ANLZ0000.DAT".to_string(),
+                )
+                .unwrap(),
+                analyze_date: DeviceSQLString::new("2022-02-02".to_string()).unwrap(),
+                comment: DeviceSQLString::empty(),
+                title: DeviceSQLString::new("SINEWAVE".to_string()).unwrap(),
+                unknown_string8: DeviceSQLString::empty(),
+                filename: DeviceSQLString::new("SINEWAVE.wav".to_string()).unwrap(),
+                file_path: DeviceSQLString::new(
+                    "/Contents/UnknownArtist/UnknownAlbum/SINEWAVE.wav".to_string(),
+                )
+                .unwrap(),
+            }),
+        });
+        rows_array[4] = Some(FilePtr {
+            ptr: 0,
+            value: Row::Track(Track {
+                unknown1: 36,
+                index_shift: 64,
+                bitmask: 788224,
+                sample_rate: 44100,
+                composer_id: ArtistId(0),
+                file_size: 1941204,
+                unknown2: 243638374,
+                unknown3: 64128,
+                unknown4: 1511,
+                artwork_id: ArtworkId(0),
+                key_id: KeyId(3),
+                orig_artist_id: ArtistId(0),
+                label_id: LabelId(0),
+                remixer_id: ArtistId(0),
+                bitrate: 2116,
+                track_number: 0,
+                tempo: 0,
+                genre_id: GenreId(0),
+                album_id: AlbumId(0),
+                artist_id: ArtistId(0),
+                id: TrackId(3),
+                disc_number: 0,
+                play_count: 0,
+                year: 0,
+                sample_depth: 24,
+                duration: 7,
+                unknown5: 41,
+                color: ColorIndex::None,
+                rating: 0,
+                unknown6: 11,
+                unknown7: 3,
+                isrc: DeviceSQLString::new_isrc("".to_string()).unwrap(),
+                unknown_string1: DeviceSQLString::empty(),
+                unknown_string2: DeviceSQLString::new("3".to_string()).unwrap(),
+                unknown_string3: DeviceSQLString::new("2".to_string()).unwrap(),
+                unknown_string4: DeviceSQLString::empty(),
+                message: DeviceSQLString::empty(),
+                kuvo_public: DeviceSQLString::empty(),
+                autoload_hotcues: DeviceSQLString::new("ON".to_string()).unwrap(),
+                unknown_string5: DeviceSQLString::empty(),
+                unknown_string6: DeviceSQLString::empty(),
+                date_added: DeviceSQLString::new("2015-09-07".to_string()).unwrap(),
+                release_date: DeviceSQLString::empty(),
+                mix_name: DeviceSQLString::empty(),
+                unknown_string7: DeviceSQLString::empty(),
+                analyze_path: DeviceSQLString::new(
+                    "/PIONEER/USBANLZ/P017/00009B77/ANLZ0000.DAT".to_string(),
+                )
+                .unwrap(),
+                analyze_date: DeviceSQLString::new("2022-02-02".to_string()).unwrap(),
+                comment: DeviceSQLString::empty(),
+                title: DeviceSQLString::new("SIREN".to_string()).unwrap(),
+                unknown_string8: DeviceSQLString::empty(),
+                filename: DeviceSQLString::new("SIREN.wav".to_string()).unwrap(),
+                file_path: DeviceSQLString::new(
+                    "/Contents/UnknownArtist/UnknownAlbum/SIREN.wav".to_string(),
+                )
+                .unwrap(),
+            }),
+        });
+        rows_array[3] = Some(FilePtr {
+            ptr: 0,
+            value: Row::Track(Track {
+                unknown1: 36,
+                index_shift: 96,
+                bitmask: 788224,
+                sample_rate: 44100,
+                composer_id: ArtistId(0),
+                file_size: 2010816,
+                unknown2: 227782126,
+                unknown3: 64128,
+                unknown4: 1511,
+                artwork_id: ArtworkId(0),
+                key_id: KeyId(4),
+                orig_artist_id: ArtistId(0),
+                label_id: LabelId(0),
+                remixer_id: ArtistId(0),
+                bitrate: 2116,
+                track_number: 0,
+                tempo: 0,
+                genre_id: GenreId(0),
+                album_id: AlbumId(0),
+                artist_id: ArtistId(0),
+                id: TrackId(4),
+                disc_number: 0,
+                play_count: 0,
+                year: 0,
+                sample_depth: 24,
+                duration: 7,
+                unknown5: 41,
+                color: ColorIndex::None,
+                rating: 0,
+                unknown6: 11,
+                unknown7: 3,
+                isrc: DeviceSQLString::new_isrc("".to_string()).unwrap(),
+                unknown_string1: DeviceSQLString::empty(),
+                unknown_string2: DeviceSQLString::new("3".to_string()).unwrap(),
+                unknown_string3: DeviceSQLString::new("2".to_string()).unwrap(),
+                unknown_string4: DeviceSQLString::empty(),
+                message: DeviceSQLString::empty(),
+                kuvo_public: DeviceSQLString::empty(),
+                autoload_hotcues: DeviceSQLString::new("ON".to_string()).unwrap(),
+                unknown_string5: DeviceSQLString::empty(),
+                unknown_string6: DeviceSQLString::empty(),
+                date_added: DeviceSQLString::new("2015-09-07".to_string()).unwrap(),
+                release_date: DeviceSQLString::empty(),
+                mix_name: DeviceSQLString::empty(),
+                unknown_string7: DeviceSQLString::empty(),
+                analyze_path: DeviceSQLString::new(
+                    "/PIONEER/USBANLZ/P021/00006D2B/ANLZ0000.DAT".to_string(),
+                )
+                .unwrap(),
+                analyze_date: DeviceSQLString::new("2022-02-02".to_string()).unwrap(),
+                comment: DeviceSQLString::empty(),
+                title: DeviceSQLString::new("HORN".to_string()).unwrap(),
+                unknown_string8: DeviceSQLString::empty(),
+                filename: DeviceSQLString::new("HORN.wav".to_string()).unwrap(),
+                file_path: DeviceSQLString::new(
+                    "/Contents/UnknownArtist/UnknownAlbum/HORN.wav".to_string(),
+                )
+                .unwrap(),
+            }),
+        });
+        rows_array[2] = Some(FilePtr {
+            ptr: 0,
+            value: Row::Track(Track {
+                unknown1: 36,
+                index_shift: 128,
+                bitmask: 788224,
+                sample_rate: 44100,
+                composer_id: ArtistId(0),
+                file_size: 6899624,
+                unknown2: 214020570,
+                unknown3: 64128,
+                unknown4: 1511,
+                artwork_id: ArtworkId(0),
+                key_id: KeyId(5),
+                orig_artist_id: ArtistId(0),
+                label_id: LabelId(1),
+                remixer_id: ArtistId(0),
+                bitrate: 320,
+                track_number: 0,
+                tempo: 12800,
+                genre_id: GenreId(0),
+                album_id: AlbumId(0),
+                artist_id: ArtistId(1),
+                id: TrackId(5),
+                disc_number: 0,
+                play_count: 0,
+                year: 0,
+                sample_depth: 16,
+                duration: 172,
+                unknown5: 41,
+                color: ColorIndex::None,
+                rating: 0,
+                unknown6: 1,
+                unknown7: 3,
+                isrc: DeviceSQLString::new_isrc("".to_string()).unwrap(),
+                unknown_string1: DeviceSQLString::empty(),
+                unknown_string2: DeviceSQLString::new("3".to_string()).unwrap(),
+                unknown_string3: DeviceSQLString::new("3".to_string()).unwrap(),
+                unknown_string4: DeviceSQLString::empty(),
+                message: DeviceSQLString::empty(),
+                kuvo_public: DeviceSQLString::empty(),
+                autoload_hotcues: DeviceSQLString::new("ON".to_string()).unwrap(),
+                unknown_string5: DeviceSQLString::empty(),
+                unknown_string6: DeviceSQLString::empty(),
+                date_added: DeviceSQLString::new("2018-05-25".to_string()).unwrap(),
+                release_date: DeviceSQLString::empty(),
+                mix_name: DeviceSQLString::empty(),
+                unknown_string7: DeviceSQLString::empty(),
+                analyze_path: DeviceSQLString::new(
+                    "/PIONEER/USBANLZ/P016/0000875E/ANLZ0000.DAT".to_string(),
+                )
+                .unwrap(),
+                analyze_date: DeviceSQLString::new("2022-02-02".to_string()).unwrap(),
+                comment: DeviceSQLString::new("Tracks by www.loopmasters.com".to_string()).unwrap(),
+                title: DeviceSQLString::new("Demo Track 1".to_string()).unwrap(),
+                unknown_string8: DeviceSQLString::empty(),
+                filename: DeviceSQLString::new("Demo Track 1.mp3".to_string()).unwrap(),
+                file_path: DeviceSQLString::new(
+                    "/Contents/Loopmasters/UnknownAlbum/Demo Track 1.mp3".to_string(),
+                )
+                .unwrap(),
+            }),
+        });
+        rows_array[1] = Some(FilePtr {
+            ptr: 0,
+            value: Row::Track(Track {
+                unknown1: 36,
+                index_shift: 160,
+                bitmask: 788224,
+                sample_rate: 44100,
+                composer_id: ArtistId(0),
+                file_size: 6899624,
+                unknown2: 214020570,
+                unknown3: 64128,
+                unknown4: 1511,
+                artwork_id: ArtworkId(0),
+                key_id: KeyId(5),
+                orig_artist_id: ArtistId(0),
+                label_id: LabelId(1),
+                remixer_id: ArtistId(0),
+                bitrate: 320,
+                track_number: 0,
+                tempo: 12800,
+                genre_id: GenreId(0),
+                album_id: AlbumId(0),
+                artist_id: ArtistId(1),
+                id: TrackId(1),
+                disc_number: 0,
+                play_count: 0,
+                year: 0,
+                sample_depth: 16,
+                duration: 172,
+                unknown5: 41,
+                color: ColorIndex::None,
+                rating: 0,
+                unknown6: 1,
+                unknown7: 3,
+                isrc: DeviceSQLString::new_isrc("".to_string()).unwrap(),
+                unknown_string1: DeviceSQLString::empty(),
+                unknown_string2: DeviceSQLString::new("3".to_string()).unwrap(),
+                unknown_string3: DeviceSQLString::new("3".to_string()).unwrap(),
+                unknown_string4: DeviceSQLString::empty(),
+                message: DeviceSQLString::empty(),
+                kuvo_public: DeviceSQLString::empty(),
+                autoload_hotcues: DeviceSQLString::new("ON".to_string()).unwrap(),
+                unknown_string5: DeviceSQLString::empty(),
+                unknown_string6: DeviceSQLString::empty(),
+                date_added: DeviceSQLString::new("2018-05-25".to_string()).unwrap(),
+                release_date: DeviceSQLString::empty(),
+                mix_name: DeviceSQLString::empty(),
+                unknown_string7: DeviceSQLString::empty(),
+                analyze_path: DeviceSQLString::new(
+                    "/PIONEER/USBANLZ/P016/0000875E/ANLZ0000.DAT".to_string(),
+                )
+                .unwrap(),
+                analyze_date: DeviceSQLString::new("2022-02-02".to_string()).unwrap(),
+                comment: DeviceSQLString::new("Tracks by www.loopmasters.com".to_string()).unwrap(),
+                title: DeviceSQLString::new("Demo Track 1".to_string()).unwrap(),
+                unknown_string8: DeviceSQLString::empty(),
+                filename: DeviceSQLString::new("Demo Track 1.mp3".to_string()).unwrap(),
+                file_path: DeviceSQLString::new(
+                    "/Contents/Loopmasters/UnknownAlbum/Demo Track 1.mp3".to_string(),
+                )
+                .unwrap(),
+            }),
+        });
+        rows_array[0] = Some(FilePtr {
+            ptr: 0,
+            value: Row::Track(Track {
+                unknown1: 36,
+                index_shift: 192,
+                bitmask: 788224,
+                sample_rate: 44100,
+                composer_id: ArtistId(0),
+                file_size: 5124342,
+                unknown2: 263879995,
+                unknown3: 64128,
+                unknown4: 1511,
+                artwork_id: ArtworkId(0),
+                key_id: KeyId(5),
+                orig_artist_id: ArtistId(0),
+                label_id: LabelId(1),
+                remixer_id: ArtistId(0),
+                bitrate: 320,
+                track_number: 0,
+                tempo: 12000,
+                genre_id: GenreId(0),
+                album_id: AlbumId(0),
+                artist_id: ArtistId(1),
+                id: TrackId(2),
+                disc_number: 0,
+                play_count: 0,
+                year: 0,
+                sample_depth: 16,
+                duration: 128,
+                unknown5: 41,
+                color: ColorIndex::None,
+                rating: 0,
+                unknown6: 1,
+                unknown7: 3,
+                isrc: DeviceSQLString::new_isrc("".to_string()).unwrap(),
+                unknown_string1: DeviceSQLString::empty(),
+                unknown_string2: DeviceSQLString::new("3".to_string()).unwrap(),
+                unknown_string3: DeviceSQLString::new("3".to_string()).unwrap(),
+                unknown_string4: DeviceSQLString::empty(),
+                message: DeviceSQLString::empty(),
+                kuvo_public: DeviceSQLString::empty(),
+                autoload_hotcues: DeviceSQLString::new("ON".to_string()).unwrap(),
+                unknown_string5: DeviceSQLString::empty(),
+                unknown_string6: DeviceSQLString::empty(),
+                date_added: DeviceSQLString::new("2018-05-25".to_string()).unwrap(),
+                release_date: DeviceSQLString::empty(),
+                mix_name: DeviceSQLString::empty(),
+                unknown_string7: DeviceSQLString::empty(),
+                analyze_path: DeviceSQLString::new(
+                    "/PIONEER/USBANLZ/P053/0001D21F/ANLZ0000.DAT".to_string(),
+                )
+                .unwrap(),
+                analyze_date: DeviceSQLString::new("2022-02-02".to_string()).unwrap(),
+                comment: DeviceSQLString::new("Tracks by www.loopmasters.com".to_string()).unwrap(),
+                title: DeviceSQLString::new("Demo Track 2".to_string()).unwrap(),
+                unknown_string8: DeviceSQLString::empty(),
+                filename: DeviceSQLString::new("Demo Track 2.mp3".to_string()).unwrap(),
+                file_path: DeviceSQLString::new(
+                    "/Contents/Loopmasters/UnknownAlbum/Demo Track 2.mp3".to_string(),
+                )
+                .unwrap(),
+            }),
+        });
+
         let page = Page {
             page_index: PageIndex(2),
             page_type: PageType::Tracks,
@@ -1566,432 +1992,8 @@ mod test {
             unknown6: 0,
             unknown7: 0,
             row_groups: vec![RowGroup {
-                rows: vec![
-                    Row::Track(Track {
-                        unknown1: 36,
-                        index_shift: 0,
-                        bitmask: 788224,
-                        sample_rate: 44100,
-                        composer_id: ArtistId(0),
-                        file_size: 1382226,
-                        unknown2: 191204207,
-                        unknown3: 64128,
-                        unknown4: 1511,
-                        artwork_id: ArtworkId(0),
-                        key_id: KeyId(1),
-                        orig_artist_id: ArtistId(0),
-                        label_id: LabelId(0),
-                        remixer_id: ArtistId(0),
-                        bitrate: 2116,
-                        track_number: 0,
-                        tempo: 0,
-                        genre_id: GenreId(0),
-                        album_id: AlbumId(0),
-                        artist_id: ArtistId(0),
-                        id: TrackId(1),
-                        disc_number: 0,
-                        play_count: 0,
-                        year: 0,
-                        sample_depth: 24,
-                        duration: 5,
-                        unknown5: 41,
-                        color: ColorIndex::None,
-                        rating: 0,
-                        unknown6: 11,
-                        unknown7: 3,
-                        isrc: DeviceSQLString::new_isrc("".to_string()).unwrap(),
-                        unknown_string1: DeviceSQLString::empty(),
-                        unknown_string2: DeviceSQLString::new("3".to_string()).unwrap(),
-                        unknown_string3: DeviceSQLString::new("2".to_string()).unwrap(),
-                        unknown_string4: DeviceSQLString::empty(),
-                        message: DeviceSQLString::empty(),
-                        kuvo_public: DeviceSQLString::empty(),
-                        autoload_hotcues: DeviceSQLString::new("ON".to_string()).unwrap(),
-                        unknown_string5: DeviceSQLString::empty(),
-                        unknown_string6: DeviceSQLString::empty(),
-                        date_added: DeviceSQLString::new("2015-09-07".to_string()).unwrap(),
-                        release_date: DeviceSQLString::empty(),
-                        mix_name: DeviceSQLString::empty(),
-                        unknown_string7: DeviceSQLString::empty(),
-                        analyze_path: DeviceSQLString::new(
-                            "/PIONEER/USBANLZ/P019/00020AA9/ANLZ0000.DAT".to_string(),
-                        )
-                        .unwrap(),
-                        analyze_date: DeviceSQLString::new("2022-02-02".to_string()).unwrap(),
-                        comment: DeviceSQLString::empty(),
-                        title: DeviceSQLString::new("NOISE".to_string()).unwrap(),
-                        unknown_string8: DeviceSQLString::empty(),
-                        filename: DeviceSQLString::new("NOISE.wav".to_string()).unwrap(),
-                        file_path: DeviceSQLString::new(
-                            "/Contents/UnknownArtist/UnknownAlbum/NOISE.wav".to_string(),
-                        )
-                        .unwrap(),
-                    }),
-                    Row::Track(Track {
-                        unknown1: 36,
-                        index_shift: 32,
-                        bitmask: 788224,
-                        sample_rate: 44100,
-                        composer_id: ArtistId(0),
-                        file_size: 1515258,
-                        unknown2: 34882935,
-                        unknown3: 64128,
-                        unknown4: 1511,
-                        artwork_id: ArtworkId(0),
-                        key_id: KeyId(2),
-                        orig_artist_id: ArtistId(0),
-                        label_id: LabelId(0),
-                        remixer_id: ArtistId(0),
-                        bitrate: 2116,
-                        track_number: 0,
-                        tempo: 0,
-                        genre_id: GenreId(0),
-                        album_id: AlbumId(0),
-                        artist_id: ArtistId(0),
-                        id: TrackId(2),
-                        disc_number: 0,
-                        play_count: 0,
-                        year: 0,
-                        sample_depth: 24,
-                        duration: 5,
-                        unknown5: 41,
-                        color: ColorIndex::None,
-                        rating: 0,
-                        unknown6: 11,
-                        unknown7: 3,
-                        isrc: DeviceSQLString::new_isrc("".to_string()).unwrap(),
-                        unknown_string1: DeviceSQLString::empty(),
-                        unknown_string2: DeviceSQLString::new("3".to_string()).unwrap(),
-                        unknown_string3: DeviceSQLString::new("2".to_string()).unwrap(),
-                        unknown_string4: DeviceSQLString::empty(),
-                        message: DeviceSQLString::empty(),
-                        kuvo_public: DeviceSQLString::empty(),
-                        autoload_hotcues: DeviceSQLString::new("ON".to_string()).unwrap(),
-                        unknown_string5: DeviceSQLString::empty(),
-                        unknown_string6: DeviceSQLString::empty(),
-                        date_added: DeviceSQLString::new("2015-09-07".to_string()).unwrap(),
-                        release_date: DeviceSQLString::empty(),
-                        mix_name: DeviceSQLString::empty(),
-                        unknown_string7: DeviceSQLString::empty(),
-                        analyze_path: DeviceSQLString::new(
-                            "/PIONEER/USBANLZ/P043/00011517/ANLZ0000.DAT".to_string(),
-                        )
-                        .unwrap(),
-                        analyze_date: DeviceSQLString::new("2022-02-02".to_string()).unwrap(),
-                        comment: DeviceSQLString::empty(),
-                        title: DeviceSQLString::new("SINEWAVE".to_string()).unwrap(),
-                        unknown_string8: DeviceSQLString::empty(),
-                        filename: DeviceSQLString::new("SINEWAVE.wav".to_string()).unwrap(),
-                        file_path: DeviceSQLString::new(
-                            "/Contents/UnknownArtist/UnknownAlbum/SINEWAVE.wav".to_string(),
-                        )
-                        .unwrap(),
-                    }),
-                    Row::Track(Track {
-                        unknown1: 36,
-                        index_shift: 64,
-                        bitmask: 788224,
-                        sample_rate: 44100,
-                        composer_id: ArtistId(0),
-                        file_size: 1941204,
-                        unknown2: 243638374,
-                        unknown3: 64128,
-                        unknown4: 1511,
-                        artwork_id: ArtworkId(0),
-                        key_id: KeyId(3),
-                        orig_artist_id: ArtistId(0),
-                        label_id: LabelId(0),
-                        remixer_id: ArtistId(0),
-                        bitrate: 2116,
-                        track_number: 0,
-                        tempo: 0,
-                        genre_id: GenreId(0),
-                        album_id: AlbumId(0),
-                        artist_id: ArtistId(0),
-                        id: TrackId(3),
-                        disc_number: 0,
-                        play_count: 0,
-                        year: 0,
-                        sample_depth: 24,
-                        duration: 7,
-                        unknown5: 41,
-                        color: ColorIndex::None,
-                        rating: 0,
-                        unknown6: 11,
-                        unknown7: 3,
-                        isrc: DeviceSQLString::new_isrc("".to_string()).unwrap(),
-                        unknown_string1: DeviceSQLString::empty(),
-                        unknown_string2: DeviceSQLString::new("3".to_string()).unwrap(),
-                        unknown_string3: DeviceSQLString::new("2".to_string()).unwrap(),
-                        unknown_string4: DeviceSQLString::empty(),
-                        message: DeviceSQLString::empty(),
-                        kuvo_public: DeviceSQLString::empty(),
-                        autoload_hotcues: DeviceSQLString::new("ON".to_string()).unwrap(),
-                        unknown_string5: DeviceSQLString::empty(),
-                        unknown_string6: DeviceSQLString::empty(),
-                        date_added: DeviceSQLString::new("2015-09-07".to_string()).unwrap(),
-                        release_date: DeviceSQLString::empty(),
-                        mix_name: DeviceSQLString::empty(),
-                        unknown_string7: DeviceSQLString::empty(),
-                        analyze_path: DeviceSQLString::new(
-                            "/PIONEER/USBANLZ/P017/00009B77/ANLZ0000.DAT".to_string(),
-                        )
-                        .unwrap(),
-                        analyze_date: DeviceSQLString::new("2022-02-02".to_string()).unwrap(),
-                        comment: DeviceSQLString::empty(),
-                        title: DeviceSQLString::new("SIREN".to_string()).unwrap(),
-                        unknown_string8: DeviceSQLString::empty(),
-                        filename: DeviceSQLString::new("SIREN.wav".to_string()).unwrap(),
-                        file_path: DeviceSQLString::new(
-                            "/Contents/UnknownArtist/UnknownAlbum/SIREN.wav".to_string(),
-                        )
-                        .unwrap(),
-                    }),
-                    Row::Track(Track {
-                        unknown1: 36,
-                        index_shift: 96,
-                        bitmask: 788224,
-                        sample_rate: 44100,
-                        composer_id: ArtistId(0),
-                        file_size: 2010816,
-                        unknown2: 227782126,
-                        unknown3: 64128,
-                        unknown4: 1511,
-                        artwork_id: ArtworkId(0),
-                        key_id: KeyId(4),
-                        orig_artist_id: ArtistId(0),
-                        label_id: LabelId(0),
-                        remixer_id: ArtistId(0),
-                        bitrate: 2116,
-                        track_number: 0,
-                        tempo: 0,
-                        genre_id: GenreId(0),
-                        album_id: AlbumId(0),
-                        artist_id: ArtistId(0),
-                        id: TrackId(4),
-                        disc_number: 0,
-                        play_count: 0,
-                        year: 0,
-                        sample_depth: 24,
-                        duration: 7,
-                        unknown5: 41,
-                        color: ColorIndex::None,
-                        rating: 0,
-                        unknown6: 11,
-                        unknown7: 3,
-                        isrc: DeviceSQLString::new_isrc("".to_string()).unwrap(),
-                        unknown_string1: DeviceSQLString::empty(),
-                        unknown_string2: DeviceSQLString::new("3".to_string()).unwrap(),
-                        unknown_string3: DeviceSQLString::new("2".to_string()).unwrap(),
-                        unknown_string4: DeviceSQLString::empty(),
-                        message: DeviceSQLString::empty(),
-                        kuvo_public: DeviceSQLString::empty(),
-                        autoload_hotcues: DeviceSQLString::new("ON".to_string()).unwrap(),
-                        unknown_string5: DeviceSQLString::empty(),
-                        unknown_string6: DeviceSQLString::empty(),
-                        date_added: DeviceSQLString::new("2015-09-07".to_string()).unwrap(),
-                        release_date: DeviceSQLString::empty(),
-                        mix_name: DeviceSQLString::empty(),
-                        unknown_string7: DeviceSQLString::empty(),
-                        analyze_path: DeviceSQLString::new(
-                            "/PIONEER/USBANLZ/P021/00006D2B/ANLZ0000.DAT".to_string(),
-                        )
-                        .unwrap(),
-                        analyze_date: DeviceSQLString::new("2022-02-02".to_string()).unwrap(),
-                        comment: DeviceSQLString::empty(),
-                        title: DeviceSQLString::new("HORN".to_string()).unwrap(),
-                        unknown_string8: DeviceSQLString::empty(),
-                        filename: DeviceSQLString::new("HORN.wav".to_string()).unwrap(),
-                        file_path: DeviceSQLString::new(
-                            "/Contents/UnknownArtist/UnknownAlbum/HORN.wav".to_string(),
-                        )
-                        .unwrap(),
-                    }),
-                    Row::Track(Track {
-                        unknown1: 36,
-                        index_shift: 128,
-                        bitmask: 788224,
-                        sample_rate: 44100,
-                        composer_id: ArtistId(0),
-                        file_size: 6899624,
-                        unknown2: 214020570,
-                        unknown3: 64128,
-                        unknown4: 1511,
-                        artwork_id: ArtworkId(0),
-                        key_id: KeyId(5),
-                        orig_artist_id: ArtistId(0),
-                        label_id: LabelId(1),
-                        remixer_id: ArtistId(0),
-                        bitrate: 320,
-                        track_number: 0,
-                        tempo: 12800,
-                        genre_id: GenreId(0),
-                        album_id: AlbumId(0),
-                        artist_id: ArtistId(1),
-                        id: TrackId(5),
-                        disc_number: 0,
-                        play_count: 0,
-                        year: 0,
-                        sample_depth: 16,
-                        duration: 172,
-                        unknown5: 41,
-                        color: ColorIndex::None,
-                        rating: 0,
-                        unknown6: 1,
-                        unknown7: 3,
-                        isrc: DeviceSQLString::new_isrc("".to_string()).unwrap(),
-                        unknown_string1: DeviceSQLString::empty(),
-                        unknown_string2: DeviceSQLString::new("3".to_string()).unwrap(),
-                        unknown_string3: DeviceSQLString::new("3".to_string()).unwrap(),
-                        unknown_string4: DeviceSQLString::empty(),
-                        message: DeviceSQLString::empty(),
-                        kuvo_public: DeviceSQLString::empty(),
-                        autoload_hotcues: DeviceSQLString::new("ON".to_string()).unwrap(),
-                        unknown_string5: DeviceSQLString::empty(),
-                        unknown_string6: DeviceSQLString::empty(),
-                        date_added: DeviceSQLString::new("2018-05-25".to_string()).unwrap(),
-                        release_date: DeviceSQLString::empty(),
-                        mix_name: DeviceSQLString::empty(),
-                        unknown_string7: DeviceSQLString::empty(),
-                        analyze_path: DeviceSQLString::new(
-                            "/PIONEER/USBANLZ/P016/0000875E/ANLZ0000.DAT".to_string(),
-                        )
-                        .unwrap(),
-                        analyze_date: DeviceSQLString::new("2022-02-02".to_string()).unwrap(),
-                        comment: DeviceSQLString::new("Tracks by www.loopmasters.com".to_string())
-                            .unwrap(),
-                        title: DeviceSQLString::new("Demo Track 1".to_string()).unwrap(),
-                        unknown_string8: DeviceSQLString::empty(),
-                        filename: DeviceSQLString::new("Demo Track 1.mp3".to_string()).unwrap(),
-                        file_path: DeviceSQLString::new(
-                            "/Contents/Loopmasters/UnknownAlbum/Demo Track 1.mp3".to_string(),
-                        )
-                        .unwrap(),
-                    }),
-                    Row::Track(Track {
-                        unknown1: 36,
-                        index_shift: 160,
-                        bitmask: 788224,
-                        sample_rate: 44100,
-                        composer_id: ArtistId(0),
-                        file_size: 6899624,
-                        unknown2: 214020570,
-                        unknown3: 64128,
-                        unknown4: 1511,
-                        artwork_id: ArtworkId(0),
-                        key_id: KeyId(5),
-                        orig_artist_id: ArtistId(0),
-                        label_id: LabelId(1),
-                        remixer_id: ArtistId(0),
-                        bitrate: 320,
-                        track_number: 0,
-                        tempo: 12800,
-                        genre_id: GenreId(0),
-                        album_id: AlbumId(0),
-                        artist_id: ArtistId(1),
-                        id: TrackId(1),
-                        disc_number: 0,
-                        play_count: 0,
-                        year: 0,
-                        sample_depth: 16,
-                        duration: 172,
-                        unknown5: 41,
-                        color: ColorIndex::None,
-                        rating: 0,
-                        unknown6: 1,
-                        unknown7: 3,
-                        isrc: DeviceSQLString::new_isrc("".to_string()).unwrap(),
-                        unknown_string1: DeviceSQLString::empty(),
-                        unknown_string2: DeviceSQLString::new("3".to_string()).unwrap(),
-                        unknown_string3: DeviceSQLString::new("3".to_string()).unwrap(),
-                        unknown_string4: DeviceSQLString::empty(),
-                        message: DeviceSQLString::empty(),
-                        kuvo_public: DeviceSQLString::empty(),
-                        autoload_hotcues: DeviceSQLString::new("ON".to_string()).unwrap(),
-                        unknown_string5: DeviceSQLString::empty(),
-                        unknown_string6: DeviceSQLString::empty(),
-                        date_added: DeviceSQLString::new("2018-05-25".to_string()).unwrap(),
-                        release_date: DeviceSQLString::empty(),
-                        mix_name: DeviceSQLString::empty(),
-                        unknown_string7: DeviceSQLString::empty(),
-                        analyze_path: DeviceSQLString::new(
-                            "/PIONEER/USBANLZ/P016/0000875E/ANLZ0000.DAT".to_string(),
-                        )
-                        .unwrap(),
-                        analyze_date: DeviceSQLString::new("2022-02-02".to_string()).unwrap(),
-                        comment: DeviceSQLString::new("Tracks by www.loopmasters.com".to_string())
-                            .unwrap(),
-                        title: DeviceSQLString::new("Demo Track 1".to_string()).unwrap(),
-                        unknown_string8: DeviceSQLString::empty(),
-                        filename: DeviceSQLString::new("Demo Track 1.mp3".to_string()).unwrap(),
-                        file_path: DeviceSQLString::new(
-                            "/Contents/Loopmasters/UnknownAlbum/Demo Track 1.mp3".to_string(),
-                        )
-                        .unwrap(),
-                    }),
-                    Row::Track(Track {
-                        unknown1: 36,
-                        index_shift: 192,
-                        bitmask: 788224,
-                        sample_rate: 44100,
-                        composer_id: ArtistId(0),
-                        file_size: 5124342,
-                        unknown2: 263879995,
-                        unknown3: 64128,
-                        unknown4: 1511,
-                        artwork_id: ArtworkId(0),
-                        key_id: KeyId(5),
-                        orig_artist_id: ArtistId(0),
-                        label_id: LabelId(1),
-                        remixer_id: ArtistId(0),
-                        bitrate: 320,
-                        track_number: 0,
-                        tempo: 12000,
-                        genre_id: GenreId(0),
-                        album_id: AlbumId(0),
-                        artist_id: ArtistId(1),
-                        id: TrackId(2),
-                        disc_number: 0,
-                        play_count: 0,
-                        year: 0,
-                        sample_depth: 16,
-                        duration: 128,
-                        unknown5: 41,
-                        color: ColorIndex::None,
-                        rating: 0,
-                        unknown6: 1,
-                        unknown7: 3,
-                        isrc: DeviceSQLString::new_isrc("".to_string()).unwrap(),
-                        unknown_string1: DeviceSQLString::empty(),
-                        unknown_string2: DeviceSQLString::new("3".to_string()).unwrap(),
-                        unknown_string3: DeviceSQLString::new("3".to_string()).unwrap(),
-                        unknown_string4: DeviceSQLString::empty(),
-                        message: DeviceSQLString::empty(),
-                        kuvo_public: DeviceSQLString::empty(),
-                        autoload_hotcues: DeviceSQLString::new("ON".to_string()).unwrap(),
-                        unknown_string5: DeviceSQLString::empty(),
-                        unknown_string6: DeviceSQLString::empty(),
-                        date_added: DeviceSQLString::new("2018-05-25".to_string()).unwrap(),
-                        release_date: DeviceSQLString::empty(),
-                        mix_name: DeviceSQLString::empty(),
-                        unknown_string7: DeviceSQLString::empty(),
-                        analyze_path: DeviceSQLString::new(
-                            "/PIONEER/USBANLZ/P053/0001D21F/ANLZ0000.DAT".to_string(),
-                        )
-                        .unwrap(),
-                        analyze_date: DeviceSQLString::new("2022-02-02".to_string()).unwrap(),
-                        comment: DeviceSQLString::new("Tracks by www.loopmasters.com".to_string())
-                            .unwrap(),
-                        title: DeviceSQLString::new("Demo Track 2".to_string()).unwrap(),
-                        unknown_string8: DeviceSQLString::empty(),
-                        filename: DeviceSQLString::new("Demo Track 2.mp3".to_string()).unwrap(),
-                        file_path: DeviceSQLString::new(
-                            "/Contents/Loopmasters/UnknownAlbum/Demo Track 2.mp3".to_string(),
-                        )
-                        .unwrap(),
-                    }),
-                ],
-                row_presence_flags: 96,
+                rows: rows_array,
+                row_presence_flags: 127,
                 unknown: 64,
             }],
         };

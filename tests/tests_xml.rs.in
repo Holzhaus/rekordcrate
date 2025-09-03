@@ -1,0 +1,10 @@
+#[test]
+#[allow(non_snake_case)]
+fn xml_{name}() {{
+    println!("Parsing file: {filepath}");
+    let original_data = include_str!("{filepath}");
+    let document: Document =  quick_xml::de::from_str(original_data).expect("failed to deserialize XML");
+    let serialized_data = quick_xml::se::to_string(&document).expect("failed to serialize XML");
+    let document_after_roundtrip: Document =  quick_xml::de::from_str(&serialized_data).expect("failed to deserialize XML");
+    assert_eq!(document, document_after_roundtrip);
+}}

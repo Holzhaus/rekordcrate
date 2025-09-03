@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Jan Holthuis <jan.holthuis@rub.de>
+// Copyright (c) 2025 Jan Holthuis <jan.holthuis@rub.de>
 //
 // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy
 // of the MPL was not distributed with this file, You can obtain one at
@@ -22,7 +22,7 @@
 //! The `SettingData` structs implement the `Default` trait and allows you to create objects that
 //! use the same default values as found in Rekordbox 6.6.1.
 
-use binrw::{binrw, io::Cursor, BinWrite, Endian, NullString, WriteOptions};
+use binrw::{binrw, io::Cursor, BinWrite, Endian, NullString};
 use parse_display::Display;
 
 #[binrw]
@@ -67,8 +67,8 @@ pub struct Setting {
     /// See <https://reveng.sourceforge.io/crc-catalogue/all.htm#crc.cat.crc-16-xmodem> for
     /// details.
     #[br(temp)]
-    #[bw(calc = no_checksum.then_some(0).unwrap_or_else(|| self.calculate_checksum()))]
-    checksum: u16,
+    #[bw(calc = if no_checksum { 0 } else { self.calculate_checksum() })]
+    _checksum: u16,
     /// Unknown field (apparently always `0000`).
     #[br(temp)]
     #[br(assert(unknown == 0))]
@@ -138,7 +138,7 @@ where
     fn calculate_checksum(&self) -> u16 {
         let mut data = Vec::<u8>::with_capacity(156);
         let mut writer = Cursor::new(&mut data);
-        self.write_options(&mut writer, &WriteOptions::new(Endian::Little), (true,))
+        self.write_options(&mut writer, Endian::Little, (true,))
             .unwrap();
         let start = match self.data {
             // In `DJMMYSETTING.DAT`, the checksum is calculated over all previous bytes, including

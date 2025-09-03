@@ -1,4 +1,4 @@
-// Copyright (c) 2023 Jan Holthuis <jan.holthuis@rub.de>
+// Copyright (c) 2025 Jan Holthuis <jan.holthuis@rub.de>
 //
 // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy
 // of the MPL was not distributed with this file, You can obtain one at
@@ -30,7 +30,7 @@ use crate::{util::ColorIndex, xor::XorStream};
 use binrw::{
     binrw,
     io::{Read, Seek, Write},
-    BinRead, BinResult, BinWrite, NullWideString, ReadOptions, WriteOptions,
+    BinRead, BinResult, BinWrite, Endian, NullWideString,
 };
 use modular_bitfield::prelude::*;
 
@@ -153,7 +153,7 @@ pub enum CueListType {
 #[brw(repr = u8)]
 pub enum CueType {
     /// Cue is a single point.
-    Point = 0,
+    Point = 1,
     /// Cue is a loop.
     Loop = 2,
 }
@@ -357,6 +357,12 @@ pub struct ExtendedCue {
     unknown10: u32,
 }
 
+impl Default for WaveformPreviewColumn {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Single Column value in a Waveform Preview.
 #[bitfield]
 #[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy)]
@@ -367,6 +373,12 @@ pub struct WaveformPreviewColumn {
     pub height: B5,
     /// Shade of white.
     pub whiteness: B3,
+}
+
+impl Default for TinyWaveformPreviewColumn {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 /// Single Column value in a Tiny Waveform Preview.
@@ -403,6 +415,12 @@ pub struct WaveformColorPreviewColumn {
     pub energy_top_third_freq: u8,
 }
 
+impl Default for WaveformColorDetailColumn {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 /// Single Column value in a Waveform Color Detail section.
 #[bitfield]
 #[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy)]
@@ -430,7 +448,7 @@ pub struct WaveformColorDetailColumn {
 pub enum Mood {
     /// Phrase types consist of "Intro", "Up", "Down", "Chorus", and "Outro". Other values in each
     /// phrase entry cause the intro, chorus, and outro phrases to have their labels subdivided
-    /// into styes "1" or "2" (for example, "Intro 1"), and "up" is subdivided into style "Up 1",
+    /// into styles "1" or "2" (for example, "Intro 1"), and "up" is subdivided into style "Up 1",
     /// "Up 2", or "Up 3".
     High = 1,
     /// Phrase types are labeled "Intro", "Verse 1" through "Verse 6", "Chorus", "Bridge", and
@@ -614,7 +632,7 @@ pub struct CueList {
     /// Unknown field.
     memory_count: u32,
     /// Cues
-    #[br(count = len_cues)]
+    #[br(count = usize::from(len_cues))]
     pub cues: Vec<Cue>,
 }
 
@@ -635,7 +653,7 @@ pub struct ExtendedCueList {
     #[br(assert(unknown == 0))]
     unknown: u16,
     /// Cues
-    #[br(count = len_cues)]
+    #[br(count = usize::from(len_cues))]
     pub cues: Vec<ExtendedCue>,
 }
 
@@ -832,7 +850,7 @@ pub struct SongStructureData {
     /// Unknown field.
     unknown4: u8,
     /// Phrase entry data.
-    #[br(count = len_entries)]
+    #[br(count = usize::from(len_entries))]
     pub phrases: Vec<Phrase>,
 }
 
@@ -867,15 +885,15 @@ impl SongStructureData {
     /// value.
     fn read_encrypted<R: Read + Seek>(
         reader: &mut R,
-        options: &ReadOptions,
+        endian: Endian,
         (is_encrypted, len_entries): (bool, u16),
     ) -> BinResult<Self> {
         if is_encrypted {
             let key: Vec<u8> = Self::get_key(len_entries).collect();
             let mut xor_reader = XorStream::with_key(reader, key);
-            Self::read_options(&mut xor_reader, options, (len_entries,))
+            Self::read_options(&mut xor_reader, endian, (len_entries,))
         } else {
-            Self::read_options(reader, options, (len_entries,))
+            Self::read_options(reader, endian, (len_entries,))
         }
     }
 
@@ -884,15 +902,15 @@ impl SongStructureData {
     fn write_encrypted<W: Write + Seek>(
         &self,
         writer: &mut W,
-        options: &WriteOptions,
+        endian: Endian,
         (is_encrypted, len_entries): (bool, u16),
     ) -> BinResult<()> {
         if is_encrypted {
             let key: Vec<u8> = Self::get_key(len_entries).collect();
             let mut xor_writer = XorStream::with_key(writer, key);
-            self.write_options(&mut xor_writer, options, ())
+            self.write_options(&mut xor_writer, endian, ())
         } else {
-            self.write_options(writer, options, ())
+            self.write_options(writer, endian, ())
         }
     }
 }
@@ -943,7 +961,7 @@ pub struct ANLZ {
 impl ANLZ {
     fn parse_sections<R: Read + Seek>(
         reader: &mut R,
-        ro: &ReadOptions,
+        endian: Endian,
         args: (u32,),
     ) -> BinResult<Vec<Section>> {
         let (content_size,) = args;
@@ -951,7 +969,7 @@ impl ANLZ {
 
         let mut sections: Vec<Section> = vec![];
         while reader.stream_position()? < final_position {
-            let section = Section::read_options(reader, ro, ())?;
+            let section = Section::read_options(reader, endian, ())?;
             sections.push(section);
         }
 
