@@ -431,7 +431,6 @@ impl RowGroup {
     pub fn present_rows(&self) -> impl Iterator<Item = &Row> + '_ {
         self.rows
             .iter()
-            .rev()
             .filter_map(|row_offset| row_offset.as_ref().map(|ptr| &ptr.value))
     }
 }
@@ -1533,7 +1532,7 @@ mod test {
     #[test]
     fn track_page() {
         let mut rows_array: [Option<FilePtr16<Row>>; 16] = Default::default();
-        rows_array[6] = Some(FilePtr {
+        rows_array[0] = Some(FilePtr {
             ptr: 0,
             value: Row::Track(Track {
                 unknown1: 36,
@@ -1596,7 +1595,7 @@ mod test {
                 .unwrap(),
             }),
         });
-        rows_array[5] = Some(FilePtr {
+        rows_array[1] = Some(FilePtr {
             ptr: 0,
             value: Row::Track(Track {
                 unknown1: 36,
@@ -1659,7 +1658,7 @@ mod test {
                 .unwrap(),
             }),
         });
-        rows_array[4] = Some(FilePtr {
+        rows_array[2] = Some(FilePtr {
             ptr: 0,
             value: Row::Track(Track {
                 unknown1: 36,
@@ -1785,7 +1784,7 @@ mod test {
                 .unwrap(),
             }),
         });
-        rows_array[2] = Some(FilePtr {
+        rows_array[4] = Some(FilePtr {
             ptr: 0,
             value: Row::Track(Track {
                 unknown1: 36,
@@ -1848,7 +1847,7 @@ mod test {
                 .unwrap(),
             }),
         });
-        rows_array[1] = Some(FilePtr {
+        rows_array[5] = Some(FilePtr {
             ptr: 0,
             value: Row::Track(Track {
                 unknown1: 36,
@@ -1911,7 +1910,7 @@ mod test {
                 .unwrap(),
             }),
         });
-        rows_array[0] = Some(FilePtr {
+        rows_array[6] = Some(FilePtr {
             ptr: 0,
             value: Row::Track(Track {
                 unknown1: 36,
