@@ -295,13 +295,9 @@ pub struct Page {
     #[br(temp, calc = page_start_pos + u64::from(Self::HEADER_SIZE))]
     page_heap_offset: u64,
     /// Row groups belonging to this page.
-    // MERGE: Use the seek strategy from HEAD, and the parsing strategy from HEAD's arguments.
-    #[br(seek_before(SeekFrom::Current(Self::heap_padding_size(
-        page_size,
-        num_rows,
-        num_row_groups
-    ) as i64)))]
-    #[br(parse_with = Self::parse_row_groups, args(page_type, page_heap_offset, num_rows, num_row_groups, page_flags))]
+    #[br(seek_before(SeekFrom::Current(i64::from(page_size) - i64::from(Self::HEADER_SIZE))))]
+    #[br(restore_position)]
+    #[br(parse_with = Self::parse_row_groups, args(page_type, page_heap_offset, num_row_groups, page_flags))]
     pub row_groups: Vec<RowGroup>,
 }
 
@@ -374,41 +370,33 @@ impl Page {
         (page_size - Self::HEADER_SIZE - row_groups_footer_size) as usize
     }
 
-    /// MERGE: A new parser combining the best of both branches.
-    /// It uses HEAD's strategy of reading groups sequentially, but adapts to `main`'s
-    /// backward-reading `RowGroup` parser by repositioning the stream for each call.
     fn parse_row_groups<R: Read + Seek>(
         reader: &mut R,
         endian: Endian,
-        args: (PageType, u64, u16, u16, PageFlags),
+        args: (PageType, u64, u16, PageFlags),
     ) -> BinResult<Vec<RowGroup>> {
-        let (page_type, page_heap_offset, num_rows, num_row_groups, page_flags) = args;
+        let (page_type, page_heap_offset, num_row_groups, page_flags) = args;
 
-        if num_rows == 0 || !page_flags.page_has_data() {
+        if num_row_groups == 0 || !page_flags.page_has_data() {
             return Ok(vec![]);
         }
 
         let mut row_groups = Vec::with_capacity(num_row_groups as usize);
-        let mut rows_left = num_rows;
 
         for _ in 0..num_row_groups {
-            let rows_in_this_group = std::cmp::min(rows_left, RowGroup::MAX_ROW_COUNT as u16);
-            let group_footer_size = (rows_in_this_group as i64 * 2) + 4; // (offsets * 2) + flags + unknown
-
-            // We are at the start of the current group's footer. The RowGroup parser
-            // needs to be at the END of it to read backwards.
-            let group_start_pos = reader.stream_position()?;
-            reader.seek(SeekFrom::Current(group_footer_size))?;
-
-            // RowGroup::read_options parses backwards and then restores the stream position
-            // to where it was (i.e., the end of this group's footer).
+            // Parse backwards and restore the stream position.
             let group = RowGroup::read_options(reader, endian, (page_type, page_heap_offset))?;
-            row_groups.push(group);
 
-            // Ensure the reader is positioned at the start of the next group footer.
-            reader.seek(SeekFrom::Start(group_start_pos + group_footer_size as u64))?;
+            // We now know the size of the footer we just read.
+            let num_present_rows = group.row_presence_flags.count_ones();
+            let footer_size = (u64::from(num_present_rows) * 2) + 4; // 2 bytes/offset + 4 for flags/unknown
 
-            rows_left -= rows_in_this_group;
+            // Seek to the beginning of this footer, which is the end of the previous one.
+            let current_pos = reader.stream_position()?;
+            reader.seek(SeekFrom::Start(current_pos - footer_size))?;
+
+            // Since we're parsing from last-to-first, insert at the front to maintain order.
+            row_groups.insert(0, group);
         }
 
         Ok(row_groups)
