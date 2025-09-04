@@ -198,22 +198,49 @@ impl PageFlags {
     }
 }
 
+fn write_page_contents<W: Write + Seek>(
+    row_groups: &Vec<RowGroup>,
+    writer: &mut W,
+    endian: Endian,
+    args: (u32,),
+) -> BinResult<()> {
+    let (page_size,) = args;
+
+    let header_end_pos = writer.stream_position()?;
+    let page_offset = header_end_pos - u64::from(Page::HEADER_SIZE);
+
+    let num_row_groups = row_groups.len() as u16;
+    let padding_size = Page::heap_padding_size(page_size, num_row_groups) as usize;
+    vec![0u8; padding_size].write_options(writer, endian, ())?;
+
+    let mut relative_row_offset: u64 = Page::HEADER_SIZE.into();
+
+    for row_group in row_groups {
+        relative_row_offset = row_group.write_options_and_get_row_offset(
+            writer,
+            endian,
+            (page_offset, relative_row_offset),
+        )?;
+    }
+    Ok(())
+}
+
 /// A table page.
 ///
 /// Each page consists of a header that contains information about the type, number of rows, etc.,
 /// followed by the data section that holds the row data. Each row needs to be located using an
 /// offset found in the page footer at the end of the page.
-#[binread]
+#[binrw]
 #[derive(Debug, PartialEq)]
-#[br(little)]
-#[br(import(page_size: u32))]
+#[brw(little, import(page_size: u32))]
 pub struct Page {
     /// Stream position at the beginning of the page; used to compute heap base for standalone buffers.
     #[br(temp, parse_with = current_offset)]
+    #[bw(ignore)]
     page_start_pos: u64,
     /// Magic signature for pages (must be 0).
     #[br(temp, assert(magic == 0u32))]
-    #[bw(ignore)]
+    #[bw(calc = 0u32)]
     magic: u32,
     /// Index of the page.
     ///
@@ -284,75 +311,26 @@ pub struct Page {
     ///
     /// **Note:** This is a virtual field and not actually read from the file.
     #[br(temp, calc = Self::calculate_num_rows(num_rows_small, num_rows_large))]
+    #[bw(ignore)]
     num_rows: u16,
     /// Number of rows groups in this page.
+    ///
+    /// **Note:** This is a virtual field and not actually read from the file.
     #[br(temp, calc = num_rows.div_ceil(RowGroup::MAX_ROW_COUNT as u16))]
+    #[bw(ignore)]
     num_row_groups: u16,
     /// The offset at which the row data for this page are located.
     ///
     /// **Note:** This is a virtual field and not actually read from the file.
     #[br(temp, calc = page_start_pos + u64::from(Self::HEADER_SIZE))]
+    #[bw(ignore)]
     page_heap_offset: u64,
     /// Row groups belonging to this page.
     #[br(seek_before(SeekFrom::Current(Self::heap_padding_size(page_size, num_row_groups).into())))]
     #[br(args {count: num_row_groups.into(), inner: (page_type, page_heap_offset)})]
     #[br(if(num_row_groups > 0 && page_flags.page_has_data()))]
+    #[bw(write_with = write_page_contents, args(page_size))]
     pub row_groups: Vec<RowGroup>,
-}
-
-// #[bw(little)] on #[binread] types does not seem to work so we manually define the endianness here.
-impl binrw::meta::WriteEndian for Page {
-    const ENDIAN: binrw::meta::EndianKind = binrw::meta::EndianKind::Endian(Endian::Little);
-}
-
-impl BinWrite for Page {
-    type Args<'a> = (u32,); // page_size
-
-    fn write_options<W: Write + Seek>(
-        &self,
-        writer: &mut W,
-        endian: Endian,
-        args: Self::Args<'_>,
-    ) -> BinResult<()> {
-        let (page_size,) = args;
-        let page_offset = writer.stream_position()?;
-
-        // Header
-        0u32.write_options(writer, endian, ())?;
-        self.page_index.write_options(writer, endian, ())?;
-        self.page_type.write_options(writer, endian, ())?;
-        self.next_page.write_options(writer, endian, ())?;
-        self.unknown1.write_options(writer, endian, ())?;
-        self.unknown2.write_options(writer, endian, ())?;
-        self.num_rows_small.write_options(writer, endian, ())?;
-        self.unknown3.write_options(writer, endian, ())?;
-        self.unknown4.write_options(writer, endian, ())?;
-        self.page_flags.write_options(writer, endian, ())?;
-        self.free_size.write_options(writer, endian, ())?;
-        self.used_size.write_options(writer, endian, ())?;
-        self.unknown5.write_options(writer, endian, ())?;
-        self.num_rows_large.write_options(writer, endian, ())?;
-        self.unknown6.write_options(writer, endian, ())?;
-        self.unknown7.write_options(writer, endian, ())?;
-
-        // Padding between header and row group footers
-        let num_rows = self.num_rows();
-        let num_row_groups = num_rows.div_ceil(RowGroup::MAX_ROW_COUNT as u16);
-        let padding_size = Self::heap_padding_size(page_size, num_row_groups) as usize;
-        vec![0u8; padding_size].write_options(writer, endian, ())?;
-
-        // Row Groups (this also writes the actual row data to the heap area)
-        let mut relative_row_offset: u64 = Self::HEADER_SIZE.into();
-
-        for row_group in &self.row_groups {
-            relative_row_offset = row_group.write_options_and_get_row_offset(
-                writer,
-                endian,
-                (page_offset, relative_row_offset),
-            )?;
-        }
-        Ok(())
-    }
 }
 
 impl Page {
@@ -455,20 +433,6 @@ impl RowGroup {
 impl PartialEq for RowGroup {
     fn eq(&self, other: &Self) -> bool {
         self.rows == other.rows
-    }
-}
-
-impl BinWrite for RowGroup {
-    type Args<'a> = (u64, u64);
-
-    fn write_options<W: Write + Seek>(
-        &self,
-        writer: &mut W,
-        endian: Endian,
-        args: Self::Args<'_>,
-    ) -> binrw::BinResult<()> {
-        Self::write_options_and_get_row_offset(self, writer, endian, args)?;
-        Ok(())
     }
 }
 
