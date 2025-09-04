@@ -19,7 +19,9 @@
 //! - <https://github.com/flesniak/python-prodj-link/tree/master/prodj/pdblib>
 
 pub mod string;
-mod tests;
+
+#[cfg(test)]
+mod test;
 
 use std::convert::TryInto;
 
