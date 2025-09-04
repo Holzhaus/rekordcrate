@@ -467,12 +467,13 @@ impl RowGroup {
             let row_position = writer.stream_position()?;
             row.write_options(writer, endian, ())?;
 
-            row_offsets[i] = (row_position - heap_start).try_into().ok().ok_or_else(|| {
-                binrw::Error::AssertFail {
+            row_offsets[i] = row_position
+                .checked_sub(heap_start)
+                .and_then(|offset| offset.try_into().ok())
+                .ok_or_else(|| binrw::Error::AssertFail {
                     pos: heap_start,
                     message: "Wraparound while calculating row offset".to_string(),
-                }
-            })?;
+                })?;
         }
         let heap_end = writer.stream_position()?;
         writer.seek(SeekFrom::Start(row_offsets_start))?;
