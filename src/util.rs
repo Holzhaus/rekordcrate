@@ -114,16 +114,16 @@ pub(crate) mod testing {
         let mut writer = binrw::io::Cursor::new(Vec::with_capacity(bin.len()));
         obj.write_options(&mut writer, endian, write_args.clone())
             .unwrap();
-        assert_eq!(bin.len(), writer.get_ref().len());
-        assert_eq_hex!(&bin, &writer.get_ref());
+        assert_eq!(writer.get_ref().len(), bin.len());
+        assert_eq_hex!(&writer.get_ref(), &bin);
         // T->binary->T
         writer.set_position(0);
         let parsed = T::read_options(&mut writer, endian, read_args.clone()).unwrap();
-        assert_eq!(obj, parsed);
+        assert_eq!(parsed, obj);
         // binary->T
         let mut cursor = binrw::io::Cursor::new(bin);
         let parsed = T::read_options(&mut cursor, endian, read_args.clone()).unwrap();
-        assert_eq!(obj, parsed);
+        assert_eq!(parsed, obj);
         // binary->T->binary
         writer.set_position(0);
         parsed
