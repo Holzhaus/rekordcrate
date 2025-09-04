@@ -65,6 +65,24 @@ pub enum ColorIndex {
     Purple,
 }
 
+/// align given value to the alignment requirements by the given type.
+#[must_use]
+pub const fn align_by(alignment: u64, mut offset: u64) -> u64 {
+    // This is technically dependent on the compile time ABI
+    // but for x86 (which this is likely compiled on), we should be able
+    // to assume that
+    // the alignment of a type is just the size of its largest
+    // member. That likely matches the assumptions made for the 32-bit
+    // MCU (Renesas R8A77240D500BG) built into the different CDJ-2000 variants.
+    // In either way, its better to overshoot the alignment
+    // than to undershoot it. For CDJ-3000s, this assumption
+    // is likely also correct since they use a 64-bit ARM CPU (Renesas R8A774C0HA01BG)
+    if offset % alignment != 0 {
+        offset += alignment - (offset % alignment);
+    }
+    offset
+}
+
 #[cfg(test)]
 pub(crate) mod testing {
     use binrw::{
@@ -96,16 +114,16 @@ pub(crate) mod testing {
         let mut writer = binrw::io::Cursor::new(Vec::with_capacity(bin.len()));
         obj.write_options(&mut writer, endian, write_args.clone())
             .unwrap();
-        assert_eq!(bin.len(), writer.get_ref().len());
-        assert_eq_hex!(&bin, &writer.get_ref());
+        assert_eq!(writer.get_ref().len(), bin.len());
+        assert_eq_hex!(&writer.get_ref(), &bin);
         // T->binary->T
         writer.set_position(0);
         let parsed = T::read_options(&mut writer, endian, read_args.clone()).unwrap();
-        assert_eq!(obj, parsed);
+        assert_eq!(parsed, obj);
         // binary->T
         let mut cursor = binrw::io::Cursor::new(bin);
         let parsed = T::read_options(&mut cursor, endian, read_args.clone()).unwrap();
-        assert_eq!(obj, parsed);
+        assert_eq!(parsed, obj);
         // binary->T->binary
         writer.set_position(0);
         parsed
