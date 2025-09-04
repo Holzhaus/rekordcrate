@@ -1494,12 +1494,12 @@ mod test {
         row_groups[0]
             .add_row(Row::Artist(Artist {
                 subtype: 96,
-                index_shift: 32,
-                id: ArtistId(2),
+                index_shift: 64,
+                id: ArtistId(3),
                 unknown1: 3,
                 ofs_name_near: 10,
                 ofs_name_far: None,
-                name: "D'marc Cantu".parse().unwrap(),
+                name: "DJ Plant Texture".parse().unwrap(),
             }))
             .unwrap();
         row_groups[0]
