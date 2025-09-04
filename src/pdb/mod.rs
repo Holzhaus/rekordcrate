@@ -207,19 +207,17 @@ fn write_page_contents<W: Write + Seek>(
     let (page_size,) = args;
 
     let header_end_pos = writer.stream_position()?;
-    let page_offset = header_end_pos - u64::from(Page::HEADER_SIZE);
 
-    let num_row_groups = row_groups.len() as u16;
-    let padding_size = Page::heap_padding_size(page_size, num_row_groups) as usize;
-    vec![0u8; padding_size].write_options(writer, endian, ())?;
+    let mut relative_row_offset: u64 = 0;
 
-    let mut relative_row_offset: u64 = Page::HEADER_SIZE.into();
+    // Seek to the very end of the page
+    writer.seek(SeekFrom::Current((page_size - Page::HEADER_SIZE).into()))?;
 
     for row_group in row_groups {
         relative_row_offset = row_group.write_options_and_get_row_offset(
             writer,
             endian,
-            (page_offset, relative_row_offset),
+            (header_end_pos, relative_row_offset),
         )?;
     }
     Ok(())
@@ -328,6 +326,7 @@ pub struct Page {
     /// Row groups belonging to this page.
     #[br(seek_before(SeekFrom::Current(Self::heap_padding_size(page_size, num_row_groups).into())))]
     #[br(args {count: num_row_groups.into(), inner: (page_type, page_heap_offset)})]
+    #[br(map(|mut vec: Vec<RowGroup>| {vec.reverse(); vec}))]
     #[br(if(num_row_groups > 0 && page_flags.page_has_data()))]
     #[bw(write_with = write_page_contents, args(page_size))]
     pub row_groups: Vec<RowGroup>,
@@ -438,45 +437,53 @@ impl PartialEq for RowGroup {
 
 impl RowGroup {
     // This helper function now lives in the main impl block for RowGroup
+    // Assumes we point just past the rowgroup we're trying to write.
     fn write_options_and_get_row_offset<W: Write + Seek>(
         &self,
         writer: &mut W,
         endian: Endian,
         args: (u64, u64),
     ) -> binrw::BinResult<u64> {
-        let (page_offset, relative_row_offset) = args;
+        let (heap_start, relative_row_offset) = args;
 
         let rows_to_write_count = self.present_rows().len();
 
         // The number of flags set should match the number of present rows.
         if rows_to_write_count != self.row_presence_flags.count_ones() as usize {
             return Err(binrw::Error::AssertFail {
-                pos: page_offset,
+                pos: heap_start,
                 message: "Mismatch between present row count and row_presence_flags".to_string(),
             });
         }
 
-        let row_offsets_start = writer.stream_position()?;
+        let rowgroup_start = writer.stream_position()? - u64::from(Self::BINARY_SIZE);
 
-        let heap_start = page_offset + relative_row_offset;
+        let free_space_start = heap_start + relative_row_offset;
         let mut row_offsets = [0u16; Self::MAX_ROW_COUNT];
 
         // Write rows
-        writer.seek(SeekFrom::Start(heap_start))?;
+        writer.seek(SeekFrom::Start(free_space_start))?;
         for (i, row) in self.present_rows().iter().enumerate() {
             let row_position = writer.stream_position()?;
+            let aligned_position = row.align_by(row_position);
+            writer.seek(SeekFrom::Start(aligned_position))?;
             row.write_options(writer, endian, ())?;
 
-            row_offsets[i] = row_position
-                .checked_sub(heap_start)
-                .and_then(|offset| offset.try_into().ok())
-                .ok_or_else(|| binrw::Error::AssertFail {
-                    pos: heap_start,
+            let large_offset = aligned_position.checked_sub(heap_start).ok_or_else(|| {
+                binrw::Error::AssertFail {
+                    pos: aligned_position,
                     message: "Wraparound while calculating row offset".to_string(),
+                }
+            })?;
+            row_offsets[i] = large_offset
+                .try_into()
+                .map_err(|error| binrw::Error::AssertFail {
+                    pos: aligned_position,
+                    message: format!("Error converting offset: {:?}", error),
                 })?;
         }
-        let heap_end = writer.stream_position()?;
-        writer.seek(SeekFrom::Start(row_offsets_start))?;
+        let written_space_end = writer.stream_position()?;
+        writer.seek(SeekFrom::Start(rowgroup_start))?;
 
         // Write the offsets in reverse order, which matches the file format.
         for offset in row_offsets.into_iter().rev() {
@@ -484,8 +491,10 @@ impl RowGroup {
         }
         self.row_presence_flags.write_options(writer, endian, ())?;
         self.unknown.write_options(writer, endian, ())?;
+        // Seek back to the beginning of this rowgroup (which is the end of the next rowgroup)
+        writer.seek(SeekFrom::Start(rowgroup_start))?;
 
-        Ok(heap_end - page_offset)
+        Ok(written_space_end - heap_start)
     }
 }
 
@@ -1080,30 +1089,27 @@ impl Row {
     // aligned properly. Temporally allowed unused
     #[allow(unused)]
     #[must_use]
-    const fn get_alignment(&self) -> Option<std::num::NonZeroU64> {
+    const fn align_by(&self, offset: u64) -> u64 {
         use crate::pdb::Row::*;
-        use std::mem::align_of;
-        use std::num::NonZeroU64;
+        use crate::util::align_by;
+        use std::mem::align_of_val;
         // unfortunately I couldn't find any less copy-pastey way of doing this
         // without unnecessarily complex macros.
-        const fn type_to_opt_align<T>(_: &T) -> Option<NonZeroU64> {
-            NonZeroU64::new(align_of::<T>() as u64)
-        }
         match &self {
-            Album(r) => type_to_opt_align(r),
-            Artist(r) => type_to_opt_align(r),
-            Artwork(r) => type_to_opt_align(r),
-            Color(r) => type_to_opt_align(r),
-            ColumnEntry(r) => type_to_opt_align(r),
-            Genre(r) => type_to_opt_align(r),
-            HistoryPlaylist(r) => type_to_opt_align(r),
-            HistoryEntry(r) => type_to_opt_align(r),
-            Key(r) => type_to_opt_align(r),
-            Label(r) => type_to_opt_align(r),
-            PlaylistTreeNode(r) => type_to_opt_align(r),
-            PlaylistEntry(r) => type_to_opt_align(r),
-            Track(r) => type_to_opt_align(r),
-            Unknown => None,
+            Album(r) => align_by(align_of_val(r) as u64, offset),
+            Artist(r) => align_by(align_of_val(r) as u64, offset),
+            Artwork(r) => align_by(align_of_val(r) as u64, offset),
+            Color(r) => align_by(align_of_val(r) as u64, offset),
+            ColumnEntry(r) => align_by(align_of_val(r) as u64, offset),
+            Genre(r) => align_by(4, offset), // fixed alignment to 4 bytes
+            HistoryPlaylist(r) => align_by(align_of_val(r) as u64, offset),
+            HistoryEntry(r) => align_by(align_of_val(r) as u64, offset),
+            Key(r) => align_by(align_of_val(r) as u64, offset),
+            Label(r) => align_by(align_of_val(r) as u64, offset),
+            PlaylistTreeNode(r) => align_by(align_of_val(r) as u64, offset),
+            PlaylistEntry(r) => align_by(align_of_val(r) as u64, offset),
+            Track(_) => offset, // already handled by track serialization
+            Unknown => offset,
         }
     }
 }
@@ -2074,13 +2080,13 @@ mod test {
             RowGroup {
                 row_offsets: Default::default(),
                 row_presence_flags: 0,
-                unknown: 16,
+                unknown: 0, // This is different from the usual
                 rows: vec![],
             },
             RowGroup {
                 row_offsets: Default::default(),
                 row_presence_flags: 0,
-                unknown: 16,
+                unknown: 2, // This is different from the usual
                 rows: vec![],
             },
         ];
@@ -2088,7 +2094,7 @@ mod test {
         row_groups[1]
             .add_row(Row::Genre(Genre {
                 id: GenreId(184),
-                name: "#beatdown #synth".parse().unwrap(),
+                name: "#beatdown #synth ".parse().unwrap(),
             }))
             .unwrap();
         row_groups[1]
@@ -2124,7 +2130,7 @@ mod test {
         row_groups[0]
             .add_row(Row::Genre(Genre {
                 id: GenreId(172),
-                name: "#deep #beatdown".parse().unwrap(),
+                name: "#deep #beatdown ".parse().unwrap(),
             }))
             .unwrap();
         row_groups[0]
