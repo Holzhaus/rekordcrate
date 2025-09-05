@@ -1129,3 +1129,59 @@ impl Row {
         }
     }
 }
+
+#[allow(unused)] // TODO(Swiftb0y): Remove once we use this outside of tests
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum OffsetSource {
+    Near,
+    Far,
+}
+
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[brw(little)]
+#[br(import(offset: u16, source: OffsetSource, args: <T as BinRead>::Args<'_>))]
+#[bw(import(offset: u16, args: <T as BinWrite>::Args<'_>))]
+#[allow(unused)] // TODO(Swiftb0y): Remove once we use this outside of tests
+struct VarOffsetTail<T: BinRead + BinWrite> {
+    near: u8,
+    #[br(if(source == OffsetSource::Far))]
+    far: Option<u16>,
+    #[br(seek_before = Self::calculate_name_seek(near, &far, offset))]
+    #[bw(seek_before = Self::calculate_name_seek(*near, far, offset))]
+    #[brw(args_raw = args)]
+    inner: T,
+    // use offset + a couple bytes as a limit (though this is rather a heuristic)
+    #[br(parse_with = Self::guess_padding, args(offset + 0x10))]
+    #[bw(ignore)]
+    #[bw(pad_after=*padding)]
+    padding: u64,
+}
+
+impl<T: BinRead + BinWrite> VarOffsetTail<T> {
+    fn calculate_name_seek(near: u8, far: &Option<u16>, offset: u16) -> SeekFrom {
+        let offset = match (near, far) {
+            (0, None) => unreachable!(),
+            (_, Some(far)) => far - 3,
+            (near, None) => u16::from(near) - 1,
+        } - offset;
+        SeekFrom::Current(offset.into())
+    }
+    #[binrw::parser(reader)]
+    fn guess_padding(limit: u16) -> BinResult<u64> {
+        let mut count = 0;
+        // We never expect to read many bytes here, so this is fine
+        // to avoid scanning an entire page after the last row,
+        // we limit
+        #[allow(clippy::unbuffered_bytes)]
+        for byte in reader.take(u64::from(limit) * 2).bytes() {
+            if byte? != 0 {
+                break;
+            }
+            count += 1;
+        }
+        // don't consume the non-zero byte we just read
+        reader.seek_relative(-1)?;
+        Ok(count)
+    }
+}

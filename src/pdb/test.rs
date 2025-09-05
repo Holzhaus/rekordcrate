@@ -8,6 +8,129 @@
 use super::*;
 use crate::util::testing::{test_roundtrip, test_roundtrip_with_args};
 
+mod var_offset_tail {
+    use super::*;
+    use binrw::VecArgs;
+    use OffsetSource::*;
+    #[test]
+    fn empty() {
+        let empty_offset_tail = VarOffsetTail {
+            near: 1,
+            far: None,
+            inner: (),
+            padding: 0,
+        };
+        test_roundtrip_with_args(&[0x01], empty_offset_tail, (0, Near, ()), (0, ()));
+    }
+    #[test]
+    fn near_u8() {
+        let near_u8_tail = VarOffsetTail {
+            near: 1,
+            far: None,
+            inner: 42u8,
+            padding: 0,
+        };
+        test_roundtrip_with_args(&[0x01, 42], near_u8_tail, (0, Near, ()), (0, ()));
+    }
+    #[test]
+    fn buffer() {
+        let buffer = VarOffsetTail {
+            near: 1,
+            far: None,
+            inner: 0xDEADBEEF_u32.to_be_bytes(),
+            padding: 0,
+        };
+        test_roundtrip_with_args(
+            &[0x01, 0xDE, 0xAD, 0xBE, 0xEF],
+            buffer,
+            (0, Near, ()),
+            (0, ()),
+        );
+    }
+    #[test]
+    fn near_remote() {
+        let near_remote = VarOffsetTail {
+            near: 5,
+            far: None,
+            inner: 42u8,
+            padding: 0,
+        };
+        test_roundtrip_with_args(
+            &[0x05, 0x00, 0x00, 0x00, 0x00, 42],
+            near_remote,
+            (0, Near, ()),
+            (0, ()),
+        );
+    }
+    #[test]
+    fn far_remote() {
+        let far_remote = VarOffsetTail {
+            near: 0,
+            far: 3.into(),
+            inner: 42u8,
+            padding: 0,
+        };
+        test_roundtrip_with_args(&[0x00, 0x03, 0x00, 42], far_remote, (0, Far, ()), (0, ()));
+    }
+    #[test]
+    fn near_offset() {
+        let near_offset = VarOffsetTail {
+            near: 3,
+            far: None,
+            inner: 42u8,
+            padding: 0,
+        };
+        let offset = 2;
+        test_roundtrip_with_args(&[0x03, 42], near_offset, (offset, Near, ()), (offset, ()));
+    }
+    #[test]
+    fn padding_end() {
+        let padding_end = VarOffsetTail {
+            near: 1,
+            far: None,
+            inner: 42u8,
+            padding: 1,
+        };
+        test_roundtrip_with_args(&[0x01, 42, 0x00], padding_end, (0, Near, ()), (0, ()));
+    }
+    #[test]
+    fn padding_multiple() {
+        let padding_multiple = vec![
+            VarOffsetTail {
+                near: 1,
+                far: None,
+                inner: 42u8,
+                padding: 1,
+            };
+            2
+        ];
+        test_roundtrip_with_args(
+            &[0x01, 42, 0x00, 0x01, 42, 0x00],
+            padding_multiple,
+            VecArgs {
+                count: 2,
+                inner: (0, Near, ()),
+            },
+            (0, ()),
+        );
+    }
+    #[test]
+    fn far_remote_padding_offset() {
+        let far_remote_padding = VarOffsetTail {
+            near: 0,
+            far: Some(5),
+            inner: (),
+            padding: 1,
+        };
+        test_roundtrip_with_args(
+            &[0x00, 0x05, 0x00, 0x00],
+            far_remote_padding,
+            (2, Far, ()),
+            (2, ()),
+        );
+    }
+}
+
 #[test]
 fn empty_header() {
     let header = Header {
