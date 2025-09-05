@@ -4706,74 +4706,10 @@ fn labels_page() {
             row_presence_flags: 0,
             unknown: 0,
             rows: vec![],
-        },
-        RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
-            unknown: 0,
-            rows: vec![],
-        },
-        RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
-            unknown: 0,
-            rows: vec![],
-        },
-        RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
-            unknown: 0,
-            rows: vec![],
-        },
-        RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
-            unknown: 0,
-            rows: vec![],
-        },
-        RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
-            unknown: 0,
-            rows: vec![],
-        },
-        RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
-            unknown: 0,
-            rows: vec![],
-        },
-        RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
-            unknown: 0,
-            rows: vec![],
-        },
-        RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
-            unknown: 0,
-            rows: vec![],
-        },
-        RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
-            unknown: 0,
-            rows: vec![],
-        },
-        RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
-            unknown: 0,
-            rows: vec![],
-        },
-        RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
-            unknown: 0,
-            rows: vec![],
-        },
+        };
+        12
     ];
+    row_groups.last_mut().unwrap().unknown = 1;
 
     row_groups[0]
         .add_row(Row::Label(Label {

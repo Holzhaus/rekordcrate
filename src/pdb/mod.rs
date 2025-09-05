@@ -374,7 +374,7 @@ impl Page {
 /// table.
 #[binread]
 #[br(import(page_type: PageType, page_heap_position: u64))]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RowGroup {
     /// An offset which points to a row in the table, whose actual presence is controlled by one of the
     /// bits in `row_present_flags`. This instance allows the row itself to be lazily loaded, unless it
@@ -462,7 +462,8 @@ impl RowGroup {
         let rowgroup_start = writer.stream_position()? - u64::from(Self::BINARY_SIZE);
 
         let free_space_start = heap_start + relative_row_offset;
-        let mut row_offsets = [0u16; Self::MAX_ROW_COUNT];
+        const INVALID_ROW_OFFSET: u16 = u16::MAX;
+        let mut row_offsets = [INVALID_ROW_OFFSET; Self::MAX_ROW_COUNT];
 
         // Write rows
         writer.seek(SeekFrom::Start(free_space_start))?;
@@ -490,7 +491,13 @@ impl RowGroup {
 
         // Write the offsets in reverse order, which matches the file format.
         for offset in row_offsets.into_iter().rev() {
-            offset.write_options(writer, endian, ())?;
+            if offset == INVALID_ROW_OFFSET {
+                // Just skip the row, don't write zeros to it as
+                // there may be valid content there
+                writer.seek_relative(2)?;
+            } else {
+                offset.write_options(writer, endian, ())?;
+            }
         }
         self.row_presence_flags.write_options(writer, endian, ())?;
         self.unknown.write_options(writer, endian, ())?;
