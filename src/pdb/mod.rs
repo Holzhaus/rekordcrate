@@ -30,7 +30,7 @@ use crate::util::ColorIndex;
 use binrw::{
     binread, binrw,
     io::{Read, Seek, SeekFrom, Write},
-    BinRead, BinResult, BinWrite, Endian, FilePtr16, FilePtr8,
+    writer, BinRead, BinResult, BinWrite, Endian, FilePtr16, FilePtr8,
 };
 
 /// Do not read anything, but the return the current stream position of `reader`.
@@ -472,25 +472,6 @@ impl RowGroup {
             writer.seek(SeekFrom::Start(aligned_position))?;
             row.write_options(writer, endian, ())?;
 
-            // Add custom padding for Artist rows
-            if let Row::Artist(_) = row {
-                let after_name_pos = writer.stream_position()?;
-                let page_relative_pos =
-                    after_name_pos
-                        .checked_sub(heap_start)
-                        .ok_or_else(|| binrw::Error::AssertFail {
-                            pos: after_name_pos,
-                            message: "Wraparound while calculating page relative position for artist"
-                                .to_string(),
-                        })?;
-                let aligned_down = page_relative_pos & !3;
-                let new_pos = aligned_down + if page_relative_pos % 4 == 3 { 12 } else { 8 };
-                let total_pad = new_pos - page_relative_pos;
-                if total_pad > 0 {
-                    writer.write_all(&vec![0; total_pad as usize])?;
-                }
-            }
-
             let large_offset = aligned_position.checked_sub(heap_start).ok_or_else(|| {
                 binrw::Error::AssertFail {
                     pos: aligned_position,
@@ -628,6 +609,7 @@ pub struct Artist {
     #[br(seek_before = Artist::calculate_name_seek(ofs_name_near, &ofs_name_far))]
     #[bw(seek_before = Artist::calculate_name_seek(*ofs_name_near, ofs_name_far))]
     #[br(restore_position)]
+    #[bw(write_with = Self::write_string_with_padding)]
     name: DeviceSQLString,
 }
 
@@ -635,6 +617,22 @@ impl Artist {
     fn calculate_name_seek(ofs_near: u8, ofs_far: &Option<u16>) -> SeekFrom {
         let offset: u16 = ofs_far.map_or_else(|| ofs_near.into(), |v| v - 2) - 10;
         SeekFrom::Current(offset.into())
+    }
+    #[writer(writer: writer, endian: endian)]
+    fn write_string_with_padding(str: &DeviceSQLString) -> BinResult<()> {
+        str.write_options(writer, endian, ())?;
+        let string_end = writer.stream_position()?;
+        // This assumes the row is 4-byte aligned
+        // Since this is true for the first row, and every row after that
+        // adds this padding to ensure that, this is always true.
+        let aligned_down = string_end & !0b11;
+        // There is no real logic behind this afaict, its just what we observed
+        // from reference exports and mimicking here.
+        let new_pos = aligned_down + if string_end % 4 == 3 { 12 } else { 8 };
+        let total_pad = new_pos - string_end;
+        // TODO(Swiftb0y): https://github.com/jam1garner/binrw/discussions/344
+        writer.write_all(&vec![0u8; total_pad as usize])?;
+        Ok(())
     }
 }
 
