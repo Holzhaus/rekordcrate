@@ -281,6 +281,50 @@ fn artist_row() {
 }
 
 #[test]
+fn album_row() {
+    let row1 = Album {
+        unknown1: 128,
+        index_shift: 32,
+        unknown2: 0,
+        artist_id: ArtistId(2),
+        id: AlbumId(2),
+        unknown3: 0,
+        unknown4: 3,
+        ofs_name: 0x16,
+        name: "GOOD LUCK".parse().unwrap(),
+    };
+
+    test_roundtrip(
+        &[
+            0x80, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x02, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x16, 0x15, 0x47, 0x4f, 0x4f, 0x44, 0x20,
+            0x4c, 0x55, 0x43, 0x4b,
+        ],
+        row1,
+    );
+    let row2 = Album {
+        unknown1: 128,
+        index_shift: 64,
+        unknown2: 0,
+        artist_id: ArtistId(0),
+        id: AlbumId(3),
+        unknown3: 0,
+        unknown4: 3,
+        ofs_name: 0x16,
+        name: "Techno Rave 2023".parse().unwrap(),
+    };
+
+    test_roundtrip(
+        &[
+            0x80, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x16, 0x23, 0x54, 0x65, 0x63, 0x68, 0x6e,
+            0x6f, 0x20, 0x52, 0x61, 0x76, 0x65, 0x20, 0x32, 0x30, 0x32, 0x33,
+        ],
+        row2,
+    );
+}
+
+#[test]
 fn label_row() {
     let row = Label {
         id: LabelId(1),
@@ -3263,6 +3307,7 @@ fn albums_page() {
             id: AlbumId(1),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "The Worst of Gehm".parse().unwrap(),
         }))
         .unwrap();
@@ -3275,6 +3320,7 @@ fn albums_page() {
             id: AlbumId(2),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "1ØPILLS003 MASTER MP3s".parse().unwrap(),
         }))
         .unwrap();
@@ -3287,6 +3333,7 @@ fn albums_page() {
             id: AlbumId(3),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Love & Happiness".parse().unwrap(),
         }))
         .unwrap();
@@ -3299,6 +3346,7 @@ fn albums_page() {
             id: AlbumId(4),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Wind / Phazzled".parse().unwrap(),
         }))
         .unwrap();
@@ -3311,6 +3359,7 @@ fn albums_page() {
             id: AlbumId(5),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Spectral Sound Volume 3".parse().unwrap(),
         }))
         .unwrap();
@@ -3323,6 +3372,7 @@ fn albums_page() {
             id: AlbumId(6),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "The Hideout (Mini-Lp)".parse().unwrap(),
         }))
         .unwrap();
@@ -3335,6 +3385,7 @@ fn albums_page() {
             id: AlbumId(7),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Sweet Dreams EP".parse().unwrap(),
         }))
         .unwrap();
@@ -3347,6 +3398,7 @@ fn albums_page() {
             id: AlbumId(8),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Lab.our 05".parse().unwrap(),
         }))
         .unwrap();
@@ -3359,6 +3411,7 @@ fn albums_page() {
             id: AlbumId(9),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "PolyfonikDizko".parse().unwrap(),
         }))
         .unwrap();
@@ -3371,6 +3424,7 @@ fn albums_page() {
             id: AlbumId(10),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Altered States EP".parse().unwrap(),
         }))
         .unwrap();
@@ -3383,6 +3437,7 @@ fn albums_page() {
             id: AlbumId(11),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "My So Called Robot Life EP".parse().unwrap(),
         }))
         .unwrap();
@@ -3395,6 +3450,7 @@ fn albums_page() {
             id: AlbumId(12),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Deep Ep".parse().unwrap(),
         }))
         .unwrap();
@@ -3407,6 +3463,7 @@ fn albums_page() {
             id: AlbumId(13),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Simoncino \u{200e}– Mystic Adventures".parse().unwrap(),
         }))
         .unwrap();
@@ -3419,6 +3476,7 @@ fn albums_page() {
             id: AlbumId(14),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Smu Is The Key EP".parse().unwrap(),
         }))
         .unwrap();
@@ -3431,6 +3489,7 @@ fn albums_page() {
             id: AlbumId(15),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "SOM Compilation Volume 2".parse().unwrap(), // codespell:ignore
         }))
         .unwrap();
@@ -3443,6 +3502,7 @@ fn albums_page() {
             id: AlbumId(16),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "NY Muscle".parse().unwrap(),
         }))
         .unwrap();
@@ -3456,6 +3516,7 @@ fn albums_page() {
             id: AlbumId(17),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Point of No Return EP".parse().unwrap(),
         }))
         .unwrap();
@@ -3468,6 +3529,7 @@ fn albums_page() {
             id: AlbumId(18),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Tapes 08".parse().unwrap(),
         }))
         .unwrap();
@@ -3480,6 +3542,7 @@ fn albums_page() {
             id: AlbumId(19),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Like No One".parse().unwrap(),
         }))
         .unwrap();
@@ -3492,6 +3555,7 @@ fn albums_page() {
             id: AlbumId(20),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "The Boat Party".parse().unwrap(),
         }))
         .unwrap();
@@ -3504,6 +3568,7 @@ fn albums_page() {
             id: AlbumId(21),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Raw & Unreleased".parse().unwrap(),
         }))
         .unwrap();
@@ -3516,6 +3581,7 @@ fn albums_page() {
             id: AlbumId(22),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Living Low".parse().unwrap(),
         }))
         .unwrap();
@@ -3528,6 +3594,7 @@ fn albums_page() {
             id: AlbumId(23),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Muzic Box Classics #7".parse().unwrap(),
         }))
         .unwrap();
@@ -3540,6 +3607,7 @@ fn albums_page() {
             id: AlbumId(24),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Stranger In The Strangest Of Lands".parse().unwrap(),
         }))
         .unwrap();
@@ -3552,6 +3620,7 @@ fn albums_page() {
             id: AlbumId(25),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Pt. 1".parse().unwrap(),
         }))
         .unwrap();
@@ -3564,6 +3633,7 @@ fn albums_page() {
             id: AlbumId(26),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Body Mechanics EP".parse().unwrap(),
         }))
         .unwrap();
@@ -3576,6 +3646,7 @@ fn albums_page() {
             id: AlbumId(27),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "EAUX1091 ".parse().unwrap(),
         }))
         .unwrap();
@@ -3588,6 +3659,7 @@ fn albums_page() {
             id: AlbumId(28),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Lost Tracks, Vol. 2".parse().unwrap(),
         }))
         .unwrap();
@@ -3600,6 +3672,7 @@ fn albums_page() {
             id: AlbumId(29),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Dubbelbrein EP".parse().unwrap(),
         }))
         .unwrap();
@@ -3612,6 +3685,7 @@ fn albums_page() {
             id: AlbumId(30),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Vx, Vol. 1".parse().unwrap(),
         }))
         .unwrap();
@@ -3624,6 +3698,7 @@ fn albums_page() {
             id: AlbumId(31),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "The Trax Records Anthology Compiled By Bill Brewster"
                 .parse()
                 .unwrap(),
@@ -3638,6 +3713,7 @@ fn albums_page() {
             id: AlbumId(32),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "AfriOrker".parse().unwrap(),
         }))
         .unwrap();
@@ -3651,6 +3727,7 @@ fn albums_page() {
             id: AlbumId(33),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Mortal Sin EP".parse().unwrap(),
         }))
         .unwrap();
@@ -3663,6 +3740,7 @@ fn albums_page() {
             id: AlbumId(34),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Psyops part one EP".parse().unwrap(),
         }))
         .unwrap();
@@ -3675,6 +3753,7 @@ fn albums_page() {
             id: AlbumId(35),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "White Rats III".parse().unwrap(),
         }))
         .unwrap();
@@ -3687,6 +3766,7 @@ fn albums_page() {
             id: AlbumId(36),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "far from reality".parse().unwrap(),
         }))
         .unwrap();
@@ -3699,6 +3779,7 @@ fn albums_page() {
             id: AlbumId(37),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "EP1".parse().unwrap(),
         }))
         .unwrap();
@@ -3711,6 +3792,7 @@ fn albums_page() {
             id: AlbumId(38),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Alpha Omega".parse().unwrap(),
         }))
         .unwrap();
@@ -3723,6 +3805,7 @@ fn albums_page() {
             id: AlbumId(39),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Decay".parse().unwrap(),
         }))
         .unwrap();
@@ -3735,6 +3818,7 @@ fn albums_page() {
             id: AlbumId(40),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "[LIES 009] Mind Control 320".parse().unwrap(),
         }))
         .unwrap();
@@ -3747,6 +3831,7 @@ fn albums_page() {
             id: AlbumId(41),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Nation".parse().unwrap(),
         }))
         .unwrap();
@@ -3759,6 +3844,7 @@ fn albums_page() {
             id: AlbumId(42),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Split 02".parse().unwrap(),
         }))
         .unwrap();
@@ -3771,6 +3857,7 @@ fn albums_page() {
             id: AlbumId(43),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Another Number".parse().unwrap(),
         }))
         .unwrap();
@@ -3783,6 +3870,7 @@ fn albums_page() {
             id: AlbumId(44),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "8 Ball".parse().unwrap(),
         }))
         .unwrap();
@@ -3795,6 +3883,7 @@ fn albums_page() {
             id: AlbumId(45),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "H-Productions presents_Mutations 101 (HPX60)"
                 .parse()
                 .unwrap(),
@@ -3809,6 +3898,7 @@ fn albums_page() {
             id: AlbumId(46),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "CBS024X".parse().unwrap(),
         }))
         .unwrap();
@@ -3821,6 +3911,7 @@ fn albums_page() {
             id: AlbumId(47),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Ben Sims pres Tribology".parse().unwrap(), // codespell:ignore pres
         }))
         .unwrap();
@@ -3833,6 +3924,7 @@ fn albums_page() {
             id: AlbumId(48),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Night Jewel".parse().unwrap(),
         }))
         .unwrap();
@@ -3846,6 +3938,7 @@ fn albums_page() {
             id: AlbumId(49),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "AKROPOLEOS".parse().unwrap(),
         }))
         .unwrap();
@@ -3858,6 +3951,7 @@ fn albums_page() {
             id: AlbumId(50),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Mistress 12".parse().unwrap(),
         }))
         .unwrap();
@@ -3870,6 +3964,7 @@ fn albums_page() {
             id: AlbumId(51),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Mistress 12.5".parse().unwrap(),
         }))
         .unwrap();
@@ -3882,6 +3977,7 @@ fn albums_page() {
             id: AlbumId(52),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Remember Each Moment Of Freedom".parse().unwrap(),
         }))
         .unwrap();
@@ -3894,6 +3990,7 @@ fn albums_page() {
             id: AlbumId(53),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Mood Sequences".parse().unwrap(),
         }))
         .unwrap();
@@ -3906,6 +4003,7 @@ fn albums_page() {
             id: AlbumId(54),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Death Is Nothing To Fear 1".parse().unwrap(),
         }))
         .unwrap();
@@ -3918,6 +4016,7 @@ fn albums_page() {
             id: AlbumId(55),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "I'm A Man".parse().unwrap(),
         }))
         .unwrap();
@@ -3930,6 +4029,7 @@ fn albums_page() {
             id: AlbumId(56),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Cari Lekebusch & Jesper Dahlback - Hands on experience"
                 .parse()
                 .unwrap(),
@@ -3944,6 +4044,7 @@ fn albums_page() {
             id: AlbumId(57),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "New Life EP".parse().unwrap(),
         }))
         .unwrap();
@@ -3956,6 +4057,7 @@ fn albums_page() {
             id: AlbumId(58),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "State of Mind EP".parse().unwrap(),
         }))
         .unwrap();
@@ -3968,6 +4070,7 @@ fn albums_page() {
             id: AlbumId(59),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "DABJ Allstars".parse().unwrap(),
         }))
         .unwrap();
@@ -3980,6 +4083,7 @@ fn albums_page() {
             id: AlbumId(60),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Mendoza".parse().unwrap(),
         }))
         .unwrap();
@@ -3992,6 +4096,7 @@ fn albums_page() {
             id: AlbumId(61),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "CD Thirteen".parse().unwrap(),
         }))
         .unwrap();
@@ -4004,6 +4109,7 @@ fn albums_page() {
             id: AlbumId(62),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Raw 7".parse().unwrap(),
         }))
         .unwrap();
@@ -4016,6 +4122,7 @@ fn albums_page() {
             id: AlbumId(63),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Endurance - UNDERGROUND QUALITY".parse().unwrap(),
         }))
         .unwrap();
@@ -4028,6 +4135,7 @@ fn albums_page() {
             id: AlbumId(64),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "EFDEMIN - DECAY VERSIONS PT.2".parse().unwrap(),
         }))
         .unwrap();
@@ -4041,6 +4149,7 @@ fn albums_page() {
             id: AlbumId(65),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "HUSH 03".parse().unwrap(),
         }))
         .unwrap();
@@ -4053,6 +4162,7 @@ fn albums_page() {
             id: AlbumId(66),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Mistress 20".parse().unwrap(),
         }))
         .unwrap();
@@ -4065,6 +4175,7 @@ fn albums_page() {
             id: AlbumId(67),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Love under pressure ".parse().unwrap(),
         }))
         .unwrap();
@@ -4077,6 +4188,7 @@ fn albums_page() {
             id: AlbumId(68),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Release".parse().unwrap(),
         }))
         .unwrap();
@@ -4089,6 +4201,7 @@ fn albums_page() {
             id: AlbumId(69),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Hexagon Cloud".parse().unwrap(),
         }))
         .unwrap();
@@ -4101,6 +4214,7 @@ fn albums_page() {
             id: AlbumId(70),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "NRDR 011".parse().unwrap(),
         }))
         .unwrap();
@@ -4113,6 +4227,7 @@ fn albums_page() {
             id: AlbumId(71),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Diptych".parse().unwrap(),
         }))
         .unwrap();
@@ -4125,6 +4240,7 @@ fn albums_page() {
             id: AlbumId(72),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Seven Days".parse().unwrap(),
         }))
         .unwrap();
@@ -4137,6 +4253,7 @@ fn albums_page() {
             id: AlbumId(73),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Unknown Origin".parse().unwrap(),
         }))
         .unwrap();
@@ -4149,6 +4266,7 @@ fn albums_page() {
             id: AlbumId(74),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Arpeggiator".parse().unwrap(),
         }))
         .unwrap();
@@ -4161,6 +4279,7 @@ fn albums_page() {
             id: AlbumId(75),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "DECONSTRUCT MUSIC DEC-02".parse().unwrap(),
         }))
         .unwrap();
@@ -4173,6 +4292,7 @@ fn albums_page() {
             id: AlbumId(76),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Basement Tracks EP".parse().unwrap(),
         }))
         .unwrap();
@@ -4185,6 +4305,7 @@ fn albums_page() {
             id: AlbumId(77),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Corpse Grinder".parse().unwrap(),
         }))
         .unwrap();
@@ -4197,6 +4318,7 @@ fn albums_page() {
             id: AlbumId(78),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Kamm / Plain".parse().unwrap(),
         }))
         .unwrap();
@@ -4209,6 +4331,7 @@ fn albums_page() {
             id: AlbumId(79),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Fluxus_Digital_006".parse().unwrap(),
         }))
         .unwrap();
@@ -4221,6 +4344,7 @@ fn albums_page() {
             id: AlbumId(80),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Minutes In Ice".parse().unwrap(),
         }))
         .unwrap();
@@ -4234,6 +4358,7 @@ fn albums_page() {
             id: AlbumId(81),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "TRP001".parse().unwrap(),
         }))
         .unwrap();
@@ -4246,6 +4371,7 @@ fn albums_page() {
             id: AlbumId(82),
             unknown3: 0,
             unknown4: 3,
+            ofs_name: 0x16,
             name: "Mmmmmusic".parse().unwrap(),
         }))
         .unwrap();

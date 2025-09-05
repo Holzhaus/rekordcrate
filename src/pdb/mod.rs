@@ -30,7 +30,7 @@ use crate::{pdb::string::DeviceSQLString, util::align_by};
 use binrw::{
     binread, binrw,
     io::{Read, Seek, SeekFrom, Write},
-    writer, BinRead, BinResult, BinWrite, Endian, FilePtr16, FilePtr8,
+    writer, BinRead, BinResult, BinWrite, Endian, FilePtr16,
 };
 
 /// Do not read anything, but the return the current stream position of `reader`.
@@ -560,12 +560,6 @@ pub struct HistoryPlaylistId(pub u32);
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 pub struct Album {
-    /// Position of start of this row (needed of offset calculations).
-    ///
-    /// **Note:** This is a virtual field and not actually read from the file.
-    #[br(temp, parse_with = current_offset)]
-    #[bw(ignore)]
-    base_offset: u64,
     /// Unknown field, usually `80 00`.
     unknown1: u16,
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
@@ -580,8 +574,10 @@ pub struct Album {
     unknown3: u32,
     /// Unknown field.
     unknown4: u8,
+    ofs_name: u8,
     /// Album name String
-    #[br(offset = base_offset, parse_with = FilePtr8::parse)]
+    #[br(seek_before = SeekFrom::Current(i64::from(ofs_name) - 0x16))]
+    #[bw(seek_before = SeekFrom::Current(i64::from(*ofs_name) - 0x16))]
     name: DeviceSQLString,
 }
 
