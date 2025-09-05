@@ -1127,7 +1127,7 @@ impl Row {
             Genre(r) => align_by(4, offset), // fixed alignment to 4 bytes
             HistoryPlaylist(r) => align_by(align_of_val(r) as u64, offset),
             HistoryEntry(r) => align_by(align_of_val(r) as u64, offset),
-            Key(r) => align_by(align_of_val(r) as u64, offset),
+            Key(r) => align_by(4, offset),
             Label(r) => align_by(4, offset),
             PlaylistTreeNode(r) => align_by(align_of_val(r) as u64, offset),
             PlaylistEntry(r) => align_by(align_of_val(r) as u64, offset),

@@ -5811,3 +5811,413 @@ fn labels_page() {
         (page_size,),
     );
 }
+
+#[test]
+fn keys_page() {
+    let mut row_groups = vec![
+        RowGroup {
+            row_offsets: Default::default(),
+            row_presence_flags: 0,
+            unknown: 0,
+            rows: vec![],
+        };
+        4
+    ];
+
+    row_groups[3].unknown = 8;
+
+    row_groups[0]
+        .add_row(Row::Key(Key {
+            id: KeyId(1),
+            id2: 1,
+            name: "Emin".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Key(Key {
+            id: KeyId(2),
+            id2: 2,
+            name: "Fmaj".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Key(Key {
+            id: KeyId(3),
+            id2: 3,
+            name: "E".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Key(Key {
+            id: KeyId(4),
+            id2: 4,
+            name: "Amin".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Key(Key {
+            id: KeyId(5),
+            id2: 5,
+            name: "2d".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Key(Key {
+            id: KeyId(6),
+            id2: 6,
+            name: "Bmin".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Key(Key {
+            id: KeyId(7),
+            id2: 7,
+            name: "Cmin".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Key(Key {
+            id: KeyId(8),
+            id2: 8,
+            name: "Cmaj".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Key(Key {
+            id: KeyId(9),
+            id2: 9,
+            name: "Abmin".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Key(Key {
+            id: KeyId(10),
+            id2: 10,
+            name: "Dmin".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Key(Key {
+            id: KeyId(11),
+            id2: 11,
+            name: "Gmin".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Key(Key {
+            id: KeyId(12),
+            id2: 12,
+            name: "Dm".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Key(Key {
+            id: KeyId(13),
+            id2: 13,
+            name: "Am".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Key(Key {
+            id: KeyId(14),
+            id2: 14,
+            name: "A#".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Key(Key {
+            id: KeyId(15),
+            id2: 15,
+            name: "G#min".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Key(Key {
+            id: KeyId(16),
+            id2: 16,
+            name: "A#min".parse().unwrap(),
+        }))
+        .unwrap();
+
+    row_groups[1]
+        .add_row(Row::Key(Key {
+            id: KeyId(17),
+            id2: 17,
+            name: "Amaj".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Key(Key {
+            id: KeyId(18),
+            id2: 18,
+            name: "Gmaj".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Key(Key {
+            id: KeyId(19),
+            id2: 19,
+            name: "D#min".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Key(Key {
+            id: KeyId(20),
+            id2: 20,
+            name: "Dmaj".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Key(Key {
+            id: KeyId(21),
+            id2: 21,
+            name: "Ebmin".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Key(Key {
+            id: KeyId(22),
+            id2: 22,
+            name: "Emaj".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Key(Key {
+            id: KeyId(23),
+            id2: 23,
+            name: "F#min".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Key(Key {
+            id: KeyId(24),
+            id2: 24,
+            name: "A#maj".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Key(Key {
+            id: KeyId(25),
+            id2: 25,
+            name: "D#".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Key(Key {
+            id: KeyId(26),
+            id2: 26,
+            name: "Gbmaj".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Key(Key {
+            id: KeyId(27),
+            id2: 27,
+            name: "D#maj".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Key(Key {
+            id: KeyId(28),
+            id2: 28,
+            name: "Bmaj".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Key(Key {
+            id: KeyId(29),
+            id2: 29,
+            name: "7m".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Key(Key {
+            id: KeyId(30),
+            id2: 30,
+            name: "C#min".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Key(Key {
+            id: KeyId(31),
+            id2: 31,
+            name: "5m".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Key(Key {
+            id: KeyId(32),
+            id2: 32,
+            name: "Dbmaj".parse().unwrap(),
+        }))
+        .unwrap();
+
+    row_groups[2]
+        .add_row(Row::Key(Key {
+            id: KeyId(33),
+            id2: 33,
+            name: "Bbmaj".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Key(Key {
+            id: KeyId(34),
+            id2: 34,
+            name: "12m".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Key(Key {
+            id: KeyId(35),
+            id2: 35,
+            name: "Bbmin".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Key(Key {
+            id: KeyId(36),
+            id2: 36,
+            name: "Fmin".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Key(Key {
+            id: KeyId(37),
+            id2: 37,
+            name: "F#maj".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Key(Key {
+            id: KeyId(38),
+            id2: 38,
+            name: "10m".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Key(Key {
+            id: KeyId(39),
+            id2: 39,
+            name: "A".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Key(Key {
+            id: KeyId(40),
+            id2: 40,
+            name: "Bbm".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Key(Key {
+            id: KeyId(41),
+            id2: 41,
+            name: "C".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Key(Key {
+            id: KeyId(42),
+            id2: 42,
+            name: "Dbmin".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Key(Key {
+            id: KeyId(43),
+            id2: 43,
+            name: "Gm".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Key(Key {
+            id: KeyId(44),
+            id2: 44,
+            name: "Gbmin".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Key(Key {
+            id: KeyId(45),
+            id2: 45,
+            name: "A m".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Key(Key {
+            id: KeyId(46),
+            id2: 46,
+            name: "3d".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Key(Key {
+            id: KeyId(47),
+            id2: 47,
+            name: "7d".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Key(Key {
+            id: KeyId(48),
+            id2: 48,
+            name: "F#m".parse().unwrap(),
+        }))
+        .unwrap();
+
+    row_groups[3]
+        .add_row(Row::Key(Key {
+            id: KeyId(49),
+            id2: 49,
+            name: "Unknown".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Key(Key {
+            id: KeyId(50),
+            id2: 50,
+            name: "Em".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Key(Key {
+            id: KeyId(51),
+            id2: 51,
+            name: "Bm".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Key(Key {
+            id: KeyId(52),
+            id2: 52,
+            name: "Ab".parse().unwrap(),
+        }))
+        .unwrap();
+
+    let page = Page {
+        page_index: PageIndex(12),
+        page_type: PageType::Keys,
+        next_page: PageIndex(51),
+        unknown1: 13484,
+        unknown2: 0,
+        num_rows_small: 52,
+        unknown3: 128,
+        unknown4: 6,
+        page_flags: PageFlags(36),
+        free_size: 3188,
+        used_size: 748,
+        unknown5: 1,
+        num_rows_large: 51,
+        unknown6: 0,
+        unknown7: 0,
+        row_groups,
+    };
+
+    let page_size = 4096;
+    test_roundtrip_with_args(
+        include_bytes!("../../data/pdb/unit_tests/keys_page.bin"),
+        page,
+        (page_size,),
+        (page_size,),
+    );
+}
