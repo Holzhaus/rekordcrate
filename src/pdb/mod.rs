@@ -25,8 +25,8 @@ mod test;
 
 use std::convert::TryInto;
 
-use crate::pdb::string::DeviceSQLString;
 use crate::util::ColorIndex;
+use crate::{pdb::string::DeviceSQLString, util::align_by};
 use binrw::{
     binread, binrw,
     io::{Read, Seek, SeekFrom, Write},
@@ -609,7 +609,7 @@ pub struct Artist {
     #[br(seek_before = Artist::calculate_name_seek(ofs_name_near, &ofs_name_far))]
     #[bw(seek_before = Artist::calculate_name_seek(*ofs_name_near, ofs_name_far))]
     #[br(restore_position)]
-    #[bw(write_with = Self::write_string_with_padding)]
+    #[bw(write_with = Self::write_string_with_padding, args(*subtype))]
     name: DeviceSQLString,
 }
 
@@ -619,17 +619,17 @@ impl Artist {
         SeekFrom::Current(offset.into())
     }
     #[writer(writer: writer, endian: endian)]
-    fn write_string_with_padding(str: &DeviceSQLString) -> BinResult<()> {
+    fn write_string_with_padding(str: &DeviceSQLString, subtype: u16) -> BinResult<()> {
         str.write_options(writer, endian, ())?;
         let string_end = writer.stream_position()?;
-        // This assumes the row is 4-byte aligned
-        // Since this is true for the first row, and every row after that
-        // adds this padding to ensure that, this is always true.
+
         let aligned_down = string_end & !0b11;
-        // There is no real logic behind this afaict, its just what we observed
-        // from reference exports and mimicking here.
-        let new_pos = aligned_down + if string_end % 4 == 3 { 12 } else { 8 };
-        let total_pad = new_pos - string_end;
+        let next_position = match (subtype, string_end % 4) {
+            (0x64, _) => align_by(4, string_end) + 4,
+            (_, 3) => aligned_down + 12,
+            (_, _) => aligned_down + 8,
+        };
+        let total_pad = next_position - string_end;
         // TODO(Swiftb0y): https://github.com/jam1garner/binrw/discussions/344
         writer.write_all(&vec![0u8; total_pad as usize])?;
         Ok(())

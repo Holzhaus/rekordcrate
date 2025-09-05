@@ -3109,6 +3109,111 @@ fn artists_page() {
 }
 
 #[test]
+fn artist_page_long() {
+    use std::iter::repeat_n;
+    let mut rowgroup = RowGroup {
+        row_offsets: [0; RowGroup::MAX_ROW_COUNT],
+        row_presence_flags: 7,
+        unknown: 0x20,
+        rows: Default::default(),
+    };
+    rowgroup
+        .add_row(Row::Artist(Artist {
+            subtype: 100,
+            index_shift: 0,
+            id: ArtistId(1),
+            unknown1: 3,
+            ofs_name_near: 0,
+            ofs_name_far: Some(12),
+            name: repeat_n('D', 256).collect::<String>().parse().unwrap(),
+        }))
+        .unwrap();
+    rowgroup
+        .add_row(Row::Artist(Artist {
+            subtype: 96,
+            index_shift: 32,
+            id: ArtistId(2),
+            unknown1: 3,
+            ofs_name_near: 10,
+            ofs_name_far: None,
+            name: "Insert 2".parse().unwrap(),
+        }))
+        .unwrap();
+    rowgroup
+        .add_row(Row::Artist(Artist {
+            subtype: 100,
+            index_shift: 64,
+            id: ArtistId(3),
+            unknown1: 3,
+            ofs_name_near: 0,
+            ofs_name_far: Some(12),
+            name: repeat_n('C', 256).collect::<String>().parse().unwrap(),
+        }))
+        .unwrap();
+    rowgroup
+        .add_row(Row::Artist(Artist {
+            subtype: 96,
+            index_shift: 96,
+            id: ArtistId(4),
+            unknown1: 3,
+            ofs_name_near: 10,
+            ofs_name_far: None,
+            name: "Insert 1".parse().unwrap(),
+        }))
+        .unwrap();
+    rowgroup
+        .add_row(Row::Artist(Artist {
+            subtype: 100,
+            index_shift: 128,
+            id: ArtistId(5),
+            unknown1: 3,
+            ofs_name_near: 0,
+            ofs_name_far: Some(12),
+            name: repeat_n('B', 254).collect::<String>().parse().unwrap(),
+        }))
+        .unwrap();
+    rowgroup
+        .add_row(Row::Artist(Artist {
+            subtype: 100,
+            index_shift: 160,
+            id: ArtistId(6),
+            unknown1: 3,
+            ofs_name_near: 0,
+            ofs_name_far: Some(12),
+            name: repeat_n('❤', 256).collect::<String>().parse().unwrap(),
+        }))
+        .unwrap();
+
+    let page = Page {
+        page_index: PageIndex(6),
+        page_type: PageType::Artists,
+        next_page: PageIndex(46),
+        unknown1: 16,
+        unknown2: 0,
+        num_rows_small: 6,
+        unknown3: 192,
+        unknown4: 0,
+        page_flags: PageFlags(36),
+        free_size: 2624,
+        used_size: 1416,
+        unknown5: 1,
+        num_rows_large: 5,
+        unknown6: 0,
+        unknown7: 0,
+
+        row_groups: vec![rowgroup],
+    };
+
+    let page_size = 4096;
+    test_roundtrip_with_args(
+        include_bytes!("../../data/pdb/unit_tests/artist_page_long.bin"),
+        page,
+        (page_size,),
+        (page_size,),
+    );
+}
+
+#[test]
 fn albums_page() {
     let mut row_groups = vec![
         RowGroup {
