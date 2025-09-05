@@ -4697,3 +4697,1181 @@ fn albums_page() {
         (page_size,),
     );
 }
+
+#[test]
+fn labels_page() {
+    let mut row_groups = vec![
+        RowGroup {
+            row_offsets: Default::default(),
+            row_presence_flags: 0,
+            unknown: 0,
+            rows: vec![],
+        },
+        RowGroup {
+            row_offsets: Default::default(),
+            row_presence_flags: 0,
+            unknown: 0,
+            rows: vec![],
+        },
+        RowGroup {
+            row_offsets: Default::default(),
+            row_presence_flags: 0,
+            unknown: 0,
+            rows: vec![],
+        },
+        RowGroup {
+            row_offsets: Default::default(),
+            row_presence_flags: 0,
+            unknown: 0,
+            rows: vec![],
+        },
+        RowGroup {
+            row_offsets: Default::default(),
+            row_presence_flags: 0,
+            unknown: 0,
+            rows: vec![],
+        },
+        RowGroup {
+            row_offsets: Default::default(),
+            row_presence_flags: 0,
+            unknown: 0,
+            rows: vec![],
+        },
+        RowGroup {
+            row_offsets: Default::default(),
+            row_presence_flags: 0,
+            unknown: 0,
+            rows: vec![],
+        },
+        RowGroup {
+            row_offsets: Default::default(),
+            row_presence_flags: 0,
+            unknown: 0,
+            rows: vec![],
+        },
+        RowGroup {
+            row_offsets: Default::default(),
+            row_presence_flags: 0,
+            unknown: 0,
+            rows: vec![],
+        },
+        RowGroup {
+            row_offsets: Default::default(),
+            row_presence_flags: 0,
+            unknown: 0,
+            rows: vec![],
+        },
+        RowGroup {
+            row_offsets: Default::default(),
+            row_presence_flags: 0,
+            unknown: 0,
+            rows: vec![],
+        },
+        RowGroup {
+            row_offsets: Default::default(),
+            row_presence_flags: 0,
+            unknown: 0,
+            rows: vec![],
+        },
+    ];
+
+    row_groups[0]
+        .add_row(Row::Label(Label {
+            id: LabelId(1),
+            name: "Solar One Music".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Label(Label {
+            id: LabelId(2),
+            name: "Spectral Sound".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Label(Label {
+            id: LabelId(3),
+            name: "TENG".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Label(Label {
+            id: LabelId(4),
+            name: "Prescription Classic Recordings".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Label(Label {
+            id: LabelId(5),
+            name: "Mathematics".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Label(Label {
+            id: LabelId(6),
+            name: "Rawax".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Label(Label {
+            id: LabelId(7),
+            name: "&nd".parse().unwrap(), //codespell:ignore nd
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Label(Label {
+            id: LabelId(8),
+            name: "Wild Oats Music".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Label(Label {
+            id: LabelId(9),
+            name: "Creme Organization".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Label(Label {
+            id: LabelId(10),
+            name: "Nobody's Bizzness".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Label(Label {
+            id: LabelId(11),
+            name: "ADD".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Label(Label {
+            id: LabelId(12),
+            name: "Footage Series".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Label(Label {
+            id: LabelId(13),
+            name: "Lone Romantic".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Label(Label {
+            id: LabelId(14),
+            name: "Clone Jack For Daze".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Label(Label {
+            id: LabelId(15),
+            name: "Rat Life".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Label(Label {
+            id: LabelId(16),
+            name: "Classicworks".parse().unwrap(),
+        }))
+        .unwrap();
+
+    row_groups[1]
+        .add_row(Row::Label(Label {
+            id: LabelId(17),
+            name: "Machine".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Label(Label {
+            id: LabelId(18),
+            name: "Modern Love".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Label(Label {
+            id: LabelId(19),
+            name: "Transient Force".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Label(Label {
+            id: LabelId(20),
+            name: "Playlouderecordings".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Label(Label {
+            id: LabelId(21),
+            name: "International DeeJay Gigolo Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Label(Label {
+            id: LabelId(22),
+            name: "Strength Music Recordings".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Label(Label {
+            id: LabelId(23),
+            name: "Dial Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Label(Label {
+            id: LabelId(24),
+            name: "Interdimensional Transmissions".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Label(Label {
+            id: LabelId(25),
+            name: "Subself Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Label(Label {
+            id: LabelId(26),
+            name: "Art of Dance".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Label(Label {
+            id: LabelId(27),
+            name: "Ostgut Ton (Germany)".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Label(Label {
+            id: LabelId(28),
+            name: "Innervisions".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Label(Label {
+            id: LabelId(29),
+            name: "Beatstreet".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Label(Label {
+            id: LabelId(30),
+            name: "трип".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Label(Label {
+            id: LabelId(31),
+            name: "Caduceus Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Label(Label {
+            id: LabelId(32),
+            name: "Stockholm LTD".parse().unwrap(),
+        }))
+        .unwrap();
+
+    row_groups[2]
+        .add_row(Row::Label(Label {
+            id: LabelId(33),
+            name: "Planet Rhythm".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Label(Label {
+            id: LabelId(34),
+            name: "Paranoid Dancer".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Label(Label {
+            id: LabelId(35),
+            name: "Snork Enterprises".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Label(Label {
+            id: LabelId(36),
+            name: "PKR".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Label(Label {
+            id: LabelId(37),
+            name: "Mord".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Label(Label {
+            id: LabelId(38),
+            name: "Circus Company".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Label(Label {
+            id: LabelId(39),
+            name: "Baalsaal Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Label(Label {
+            id: LabelId(40),
+            name: "Mephyst".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Label(Label {
+            id: LabelId(41),
+            name: "Peacefrog".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Label(Label {
+            id: LabelId(42),
+            name: "Kanzleramt".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Label(Label {
+            id: LabelId(43),
+            name: "Clone Jack For Daze Series".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Label(Label {
+            id: LabelId(44),
+            name: "Chronocircle".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Label(Label {
+            id: LabelId(45),
+            name: "Unknown To The Unknown".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Label(Label {
+            id: LabelId(46),
+            name: "Super Rhythm Trax".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Label(Label {
+            id: LabelId(47),
+            name: "LABEL".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Label(Label {
+            id: LabelId(48),
+            name: "Wilson Records".parse().unwrap(),
+        }))
+        .unwrap();
+
+    row_groups[3]
+        .add_row(Row::Label(Label {
+            id: LabelId(49),
+            name: "Houndstooth".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Label(Label {
+            id: LabelId(50),
+            name: "WRKTRX".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Label(Label {
+            id: LabelId(51),
+            name: "Apotek Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Label(Label {
+            id: LabelId(52),
+            name: "Figure SPC".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Label(Label {
+            id: LabelId(53),
+            name: "Rush Hour".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Label(Label {
+            id: LabelId(54),
+            name: "Wagon Repair".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Label(Label {
+            id: LabelId(55),
+            name: "Nada Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Label(Label {
+            id: LabelId(56),
+            name: "Plus 8 Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Label(Label {
+            id: LabelId(57),
+            name: "Ostgut Ton".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Label(Label {
+            id: LabelId(58),
+            name: "Scion Versions".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Label(Label {
+            id: LabelId(59),
+            name: "Phil Kieran Recordings".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Label(Label {
+            id: LabelId(60),
+            name: "Enemy Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Label(Label {
+            id: LabelId(61),
+            name: "UNCAGE".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Label(Label {
+            id: LabelId(62),
+            name: "RMR".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Label(Label {
+            id: LabelId(63),
+            name: "Warok Music".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Label(Label {
+            id: LabelId(64),
+            name: "Axis Records".parse().unwrap(),
+        }))
+        .unwrap();
+
+    row_groups[4]
+        .add_row(Row::Label(Label {
+            id: LabelId(65),
+            name: "Rekids".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Label(Label {
+            id: LabelId(66),
+            name: "GND Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Label(Label {
+            id: LabelId(67),
+            name: "© Evod Music".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Label(Label {
+            id: LabelId(68),
+            name: "Equalized".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Label(Label {
+            id: LabelId(69),
+            name: "H-Productions".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Label(Label {
+            id: LabelId(70),
+            name: "Drumcode".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Label(Label {
+            id: LabelId(71),
+            name: "Eclectic Limited".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Label(Label {
+            id: LabelId(72),
+            name: "Subject Detroit".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Label(Label {
+            id: LabelId(73),
+            name: "Ultra".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Label(Label {
+            id: LabelId(74),
+            name: "Chiwax".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Label(Label {
+            id: LabelId(75),
+            name: "Supervoid Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Label(Label {
+            id: LabelId(76),
+            name: "Soleil Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Label(Label {
+            id: LabelId(77),
+            name: "Intacto".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Label(Label {
+            id: LabelId(78),
+            name: "AYCB".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Label(Label {
+            id: LabelId(79),
+            name: "Token".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Label(Label {
+            id: LabelId(80),
+            name: "Purpose Maker".parse().unwrap(),
+        }))
+        .unwrap();
+
+    row_groups[5]
+        .add_row(Row::Label(Label {
+            id: LabelId(81),
+            name: "R&S Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Label(Label {
+            id: LabelId(82),
+            name: "Odd Even".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Label(Label {
+            id: LabelId(83),
+            name: "F Communications".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Label(Label {
+            id: LabelId(84),
+            name: "430 West Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Label(Label {
+            id: LabelId(85),
+            name: "From Another Mind".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Label(Label {
+            id: LabelId(86),
+            name: "100% Pure".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Label(Label {
+            id: LabelId(87),
+            name: "© Dynamic Reflection 2015".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Label(Label {
+            id: LabelId(88),
+            name: "Subsist Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Label(Label {
+            id: LabelId(89),
+            name: "SK BLACK".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Label(Label {
+            id: LabelId(90),
+            name: "Prologue".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Label(Label {
+            id: LabelId(91),
+            name: "SUB tl".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Label(Label {
+            id: LabelId(92),
+            name: "Granulart Recordings".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Label(Label {
+            id: LabelId(93),
+            name: "Voight".parse().unwrap(), // codespell:ignore
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Label(Label {
+            id: LabelId(94),
+            name: "Ahrpe Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Label(Label {
+            id: LabelId(95),
+            name: "Ovum Recordings".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Label(Label {
+            id: LabelId(96),
+            name: "Corpus".parse().unwrap(),
+        }))
+        .unwrap();
+
+    row_groups[6]
+        .add_row(Row::Label(Label {
+            id: LabelId(97),
+            name: "Indistinct Approach".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::Label(Label {
+            id: LabelId(98),
+            name: "Counterchange".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::Label(Label {
+            id: LabelId(99),
+            name: "Fanzine Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::Label(Label {
+            id: LabelId(100),
+            name: "Sandwell District".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::Label(Label {
+            id: LabelId(101),
+            name: "M_Rec Ltd".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::Label(Label {
+            id: LabelId(102),
+            name: "Recode Musik".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::Label(Label {
+            id: LabelId(103),
+            name: "Parabola".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::Label(Label {
+            id: LabelId(104),
+            name: "Perc Trax Ltd.".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::Label(Label {
+            id: LabelId(105),
+            name: "U.K Executes".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::Label(Label {
+            id: LabelId(106),
+            name: "Cieli Di Orione".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::Label(Label {
+            id: LabelId(107),
+            name: "Figure".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::Label(Label {
+            id: LabelId(108),
+            name: "Illegal Alien LTD".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::Label(Label {
+            id: LabelId(109),
+            name: "Next Week Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::Label(Label {
+            id: LabelId(110),
+            name: "Labrynth".parse().unwrap(), // codespell:ignore
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::Label(Label {
+            id: LabelId(111),
+            name: "Children Of Tomorrow".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::Label(Label {
+            id: LabelId(112),
+            name: "Gynoid Audio".parse().unwrap(),
+        }))
+        .unwrap();
+
+    row_groups[7]
+        .add_row(Row::Label(Label {
+            id: LabelId(113),
+            name: "Devotion Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::Label(Label {
+            id: LabelId(114),
+            name: "Gradient ".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::Label(Label {
+            id: LabelId(115),
+            name: "Bunker Record".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::Label(Label {
+            id: LabelId(116),
+            name: "Bio Rhythm".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::Label(Label {
+            id: LabelId(117),
+            name: "Logistic Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::Label(Label {
+            id: LabelId(118),
+            name: "BADs Label Larhon Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::Label(Label {
+            id: LabelId(119),
+            name: "Be As One".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::Label(Label {
+            id: LabelId(120),
+            name: "Cyclical Tracks".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::Label(Label {
+            id: LabelId(121),
+            name: "SUB TL".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::Label(Label {
+            id: LabelId(122),
+            name: "ANAOH".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::Label(Label {
+            id: LabelId(123),
+            name: "Datapunk".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::Label(Label {
+            id: LabelId(124),
+            name: "Lobster Theremin".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::Label(Label {
+            id: LabelId(125),
+            name: "Bass Agenda Recordings".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::Label(Label {
+            id: LabelId(126),
+            name: "Clone West Coast Series".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::Label(Label {
+            id: LabelId(127),
+            name: "Tresor Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::Label(Label {
+            id: LabelId(128),
+            name: "Self Reflektion".parse().unwrap(),
+        }))
+        .unwrap();
+
+    row_groups[8]
+        .add_row(Row::Label(Label {
+            id: LabelId(129),
+            name: "Hotflush Recordings".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::Label(Label {
+            id: LabelId(130),
+            name: "made of CONCRETE".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::Label(Label {
+            id: LabelId(131),
+            name: "AKKOET LTD".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::Label(Label {
+            id: LabelId(132),
+            name: "Zone".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::Label(Label {
+            id: LabelId(133),
+            name: "Frigio Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::Label(Label {
+            id: LabelId(134),
+            name: "International Deejay Gigolo Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::Label(Label {
+            id: LabelId(135),
+            name: "Cod3 QR".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::Label(Label {
+            id: LabelId(136),
+            name: "Central Processing Unit".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::Label(Label {
+            id: LabelId(137),
+            name: "Transparent Sound".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::Label(Label {
+            id: LabelId(138),
+            name: "Kneaded Pains".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::Label(Label {
+            id: LabelId(139),
+            name: "The Third Room".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::Label(Label {
+            id: LabelId(140),
+            name: "Allergy Season".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::Label(Label {
+            id: LabelId(141),
+            name: "Mechatronica Music".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::Label(Label {
+            id: LabelId(142),
+            name: "Minus".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::Label(Label {
+            id: LabelId(143),
+            name: "Space Factory".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::Label(Label {
+            id: LabelId(144),
+            name: "Music Man Records".parse().unwrap(),
+        }))
+        .unwrap();
+
+    row_groups[9]
+        .add_row(Row::Label(Label {
+            id: LabelId(145),
+            name: "BCM Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::Label(Label {
+            id: LabelId(146),
+            name: "Missing Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::Label(Label {
+            id: LabelId(147),
+            name: "L.I.E.S.".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::Label(Label {
+            id: LabelId(148),
+            name: "Sound Signature".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::Label(Label {
+            id: LabelId(149),
+            name: "Mozaiku".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::Label(Label {
+            id: LabelId(150),
+            name: "Boomstraat 1818".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::Label(Label {
+            id: LabelId(151),
+            name: "TH Tar Hallow".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::Label(Label {
+            id: LabelId(152),
+            name: "Rowan Underground".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::Label(Label {
+            id: LabelId(153),
+            name: "Rekktor Music".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::Label(Label {
+            id: LabelId(154),
+            name: "Nachtstrom Schallplatten".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::Label(Label {
+            id: LabelId(155),
+            name: "N&N Records.".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::Label(Label {
+            id: LabelId(156),
+            name: "Greta Recordings".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::Label(Label {
+            id: LabelId(157),
+            name: "© Jerical Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::Label(Label {
+            id: LabelId(158),
+            name: "Illegal Alien Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::Label(Label {
+            id: LabelId(159),
+            name: "KR/LF Records ".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::Label(Label {
+            id: LabelId(160),
+            name: "Repetitive Rhythm Research".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::Label(Label {
+            id: LabelId(161),
+            name: "Fides Tempo".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::Label(Label {
+            id: LabelId(162),
+            name: "Starwork sas".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::Label(Label {
+            id: LabelId(163),
+            name: "Blueprint".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::Label(Label {
+            id: LabelId(164),
+            name: "Mirage".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::Label(Label {
+            id: LabelId(165),
+            name: "EPMmusic (V-Series)".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::Label(Label {
+            id: LabelId(166),
+            name: "© West Rules".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::Label(Label {
+            id: LabelId(167),
+            name: "Copyright Control".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::Label(Label {
+            id: LabelId(168),
+            name: "© Aquae Sextiae".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::Label(Label {
+            id: LabelId(169),
+            name: "Tsunami Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::Label(Label {
+            id: LabelId(170),
+            name: "Amelie Records".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::Label(Label {
+            id: LabelId(171),
+            name: "Hivemind".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::Label(Label {
+            id: LabelId(172),
+            name: "4 Track Recordings".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::Label(Label {
+            id: LabelId(173),
+            name: "Exekutive Funktionen".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::Label(Label {
+            id: LabelId(174),
+            name: "© Evod Music".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::Label(Label {
+            id: LabelId(175),
+            name: "© Consumed Music".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::Label(Label {
+            id: LabelId(176),
+            name: "© EP Digital Music".parse().unwrap(),
+        }))
+        .unwrap();
+
+    row_groups[11]
+        .add_row(Row::Label(Label {
+            id: LabelId(177),
+            name: "Symbolism".parse().unwrap(),
+        }))
+        .unwrap();
+
+    let page = Page {
+        page_index: PageIndex(10),
+        page_type: PageType::Labels,
+        next_page: PageIndex(50),
+        unknown1: 4627,
+        unknown2: 0,
+        num_rows_small: 177,
+        unknown3: 32,
+        unknown4: 22,
+        page_flags: PageFlags(36),
+        free_size: 2,
+        used_size: 3652,
+        unknown5: 1,
+        num_rows_large: 176,
+        unknown6: 0,
+        unknown7: 0,
+        row_groups,
+    };
+
+    let page_size = 4096;
+    test_roundtrip_with_args(
+        include_bytes!("../../data/pdb/unit_tests/labels_page.bin"),
+        page,
+        (page_size,),
+        (page_size,),
+    );
+}
