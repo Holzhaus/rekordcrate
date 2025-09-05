@@ -472,6 +472,25 @@ impl RowGroup {
             writer.seek(SeekFrom::Start(aligned_position))?;
             row.write_options(writer, endian, ())?;
 
+            // Add custom padding for Artist rows
+            if let Row::Artist(_) = row {
+                let after_name_pos = writer.stream_position()?;
+                let page_relative_pos =
+                    after_name_pos
+                        .checked_sub(heap_start)
+                        .ok_or_else(|| binrw::Error::AssertFail {
+                            pos: after_name_pos,
+                            message: "Wraparound while calculating page relative position for artist"
+                                .to_string(),
+                        })?;
+                let aligned_down = page_relative_pos & !3;
+                let new_pos = aligned_down + if page_relative_pos % 4 == 3 { 12 } else { 8 };
+                let total_pad = new_pos - page_relative_pos;
+                if total_pad > 0 {
+                    writer.write_all(&vec![0; total_pad as usize])?;
+                }
+            }
+
             let large_offset = aligned_position.checked_sub(heap_start).ok_or_else(|| {
                 binrw::Error::AssertFail {
                     pos: aligned_position,
@@ -1100,7 +1119,7 @@ impl Row {
         // without unnecessarily complex macros.
         match &self {
             Album(r) => align_by(align_of_val(r) as u64, offset),
-            Artist(r) => align_by(align_of_val(r) as u64, offset),
+            Artist(_) => offset,
             Artwork(r) => align_by(align_of_val(r) as u64, offset),
             Color(r) => align_by(align_of_val(r) as u64, offset),
             ColumnEntry(r) => align_by(align_of_val(r) as u64, offset),
