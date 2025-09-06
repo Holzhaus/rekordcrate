@@ -25,12 +25,12 @@ mod test;
 
 use std::convert::TryInto;
 
+use crate::pdb::string::DeviceSQLString;
 use crate::util::ColorIndex;
-use crate::{pdb::string::DeviceSQLString, util::align_by};
 use binrw::{
     binread, binrw,
     io::{Read, Seek, SeekFrom, Write},
-    writer, BinRead, BinResult, BinWrite, Endian, FilePtr16,
+    BinRead, BinResult, BinWrite, Endian, FilePtr16,
 };
 
 /// Do not read anything, but the return the current stream position of `reader`.
@@ -594,43 +594,35 @@ pub struct Artist {
     id: ArtistId,
     /// Unknown field.
     unknown1: u8,
-    /// One-byte name offset used if `subtype` is `0x60`.
-    ofs_name_near: u8,
-    /// Two-byte name offset used if `subtype` is `0x64`.
-    ///
-    /// In that case, the value of `ofs_name_near` is ignored
-    #[br(if(subtype == 0x64))]
-    ofs_name_far: Option<u16>,
+
     /// Name of this artist.
-    #[br(seek_before = Artist::calculate_name_seek(ofs_name_near, &ofs_name_far))]
-    #[bw(seek_before = Artist::calculate_name_seek(*ofs_name_near, ofs_name_far))]
-    #[br(restore_position)]
-    #[bw(write_with = Self::write_string_with_padding, args(*subtype))]
-    name: DeviceSQLString,
+    #[br(args(9, VarOffsetTail::<DeviceSQLString>::guess_offset_source(subtype), ()))]
+    #[bw(args(9, ()))]
+    name: VarOffsetTail<DeviceSQLString>,
 }
 
-impl Artist {
-    fn calculate_name_seek(ofs_near: u8, ofs_far: &Option<u16>) -> SeekFrom {
-        let offset: u16 = ofs_far.map_or_else(|| ofs_near.into(), |v| v - 2) - 10;
-        SeekFrom::Current(offset.into())
-    }
-    #[writer(writer: writer, endian: endian)]
-    fn write_string_with_padding(str: &DeviceSQLString, subtype: u16) -> BinResult<()> {
-        str.write_options(writer, endian, ())?;
-        let string_end = writer.stream_position()?;
+// impl Artist {
+//
+// This is the auto alignment code for artist rows specifically, it has been retired temporarily
+// by manual padding settings. Its stays here commented so it can be reused later.
+//
+// #[writer(writer: writer, endian: endian)]
+// fn write_string_with_padding(str: &DeviceSQLString, subtype: u16) -> BinResult<()> {
+//     str.write_options(writer, endian, ())?;
+//     let string_end = writer.stream_position()?;
 
-        let aligned_down = string_end & !0b11;
-        let next_position = match (subtype, string_end % 4) {
-            (0x64, _) => align_by(4, string_end) + 4,
-            (_, 3) => aligned_down + 12,
-            (_, _) => aligned_down + 8,
-        };
-        let total_pad = next_position - string_end;
-        // TODO(Swiftb0y): https://github.com/jam1garner/binrw/discussions/344
-        writer.write_all(&vec![0u8; total_pad as usize])?;
-        Ok(())
-    }
-}
+//     let aligned_down = string_end & !0b11;
+//     let next_position = match (subtype, string_end % 4) {
+//         (0x64, _) => align_by(4, string_end) + 4,
+//         (_, 3) => aligned_down + 12,
+//         (_, _) => aligned_down + 8,
+//     };
+//     let total_pad = next_position - string_end;
+//     // TODO(Swiftb0y): https://github.com/jam1garner/binrw/discussions/344
+//     writer.write_all(&vec![0u8; total_pad as usize])?;
+//     Ok(())
+// }
+// }
 
 /// Contains the artwork path and ID.
 #[binrw]
@@ -1199,5 +1191,12 @@ impl<T: BinRead + BinWrite> VarOffsetTail<T> {
         // don't consume the non-zero byte we just read
         reader.seek_relative(-1)?;
         Ok(count)
+    }
+    pub fn guess_offset_source(subtype: u16) -> OffsetSource {
+        if (subtype & 0x04) != 0 {
+            OffsetSource::Far
+        } else {
+            OffsetSource::Near
+        }
     }
 }
