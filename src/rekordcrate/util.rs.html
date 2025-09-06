@@ -65,67 +65,85 @@
 <a href=#65 id=65 data-nosnippet>65</a>    </span>Purple,
 <a href=#66 id=66 data-nosnippet>66</a>}
 <a href=#67 id=67 data-nosnippet>67</a>
-<a href=#68 id=68 data-nosnippet>68</a><span class="attr">#[cfg(test)]
-<a href=#69 id=69 data-nosnippet>69</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>testing {
-<a href=#70 id=70 data-nosnippet>70</a>    <span class="kw">use </span>binrw::{
-<a href=#71 id=71 data-nosnippet>71</a>        meta::{ReadEndian, WriteEndian},
-<a href=#72 id=72 data-nosnippet>72</a>        prelude::<span class="kw-2">*</span>,
-<a href=#73 id=73 data-nosnippet>73</a>        Endian,
-<a href=#74 id=74 data-nosnippet>74</a>    };
-<a href=#75 id=75 data-nosnippet>75</a>    <span class="kw">use </span>pretty_assertions::assert_eq;
-<a href=#76 id=76 data-nosnippet>76</a>    <span class="kw">use </span>pretty_hex::pretty_hex;
-<a href=#77 id=77 data-nosnippet>77</a>
-<a href=#78 id=78 data-nosnippet>78</a>    <span class="macro">macro_rules!</span> assert_eq_hex {
-<a href=#79 id=79 data-nosnippet>79</a>        (<span class="macro-nonterminal">$cond</span>:expr, <span class="macro-nonterminal">$expected</span>:expr) =&gt; {
-<a href=#80 id=80 data-nosnippet>80</a>            <span class="macro">assert_eq!</span>(pretty_hex(<span class="macro-nonterminal">$cond</span>), pretty_hex(<span class="macro-nonterminal">$expected</span>));
-<a href=#81 id=81 data-nosnippet>81</a>        };
+<a href=#68 id=68 data-nosnippet>68</a><span class="doccomment">/// align given value to the alignment requirements by the given type.
+<a href=#69 id=69 data-nosnippet>69</a></span><span class="attr">#[must_use]
+<a href=#70 id=70 data-nosnippet>70</a></span><span class="kw">pub const fn </span>align_by(alignment: u64, <span class="kw-2">mut </span>offset: u64) -&gt; u64 {
+<a href=#71 id=71 data-nosnippet>71</a>    <span class="comment">// This is technically dependent on the compile time ABI
+<a href=#72 id=72 data-nosnippet>72</a>    // but for x86 (which this is likely compiled on), we should be able
+<a href=#73 id=73 data-nosnippet>73</a>    // to assume that
+<a href=#74 id=74 data-nosnippet>74</a>    // the alignment of a type is just the size of its largest
+<a href=#75 id=75 data-nosnippet>75</a>    // member. That likely matches the assumptions made for the 32-bit
+<a href=#76 id=76 data-nosnippet>76</a>    // MCU (Renesas R8A77240D500BG) built into the different CDJ-2000 variants.
+<a href=#77 id=77 data-nosnippet>77</a>    // In either way, its better to overshoot the alignment
+<a href=#78 id=78 data-nosnippet>78</a>    // than to undershoot it. For CDJ-3000s, this assumption
+<a href=#79 id=79 data-nosnippet>79</a>    // is likely also correct since they use a 64-bit ARM CPU (Renesas R8A774C0HA01BG)
+<a href=#80 id=80 data-nosnippet>80</a>    </span><span class="kw">if </span>offset % alignment != <span class="number">0 </span>{
+<a href=#81 id=81 data-nosnippet>81</a>        offset += alignment - (offset % alignment);
 <a href=#82 id=82 data-nosnippet>82</a>    }
-<a href=#83 id=83 data-nosnippet>83</a>
-<a href=#84 id=84 data-nosnippet>84</a>    <span class="kw">pub fn </span>test_roundtrip_with_args&lt;<span class="lifetime">'a</span>, T&gt;(
-<a href=#85 id=85 data-nosnippet>85</a>        bin: <span class="kw-2">&amp;</span>[u8],
-<a href=#86 id=86 data-nosnippet>86</a>        obj: T,
-<a href=#87 id=87 data-nosnippet>87</a>        read_args: &lt;T <span class="kw">as </span>binrw::BinRead&gt;::Args&lt;<span class="lifetime">'a</span>&gt;,
-<a href=#88 id=88 data-nosnippet>88</a>        write_args: &lt;T <span class="kw">as </span>binrw::BinWrite&gt;::Args&lt;<span class="lifetime">'a</span>&gt;,
-<a href=#89 id=89 data-nosnippet>89</a>    ) <span class="kw">where
-<a href=#90 id=90 data-nosnippet>90</a>        </span>&lt;T <span class="kw">as </span>binrw::BinRead&gt;::Args&lt;<span class="lifetime">'a</span>&gt;: Clone,
-<a href=#91 id=91 data-nosnippet>91</a>        &lt;T <span class="kw">as </span>binrw::BinWrite&gt;::Args&lt;<span class="lifetime">'a</span>&gt;: Clone,
-<a href=#92 id=92 data-nosnippet>92</a>        T: BinRead + BinWrite + PartialEq + core::fmt::Debug + ReadEndian + WriteEndian,
-<a href=#93 id=93 data-nosnippet>93</a>    {
-<a href=#94 id=94 data-nosnippet>94</a>        <span class="kw">let </span>endian = Endian::NATIVE;
-<a href=#95 id=95 data-nosnippet>95</a>        <span class="comment">// T-&gt;binary
-<a href=#96 id=96 data-nosnippet>96</a>        </span><span class="kw">let </span><span class="kw-2">mut </span>writer = binrw::io::Cursor::new(Vec::with_capacity(bin.len()));
-<a href=#97 id=97 data-nosnippet>97</a>        obj.write_options(<span class="kw-2">&amp;mut </span>writer, endian, write_args.clone())
-<a href=#98 id=98 data-nosnippet>98</a>            .unwrap();
-<a href=#99 id=99 data-nosnippet>99</a>        <span class="macro">assert_eq!</span>(bin.len(), writer.get_ref().len());
-<a href=#100 id=100 data-nosnippet>100</a>        <span class="macro">assert_eq_hex!</span>(<span class="kw-2">&amp;</span>bin, <span class="kw-2">&amp;</span>writer.get_ref());
-<a href=#101 id=101 data-nosnippet>101</a>        <span class="comment">// T-&gt;binary-&gt;T
-<a href=#102 id=102 data-nosnippet>102</a>        </span>writer.set_position(<span class="number">0</span>);
-<a href=#103 id=103 data-nosnippet>103</a>        <span class="kw">let </span>parsed = T::read_options(<span class="kw-2">&amp;mut </span>writer, endian, read_args.clone()).unwrap();
-<a href=#104 id=104 data-nosnippet>104</a>        <span class="macro">assert_eq!</span>(obj, parsed);
-<a href=#105 id=105 data-nosnippet>105</a>        <span class="comment">// binary-&gt;T
-<a href=#106 id=106 data-nosnippet>106</a>        </span><span class="kw">let </span><span class="kw-2">mut </span>cursor = binrw::io::Cursor::new(bin);
-<a href=#107 id=107 data-nosnippet>107</a>        <span class="kw">let </span>parsed = T::read_options(<span class="kw-2">&amp;mut </span>cursor, endian, read_args.clone()).unwrap();
-<a href=#108 id=108 data-nosnippet>108</a>        <span class="macro">assert_eq!</span>(obj, parsed);
-<a href=#109 id=109 data-nosnippet>109</a>        <span class="comment">// binary-&gt;T-&gt;binary
-<a href=#110 id=110 data-nosnippet>110</a>        </span>writer.set_position(<span class="number">0</span>);
-<a href=#111 id=111 data-nosnippet>111</a>        parsed
-<a href=#112 id=112 data-nosnippet>112</a>            .write_options(<span class="kw-2">&amp;mut </span>writer, endian, write_args.clone())
-<a href=#113 id=113 data-nosnippet>113</a>            .unwrap();
-<a href=#114 id=114 data-nosnippet>114</a>        <span class="macro">assert_eq!</span>(bin.len(), writer.get_ref().len());
-<a href=#115 id=115 data-nosnippet>115</a>        <span class="macro">assert_eq_hex!</span>(<span class="kw-2">&amp;</span>bin, <span class="kw-2">&amp;</span>writer.get_ref());
-<a href=#116 id=116 data-nosnippet>116</a>    }
-<a href=#117 id=117 data-nosnippet>117</a>
-<a href=#118 id=118 data-nosnippet>118</a>    <span class="kw">pub fn </span>test_roundtrip&lt;<span class="lifetime">'a</span>, T&gt;(bin: <span class="kw-2">&amp;</span>[u8], obj: T)
-<a href=#119 id=119 data-nosnippet>119</a>    <span class="kw">where
-<a href=#120 id=120 data-nosnippet>120</a>        </span>&lt;T <span class="kw">as </span>binrw::BinRead&gt;::Args&lt;<span class="lifetime">'a</span>&gt;: Default + Clone,
-<a href=#121 id=121 data-nosnippet>121</a>        &lt;T <span class="kw">as </span>binrw::BinWrite&gt;::Args&lt;<span class="lifetime">'a</span>&gt;: Default + Clone,
-<a href=#122 id=122 data-nosnippet>122</a>        T: BinRead + BinWrite + PartialEq + core::fmt::Debug + ReadEndian + WriteEndian,
-<a href=#123 id=123 data-nosnippet>123</a>    {
-<a href=#124 id=124 data-nosnippet>124</a>        test_roundtrip_with_args(
-<a href=#125 id=125 data-nosnippet>125</a>            bin,
-<a href=#126 id=126 data-nosnippet>126</a>            obj,
-<a href=#127 id=127 data-nosnippet>127</a>            &lt;T <span class="kw">as </span>binrw::BinRead&gt;::Args::default(),
-<a href=#128 id=128 data-nosnippet>128</a>            &lt;T <span class="kw">as </span>binrw::BinWrite&gt;::Args::default(),
-<a href=#129 id=129 data-nosnippet>129</a>        );
-<a href=#130 id=130 data-nosnippet>130</a>    }
-<a href=#131 id=131 data-nosnippet>131</a>}</code></pre></div></section></main></body></html>
+<a href=#83 id=83 data-nosnippet>83</a>    offset
+<a href=#84 id=84 data-nosnippet>84</a>}
+<a href=#85 id=85 data-nosnippet>85</a>
+<a href=#86 id=86 data-nosnippet>86</a><span class="attr">#[cfg(test)]
+<a href=#87 id=87 data-nosnippet>87</a></span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>testing {
+<a href=#88 id=88 data-nosnippet>88</a>    <span class="kw">use </span>binrw::{
+<a href=#89 id=89 data-nosnippet>89</a>        meta::{ReadEndian, WriteEndian},
+<a href=#90 id=90 data-nosnippet>90</a>        prelude::<span class="kw-2">*</span>,
+<a href=#91 id=91 data-nosnippet>91</a>        Endian,
+<a href=#92 id=92 data-nosnippet>92</a>    };
+<a href=#93 id=93 data-nosnippet>93</a>    <span class="kw">use </span>pretty_assertions::assert_eq;
+<a href=#94 id=94 data-nosnippet>94</a>    <span class="kw">use </span>pretty_hex::pretty_hex;
+<a href=#95 id=95 data-nosnippet>95</a>
+<a href=#96 id=96 data-nosnippet>96</a>    <span class="macro">macro_rules!</span> assert_eq_hex {
+<a href=#97 id=97 data-nosnippet>97</a>        (<span class="macro-nonterminal">$cond</span>:expr, <span class="macro-nonterminal">$expected</span>:expr) =&gt; {
+<a href=#98 id=98 data-nosnippet>98</a>            <span class="macro">assert_eq!</span>(pretty_hex(<span class="macro-nonterminal">$cond</span>), pretty_hex(<span class="macro-nonterminal">$expected</span>));
+<a href=#99 id=99 data-nosnippet>99</a>        };
+<a href=#100 id=100 data-nosnippet>100</a>    }
+<a href=#101 id=101 data-nosnippet>101</a>
+<a href=#102 id=102 data-nosnippet>102</a>    <span class="kw">pub fn </span>test_roundtrip_with_args&lt;<span class="lifetime">'a</span>, T&gt;(
+<a href=#103 id=103 data-nosnippet>103</a>        bin: <span class="kw-2">&amp;</span>[u8],
+<a href=#104 id=104 data-nosnippet>104</a>        obj: T,
+<a href=#105 id=105 data-nosnippet>105</a>        read_args: &lt;T <span class="kw">as </span>binrw::BinRead&gt;::Args&lt;<span class="lifetime">'a</span>&gt;,
+<a href=#106 id=106 data-nosnippet>106</a>        write_args: &lt;T <span class="kw">as </span>binrw::BinWrite&gt;::Args&lt;<span class="lifetime">'a</span>&gt;,
+<a href=#107 id=107 data-nosnippet>107</a>    ) <span class="kw">where
+<a href=#108 id=108 data-nosnippet>108</a>        </span>&lt;T <span class="kw">as </span>binrw::BinRead&gt;::Args&lt;<span class="lifetime">'a</span>&gt;: Clone,
+<a href=#109 id=109 data-nosnippet>109</a>        &lt;T <span class="kw">as </span>binrw::BinWrite&gt;::Args&lt;<span class="lifetime">'a</span>&gt;: Clone,
+<a href=#110 id=110 data-nosnippet>110</a>        T: BinRead + BinWrite + PartialEq + core::fmt::Debug + ReadEndian + WriteEndian,
+<a href=#111 id=111 data-nosnippet>111</a>    {
+<a href=#112 id=112 data-nosnippet>112</a>        <span class="kw">let </span>endian = Endian::NATIVE;
+<a href=#113 id=113 data-nosnippet>113</a>        <span class="comment">// T-&gt;binary
+<a href=#114 id=114 data-nosnippet>114</a>        </span><span class="kw">let </span><span class="kw-2">mut </span>writer = binrw::io::Cursor::new(Vec::with_capacity(bin.len()));
+<a href=#115 id=115 data-nosnippet>115</a>        obj.write_options(<span class="kw-2">&amp;mut </span>writer, endian, write_args.clone())
+<a href=#116 id=116 data-nosnippet>116</a>            .unwrap();
+<a href=#117 id=117 data-nosnippet>117</a>        <span class="macro">assert_eq!</span>(writer.get_ref().len(), bin.len());
+<a href=#118 id=118 data-nosnippet>118</a>        <span class="macro">assert_eq_hex!</span>(<span class="kw-2">&amp;</span>writer.get_ref(), <span class="kw-2">&amp;</span>bin);
+<a href=#119 id=119 data-nosnippet>119</a>        <span class="comment">// T-&gt;binary-&gt;T
+<a href=#120 id=120 data-nosnippet>120</a>        </span>writer.set_position(<span class="number">0</span>);
+<a href=#121 id=121 data-nosnippet>121</a>        <span class="kw">let </span>parsed = T::read_options(<span class="kw-2">&amp;mut </span>writer, endian, read_args.clone()).unwrap();
+<a href=#122 id=122 data-nosnippet>122</a>        <span class="macro">assert_eq!</span>(parsed, obj);
+<a href=#123 id=123 data-nosnippet>123</a>        <span class="comment">// binary-&gt;T
+<a href=#124 id=124 data-nosnippet>124</a>        </span><span class="kw">let </span><span class="kw-2">mut </span>cursor = binrw::io::Cursor::new(bin);
+<a href=#125 id=125 data-nosnippet>125</a>        <span class="kw">let </span>parsed = T::read_options(<span class="kw-2">&amp;mut </span>cursor, endian, read_args.clone()).unwrap();
+<a href=#126 id=126 data-nosnippet>126</a>        <span class="macro">assert_eq!</span>(parsed, obj);
+<a href=#127 id=127 data-nosnippet>127</a>        <span class="comment">// binary-&gt;T-&gt;binary
+<a href=#128 id=128 data-nosnippet>128</a>        </span>writer.set_position(<span class="number">0</span>);
+<a href=#129 id=129 data-nosnippet>129</a>        parsed
+<a href=#130 id=130 data-nosnippet>130</a>            .write_options(<span class="kw-2">&amp;mut </span>writer, endian, write_args.clone())
+<a href=#131 id=131 data-nosnippet>131</a>            .unwrap();
+<a href=#132 id=132 data-nosnippet>132</a>        <span class="macro">assert_eq!</span>(bin.len(), writer.get_ref().len());
+<a href=#133 id=133 data-nosnippet>133</a>        <span class="macro">assert_eq_hex!</span>(<span class="kw-2">&amp;</span>bin, <span class="kw-2">&amp;</span>writer.get_ref());
+<a href=#134 id=134 data-nosnippet>134</a>    }
+<a href=#135 id=135 data-nosnippet>135</a>
+<a href=#136 id=136 data-nosnippet>136</a>    <span class="kw">pub fn </span>test_roundtrip&lt;<span class="lifetime">'a</span>, T&gt;(bin: <span class="kw-2">&amp;</span>[u8], obj: T)
+<a href=#137 id=137 data-nosnippet>137</a>    <span class="kw">where
+<a href=#138 id=138 data-nosnippet>138</a>        </span>&lt;T <span class="kw">as </span>binrw::BinRead&gt;::Args&lt;<span class="lifetime">'a</span>&gt;: Default + Clone,
+<a href=#139 id=139 data-nosnippet>139</a>        &lt;T <span class="kw">as </span>binrw::BinWrite&gt;::Args&lt;<span class="lifetime">'a</span>&gt;: Default + Clone,
+<a href=#140 id=140 data-nosnippet>140</a>        T: BinRead + BinWrite + PartialEq + core::fmt::Debug + ReadEndian + WriteEndian,
+<a href=#141 id=141 data-nosnippet>141</a>    {
+<a href=#142 id=142 data-nosnippet>142</a>        test_roundtrip_with_args(
+<a href=#143 id=143 data-nosnippet>143</a>            bin,
+<a href=#144 id=144 data-nosnippet>144</a>            obj,
+<a href=#145 id=145 data-nosnippet>145</a>            &lt;T <span class="kw">as </span>binrw::BinRead&gt;::Args::default(),
+<a href=#146 id=146 data-nosnippet>146</a>            &lt;T <span class="kw">as </span>binrw::BinWrite&gt;::Args::default(),
+<a href=#147 id=147 data-nosnippet>147</a>        );
+<a href=#148 id=148 data-nosnippet>148</a>    }
+<a href=#149 id=149 data-nosnippet>149</a>}</code></pre></div></section></main></body></html>
