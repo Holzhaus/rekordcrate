@@ -18,7 +18,10 @@
 //! - <https://github.com/henrybetts/Rekordbox-Decoding>
 //! - <https://github.com/flesniak/python-prodj-link/tree/master/prodj/pdblib>
 
+mod offset_array;
 pub mod string;
+
+use offset_array::VarOffsetTail;
 
 #[cfg(test)]
 mod test;
@@ -1114,87 +1117,6 @@ impl Row {
             PlaylistEntry(r) => align_by(align_of_val(r) as u64, offset),
             Track(_) => offset, // already handled by track serialization
             Unknown => offset,
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-enum OffsetSource {
-    Near,
-    Far,
-}
-
-#[binrw]
-#[derive(Debug, PartialEq, Eq, Clone)]
-#[brw(little)]
-#[br(import(offset: u16, source: OffsetSource, args: <T as BinRead>::Args<'_>))]
-#[bw(import(offset: u16, args: <T as BinWrite>::Args<'_>))]
-
-struct VarOffsetTail<T: BinRead + BinWrite> {
-    near: u8,
-    #[br(if(source == OffsetSource::Far))]
-    far: Option<u16>,
-    #[br(seek_before = Self::calculate_name_seek(near, &far, offset)?)]
-    #[bw(seek_before = Self::calculate_name_seek(*near, far, offset)?)]
-    #[brw(args_raw = args)]
-    inner: T,
-    // use offset + a couple bytes as a limit (though this is rather a heuristic)
-    #[br(parse_with = Self::guess_padding, args(offset + 0x10))]
-    #[bw(ignore)]
-    #[bw(pad_after=*padding)]
-    padding: u64,
-}
-
-impl<T: BinRead + BinWrite> VarOffsetTail<T> {
-    fn calculate_name_seek(near: u8, far: &Option<u16>, offset: u16) -> BinResult<SeekFrom> {
-        let offset_field = match (near, far) {
-            (0, None) => {
-                return Err(binrw::Error::AssertFail {
-                    pos: 0,
-                    message: "Encountered invalid offsets".into(),
-                })
-            }
-            (_, Some(far)) => far - 3,
-            (near, None) => u16::from(near) - 1,
-        };
-        let offset = offset_field
-            .checked_sub(offset)
-            .ok_or_else(|| binrw::Error::AssertFail {
-                pos: 0,
-                message: format!(
-                    "Underflow attempting to calculate offset ({offset_field:#X}-{offset:#X})"
-                ),
-            })?;
-        Ok(SeekFrom::Current(offset.into()))
-    }
-    #[binrw::parser(reader)]
-    fn guess_padding(limit: u16) -> BinResult<u64> {
-        let mut count = 0u64;
-        // We never expect to read many bytes here, so this is fine
-        #[allow(clippy::unbuffered_bytes)]
-        for byte in reader.bytes() {
-            if byte? != 0 {
-                break;
-            }
-            // to avoid scanning an entire page after the last row,
-            // we limit here
-            // if the limit is reached, assume end of page and no padding
-            // used
-            if count == u64::from(limit) {
-                count = 0;
-                break;
-            }
-            count += 1;
-        }
-        // don't consume the non-zero byte we just read
-        reader.seek_relative(-1)?;
-        Ok(count)
-    }
-    pub fn guess_offset_source(subtype: u16) -> OffsetSource {
-        if (subtype & 0x04) != 0 {
-            OffsetSource::Far
-        } else {
-            OffsetSource::Near
         }
     }
 }
