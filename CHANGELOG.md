@@ -7,6 +7,32 @@ All notable changes to this project will be documented in this file.
 ### Bug Fixes
 
 - Plain Hotcues being rejected due to cuetype mismatch
+- pdb: Change padding logic for track rows
+- pdb: Pass parsing stage of track_page test
+- pdb: Apply review feedback for 3d5d57c
+- pdb: Validate row count in RowGroup to avoid silent overflow
+- pdb: Allow unused method to pass CI
+- pdb: Pass track_page test by not reversing in present_rows
+- pdb: Re-add comments removed during merge
+- pdb: Pass 5 more test_pdb_num_rows* tests
+- Doctest broken by previous string refactor commit
+- pdb: All tests pass + clean up comments
+- pdb: Apply review feedback for 78ee51c
+- pdb: Accept review feedback for 969d507
+- `genres_page` test offset padding and rowgroup ordering
+
+### Features
+
+- Use "clean" buffer in `track_page` test & refactor `DeviceSQLString` construction
+
+### Refactor
+
+- Simplify `Page` and `RowGroup` parsing
+- Fix test `assert_eq!(result, expected)` parameter order
+
+### Testing
+
+- pdb: Add genres_page test
 
 ## [0.3.0] - 2025-01-23
 
@@ -37,6 +63,7 @@ All notable changes to this project will be documented in this file.
 ### Bug Fixes
 
 - pdb: Skip reading rows of invalid pages
+- pdb: Adhere to rows alignment to type alignment when writing
 
 ### Features
 
@@ -46,6 +73,7 @@ All notable changes to this project will be documented in this file.
 - setting: Add `Display` implementation for setting values
 - pdb: Add Columns table
 - pdb: Mark table rows as serializable
+- pdb: Implement support for serialization of table pages
 
 ### Refactor
 
