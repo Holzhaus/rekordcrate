@@ -101,9 +101,10 @@ fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
                 .flat_map(|row_group| {
                     row_group
                         .present_rows()
+                        .iter()
                         .map(|row| {
                             if let Row::PlaylistTreeNode(playlist_tree) = row {
-                                playlist_tree
+                                playlist_tree.clone()
                             } else {
                                 unreachable!("encountered non-playlist tree row in playlist table");
                             }
