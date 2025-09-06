@@ -1147,8 +1147,8 @@ struct VarOffsetTail<T: BinRead + BinWrite> {
     near: u8,
     #[br(if(source == OffsetSource::Far))]
     far: Option<u16>,
-    #[br(seek_before = Self::calculate_name_seek(near, &far, offset))]
-    #[bw(seek_before = Self::calculate_name_seek(*near, far, offset))]
+    #[br(seek_before = Self::calculate_name_seek(near, &far, offset)?)]
+    #[bw(seek_before = Self::calculate_name_seek(*near, far, offset)?)]
     #[brw(args_raw = args)]
     inner: T,
     // use offset + a couple bytes as a limit (though this is rather a heuristic)
@@ -1159,23 +1159,39 @@ struct VarOffsetTail<T: BinRead + BinWrite> {
 }
 
 impl<T: BinRead + BinWrite> VarOffsetTail<T> {
-    fn calculate_name_seek(near: u8, far: &Option<u16>, offset: u16) -> SeekFrom {
+    fn calculate_name_seek(near: u8, far: &Option<u16>, offset: u16) -> BinResult<SeekFrom> {
         let offset = match (near, far) {
-            (0, None) => unreachable!(),
+            (0, None) => {
+                return Err(binrw::Error::AssertFail {
+                    pos: 0,
+                    message: "Encountered invalid offsets".into(),
+                })
+            }
             (_, Some(far)) => far - 3,
             (near, None) => u16::from(near) - 1,
-        } - offset;
-        SeekFrom::Current(offset.into())
+        }
+        .checked_sub(offset)
+        .ok_or_else(|| binrw::Error::AssertFail {
+            pos: 0,
+            message: "Underflow attempting to calculate offset".into(),
+        })?;
+        Ok(SeekFrom::Current(offset.into()))
     }
     #[binrw::parser(reader)]
     fn guess_padding(limit: u16) -> BinResult<u64> {
-        let mut count = 0;
+        let mut count = 0u64;
         // We never expect to read many bytes here, so this is fine
-        // to avoid scanning an entire page after the last row,
-        // we limit
         #[allow(clippy::unbuffered_bytes)]
-        for byte in reader.take(u64::from(limit) * 2).bytes() {
+        for byte in reader.bytes() {
             if byte? != 0 {
+                break;
+            }
+            // to avoid scanning an entire page after the last row,
+            // we limit here
+            // if the limit is reached, assume end of page and no padding
+            // used
+            if count == u64::from(limit) {
+                count = 0;
                 break;
             }
             count += 1;
