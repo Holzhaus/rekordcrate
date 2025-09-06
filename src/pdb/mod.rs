@@ -25,12 +25,12 @@ mod test;
 
 use std::convert::TryInto;
 
+use crate::pdb::string::DeviceSQLString;
 use crate::util::ColorIndex;
-use crate::{pdb::string::DeviceSQLString, util::align_by};
 use binrw::{
     binread, binrw,
     io::{Read, Seek, SeekFrom, Write},
-    writer, BinRead, BinResult, BinWrite, Endian, FilePtr16,
+    BinRead, BinResult, BinWrite, Endian, FilePtr16,
 };
 
 /// Do not read anything, but the return the current stream position of `reader`.
@@ -568,7 +568,7 @@ pub struct HistoryPlaylistId(pub u32);
 #[brw(little)]
 pub struct Album {
     /// Unknown field, usually `80 00`.
-    unknown1: u16,
+    subtype: u16,
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
     index_shift: u16,
     /// Unknown field.
@@ -581,11 +581,10 @@ pub struct Album {
     unknown3: u32,
     /// Unknown field.
     unknown4: u8,
-    ofs_name: u8,
     /// Album name String
-    #[br(seek_before = SeekFrom::Current(i64::from(ofs_name) - 0x16))]
-    #[bw(seek_before = SeekFrom::Current(i64::from(*ofs_name) - 0x16))]
-    name: DeviceSQLString,
+    #[br(args(0x15, VarOffsetTail::<DeviceSQLString>::guess_offset_source(subtype), ()))]
+    #[bw(args(0x15, ()))]
+    name: VarOffsetTail<DeviceSQLString>,
 }
 
 /// Contains the artist name and ID.
@@ -601,43 +600,35 @@ pub struct Artist {
     id: ArtistId,
     /// Unknown field.
     unknown1: u8,
-    /// One-byte name offset used if `subtype` is `0x60`.
-    ofs_name_near: u8,
-    /// Two-byte name offset used if `subtype` is `0x64`.
-    ///
-    /// In that case, the value of `ofs_name_near` is ignored
-    #[br(if(subtype == 0x64))]
-    ofs_name_far: Option<u16>,
+
     /// Name of this artist.
-    #[br(seek_before = Artist::calculate_name_seek(ofs_name_near, &ofs_name_far))]
-    #[bw(seek_before = Artist::calculate_name_seek(*ofs_name_near, ofs_name_far))]
-    #[br(restore_position)]
-    #[bw(write_with = Self::write_string_with_padding, args(*subtype))]
-    name: DeviceSQLString,
+    #[br(args(9, VarOffsetTail::<DeviceSQLString>::guess_offset_source(subtype), ()))]
+    #[bw(args(9, ()))]
+    name: VarOffsetTail<DeviceSQLString>,
 }
 
-impl Artist {
-    fn calculate_name_seek(ofs_near: u8, ofs_far: &Option<u16>) -> SeekFrom {
-        let offset: u16 = ofs_far.map_or_else(|| ofs_near.into(), |v| v - 2) - 10;
-        SeekFrom::Current(offset.into())
-    }
-    #[writer(writer: writer, endian: endian)]
-    fn write_string_with_padding(str: &DeviceSQLString, subtype: u16) -> BinResult<()> {
-        str.write_options(writer, endian, ())?;
-        let string_end = writer.stream_position()?;
+// impl Artist {
+//
+// This is the auto alignment code for artist rows specifically, it has been retired temporarily
+// by manual padding settings. Its stays here commented so it can be reused later.
+//
+// #[writer(writer: writer, endian: endian)]
+// fn write_string_with_padding(str: &DeviceSQLString, subtype: u16) -> BinResult<()> {
+//     str.write_options(writer, endian, ())?;
+//     let string_end = writer.stream_position()?;
 
-        let aligned_down = string_end & !0b11;
-        let next_position = match (subtype, string_end % 4) {
-            (0x64, _) => align_by(4, string_end) + 4,
-            (_, 3) => aligned_down + 12,
-            (_, _) => aligned_down + 8,
-        };
-        let total_pad = next_position - string_end;
-        // TODO(Swiftb0y): https://github.com/jam1garner/binrw/discussions/344
-        writer.write_all(&vec![0u8; total_pad as usize])?;
-        Ok(())
-    }
-}
+//     let aligned_down = string_end & !0b11;
+//     let next_position = match (subtype, string_end % 4) {
+//         (0x64, _) => align_by(4, string_end) + 4,
+//         (_, 3) => aligned_down + 12,
+//         (_, _) => aligned_down + 8,
+//     };
+//     let total_pad = next_position - string_end;
+//     // TODO(Swiftb0y): https://github.com/jam1garner/binrw/discussions/344
+//     writer.write_all(&vec![0u8; total_pad as usize])?;
+//     Ok(())
+// }
+// }
 
 /// Contains the artwork path and ID.
 #[binrw]
@@ -1108,9 +1099,6 @@ pub enum Row {
 }
 
 impl Row {
-    // TODO We should survey all the different kind of rows and ensure they're
-    // aligned properly. Temporally allowed unused
-    #[allow(unused)]
     #[must_use]
     const fn align_by(&self, offset: u64) -> u64 {
         use crate::pdb::Row::*;
@@ -1119,20 +1107,101 @@ impl Row {
         // unfortunately I couldn't find any less copy-pastey way of doing this
         // without unnecessarily complex macros.
         match &self {
-            Album(r) => align_by(align_of_val(r) as u64, offset),
+            Album(_) => offset,
             Artist(_) => offset,
             Artwork(r) => align_by(align_of_val(r) as u64, offset),
             Color(r) => align_by(align_of_val(r) as u64, offset),
             ColumnEntry(r) => align_by(align_of_val(r) as u64, offset),
-            Genre(r) => align_by(4, offset), // fixed alignment to 4 bytes
+            Genre(_) => align_by(4, offset), // fixed alignment to 4 bytes
             HistoryPlaylist(r) => align_by(align_of_val(r) as u64, offset),
             HistoryEntry(r) => align_by(align_of_val(r) as u64, offset),
-            Key(r) => align_by(4, offset),
-            Label(r) => align_by(4, offset),
+            Key(_) => align_by(4, offset),
+            Label(_) => align_by(4, offset),
             PlaylistTreeNode(r) => align_by(align_of_val(r) as u64, offset),
             PlaylistEntry(r) => align_by(align_of_val(r) as u64, offset),
             Track(_) => offset, // already handled by track serialization
             Unknown => offset,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum OffsetSource {
+    Near,
+    Far,
+}
+
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[brw(little)]
+#[br(import(offset: u16, source: OffsetSource, args: <T as BinRead>::Args<'_>))]
+#[bw(import(offset: u16, args: <T as BinWrite>::Args<'_>))]
+
+struct VarOffsetTail<T: BinRead + BinWrite> {
+    near: u8,
+    #[br(if(source == OffsetSource::Far))]
+    far: Option<u16>,
+    #[br(seek_before = Self::calculate_name_seek(near, &far, offset)?)]
+    #[bw(seek_before = Self::calculate_name_seek(*near, far, offset)?)]
+    #[brw(args_raw = args)]
+    inner: T,
+    // use offset + a couple bytes as a limit (though this is rather a heuristic)
+    #[br(parse_with = Self::guess_padding, args(offset + 0x10))]
+    #[bw(ignore)]
+    #[bw(pad_after=*padding)]
+    padding: u64,
+}
+
+impl<T: BinRead + BinWrite> VarOffsetTail<T> {
+    fn calculate_name_seek(near: u8, far: &Option<u16>, offset: u16) -> BinResult<SeekFrom> {
+        let offset_field = match (near, far) {
+            (0, None) => {
+                return Err(binrw::Error::AssertFail {
+                    pos: 0,
+                    message: "Encountered invalid offsets".into(),
+                })
+            }
+            (_, Some(far)) => far - 3,
+            (near, None) => u16::from(near) - 1,
+        };
+        let offset = offset_field
+            .checked_sub(offset)
+            .ok_or_else(|| binrw::Error::AssertFail {
+                pos: 0,
+                message: format!(
+                    "Underflow attempting to calculate offset ({offset_field:#X}-{offset:#X})"
+                ),
+            })?;
+        Ok(SeekFrom::Current(offset.into()))
+    }
+    #[binrw::parser(reader)]
+    fn guess_padding(limit: u16) -> BinResult<u64> {
+        let mut count = 0u64;
+        // We never expect to read many bytes here, so this is fine
+        #[allow(clippy::unbuffered_bytes)]
+        for byte in reader.bytes() {
+            if byte? != 0 {
+                break;
+            }
+            // to avoid scanning an entire page after the last row,
+            // we limit here
+            // if the limit is reached, assume end of page and no padding
+            // used
+            if count == u64::from(limit) {
+                count = 0;
+                break;
+            }
+            count += 1;
+        }
+        // don't consume the non-zero byte we just read
+        reader.seek_relative(-1)?;
+        Ok(count)
+    }
+    pub fn guess_offset_source(subtype: u16) -> OffsetSource {
+        if (subtype & 0x04) != 0 {
+            OffsetSource::Far
+        } else {
+            OffsetSource::Near
         }
     }
 }
