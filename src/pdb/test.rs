@@ -409,15 +409,19 @@ fn artist_row() {
 #[test]
 fn album_row() {
     let row1 = Album {
-        unknown1: 128,
+        subtype: 128,
         index_shift: 32,
         unknown2: 0,
         artist_id: ArtistId(2),
         id: AlbumId(2),
         unknown3: 0,
         unknown4: 3,
-        ofs_name: 0x16,
-        name: "GOOD LUCK".parse().unwrap(),
+        name: VarOffsetTail {
+            near: 0x16,
+            far: None,
+            inner: "GOOD LUCK".parse().unwrap(),
+            padding: 0,
+        },
     };
 
     test_roundtrip(
@@ -429,15 +433,19 @@ fn album_row() {
         row1,
     );
     let row2 = Album {
-        unknown1: 128,
+        subtype: 128,
         index_shift: 64,
         unknown2: 0,
         artist_id: ArtistId(0),
         id: AlbumId(3),
         unknown3: 0,
         unknown4: 3,
-        ofs_name: 0x16,
-        name: "Techno Rave 2023".parse().unwrap(),
+        name: VarOffsetTail {
+            near: 0x16,
+            far: None,
+            inner: "Techno Rave 2023".parse().unwrap(),
+            padding: 0,
+        },
     };
 
     test_roundtrip(
@@ -3769,1114 +3777,1408 @@ fn albums_page() {
             row_presence_flags: 0,
             unknown: 0,
             rows: vec![],
-        },
-        RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
-            unknown: 0,
-            rows: vec![],
-        },
-        RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
-            unknown: 0,
-            rows: vec![],
-        },
-        RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
-            unknown: 0,
-            rows: vec![],
-        },
-        RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
-            unknown: 0,
-            rows: vec![],
-        },
-        RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
-            unknown: 0,
-            rows: vec![],
-        },
+        };
+        6
     ];
-
+    row_groups.last_mut().unwrap().unknown = 0x02;
     row_groups[0]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 0,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(1),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "The Worst of Gehm".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "The Worst of Gehm".parse().unwrap(),
+                padding: 8,
+            },
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 32,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(2),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "1ØPILLS003 MASTER MP3s".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 24,
+                far: None,
+                inner: "1ØPILLS003 MASTER MP3s".parse().unwrap(),
+                padding: 4,
+            },
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 64,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(3),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Love & Happiness".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Love & Happiness".parse().unwrap(),
+                padding: 9,
+            },
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 96,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(4),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Wind / Phazzled".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Wind / Phazzled".parse().unwrap(),
+                padding: 6,
+            },
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 128,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(5),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Spectral Sound Volume 3".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Spectral Sound Volume 3".parse().unwrap(),
+                padding: 6,
+            },
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 160,
             unknown2: 0,
             artist_id: ArtistId(12),
             id: AlbumId(6),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "The Hideout (Mini-Lp)".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "The Hideout (Mini-Lp)".parse().unwrap(),
+                padding: 8,
+            },
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 192,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(7),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Sweet Dreams EP".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Sweet Dreams EP".parse().unwrap(),
+                padding: 6,
+            },
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 224,
             unknown2: 0,
             artist_id: ArtistId(18),
             id: AlbumId(8),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Lab.our 05".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Lab.our 05".parse().unwrap(),
+                padding: 7,
+            },
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 256,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(9),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "PolyfonikDizko".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "PolyfonikDizko".parse().unwrap(),
+                padding: 7,
+            },
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 288,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(10),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Altered States EP".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Altered States EP".parse().unwrap(),
+                padding: 8,
+            },
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 320,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(11),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "My So Called Robot Life EP".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "My So Called Robot Life EP".parse().unwrap(),
+                padding: 7,
+            },
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 352,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(12),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Deep Ep".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Deep Ep".parse().unwrap(),
+                padding: 6,
+            },
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 384,
             unknown2: 0,
             artist_id: ArtistId(25),
             id: AlbumId(13),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Simoncino \u{200e}– Mystic Adventures".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 24,
+                far: None,
+                inner: "Simoncino \u{200e}– Mystic Adventures".parse().unwrap(),
+                padding: 4,
+            },
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 416,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(14),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Smu Is The Key EP".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Smu Is The Key EP".parse().unwrap(),
+                padding: 8,
+            },
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 448,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(15),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "SOM Compilation Volume 2".parse().unwrap(), // codespell:ignore
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "SOM Compilation Volume 2".parse().unwrap(), // codespell:ignore
+                padding: 9,
+            },
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 480,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(16),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "NY Muscle".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "NY Muscle".parse().unwrap(),
+                padding: 8,
+            },
         }))
         .unwrap();
-
     row_groups[1]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 512,
             unknown2: 0,
             artist_id: ArtistId(31),
             id: AlbumId(17),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Point of No Return EP".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Point of No Return EP".parse().unwrap(),
+                padding: 8,
+            },
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 544,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(18),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Tapes 08".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Tapes 08".parse().unwrap(),
+                padding: 9,
+            },
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 576,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(19),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Like No One".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Like No One".parse().unwrap(),
+                padding: 6,
+            },
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 608,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(20),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "The Boat Party".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "The Boat Party".parse().unwrap(),
+                padding: 7,
+            },
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 640,
             unknown2: 0,
             artist_id: ArtistId(34),
             id: AlbumId(21),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Raw & Unreleased".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Raw & Unreleased".parse().unwrap(),
+                padding: 9,
+            },
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 672,
             unknown2: 0,
             artist_id: ArtistId(36),
             id: AlbumId(22),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Living Low".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Living Low".parse().unwrap(),
+                padding: 7,
+            },
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 704,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(23),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Muzic Box Classics #7".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Muzic Box Classics #7".parse().unwrap(),
+                padding: 8,
+            },
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 736,
             unknown2: 0,
             artist_id: ArtistId(39),
             id: AlbumId(24),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Stranger In The Strangest Of Lands".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Stranger In The Strangest Of Lands".parse().unwrap(),
+                padding: 7,
+            },
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 768,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(25),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Pt. 1".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Pt. 1".parse().unwrap(),
+                padding: 8,
+            },
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 800,
             unknown2: 0,
             artist_id: ArtistId(45),
             id: AlbumId(26),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Body Mechanics EP".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Body Mechanics EP".parse().unwrap(),
+                padding: 8,
+            },
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 832,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(27),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "EAUX1091 ".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "EAUX1091 ".parse().unwrap(),
+                padding: 8,
+            },
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 864,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(28),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Lost Tracks, Vol. 2".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Lost Tracks, Vol. 2".parse().unwrap(),
+                padding: 6,
+            },
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 896,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(29),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Dubbelbrein EP".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Dubbelbrein EP".parse().unwrap(),
+                padding: 7,
+            },
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 928,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(30),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Vx, Vol. 1".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Vx, Vol. 1".parse().unwrap(),
+                padding: 7,
+            },
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 960,
             unknown2: 0,
             artist_id: ArtistId(39),
             id: AlbumId(31),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "The Trax Records Anthology Compiled By Bill Brewster"
-                .parse()
-                .unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "The Trax Records Anthology Compiled By Bill Brewster"
+                    .parse()
+                    .unwrap(),
+                padding: 9,
+            },
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 992,
             unknown2: 0,
             artist_id: ArtistId(51),
             id: AlbumId(32),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "AfriOrker".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "AfriOrker".parse().unwrap(),
+                padding: 8,
+            },
         }))
         .unwrap();
-
     row_groups[2]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1024,
             unknown2: 0,
             artist_id: ArtistId(52),
             id: AlbumId(33),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Mortal Sin EP".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Mortal Sin EP".parse().unwrap(),
+                padding: 8,
+            },
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1056,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(34),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Psyops part one EP".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Psyops part one EP".parse().unwrap(),
+                padding: 7,
+            },
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1088,
             unknown2: 0,
             artist_id: ArtistId(55),
             id: AlbumId(35),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "White Rats III".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "White Rats III".parse().unwrap(),
+                padding: 7,
+            },
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1120,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(36),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "far from reality".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "far from reality".parse().unwrap(),
+                padding: 9,
+            },
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1152,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(37),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "EP1".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "EP1".parse().unwrap(),
+                padding: 6,
+            },
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1184,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(38),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Alpha Omega".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Alpha Omega".parse().unwrap(),
+                padding: 6,
+            },
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1216,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(39),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Decay".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Decay".parse().unwrap(),
+                padding: 8,
+            },
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1248,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(40),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "[LIES 009] Mind Control 320".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "[LIES 009] Mind Control 320".parse().unwrap(),
+                padding: 6,
+            },
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1280,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(41),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Nation".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Nation".parse().unwrap(),
+                padding: 7,
+            },
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1312,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(42),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Split 02".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Split 02".parse().unwrap(),
+                padding: 9,
+            },
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1344,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(43),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Another Number".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Another Number".parse().unwrap(),
+                padding: 7,
+            },
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1376,
             unknown2: 0,
             artist_id: ArtistId(64),
             id: AlbumId(44),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "8 Ball".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "8 Ball".parse().unwrap(),
+                padding: 7,
+            },
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1408,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(45),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "H-Productions presents_Mutations 101 (HPX60)"
-                .parse()
-                .unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "H-Productions presents_Mutations 101 (HPX60)"
+                    .parse()
+                    .unwrap(),
+                padding: 9,
+            },
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1440,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(46),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "CBS024X".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "CBS024X".parse().unwrap(),
+                padding: 6,
+            },
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1472,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(47),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Ben Sims pres Tribology".parse().unwrap(), // codespell:ignore pres
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Ben Sims pres Tribology".parse().unwrap(), // codespell:ignore
+                padding: 6,
+            },
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1504,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(48),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Night Jewel".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Night Jewel".parse().unwrap(),
+                padding: 6,
+            },
         }))
         .unwrap();
-
     row_groups[3]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1536,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(49),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "AKROPOLEOS".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "AKROPOLEOS".parse().unwrap(),
+                padding: 7,
+            },
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1568,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(50),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Mistress 12".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Mistress 12".parse().unwrap(),
+                padding: 6,
+            },
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1600,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(51),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Mistress 12.5".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Mistress 12.5".parse().unwrap(),
+                padding: 8,
+            },
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1632,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(52),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Remember Each Moment Of Freedom".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Remember Each Moment Of Freedom".parse().unwrap(),
+                padding: 6,
+            },
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1664,
             unknown2: 0,
             artist_id: ArtistId(29),
             id: AlbumId(53),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Mood Sequences".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Mood Sequences".parse().unwrap(),
+                padding: 7,
+            },
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1696,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(54),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Death Is Nothing To Fear 1".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Death Is Nothing To Fear 1".parse().unwrap(),
+                padding: 7,
+            },
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1728,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(55),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "I'm A Man".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "I'm A Man".parse().unwrap(),
+                padding: 8,
+            },
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1760,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(56),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Cari Lekebusch & Jesper Dahlback - Hands on experience"
-                .parse()
-                .unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Cari Lekebusch & Jesper Dahlback - Hands on experience"
+                    .parse()
+                    .unwrap(),
+                padding: 7,
+            },
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1792,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(57),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "New Life EP".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "New Life EP".parse().unwrap(),
+                padding: 6,
+            },
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1824,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(58),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "State of Mind EP".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "State of Mind EP".parse().unwrap(),
+                padding: 9,
+            },
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1856,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(59),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "DABJ Allstars".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "DABJ Allstars".parse().unwrap(),
+                padding: 8,
+            },
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1888,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(60),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Mendoza".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Mendoza".parse().unwrap(),
+                padding: 6,
+            },
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1920,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(61),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "CD Thirteen".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "CD Thirteen".parse().unwrap(),
+                padding: 6,
+            },
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1952,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(62),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Raw 7".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Raw 7".parse().unwrap(),
+                padding: 8,
+            },
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 1984,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(63),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Endurance - UNDERGROUND QUALITY".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Endurance - UNDERGROUND QUALITY".parse().unwrap(),
+                padding: 6,
+            },
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 2016,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(64),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "EFDEMIN - DECAY VERSIONS PT.2".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "EFDEMIN - DECAY VERSIONS PT.2".parse().unwrap(),
+                padding: 8,
+            },
         }))
         .unwrap();
-
     row_groups[4]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 2048,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(65),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "HUSH 03".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "HUSH 03".parse().unwrap(),
+                padding: 6,
+            },
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 2080,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(66),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Mistress 20".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Mistress 20".parse().unwrap(),
+                padding: 6,
+            },
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 2112,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(67),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Love under pressure ".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Love under pressure ".parse().unwrap(),
+                padding: 9,
+            },
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 2144,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(68),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Release".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Release".parse().unwrap(),
+                padding: 6,
+            },
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 2176,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(69),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Hexagon Cloud".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Hexagon Cloud".parse().unwrap(),
+                padding: 8,
+            },
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 2208,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(70),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "NRDR 011".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "NRDR 011".parse().unwrap(),
+                padding: 9,
+            },
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 2240,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(71),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Diptych".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Diptych".parse().unwrap(),
+                padding: 6,
+            },
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 2272,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(72),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Seven Days".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Seven Days".parse().unwrap(),
+                padding: 7,
+            },
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 2304,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(73),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Unknown Origin".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Unknown Origin".parse().unwrap(),
+                padding: 7,
+            },
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 2336,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(74),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Arpeggiator".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Arpeggiator".parse().unwrap(),
+                padding: 6,
+            },
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 2368,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(75),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "DECONSTRUCT MUSIC DEC-02".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "DECONSTRUCT MUSIC DEC-02".parse().unwrap(),
+                padding: 9,
+            },
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 2400,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(76),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Basement Tracks EP".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Basement Tracks EP".parse().unwrap(),
+                padding: 7,
+            },
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 2432,
             unknown2: 0,
             artist_id: ArtistId(101),
             id: AlbumId(77),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Corpse Grinder".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Corpse Grinder".parse().unwrap(),
+                padding: 7,
+            },
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 2464,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(78),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Kamm / Plain".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Kamm / Plain".parse().unwrap(),
+                padding: 9,
+            },
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 2496,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(79),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Fluxus_Digital_006".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Fluxus_Digital_006".parse().unwrap(),
+                padding: 7,
+            },
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 2528,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(80),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Minutes In Ice".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Minutes In Ice".parse().unwrap(),
+                padding: 7,
+            },
         }))
         .unwrap();
-
     row_groups[5]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 2560,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(81),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "TRP001".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "TRP001".parse().unwrap(),
+                padding: 7,
+            },
         }))
         .unwrap();
     row_groups[5]
         .add_row(Row::Album(Album {
-            unknown1: 128,
+            subtype: 128,
             index_shift: 2592,
             unknown2: 0,
             artist_id: ArtistId(108),
             id: AlbumId(82),
             unknown3: 0,
             unknown4: 3,
-            ofs_name: 0x16,
-            name: "Mmmmmusic".parse().unwrap(),
+            name: VarOffsetTail {
+                near: 22,
+                far: None,
+                inner: "Mmmmmusic".parse().unwrap(),
+                padding: 0,
+            },
         }))
         .unwrap();
 

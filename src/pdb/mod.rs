@@ -374,7 +374,7 @@ impl Page {
 /// table.
 #[binread]
 #[br(import(page_type: PageType, page_heap_position: u64))]
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RowGroup {
     /// An offset which points to a row in the table, whose actual presence is controlled by one of the
     /// bits in `row_present_flags`. This instance allows the row itself to be lazily loaded, unless it
@@ -561,7 +561,7 @@ pub struct HistoryPlaylistId(pub u32);
 #[brw(little)]
 pub struct Album {
     /// Unknown field, usually `80 00`.
-    unknown1: u16,
+    subtype: u16,
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
     index_shift: u16,
     /// Unknown field.
@@ -574,11 +574,10 @@ pub struct Album {
     unknown3: u32,
     /// Unknown field.
     unknown4: u8,
-    ofs_name: u8,
     /// Album name String
-    #[br(seek_before = SeekFrom::Current(i64::from(ofs_name) - 0x16))]
-    #[bw(seek_before = SeekFrom::Current(i64::from(*ofs_name) - 0x16))]
-    name: DeviceSQLString,
+    #[br(args(0x15, VarOffsetTail::<DeviceSQLString>::guess_offset_source(subtype), ()))]
+    #[bw(args(0x15, ()))]
+    name: VarOffsetTail<DeviceSQLString>,
 }
 
 /// Contains the artist name and ID.
@@ -1093,9 +1092,6 @@ pub enum Row {
 }
 
 impl Row {
-    // TODO We should survey all the different kind of rows and ensure they're
-    // aligned properly. Temporally allowed unused
-    #[allow(unused)]
     #[must_use]
     const fn align_by(&self, offset: u64) -> u64 {
         use crate::pdb::Row::*;
@@ -1104,12 +1100,12 @@ impl Row {
         // unfortunately I couldn't find any less copy-pastey way of doing this
         // without unnecessarily complex macros.
         match &self {
-            Album(r) => align_by(align_of_val(r) as u64, offset),
+            Album(_) => offset,
             Artist(_) => offset,
             Artwork(r) => align_by(align_of_val(r) as u64, offset),
             Color(r) => align_by(align_of_val(r) as u64, offset),
             ColumnEntry(r) => align_by(align_of_val(r) as u64, offset),
-            Genre(r) => align_by(4, offset), // fixed alignment to 4 bytes
+            Genre(_) => align_by(4, offset), // fixed alignment to 4 bytes
             HistoryPlaylist(r) => align_by(align_of_val(r) as u64, offset),
             HistoryEntry(r) => align_by(align_of_val(r) as u64, offset),
             Key(r) => align_by(align_of_val(r) as u64, offset),
@@ -1122,7 +1118,6 @@ impl Row {
     }
 }
 
-#[allow(unused)] // TODO(Swiftb0y): Remove once we use this outside of tests
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum OffsetSource {
     Near,
@@ -1134,7 +1129,7 @@ enum OffsetSource {
 #[brw(little)]
 #[br(import(offset: u16, source: OffsetSource, args: <T as BinRead>::Args<'_>))]
 #[bw(import(offset: u16, args: <T as BinWrite>::Args<'_>))]
-#[allow(unused)] // TODO(Swiftb0y): Remove once we use this outside of tests
+
 struct VarOffsetTail<T: BinRead + BinWrite> {
     near: u8,
     #[br(if(source == OffsetSource::Far))]
@@ -1152,7 +1147,7 @@ struct VarOffsetTail<T: BinRead + BinWrite> {
 
 impl<T: BinRead + BinWrite> VarOffsetTail<T> {
     fn calculate_name_seek(near: u8, far: &Option<u16>, offset: u16) -> BinResult<SeekFrom> {
-        let offset = match (near, far) {
+        let offset_field = match (near, far) {
             (0, None) => {
                 return Err(binrw::Error::AssertFail {
                     pos: 0,
@@ -1161,12 +1156,15 @@ impl<T: BinRead + BinWrite> VarOffsetTail<T> {
             }
             (_, Some(far)) => far - 3,
             (near, None) => u16::from(near) - 1,
-        }
-        .checked_sub(offset)
-        .ok_or_else(|| binrw::Error::AssertFail {
-            pos: 0,
-            message: "Underflow attempting to calculate offset".into(),
-        })?;
+        };
+        let offset = offset_field
+            .checked_sub(offset)
+            .ok_or_else(|| binrw::Error::AssertFail {
+                pos: 0,
+                message: format!(
+                    "Underflow attempting to calculate offset ({offset_field:#X}-{offset:#X})"
+                ),
+            })?;
         Ok(SeekFrom::Current(offset.into()))
     }
     #[binrw::parser(reader)]
