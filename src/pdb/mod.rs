@@ -21,15 +21,15 @@
 mod offset_array;
 pub mod string;
 
-use offset_array::VarOffsetTail;
+use offset_array::OffsetArray;
 
 #[cfg(test)]
 mod test;
 
 use std::convert::TryInto;
 
-use crate::pdb::string::DeviceSQLString;
-use crate::util::ColorIndex;
+use crate::pdb::{offset_array::OffsetArrayImpl, string::DeviceSQLString};
+use crate::util::{ColorIndex, ExplicitPadding};
 use binrw::{
     binread, binrw,
     io::{Read, Seek, SeekFrom, Write},
@@ -576,11 +576,14 @@ pub struct Album {
     /// Unknown field.
     unknown3: u32,
     /// Unknown field.
-    unknown4: u8,
+    #[br(args(OffsetArray::<(), 1>::guess_offset_source(subtype)))]
+    unknown4: OffsetArrayImpl<1>,
     /// Album name String
-    #[br(args(0x15, VarOffsetTail::<DeviceSQLString>::guess_offset_source(subtype), ()))]
-    #[bw(args(0x15, ()))]
-    name: VarOffsetTail<DeviceSQLString>,
+    #[br(args(20 + unknown4.byte_size(), OffsetArray::<DeviceSQLString, 1>::guess_offset_source(subtype), ()))]
+    #[bw(args(20 + unknown4.byte_size(), OffsetArray::<DeviceSQLString, 1>::guess_offset_source(*subtype), ()))]
+    name: OffsetArray<DeviceSQLString, 1>,
+    /// Explicit padding, used to align rows in a page (manually)
+    padding: ExplicitPadding,
 }
 
 /// Contains the artist name and ID.
@@ -595,12 +598,18 @@ pub struct Artist {
     /// ID of this row.
     id: ArtistId,
     /// Unknown field.
-    unknown1: u8,
-
+    // #[br(args(crate::pdb::offset_array::OffsetSize::U8))] // not subtype dependent for whatever reason??
+    #[br(args(OffsetArray::<(), 1>::guess_offset_source(subtype)))]
+    #[br(assert(unknown1.assert_offset_size_matches(OffsetArray::<(), 1>::guess_offset_source(subtype))))]
+    #[bw(assert(unknown1.assert_offset_size_matches(OffsetArray::<(), 1>::guess_offset_source(*subtype))))]
+    unknown1: OffsetArrayImpl<1>,
     /// Name of this artist.
-    #[br(args(9, VarOffsetTail::<DeviceSQLString>::guess_offset_source(subtype), ()))]
-    #[bw(args(9, ()))]
-    name: VarOffsetTail<DeviceSQLString>,
+    #[br(args(8 + unknown1.byte_size(), OffsetArray::<DeviceSQLString, 1>::guess_offset_source(subtype), ()))]
+    #[bw(args(dbg!(8 + unknown1.byte_size(), unknown1.byte_size()).0, OffsetArray::<DeviceSQLString, 1>::guess_offset_source(*subtype), ()))]
+    name: OffsetArray<DeviceSQLString, 1>,
+    /// Explicit padding, used to align rows in a page (manually)
+    #[br(args(0x30))]
+    padding: ExplicitPadding,
 }
 
 // impl Artist {
