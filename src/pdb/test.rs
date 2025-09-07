@@ -7027,3 +7027,113 @@ fn keys_page() {
         (page_size,),
     );
 }
+
+#[test]
+fn colors_page() {
+    let mut row_groups = vec![RowGroup {
+        row_offsets: Default::default(),
+        row_presence_flags: 0,
+        unknown: 255,
+        rows: vec![],
+    }];
+
+    row_groups[0]
+        .add_row(Row::Color(Color {
+            unknown1: 0,
+            unknown2: 1,
+            color: ColorIndex::Pink,
+            unknown3: 0,
+            name: "Pink".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Color(Color {
+            unknown1: 0,
+            unknown2: 2,
+            color: ColorIndex::Red,
+            unknown3: 0,
+            name: "Red".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Color(Color {
+            unknown1: 0,
+            unknown2: 3,
+            color: ColorIndex::Orange,
+            unknown3: 0,
+            name: "Orange".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Color(Color {
+            unknown1: 0,
+            unknown2: 4,
+            color: ColorIndex::Yellow,
+            unknown3: 0,
+            name: "Yellow".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Color(Color {
+            unknown1: 0,
+            unknown2: 5,
+            color: ColorIndex::Green,
+            unknown3: 0,
+            name: "Green".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Color(Color {
+            unknown1: 0,
+            unknown2: 6,
+            color: ColorIndex::Aqua,
+            unknown3: 0,
+            name: "Aqua".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Color(Color {
+            unknown1: 0,
+            unknown2: 7,
+            color: ColorIndex::Blue,
+            unknown3: 0,
+            name: "Blue".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Color(Color {
+            unknown1: 0,
+            unknown2: 8,
+            color: ColorIndex::Purple,
+            unknown3: 0,
+            name: "Purple".parse().unwrap(),
+        }))
+        .unwrap();
+
+    let page = Page {
+        page_index: PageIndex(14),
+        page_type: PageType::Colors,
+        next_page: PageIndex(42),
+        unknown1: 2,
+        unknown2: 0,
+        num_rows_small: 8,
+        unknown3: 0,
+        unknown4: 1,
+        page_flags: PageFlags(36),
+        free_size: 3912,
+        used_size: 124,
+        unknown5: 8,
+        num_rows_large: 0,
+        unknown6: 0,
+        unknown7: 0,
+        row_groups,
+    };
+
+    let page_size = 4096;
+    test_roundtrip_with_args(
+        include_bytes!("../../data/pdb/unit_tests/colors_page.bin"),
+        page,
+        (page_size,),
+        (page_size,),
+    );
+}
