@@ -263,7 +263,7 @@ fn track_row() {
 #[test]
 fn artist_row() {
     let row = Artist {
-        subtype: 96,
+        subtype: Subtype(0x60),
         index_shift: 32,
         id: ArtistId(1),
         unknown1: [3u8].into(),
@@ -286,7 +286,7 @@ fn artist_row() {
 #[test]
 fn album_row() {
     let row1 = Album {
-        subtype: 128,
+        subtype: Subtype(0x80),
         index_shift: 32,
         unknown2: 0,
         artist_id: ArtistId(2),
@@ -309,7 +309,7 @@ fn album_row() {
         row1,
     );
     let row2 = Album {
-        subtype: 128,
+        subtype: Subtype(0x80),
         index_shift: 64,
         unknown2: 0,
         artist_id: ArtistId(0),
@@ -1517,7 +1517,7 @@ fn artists_page() {
 
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 0,
             id: ArtistId(1),
             unknown1: [3u8].into(),
@@ -1530,7 +1530,7 @@ fn artists_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 32,
             id: ArtistId(2),
             unknown1: [3u8].into(),
@@ -1543,7 +1543,7 @@ fn artists_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 64,
             id: ArtistId(3),
             unknown1: [3u8].into(),
@@ -1556,7 +1556,7 @@ fn artists_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 96,
             id: ArtistId(4),
             unknown1: [3u8].into(),
@@ -1569,7 +1569,7 @@ fn artists_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 128,
             id: ArtistId(5),
             unknown1: [3u8].into(),
@@ -1582,7 +1582,7 @@ fn artists_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 160,
             id: ArtistId(6),
             unknown1: [3u8].into(),
@@ -1595,7 +1595,7 @@ fn artists_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 192,
             id: ArtistId(7),
             unknown1: [3u8].into(),
@@ -1608,7 +1608,7 @@ fn artists_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 224,
             id: ArtistId(8),
             unknown1: [3u8].into(),
@@ -1621,7 +1621,7 @@ fn artists_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 256,
             id: ArtistId(9),
             unknown1: [3u8].into(),
@@ -1634,7 +1634,7 @@ fn artists_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 288,
             id: ArtistId(10),
             unknown1: [3u8].into(),
@@ -1647,7 +1647,7 @@ fn artists_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 320,
             id: ArtistId(11),
             unknown1: [3u8].into(),
@@ -1660,7 +1660,7 @@ fn artists_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 352,
             id: ArtistId(12),
             unknown1: [3u8].into(),
@@ -1673,7 +1673,7 @@ fn artists_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 384,
             id: ArtistId(13),
             unknown1: [3u8].into(),
@@ -1686,7 +1686,7 @@ fn artists_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 416,
             id: ArtistId(14),
             unknown1: [3u8].into(),
@@ -1699,7 +1699,7 @@ fn artists_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 448,
             id: ArtistId(15),
             unknown1: [3u8].into(),
@@ -1712,7 +1712,7 @@ fn artists_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 480,
             id: ArtistId(16),
             unknown1: [3u8].into(),
@@ -1726,7 +1726,7 @@ fn artists_page() {
 
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 512,
             id: ArtistId(17),
             unknown1: [3u8].into(),
@@ -1739,7 +1739,7 @@ fn artists_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 544,
             id: ArtistId(18),
             unknown1: [3u8].into(),
@@ -1752,7 +1752,7 @@ fn artists_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 576,
             id: ArtistId(19),
             unknown1: [3u8].into(),
@@ -1765,7 +1765,7 @@ fn artists_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 608,
             id: ArtistId(20),
             unknown1: [3u8].into(),
@@ -1778,7 +1778,7 @@ fn artists_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 640,
             id: ArtistId(21),
             unknown1: [3u8].into(),
@@ -1791,7 +1791,7 @@ fn artists_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 672,
             id: ArtistId(22),
             unknown1: [3u8].into(),
@@ -1804,7 +1804,7 @@ fn artists_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 704,
             id: ArtistId(23),
             unknown1: [3u8].into(),
@@ -1817,7 +1817,7 @@ fn artists_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 736,
             id: ArtistId(24),
             unknown1: [3u8].into(),
@@ -1830,7 +1830,7 @@ fn artists_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 768,
             id: ArtistId(25),
             unknown1: [3u8].into(),
@@ -1843,7 +1843,7 @@ fn artists_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 800,
             id: ArtistId(26),
             unknown1: [3u8].into(),
@@ -1856,7 +1856,7 @@ fn artists_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 832,
             id: ArtistId(27),
             unknown1: [3u8].into(),
@@ -1869,7 +1869,7 @@ fn artists_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 864,
             id: ArtistId(28),
             unknown1: [3u8].into(),
@@ -1882,7 +1882,7 @@ fn artists_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 896,
             id: ArtistId(29),
             unknown1: [3u8].into(),
@@ -1895,7 +1895,7 @@ fn artists_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 928,
             id: ArtistId(30),
             unknown1: [3u8].into(),
@@ -1908,7 +1908,7 @@ fn artists_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 960,
             id: ArtistId(31),
             unknown1: [3u8].into(),
@@ -1921,7 +1921,7 @@ fn artists_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 992,
             id: ArtistId(32),
             unknown1: [3u8].into(),
@@ -1935,7 +1935,7 @@ fn artists_page() {
 
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1024,
             id: ArtistId(33),
             unknown1: [3u8].into(),
@@ -1948,7 +1948,7 @@ fn artists_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1056,
             id: ArtistId(34),
             unknown1: [3u8].into(),
@@ -1961,7 +1961,7 @@ fn artists_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1088,
             id: ArtistId(35),
             unknown1: [3u8].into(),
@@ -1974,7 +1974,7 @@ fn artists_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1120,
             id: ArtistId(36),
             unknown1: [3u8].into(),
@@ -1987,7 +1987,7 @@ fn artists_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1152,
             id: ArtistId(37),
             unknown1: [3u8].into(),
@@ -2000,7 +2000,7 @@ fn artists_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1184,
             id: ArtistId(38),
             unknown1: [3u8].into(),
@@ -2013,7 +2013,7 @@ fn artists_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1216,
             id: ArtistId(39),
             unknown1: [3u8].into(),
@@ -2026,7 +2026,7 @@ fn artists_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1248,
             id: ArtistId(40),
             unknown1: [3u8].into(),
@@ -2039,7 +2039,7 @@ fn artists_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1280,
             id: ArtistId(41),
             unknown1: [3u8].into(),
@@ -2052,7 +2052,7 @@ fn artists_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1312,
             id: ArtistId(42),
             unknown1: [3u8].into(),
@@ -2065,7 +2065,7 @@ fn artists_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1344,
             id: ArtistId(43),
             unknown1: [3u8].into(),
@@ -2078,7 +2078,7 @@ fn artists_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1376,
             id: ArtistId(44),
             unknown1: [3u8].into(),
@@ -2091,7 +2091,7 @@ fn artists_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1408,
             id: ArtistId(45),
             unknown1: [3u8].into(),
@@ -2104,7 +2104,7 @@ fn artists_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1440,
             id: ArtistId(46),
             unknown1: [3u8].into(),
@@ -2117,7 +2117,7 @@ fn artists_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1472,
             id: ArtistId(47),
             unknown1: [3u8].into(),
@@ -2130,7 +2130,7 @@ fn artists_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1504,
             id: ArtistId(48),
             unknown1: [3u8].into(),
@@ -2144,7 +2144,7 @@ fn artists_page() {
 
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1536,
             id: ArtistId(49),
             unknown1: [3u8].into(),
@@ -2157,7 +2157,7 @@ fn artists_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1568,
             id: ArtistId(50),
             unknown1: [3u8].into(),
@@ -2170,7 +2170,7 @@ fn artists_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1600,
             id: ArtistId(51),
             unknown1: [3u8].into(),
@@ -2183,7 +2183,7 @@ fn artists_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1632,
             id: ArtistId(52),
             unknown1: [3u8].into(),
@@ -2196,7 +2196,7 @@ fn artists_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1664,
             id: ArtistId(53),
             unknown1: [3u8].into(),
@@ -2209,7 +2209,7 @@ fn artists_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1696,
             id: ArtistId(54),
             unknown1: [3u8].into(),
@@ -2222,7 +2222,7 @@ fn artists_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1728,
             id: ArtistId(55),
             unknown1: [3u8].into(),
@@ -2235,7 +2235,7 @@ fn artists_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1760,
             id: ArtistId(56),
             unknown1: [3u8].into(),
@@ -2248,7 +2248,7 @@ fn artists_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1792,
             id: ArtistId(57),
             unknown1: [3u8].into(),
@@ -2261,7 +2261,7 @@ fn artists_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1824,
             id: ArtistId(58),
             unknown1: [3u8].into(),
@@ -2274,7 +2274,7 @@ fn artists_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1856,
             id: ArtistId(59),
             unknown1: [3u8].into(),
@@ -2287,7 +2287,7 @@ fn artists_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1888,
             id: ArtistId(60),
             unknown1: [3u8].into(),
@@ -2300,7 +2300,7 @@ fn artists_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1920,
             id: ArtistId(61),
             unknown1: [3u8].into(),
@@ -2313,7 +2313,7 @@ fn artists_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1952,
             id: ArtistId(62),
             unknown1: [3u8].into(),
@@ -2326,7 +2326,7 @@ fn artists_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1984,
             id: ArtistId(63),
             unknown1: [3u8].into(),
@@ -2339,7 +2339,7 @@ fn artists_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2016,
             id: ArtistId(64),
             unknown1: [3u8].into(),
@@ -2353,7 +2353,7 @@ fn artists_page() {
 
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2048,
             id: ArtistId(65),
             unknown1: [3u8].into(),
@@ -2366,7 +2366,7 @@ fn artists_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2080,
             id: ArtistId(66),
             unknown1: [3u8].into(),
@@ -2379,7 +2379,7 @@ fn artists_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2112,
             id: ArtistId(67),
             unknown1: [3u8].into(),
@@ -2392,7 +2392,7 @@ fn artists_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2144,
             id: ArtistId(68),
             unknown1: [3u8].into(),
@@ -2405,7 +2405,7 @@ fn artists_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2176,
             id: ArtistId(69),
             unknown1: [3u8].into(),
@@ -2418,7 +2418,7 @@ fn artists_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2208,
             id: ArtistId(70),
             unknown1: [3u8].into(),
@@ -2431,7 +2431,7 @@ fn artists_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2240,
             id: ArtistId(71),
             unknown1: [3u8].into(),
@@ -2444,7 +2444,7 @@ fn artists_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2272,
             id: ArtistId(72),
             unknown1: [3u8].into(),
@@ -2457,7 +2457,7 @@ fn artists_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2304,
             id: ArtistId(73),
             unknown1: [3u8].into(),
@@ -2470,7 +2470,7 @@ fn artists_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2336,
             id: ArtistId(74),
             unknown1: [3u8].into(),
@@ -2483,7 +2483,7 @@ fn artists_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2368,
             id: ArtistId(75),
             unknown1: [3u8].into(),
@@ -2496,7 +2496,7 @@ fn artists_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2400,
             id: ArtistId(76),
             unknown1: [3u8].into(),
@@ -2509,7 +2509,7 @@ fn artists_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2432,
             id: ArtistId(77),
             unknown1: [3u8].into(),
@@ -2522,7 +2522,7 @@ fn artists_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2464,
             id: ArtistId(78),
             unknown1: [3u8].into(),
@@ -2535,7 +2535,7 @@ fn artists_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2496,
             id: ArtistId(79),
             unknown1: [3u8].into(),
@@ -2548,7 +2548,7 @@ fn artists_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2528,
             id: ArtistId(80),
             unknown1: [3u8].into(),
@@ -2561,7 +2561,7 @@ fn artists_page() {
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2560,
             id: ArtistId(81),
             unknown1: [3u8].into(),
@@ -2574,7 +2574,7 @@ fn artists_page() {
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2592,
             id: ArtistId(82),
             unknown1: [3u8].into(),
@@ -2587,7 +2587,7 @@ fn artists_page() {
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2624,
             id: ArtistId(83),
             unknown1: [3u8].into(),
@@ -2600,7 +2600,7 @@ fn artists_page() {
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2656,
             id: ArtistId(84),
             unknown1: [3u8].into(),
@@ -2613,7 +2613,7 @@ fn artists_page() {
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2688,
             id: ArtistId(85),
             unknown1: [3u8].into(),
@@ -2626,7 +2626,7 @@ fn artists_page() {
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2720,
             id: ArtistId(86),
             unknown1: [3u8].into(),
@@ -2639,7 +2639,7 @@ fn artists_page() {
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2752,
             id: ArtistId(87),
             unknown1: [3u8].into(),
@@ -2652,7 +2652,7 @@ fn artists_page() {
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2784,
             id: ArtistId(88),
             unknown1: [3u8].into(),
@@ -2665,7 +2665,7 @@ fn artists_page() {
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2816,
             id: ArtistId(89),
             unknown1: [3u8].into(),
@@ -2678,7 +2678,7 @@ fn artists_page() {
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2848,
             id: ArtistId(90),
             unknown1: [3u8].into(),
@@ -2691,7 +2691,7 @@ fn artists_page() {
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2880,
             id: ArtistId(91),
             unknown1: [3u8].into(),
@@ -2704,7 +2704,7 @@ fn artists_page() {
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2912,
             id: ArtistId(92),
             unknown1: [3u8].into(),
@@ -2717,7 +2717,7 @@ fn artists_page() {
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2944,
             id: ArtistId(93),
             unknown1: [3u8].into(),
@@ -2730,7 +2730,7 @@ fn artists_page() {
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2976,
             id: ArtistId(94),
             unknown1: [3u8].into(),
@@ -2743,7 +2743,7 @@ fn artists_page() {
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3008,
             id: ArtistId(95),
             unknown1: [3u8].into(),
@@ -2756,7 +2756,7 @@ fn artists_page() {
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3040,
             id: ArtistId(96),
             unknown1: [3u8].into(),
@@ -2769,7 +2769,7 @@ fn artists_page() {
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3072,
             id: ArtistId(97),
             unknown1: [3u8].into(),
@@ -2782,7 +2782,7 @@ fn artists_page() {
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3104,
             id: ArtistId(98),
             unknown1: [3u8].into(),
@@ -2795,7 +2795,7 @@ fn artists_page() {
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3136,
             id: ArtistId(99),
             unknown1: [3u8].into(),
@@ -2808,7 +2808,7 @@ fn artists_page() {
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3168,
             id: ArtistId(100),
             unknown1: [3u8].into(),
@@ -2821,7 +2821,7 @@ fn artists_page() {
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3200,
             id: ArtistId(101),
             unknown1: [3u8].into(),
@@ -2834,7 +2834,7 @@ fn artists_page() {
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3232,
             id: ArtistId(102),
             unknown1: [3u8].into(),
@@ -2847,7 +2847,7 @@ fn artists_page() {
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3264,
             id: ArtistId(103),
             unknown1: [3u8].into(),
@@ -2860,7 +2860,7 @@ fn artists_page() {
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3296,
             id: ArtistId(104),
             unknown1: [3u8].into(),
@@ -2873,7 +2873,7 @@ fn artists_page() {
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3328,
             id: ArtistId(105),
             unknown1: [3u8].into(),
@@ -2886,7 +2886,7 @@ fn artists_page() {
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3360,
             id: ArtistId(106),
             unknown1: [3u8].into(),
@@ -2899,7 +2899,7 @@ fn artists_page() {
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3392,
             id: ArtistId(107),
             unknown1: [3u8].into(),
@@ -2912,7 +2912,7 @@ fn artists_page() {
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3424,
             id: ArtistId(108),
             unknown1: [3u8].into(),
@@ -2925,7 +2925,7 @@ fn artists_page() {
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3456,
             id: ArtistId(109),
             unknown1: [3u8].into(),
@@ -2938,7 +2938,7 @@ fn artists_page() {
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3488,
             id: ArtistId(110),
             unknown1: [3u8].into(),
@@ -2951,7 +2951,7 @@ fn artists_page() {
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3520,
             id: ArtistId(111),
             unknown1: [3u8].into(),
@@ -2964,7 +2964,7 @@ fn artists_page() {
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3552,
             id: ArtistId(112),
             unknown1: [3u8].into(),
@@ -2977,7 +2977,7 @@ fn artists_page() {
         .unwrap();
     row_groups[7]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3584,
             id: ArtistId(113),
             unknown1: [3u8].into(),
@@ -2990,7 +2990,7 @@ fn artists_page() {
         .unwrap();
     row_groups[7]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3616,
             id: ArtistId(114),
             unknown1: [3u8].into(),
@@ -3003,7 +3003,7 @@ fn artists_page() {
         .unwrap();
     row_groups[7]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3648,
             id: ArtistId(115),
             unknown1: [3u8].into(),
@@ -3016,7 +3016,7 @@ fn artists_page() {
         .unwrap();
     row_groups[7]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3680,
             id: ArtistId(116),
             unknown1: [3u8].into(),
@@ -3029,7 +3029,7 @@ fn artists_page() {
         .unwrap();
     row_groups[7]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3712,
             id: ArtistId(117),
             unknown1: [3u8].into(),
@@ -3042,7 +3042,7 @@ fn artists_page() {
         .unwrap();
     row_groups[7]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3744,
             id: ArtistId(118),
             unknown1: [3u8].into(),
@@ -3055,7 +3055,7 @@ fn artists_page() {
         .unwrap();
     row_groups[7]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3776,
             id: ArtistId(119),
             unknown1: [3u8].into(),
@@ -3068,7 +3068,7 @@ fn artists_page() {
         .unwrap();
     row_groups[7]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3808,
             id: ArtistId(120),
             unknown1: [3u8].into(),
@@ -3412,7 +3412,7 @@ fn artist_page_long() {
     };
     rowgroup
         .add_row(Row::Artist(Artist {
-            subtype: 100,
+            subtype: Subtype(0x64),
             index_shift: 0,
             id: ArtistId(1),
             unknown1: [3u16].into(),
@@ -3425,7 +3425,7 @@ fn artist_page_long() {
         .unwrap();
     rowgroup
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 32,
             id: ArtistId(2),
             unknown1: [3u8].into(),
@@ -3438,7 +3438,7 @@ fn artist_page_long() {
         .unwrap();
     rowgroup
         .add_row(Row::Artist(Artist {
-            subtype: 100,
+            subtype: Subtype(0x64),
             index_shift: 64,
             id: ArtistId(3),
             unknown1: [3u16].into(),
@@ -3451,7 +3451,7 @@ fn artist_page_long() {
         .unwrap();
     rowgroup
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 96,
             id: ArtistId(4),
             unknown1: [3u8].into(),
@@ -3464,7 +3464,7 @@ fn artist_page_long() {
         .unwrap();
     rowgroup
         .add_row(Row::Artist(Artist {
-            subtype: 100,
+            subtype: Subtype(0x64),
             index_shift: 128,
             id: ArtistId(5),
             unknown1: [3u16].into(),
@@ -3477,7 +3477,7 @@ fn artist_page_long() {
         .unwrap();
     rowgroup
         .add_row(Row::Artist(Artist {
-            subtype: 100,
+            subtype: Subtype(0x64),
             index_shift: 160,
             id: ArtistId(6),
             unknown1: [3u16].into(),
@@ -3532,7 +3532,7 @@ fn albums_page() {
     row_groups.last_mut().unwrap().unknown = 0x02;
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 0,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -3548,7 +3548,7 @@ fn albums_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 32,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -3564,7 +3564,7 @@ fn albums_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 64,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -3580,7 +3580,7 @@ fn albums_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 96,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -3596,7 +3596,7 @@ fn albums_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 128,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -3612,7 +3612,7 @@ fn albums_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 160,
             unknown2: 0,
             artist_id: ArtistId(12),
@@ -3628,7 +3628,7 @@ fn albums_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 192,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -3644,7 +3644,7 @@ fn albums_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 224,
             unknown2: 0,
             artist_id: ArtistId(18),
@@ -3660,7 +3660,7 @@ fn albums_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 256,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -3676,7 +3676,7 @@ fn albums_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 288,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -3692,7 +3692,7 @@ fn albums_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 320,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -3708,7 +3708,7 @@ fn albums_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 352,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -3724,7 +3724,7 @@ fn albums_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 384,
             unknown2: 0,
             artist_id: ArtistId(25),
@@ -3740,7 +3740,7 @@ fn albums_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 416,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -3756,7 +3756,7 @@ fn albums_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 448,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -3772,7 +3772,7 @@ fn albums_page() {
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 480,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -3788,7 +3788,7 @@ fn albums_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 512,
             unknown2: 0,
             artist_id: ArtistId(31),
@@ -3804,7 +3804,7 @@ fn albums_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 544,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -3820,7 +3820,7 @@ fn albums_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 576,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -3836,7 +3836,7 @@ fn albums_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 608,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -3852,7 +3852,7 @@ fn albums_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 640,
             unknown2: 0,
             artist_id: ArtistId(34),
@@ -3868,7 +3868,7 @@ fn albums_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 672,
             unknown2: 0,
             artist_id: ArtistId(36),
@@ -3884,7 +3884,7 @@ fn albums_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 704,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -3900,7 +3900,7 @@ fn albums_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 736,
             unknown2: 0,
             artist_id: ArtistId(39),
@@ -3916,7 +3916,7 @@ fn albums_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 768,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -3932,7 +3932,7 @@ fn albums_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 800,
             unknown2: 0,
             artist_id: ArtistId(45),
@@ -3948,7 +3948,7 @@ fn albums_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 832,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -3964,7 +3964,7 @@ fn albums_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 864,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -3980,7 +3980,7 @@ fn albums_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 896,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -3996,7 +3996,7 @@ fn albums_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 928,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4012,7 +4012,7 @@ fn albums_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 960,
             unknown2: 0,
             artist_id: ArtistId(39),
@@ -4030,7 +4030,7 @@ fn albums_page() {
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 992,
             unknown2: 0,
             artist_id: ArtistId(51),
@@ -4046,7 +4046,7 @@ fn albums_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1024,
             unknown2: 0,
             artist_id: ArtistId(52),
@@ -4062,7 +4062,7 @@ fn albums_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1056,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4078,7 +4078,7 @@ fn albums_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1088,
             unknown2: 0,
             artist_id: ArtistId(55),
@@ -4094,7 +4094,7 @@ fn albums_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1120,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4110,7 +4110,7 @@ fn albums_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1152,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4126,7 +4126,7 @@ fn albums_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1184,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4142,7 +4142,7 @@ fn albums_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1216,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4158,7 +4158,7 @@ fn albums_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1248,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4174,7 +4174,7 @@ fn albums_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1280,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4190,7 +4190,7 @@ fn albums_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1312,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4206,7 +4206,7 @@ fn albums_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1344,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4222,7 +4222,7 @@ fn albums_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1376,
             unknown2: 0,
             artist_id: ArtistId(64),
@@ -4238,7 +4238,7 @@ fn albums_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1408,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4256,7 +4256,7 @@ fn albums_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1440,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4272,7 +4272,7 @@ fn albums_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1472,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4288,7 +4288,7 @@ fn albums_page() {
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1504,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4304,7 +4304,7 @@ fn albums_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1536,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4320,7 +4320,7 @@ fn albums_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1568,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4336,7 +4336,7 @@ fn albums_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1600,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4352,7 +4352,7 @@ fn albums_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1632,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4368,7 +4368,7 @@ fn albums_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1664,
             unknown2: 0,
             artist_id: ArtistId(29),
@@ -4384,7 +4384,7 @@ fn albums_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1696,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4400,7 +4400,7 @@ fn albums_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1728,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4416,7 +4416,7 @@ fn albums_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1760,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4434,7 +4434,7 @@ fn albums_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1792,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4450,7 +4450,7 @@ fn albums_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1824,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4466,7 +4466,7 @@ fn albums_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1856,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4482,7 +4482,7 @@ fn albums_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1888,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4498,7 +4498,7 @@ fn albums_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1920,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4514,7 +4514,7 @@ fn albums_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1952,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4530,7 +4530,7 @@ fn albums_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1984,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4546,7 +4546,7 @@ fn albums_page() {
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2016,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4562,7 +4562,7 @@ fn albums_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2048,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4578,7 +4578,7 @@ fn albums_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2080,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4594,7 +4594,7 @@ fn albums_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2112,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4610,7 +4610,7 @@ fn albums_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2144,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4626,7 +4626,7 @@ fn albums_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2176,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4642,7 +4642,7 @@ fn albums_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2208,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4658,7 +4658,7 @@ fn albums_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2240,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4674,7 +4674,7 @@ fn albums_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2272,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4690,7 +4690,7 @@ fn albums_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2304,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4706,7 +4706,7 @@ fn albums_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2336,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4722,7 +4722,7 @@ fn albums_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2368,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4738,7 +4738,7 @@ fn albums_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2400,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4754,7 +4754,7 @@ fn albums_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2432,
             unknown2: 0,
             artist_id: ArtistId(101),
@@ -4770,7 +4770,7 @@ fn albums_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2464,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4786,7 +4786,7 @@ fn albums_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2496,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4802,7 +4802,7 @@ fn albums_page() {
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2528,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4818,7 +4818,7 @@ fn albums_page() {
         .unwrap();
     row_groups[5]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2560,
             unknown2: 0,
             artist_id: ArtistId(0),
@@ -4834,7 +4834,7 @@ fn albums_page() {
         .unwrap();
     row_groups[5]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2592,
             unknown2: 0,
             artist_id: ArtistId(108),

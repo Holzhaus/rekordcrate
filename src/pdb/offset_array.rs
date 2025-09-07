@@ -14,7 +14,8 @@ pub enum OffsetSize {
     U16,
 }
 
-#[binrw(little)]
+#[binrw]
+#[brw(little)]
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[br(import(start_offset: usize, offset_size: OffsetSize, inner_args: <T as BinRead>::Args<'_>))]
 #[bw(import(start_offset: usize, offset_size: OffsetSize, inner_args: <T as BinWrite>::Args<'_>))]
@@ -31,34 +32,20 @@ where
     pub inner: Vec<T>, // This has always N elements, but making it a proper array is difficult
 }
 
-impl<T: BinRead + BinWrite, const N: usize> binrw::meta::WriteEndian for OffsetArray<T, N>
-where
-    for<'a> <T as BinRead>::Args<'a>: Clone,
-    for<'a> <T as BinWrite>::Args<'a>: Clone,
-{
-    const ENDIAN: binrw::meta::EndianKind = binrw::meta::EndianKind::Endian(binrw::Endian::Little);
-}
-impl<T: BinRead + BinWrite, const N: usize> binrw::meta::ReadEndian for OffsetArray<T, N>
-where
-    for<'a> <T as BinRead>::Args<'a>: Clone,
-    for<'a> <T as BinWrite>::Args<'a>: Clone,
-{
-    const ENDIAN: binrw::meta::EndianKind = binrw::meta::EndianKind::Endian(binrw::Endian::Little);
-}
-
-impl<T: BinRead + BinWrite, const N: usize> OffsetArray<T, N>
-where
-    for<'a> <T as BinRead>::Args<'a>: Clone,
-    for<'a> <T as BinWrite>::Args<'a>: Clone,
-{
-    pub fn guess_offset_source(subtype: u16) -> OffsetSize {
-        if (subtype & 0x04) != 0 {
-            OffsetSize::U16
-        } else {
-            OffsetSize::U8
-        }
-    }
-}
+// impl<T: BinRead + BinWrite, const N: usize> binrw::meta::WriteEndian for OffsetArray<T, N>
+// where
+//     for<'a> <T as BinRead>::Args<'a>: Clone,
+//     for<'a> <T as BinWrite>::Args<'a>: Clone,
+// {
+//     const ENDIAN: binrw::meta::EndianKind = binrw::meta::EndianKind::Endian(binrw::Endian::Little);
+// }
+// impl<T: BinRead + BinWrite, const N: usize> binrw::meta::ReadEndian for OffsetArray<T, N>
+// where
+//     for<'a> <T as BinRead>::Args<'a>: Clone,
+//     for<'a> <T as BinWrite>::Args<'a>: Clone,
+// {
+//     const ENDIAN: binrw::meta::EndianKind = binrw::meta::EndianKind::Endian(binrw::Endian::Little);
+// }
 
 #[binrw]
 #[derive(Debug, Clone, PartialEq, Eq)]

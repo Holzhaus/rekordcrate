@@ -28,6 +28,7 @@ mod test;
 
 use std::convert::TryInto;
 
+use crate::pdb::offset_array::OffsetSize;
 use crate::pdb::{offset_array::OffsetArrayImpl, string::DeviceSQLString};
 use crate::util::{ColorIndex, ExplicitPadding};
 use binrw::{
@@ -504,6 +505,27 @@ impl RowGroup {
     }
 }
 
+/// Carries additional information about a row (if present, always as the first field of a row)
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[brw(little)]
+pub struct Subtype(pub u16);
+
+impl Subtype {
+    /// Returns the offset size (`OffsetSize`) used for this subtype.
+    ///
+    /// If the 0x04 bit is not set in the subtype, returns `OffsetSize::U8`,
+    /// otherwise returns `OffsetSize::U16`.
+    #[must_use]
+    pub fn get_offset_size(&self) -> OffsetSize {
+        if self.0 & 0x04 == 0 {
+            OffsetSize::U8
+        } else {
+            OffsetSize::U16
+        }
+    }
+}
+
 /// Identifies a track.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
@@ -564,7 +586,7 @@ pub struct HistoryPlaylistId(pub u32);
 #[brw(little)]
 pub struct Album {
     /// Unknown field, usually `80 00`.
-    subtype: u16,
+    subtype: Subtype,
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
     index_shift: u16,
     /// Unknown field.
@@ -576,11 +598,10 @@ pub struct Album {
     /// Unknown field.
     unknown3: u32,
     /// Unknown field.
-    #[br(args(OffsetArray::<(), 1>::guess_offset_source(subtype)))]
+    #[br(args(subtype.get_offset_size()))]
     unknown4: OffsetArrayImpl<1>,
     /// Album name String
-    #[br(args(20 + unknown4.byte_size(), OffsetArray::<DeviceSQLString, 1>::guess_offset_source(subtype), ()))]
-    #[bw(args(20 + unknown4.byte_size(), OffsetArray::<DeviceSQLString, 1>::guess_offset_source(*subtype), ()))]
+    #[brw(args(20 + unknown4.byte_size(), subtype.get_offset_size(), ()))]
     name: OffsetArray<DeviceSQLString, 1>,
     /// Explicit padding, used to align rows in a page (manually)
     padding: ExplicitPadding,
@@ -592,20 +613,17 @@ pub struct Album {
 #[brw(little)]
 pub struct Artist {
     /// Determines if the `name` string is located at the 8-bit offset (0x60) or the 16-bit offset (0x64).
-    subtype: u16,
+    subtype: Subtype,
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
     index_shift: u16,
     /// ID of this row.
     id: ArtistId,
     /// Unknown field.
-    // #[br(args(crate::pdb::offset_array::OffsetSize::U8))] // not subtype dependent for whatever reason??
-    #[br(args(OffsetArray::<(), 1>::guess_offset_source(subtype)))]
-    #[br(assert(unknown1.assert_offset_size_matches(OffsetArray::<(), 1>::guess_offset_source(subtype))))]
-    #[bw(assert(unknown1.assert_offset_size_matches(OffsetArray::<(), 1>::guess_offset_source(*subtype))))]
+    #[br(args(subtype.get_offset_size()))]
+    #[brw(assert(unknown1.assert_offset_size_matches(subtype.get_offset_size())))]
     unknown1: OffsetArrayImpl<1>,
     /// Name of this artist.
-    #[br(args(8 + unknown1.byte_size(), OffsetArray::<DeviceSQLString, 1>::guess_offset_source(subtype), ()))]
-    #[bw(args(dbg!(8 + unknown1.byte_size(), unknown1.byte_size()).0, OffsetArray::<DeviceSQLString, 1>::guess_offset_source(*subtype), ()))]
+    #[brw(args(8 + unknown1.byte_size(), subtype.get_offset_size(), ()))]
     name: OffsetArray<DeviceSQLString, 1>,
     /// Explicit padding, used to align rows in a page (manually)
     #[br(args(0x30))]
