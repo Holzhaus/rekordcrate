@@ -8,129 +8,6 @@
 use super::*;
 use crate::util::testing::{test_roundtrip, test_roundtrip_with_args};
 
-mod var_offset_tail {
-    use super::*;
-    use binrw::VecArgs;
-    use OffsetSource::*;
-    #[test]
-    fn empty() {
-        let empty_offset_tail = VarOffsetTail {
-            near: 1,
-            far: None,
-            inner: (),
-            padding: 0,
-        };
-        test_roundtrip_with_args(&[0x01], empty_offset_tail, (0, Near, ()), (0, ()));
-    }
-    #[test]
-    fn near_u8() {
-        let near_u8_tail = VarOffsetTail {
-            near: 1,
-            far: None,
-            inner: 42u8,
-            padding: 0,
-        };
-        test_roundtrip_with_args(&[0x01, 42], near_u8_tail, (0, Near, ()), (0, ()));
-    }
-    #[test]
-    fn buffer() {
-        let buffer = VarOffsetTail {
-            near: 1,
-            far: None,
-            inner: 0xDEADBEEF_u32.to_be_bytes(),
-            padding: 0,
-        };
-        test_roundtrip_with_args(
-            &[0x01, 0xDE, 0xAD, 0xBE, 0xEF],
-            buffer,
-            (0, Near, ()),
-            (0, ()),
-        );
-    }
-    #[test]
-    fn near_remote() {
-        let near_remote = VarOffsetTail {
-            near: 5,
-            far: None,
-            inner: 42u8,
-            padding: 0,
-        };
-        test_roundtrip_with_args(
-            &[0x05, 0x00, 0x00, 0x00, 0x00, 42],
-            near_remote,
-            (0, Near, ()),
-            (0, ()),
-        );
-    }
-    #[test]
-    fn far_remote() {
-        let far_remote = VarOffsetTail {
-            near: 0,
-            far: 3.into(),
-            inner: 42u8,
-            padding: 0,
-        };
-        test_roundtrip_with_args(&[0x00, 0x03, 0x00, 42], far_remote, (0, Far, ()), (0, ()));
-    }
-    #[test]
-    fn near_offset() {
-        let near_offset = VarOffsetTail {
-            near: 3,
-            far: None,
-            inner: 42u8,
-            padding: 0,
-        };
-        let offset = 2;
-        test_roundtrip_with_args(&[0x03, 42], near_offset, (offset, Near, ()), (offset, ()));
-    }
-    #[test]
-    fn padding_end() {
-        let padding_end = VarOffsetTail {
-            near: 1,
-            far: None,
-            inner: 42u8,
-            padding: 1,
-        };
-        test_roundtrip_with_args(&[0x01, 42, 0x00], padding_end, (0, Near, ()), (0, ()));
-    }
-    #[test]
-    fn padding_multiple() {
-        let padding_multiple = vec![
-            VarOffsetTail {
-                near: 1,
-                far: None,
-                inner: 42u8,
-                padding: 1,
-            };
-            2
-        ];
-        test_roundtrip_with_args(
-            &[0x01, 42, 0x00, 0x01, 42, 0x00],
-            padding_multiple,
-            VecArgs {
-                count: 2,
-                inner: (0, Near, ()),
-            },
-            (0, ()),
-        );
-    }
-    #[test]
-    fn far_remote_padding_offset() {
-        let far_remote_padding = VarOffsetTail {
-            near: 0,
-            far: Some(5),
-            inner: (),
-            padding: 1,
-        };
-        test_roundtrip_with_args(
-            &[0x00, 0x05, 0x00, 0x00],
-            far_remote_padding,
-            (2, Far, ()),
-            (2, ()),
-        );
-    }
-}
-
 #[test]
 fn empty_header() {
     let header = Header {
@@ -386,16 +263,16 @@ fn track_row() {
 #[test]
 fn artist_row() {
     let row = Artist {
-        subtype: 96,
+        subtype: Subtype(0x60),
         index_shift: 32,
         id: ArtistId(1),
-        unknown1: 3,
-        name: VarOffsetTail {
-            near: 10,
-            far: None,
-            inner: "Loopmasters".parse().unwrap(),
-            padding: 0,
+        unknown1: [3u8].into(),
+        // unknown: [3u8].into(),
+        name: OffsetArray {
+            offsets: [10u8].into(),
+            inner: vec!["Loopmasters".parse().unwrap()],
         },
+        padding: 0.into(),
     };
     test_roundtrip(
         &[
@@ -409,19 +286,18 @@ fn artist_row() {
 #[test]
 fn album_row() {
     let row1 = Album {
-        subtype: 128,
+        subtype: Subtype(0x80),
         index_shift: 32,
         unknown2: 0,
         artist_id: ArtistId(2),
         id: AlbumId(2),
         unknown3: 0,
-        unknown4: 3,
-        name: VarOffsetTail {
-            near: 0x16,
-            far: None,
-            inner: "GOOD LUCK".parse().unwrap(),
-            padding: 0,
+        unknown4: [3u8].into(),
+        name: OffsetArray {
+            offsets: [0x16u8].into(),
+            inner: vec!["GOOD LUCK".parse().unwrap()],
         },
+        padding: 0.into(),
     };
 
     test_roundtrip(
@@ -433,19 +309,18 @@ fn album_row() {
         row1,
     );
     let row2 = Album {
-        subtype: 128,
+        subtype: Subtype(0x80),
         index_shift: 64,
         unknown2: 0,
         artist_id: ArtistId(0),
         id: AlbumId(3),
         unknown3: 0,
-        unknown4: 3,
-        name: VarOffsetTail {
-            near: 0x16,
-            far: None,
-            inner: "Techno Rave 2023".parse().unwrap(),
-            padding: 0,
+        unknown4: [3u8].into(),
+        name: OffsetArray {
+            offsets: [0x16u8].into(),
+            inner: vec!["Techno Rave 2023".parse().unwrap()],
         },
+        padding: 0.into(),
     };
 
     test_roundtrip(
@@ -1653,1686 +1528,1566 @@ fn artists_page() {
 
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 0,
             id: ArtistId(1),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Andreas Gehm".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Andreas Gehm".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 32,
             id: ArtistId(2),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "D'marc Cantu".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["D'marc Cantu".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 64,
             id: ArtistId(3),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "DJ Plant Texture".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["DJ Plant Texture".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 96,
             id: ArtistId(4),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "DVS1".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["DVS1".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 128,
             id: ArtistId(5),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Florian Kupfer".parse().unwrap(),
-                padding: 7,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Florian Kupfer".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 160,
             id: ArtistId(6),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Frak".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Frak".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 192,
             id: ArtistId(7),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Frankie Knuckles".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Frankie Knuckles".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 224,
             id: ArtistId(8),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "House Of Jezebel".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["House Of Jezebel".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 256,
             id: ArtistId(9),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Innerspace Halflife".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Innerspace Halflife".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 288,
             id: ArtistId(10),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "James T. Cotton".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["James T. Cotton".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 320,
             id: ArtistId(11),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "jozef k".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["jozef k".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 352,
             id: ArtistId(12),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Juanpablo".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Juanpablo".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 384,
             id: ArtistId(13),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Juniper".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Juniper".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 416,
             id: ArtistId(14),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Kovyazin D".parse().unwrap(),
-                padding: 7,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Kovyazin D".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 448,
             id: ArtistId(15),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Le Melange Inc. Ft China".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Le Melange Inc. Ft China".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 480,
             id: ArtistId(16),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Louis Guilliaume".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Louis Guilliaume".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
 
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 512,
             id: ArtistId(17),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Maxwell Church".parse().unwrap(),
-                padding: 7,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Maxwell Church".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 544,
             id: ArtistId(18),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Various Artists".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Various Artists".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 576,
             id: ArtistId(19),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Mutant Beat Dance".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Mutant Beat Dance".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 608,
             id: ArtistId(20),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Mutant beat dance".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Mutant beat dance".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 640,
             id: ArtistId(21),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Ron Trent".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Ron Trent".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 672,
             id: ArtistId(22),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Salvation REMIX".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Salvation REMIX".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 704,
             id: ArtistId(23),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Salvation".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Salvation".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 736,
             id: ArtistId(24),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Simoncino".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Simoncino".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 768,
             id: ArtistId(25),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "HOTMIX RECORDS / NICK ANTHONY SIMONCINO".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["HOTMIX RECORDS / NICK ANTHONY SIMONCINO".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 800,
             id: ArtistId(26),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Sneaker REMIX".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Sneaker REMIX".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 832,
             id: ArtistId(27),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Tinman REMIX".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Tinman REMIX".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 864,
             id: ArtistId(28),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Alienata".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Alienata".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 896,
             id: ArtistId(29),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "AS1".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["AS1".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 928,
             id: ArtistId(30),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "DJ Hell".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["DJ Hell".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 960,
             id: ArtistId(31),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Innershades & Robert D".parse().unwrap(),
-                padding: 7,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Innershades & Robert D".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 992,
             id: ArtistId(32),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "intersterllar funk".parse().unwrap(),
-                padding: 7,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["intersterllar funk".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
 
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1024,
             id: ArtistId(33),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Kyle Hall, KMFH".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Kyle Hall, KMFH".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1056,
             id: ArtistId(34),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Luke's Anger".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Luke's Anger".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1088,
             id: ArtistId(35),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 12,
-                far: None,
-                inner: "Manie Sans Délire".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [12u8].into(),
+                inner: vec!["Manie Sans Délire".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1120,
             id: ArtistId(36),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Paul du Lac".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Paul du Lac".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1152,
             id: ArtistId(37),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Ron Hardy".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Ron Hardy".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1184,
             id: ArtistId(38),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Saturn V".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Saturn V".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1216,
             id: ArtistId(39),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "VA".parse().unwrap(),
-                padding: 7,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["VA".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1248,
             id: ArtistId(40),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "traxx   ".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["traxx   ".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1280,
             id: ArtistId(41),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "traxx feat Naughty wood".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["traxx feat Naughty wood".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1312,
             id: ArtistId(42),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Truncate ".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Truncate ".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1344,
             id: ArtistId(43),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Ultrastation".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Ultrastation".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1376,
             id: ArtistId(44),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "2AM/FM".parse().unwrap(),
-                padding: 7,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["2AM/FM".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1408,
             id: ArtistId(45),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Sepehr".parse().unwrap(),
-                padding: 7,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Sepehr".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1440,
             id: ArtistId(46),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Cfade".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Cfade".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1472,
             id: ArtistId(47),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Miss Kittin & The Hacker".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Miss Kittin & The Hacker".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1504,
             id: ArtistId(48),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Paul Du Lac".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Paul Du Lac".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
 
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1536,
             id: ArtistId(49),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Tyree Cooper".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Tyree Cooper".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1568,
             id: ArtistId(50),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Elbee Bad".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Elbee Bad".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1600,
             id: ArtistId(51),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "The Prince of Dance".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["The Prince of Dance".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1632,
             id: ArtistId(52),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Body Beat Ritual".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Body Beat Ritual".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1664,
             id: ArtistId(53),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Nehuen".parse().unwrap(),
-                padding: 7,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Nehuen".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1696,
             id: ArtistId(54),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "TRAXX Saturn V & X2".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["TRAXX Saturn V & X2".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1728,
             id: ArtistId(55),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Broken English Club".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Broken English Club".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1760,
             id: ArtistId(56),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "terrace".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["terrace".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1792,
             id: ArtistId(57),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Byron The Aquarius".parse().unwrap(),
-                padding: 7,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Byron The Aquarius".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1824,
             id: ArtistId(58),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Konstantin Tschechow".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Konstantin Tschechow".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1856,
             id: ArtistId(59),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Romansoff".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Romansoff".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1888,
             id: ArtistId(60),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "D'Marc Cantu".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["D'Marc Cantu".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1920,
             id: ArtistId(61),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "SvengalisGhost".parse().unwrap(),
-                padding: 7,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["SvengalisGhost".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1952,
             id: ArtistId(62),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "X2".parse().unwrap(),
-                padding: 7,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["X2".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 1984,
             id: ArtistId(63),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Cardopusher".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Cardopusher".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2016,
             id: ArtistId(64),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Steven Julien".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Steven Julien".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
 
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2048,
             id: ArtistId(65),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Advent".parse().unwrap(),
-                padding: 7,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Advent".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2080,
             id: ArtistId(66),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Aleksi Perala".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Aleksi Perala".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2112,
             id: ArtistId(67),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Andre Kronert".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Andre Kronert".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2144,
             id: ArtistId(68),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Andy Stott".parse().unwrap(),
-                padding: 7,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Andy Stott".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2176,
             id: ArtistId(69),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "ANOPOLIS".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["ANOPOLIS".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2208,
             id: ArtistId(70),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Anthony Rother".parse().unwrap(),
-                padding: 7,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Anthony Rother".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2240,
             id: ArtistId(71),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Anthony Rother UNRELEASED".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Anthony Rother UNRELEASED".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2272,
             id: ArtistId(72),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Area".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Area".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2304,
             id: ArtistId(73),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Aubrey".parse().unwrap(),
-                padding: 7,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Aubrey".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2336,
             id: ArtistId(74),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Audion".parse().unwrap(),
-                padding: 7,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Audion".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2368,
             id: ArtistId(75),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Audion - Black Strobe".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Audion - Black Strobe".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2400,
             id: ArtistId(76),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Cari Lekebusch & Jesper Dahlback".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Cari Lekebusch & Jesper Dahlback".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2432,
             id: ArtistId(77),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Claro Intelecto".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Claro Intelecto".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2464,
             id: ArtistId(78),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Conforce".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Conforce".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2496,
             id: ArtistId(79),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "CT Trax".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["CT Trax".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2528,
             id: ArtistId(80),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "D-56m".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["D-56m".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2560,
             id: ArtistId(81),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Deniro".parse().unwrap(),
-                padding: 7,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Deniro".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2592,
             id: ArtistId(82),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "DJ QU".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["DJ QU".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2624,
             id: ArtistId(83),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "DJ Qu REMIX".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["DJ Qu REMIX".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2656,
             id: ArtistId(84),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Don williams remix".parse().unwrap(),
-                padding: 7,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Don williams remix".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2688,
             id: ArtistId(85),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Don Williams".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Don Williams".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2720,
             id: ArtistId(86),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Dustmite".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Dustmite".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2752,
             id: ArtistId(87),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "DVS1 ".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["DVS1 ".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2784,
             id: ArtistId(88),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "DVS1 tesT".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["DVS1 tesT".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2816,
             id: ArtistId(89),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Emmanuel Top".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Emmanuel Top".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2848,
             id: ArtistId(90),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Erika".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Erika".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2880,
             id: ArtistId(91),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Jensen Interceptor REMIX ".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Jensen Interceptor REMIX ".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2912,
             id: ArtistId(92),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Jeroen Search".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Jeroen Search".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2944,
             id: ArtistId(93),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Juho Kahilainen".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Juho Kahilainen".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 2976,
             id: ArtistId(94),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Juxta Position".parse().unwrap(),
-                padding: 7,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Juxta Position".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3008,
             id: ArtistId(95),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Kenny Larkin".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Kenny Larkin".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[5]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3040,
             id: ArtistId(96),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Kirill Mamin".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Kirill Mamin".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3072,
             id: ArtistId(97),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "L.B. Dub Corp".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["L.B. Dub Corp".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3104,
             id: ArtistId(98),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Levon Vincent".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Levon Vincent".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3136,
             id: ArtistId(99),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "LEVON VINCENT".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["LEVON VINCENT".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3168,
             id: ArtistId(100),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Lil Tony".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Lil Tony".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3200,
             id: ArtistId(101),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Malin Genie".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Malin Genie".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3232,
             id: ArtistId(102),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Marcel Dettmann".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Marcel Dettmann".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3264,
             id: ArtistId(103),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Marco Bernardi".parse().unwrap(),
-                padding: 7,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Marco Bernardi".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3296,
             id: ArtistId(104),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Mary Velo".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Mary Velo".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3328,
             id: ArtistId(105),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Mike Dearborn".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Mike Dearborn".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3360,
             id: ArtistId(106),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Mike Dunn JU EDIT".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Mike Dunn JU EDIT".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3392,
             id: ArtistId(107),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Nina Kraviz".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Nina Kraviz".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3424,
             id: ArtistId(108),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Obsolete Music Technology".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Obsolete Music Technology".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3456,
             id: ArtistId(109),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Oliver Deutschmann REMIX".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Oliver Deutschmann REMIX".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3488,
             id: ArtistId(110),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Oliver Deutschmann".parse().unwrap(),
-                padding: 7,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Oliver Deutschmann".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3520,
             id: ArtistId(111),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Oliver Kapp".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Oliver Kapp".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[6]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3552,
             id: ArtistId(112),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Pacou".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Pacou".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[7]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3584,
             id: ArtistId(113),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Patrik Carrera".parse().unwrap(),
-                padding: 7,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Patrik Carrera".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[7]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3616,
             id: ArtistId(114),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Patrik Carrera (GER)".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Patrik Carrera (GER)".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[7]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3648,
             id: ArtistId(115),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Phil Kieran".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Phil Kieran".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[7]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3680,
             id: ArtistId(116),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Planetary Assault Systems".parse().unwrap(),
-                padding: 8,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Planetary Assault Systems".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[7]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3712,
             id: ArtistId(117),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Planetary Assault Systems ".parse().unwrap(),
-                padding: 7,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Planetary Assault Systems ".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[7]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3744,
             id: ArtistId(118),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Plastikman".parse().unwrap(),
-                padding: 7,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Plastikman".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[7]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3776,
             id: ArtistId(119),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "QNA".parse().unwrap(),
-                padding: 6,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["QNA".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[7]
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 3808,
             id: ArtistId(120),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Radial".parse().unwrap(),
-                padding: 19,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Radial".parse().unwrap()],
             },
+            padding: 19.into(),
         }))
         .unwrap();
     let page = Page {
@@ -3668,86 +3423,80 @@ fn artist_page_long() {
     };
     rowgroup
         .add_row(Row::Artist(Artist {
-            subtype: 100,
+            subtype: Subtype(0x64),
             index_shift: 0,
             id: ArtistId(1),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 0,
-                far: Some(12),
-                inner: repeat_n('D', 256).collect::<String>().parse().unwrap(),
-                padding: 4,
+            unknown1: [3u16].into(),
+            name: OffsetArray {
+                offsets: [12u16].into(),
+                inner: vec![repeat_n('D', 256).collect::<String>().parse().unwrap()],
             },
+            padding: 4.into(),
         }))
         .unwrap();
     rowgroup
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 32,
             id: ArtistId(2),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Insert 2".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Insert 2".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     rowgroup
         .add_row(Row::Artist(Artist {
-            subtype: 100,
+            subtype: Subtype(0x64),
             index_shift: 64,
             id: ArtistId(3),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 0,
-                far: Some(12),
-                inner: repeat_n('C', 256).collect::<String>().parse().unwrap(),
-                padding: 4,
+            unknown1: [3u16].into(),
+            name: OffsetArray {
+                offsets: [12u16].into(),
+                inner: vec![repeat_n('C', 256).collect::<String>().parse().unwrap()],
             },
+            padding: 4.into(),
         }))
         .unwrap();
     rowgroup
         .add_row(Row::Artist(Artist {
-            subtype: 96,
+            subtype: Subtype(0x60),
             index_shift: 96,
             id: ArtistId(4),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 10,
-                far: None,
-                inner: "Insert 1".parse().unwrap(),
-                padding: 9,
+            unknown1: [3u8].into(),
+            name: OffsetArray {
+                offsets: [10u8].into(),
+                inner: vec!["Insert 1".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     rowgroup
         .add_row(Row::Artist(Artist {
-            subtype: 100,
+            subtype: Subtype(0x64),
             index_shift: 128,
             id: ArtistId(5),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 0,
-                far: Some(12),
-                inner: repeat_n('B', 254).collect::<String>().parse().unwrap(),
-                padding: 6,
+            unknown1: [3u16].into(),
+            name: OffsetArray {
+                offsets: [12u16].into(),
+                inner: vec![repeat_n('B', 254).collect::<String>().parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     rowgroup
         .add_row(Row::Artist(Artist {
-            subtype: 100,
+            subtype: Subtype(0x64),
             index_shift: 160,
             id: ArtistId(6),
-            unknown1: 3,
-            name: VarOffsetTail {
-                near: 0,
-                far: Some(12),
-                inner: repeat_n('❤', 256).collect::<String>().parse().unwrap(),
-                padding: 0,
+            unknown1: [3u16].into(),
+            name: OffsetArray {
+                offsets: [12u16].into(),
+                inner: vec![repeat_n('❤', 256).collect::<String>().parse().unwrap()],
             },
+            padding: 0.into(),
         }))
         .unwrap();
 
@@ -3794,1402 +3543,1320 @@ fn albums_page() {
     row_groups.last_mut().unwrap().unknown = 0x02;
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 0,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(1),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "The Worst of Gehm".parse().unwrap(),
-                padding: 8,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["The Worst of Gehm".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 32,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(2),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 24,
-                far: None,
-                inner: "1ØPILLS003 MASTER MP3s".parse().unwrap(),
-                padding: 4,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [24u8].into(),
+                inner: vec!["1ØPILLS003 MASTER MP3s".parse().unwrap()],
             },
+            padding: 4.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 64,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(3),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Love & Happiness".parse().unwrap(),
-                padding: 9,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Love & Happiness".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 96,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(4),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Wind / Phazzled".parse().unwrap(),
-                padding: 6,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Wind / Phazzled".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 128,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(5),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Spectral Sound Volume 3".parse().unwrap(),
-                padding: 6,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Spectral Sound Volume 3".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 160,
             unknown2: 0,
             artist_id: ArtistId(12),
             id: AlbumId(6),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "The Hideout (Mini-Lp)".parse().unwrap(),
-                padding: 8,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["The Hideout (Mini-Lp)".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 192,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(7),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Sweet Dreams EP".parse().unwrap(),
-                padding: 6,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Sweet Dreams EP".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 224,
             unknown2: 0,
             artist_id: ArtistId(18),
             id: AlbumId(8),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Lab.our 05".parse().unwrap(),
-                padding: 7,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Lab.our 05".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 256,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(9),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "PolyfonikDizko".parse().unwrap(),
-                padding: 7,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["PolyfonikDizko".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 288,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(10),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Altered States EP".parse().unwrap(),
-                padding: 8,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Altered States EP".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 320,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(11),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "My So Called Robot Life EP".parse().unwrap(),
-                padding: 7,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["My So Called Robot Life EP".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 352,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(12),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Deep Ep".parse().unwrap(),
-                padding: 6,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Deep Ep".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 384,
             unknown2: 0,
             artist_id: ArtistId(25),
             id: AlbumId(13),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 24,
-                far: None,
-                inner: "Simoncino \u{200e}– Mystic Adventures".parse().unwrap(),
-                padding: 4,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [24u8].into(),
+                inner: vec!["Simoncino \u{200e}– Mystic Adventures".parse().unwrap()],
             },
+            padding: 4.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 416,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(14),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Smu Is The Key EP".parse().unwrap(),
-                padding: 8,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Smu Is The Key EP".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 448,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(15),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "SOM Compilation Volume 2".parse().unwrap(), // codespell:ignore
-                padding: 9,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["SOM Compilation Volume 2".parse().unwrap()], // codespell:ignore
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[0]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 480,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(16),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "NY Muscle".parse().unwrap(),
-                padding: 8,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["NY Muscle".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 512,
             unknown2: 0,
             artist_id: ArtistId(31),
             id: AlbumId(17),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Point of No Return EP".parse().unwrap(),
-                padding: 8,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Point of No Return EP".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 544,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(18),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Tapes 08".parse().unwrap(),
-                padding: 9,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Tapes 08".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 576,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(19),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Like No One".parse().unwrap(),
-                padding: 6,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Like No One".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 608,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(20),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "The Boat Party".parse().unwrap(),
-                padding: 7,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["The Boat Party".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 640,
             unknown2: 0,
             artist_id: ArtistId(34),
             id: AlbumId(21),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Raw & Unreleased".parse().unwrap(),
-                padding: 9,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Raw & Unreleased".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 672,
             unknown2: 0,
             artist_id: ArtistId(36),
             id: AlbumId(22),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Living Low".parse().unwrap(),
-                padding: 7,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Living Low".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 704,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(23),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Muzic Box Classics #7".parse().unwrap(),
-                padding: 8,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Muzic Box Classics #7".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 736,
             unknown2: 0,
             artist_id: ArtistId(39),
             id: AlbumId(24),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Stranger In The Strangest Of Lands".parse().unwrap(),
-                padding: 7,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Stranger In The Strangest Of Lands".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 768,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(25),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Pt. 1".parse().unwrap(),
-                padding: 8,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Pt. 1".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 800,
             unknown2: 0,
             artist_id: ArtistId(45),
             id: AlbumId(26),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Body Mechanics EP".parse().unwrap(),
-                padding: 8,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Body Mechanics EP".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 832,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(27),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "EAUX1091 ".parse().unwrap(),
-                padding: 8,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["EAUX1091 ".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 864,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(28),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Lost Tracks, Vol. 2".parse().unwrap(),
-                padding: 6,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Lost Tracks, Vol. 2".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 896,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(29),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Dubbelbrein EP".parse().unwrap(),
-                padding: 7,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Dubbelbrein EP".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 928,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(30),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Vx, Vol. 1".parse().unwrap(),
-                padding: 7,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Vx, Vol. 1".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 960,
             unknown2: 0,
             artist_id: ArtistId(39),
             id: AlbumId(31),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "The Trax Records Anthology Compiled By Bill Brewster"
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["The Trax Records Anthology Compiled By Bill Brewster"
                     .parse()
-                    .unwrap(),
-                padding: 9,
+                    .unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[1]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 992,
             unknown2: 0,
             artist_id: ArtistId(51),
             id: AlbumId(32),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "AfriOrker".parse().unwrap(),
-                padding: 8,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["AfriOrker".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1024,
             unknown2: 0,
             artist_id: ArtistId(52),
             id: AlbumId(33),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Mortal Sin EP".parse().unwrap(),
-                padding: 8,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Mortal Sin EP".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1056,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(34),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Psyops part one EP".parse().unwrap(),
-                padding: 7,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Psyops part one EP".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1088,
             unknown2: 0,
             artist_id: ArtistId(55),
             id: AlbumId(35),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "White Rats III".parse().unwrap(),
-                padding: 7,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["White Rats III".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1120,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(36),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "far from reality".parse().unwrap(),
-                padding: 9,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["far from reality".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1152,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(37),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "EP1".parse().unwrap(),
-                padding: 6,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["EP1".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1184,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(38),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Alpha Omega".parse().unwrap(),
-                padding: 6,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Alpha Omega".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1216,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(39),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Decay".parse().unwrap(),
-                padding: 8,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Decay".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1248,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(40),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "[LIES 009] Mind Control 320".parse().unwrap(),
-                padding: 6,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["[LIES 009] Mind Control 320".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1280,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(41),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Nation".parse().unwrap(),
-                padding: 7,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Nation".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1312,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(42),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Split 02".parse().unwrap(),
-                padding: 9,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Split 02".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1344,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(43),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Another Number".parse().unwrap(),
-                padding: 7,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Another Number".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1376,
             unknown2: 0,
             artist_id: ArtistId(64),
             id: AlbumId(44),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "8 Ball".parse().unwrap(),
-                padding: 7,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["8 Ball".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1408,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(45),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "H-Productions presents_Mutations 101 (HPX60)"
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["H-Productions presents_Mutations 101 (HPX60)"
                     .parse()
-                    .unwrap(),
-                padding: 9,
+                    .unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1440,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(46),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "CBS024X".parse().unwrap(),
-                padding: 6,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["CBS024X".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1472,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(47),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Ben Sims pres Tribology".parse().unwrap(), // codespell:ignore
-                padding: 6,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Ben Sims pres Tribology".parse().unwrap()], // codespell:ignore
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[2]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1504,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(48),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Night Jewel".parse().unwrap(),
-                padding: 6,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Night Jewel".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1536,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(49),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "AKROPOLEOS".parse().unwrap(),
-                padding: 7,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["AKROPOLEOS".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1568,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(50),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Mistress 12".parse().unwrap(),
-                padding: 6,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Mistress 12".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1600,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(51),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Mistress 12.5".parse().unwrap(),
-                padding: 8,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Mistress 12.5".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1632,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(52),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Remember Each Moment Of Freedom".parse().unwrap(),
-                padding: 6,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Remember Each Moment Of Freedom".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1664,
             unknown2: 0,
             artist_id: ArtistId(29),
             id: AlbumId(53),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Mood Sequences".parse().unwrap(),
-                padding: 7,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Mood Sequences".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1696,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(54),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Death Is Nothing To Fear 1".parse().unwrap(),
-                padding: 7,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Death Is Nothing To Fear 1".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1728,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(55),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "I'm A Man".parse().unwrap(),
-                padding: 8,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["I'm A Man".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1760,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(56),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Cari Lekebusch & Jesper Dahlback - Hands on experience"
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Cari Lekebusch & Jesper Dahlback - Hands on experience"
                     .parse()
-                    .unwrap(),
-                padding: 7,
+                    .unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1792,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(57),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "New Life EP".parse().unwrap(),
-                padding: 6,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["New Life EP".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1824,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(58),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "State of Mind EP".parse().unwrap(),
-                padding: 9,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["State of Mind EP".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1856,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(59),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "DABJ Allstars".parse().unwrap(),
-                padding: 8,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["DABJ Allstars".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1888,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(60),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Mendoza".parse().unwrap(),
-                padding: 6,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Mendoza".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1920,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(61),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "CD Thirteen".parse().unwrap(),
-                padding: 6,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["CD Thirteen".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1952,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(62),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Raw 7".parse().unwrap(),
-                padding: 8,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Raw 7".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 1984,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(63),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Endurance - UNDERGROUND QUALITY".parse().unwrap(),
-                padding: 6,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Endurance - UNDERGROUND QUALITY".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[3]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2016,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(64),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "EFDEMIN - DECAY VERSIONS PT.2".parse().unwrap(),
-                padding: 8,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["EFDEMIN - DECAY VERSIONS PT.2".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2048,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(65),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "HUSH 03".parse().unwrap(),
-                padding: 6,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["HUSH 03".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2080,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(66),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Mistress 20".parse().unwrap(),
-                padding: 6,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Mistress 20".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2112,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(67),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Love under pressure ".parse().unwrap(),
-                padding: 9,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Love under pressure ".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2144,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(68),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Release".parse().unwrap(),
-                padding: 6,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Release".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2176,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(69),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Hexagon Cloud".parse().unwrap(),
-                padding: 8,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Hexagon Cloud".parse().unwrap()],
             },
+            padding: 8.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2208,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(70),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "NRDR 011".parse().unwrap(),
-                padding: 9,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["NRDR 011".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2240,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(71),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Diptych".parse().unwrap(),
-                padding: 6,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Diptych".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2272,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(72),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Seven Days".parse().unwrap(),
-                padding: 7,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Seven Days".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2304,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(73),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Unknown Origin".parse().unwrap(),
-                padding: 7,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Unknown Origin".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2336,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(74),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Arpeggiator".parse().unwrap(),
-                padding: 6,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Arpeggiator".parse().unwrap()],
             },
+            padding: 6.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2368,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(75),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "DECONSTRUCT MUSIC DEC-02".parse().unwrap(),
-                padding: 9,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["DECONSTRUCT MUSIC DEC-02".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2400,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(76),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Basement Tracks EP".parse().unwrap(),
-                padding: 7,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Basement Tracks EP".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2432,
             unknown2: 0,
             artist_id: ArtistId(101),
             id: AlbumId(77),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Corpse Grinder".parse().unwrap(),
-                padding: 7,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Corpse Grinder".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2464,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(78),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Kamm / Plain".parse().unwrap(),
-                padding: 9,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Kamm / Plain".parse().unwrap()],
             },
+            padding: 9.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2496,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(79),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Fluxus_Digital_006".parse().unwrap(),
-                padding: 7,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Fluxus_Digital_006".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[4]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2528,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(80),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Minutes In Ice".parse().unwrap(),
-                padding: 7,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Minutes In Ice".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[5]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2560,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(81),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "TRP001".parse().unwrap(),
-                padding: 7,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["TRP001".parse().unwrap()],
             },
+            padding: 7.into(),
         }))
         .unwrap();
     row_groups[5]
         .add_row(Row::Album(Album {
-            subtype: 128,
+            subtype: Subtype(0x80),
             index_shift: 2592,
             unknown2: 0,
             artist_id: ArtistId(108),
             id: AlbumId(82),
             unknown3: 0,
-            unknown4: 3,
-            name: VarOffsetTail {
-                near: 22,
-                far: None,
-                inner: "Mmmmmusic".parse().unwrap(),
-                padding: 0,
+            unknown4: [3u8].into(),
+            name: OffsetArray {
+                offsets: [22u8].into(),
+                inner: vec!["Mmmmmusic".parse().unwrap()],
             },
+            padding: 44.into(),
         }))
         .unwrap();
 

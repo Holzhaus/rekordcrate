@@ -18,15 +18,19 @@
 //! - <https://github.com/henrybetts/Rekordbox-Decoding>
 //! - <https://github.com/flesniak/python-prodj-link/tree/master/prodj/pdblib>
 
+mod offset_array;
 pub mod string;
+
+use offset_array::OffsetArray;
 
 #[cfg(test)]
 mod test;
 
 use std::convert::TryInto;
 
-use crate::pdb::string::DeviceSQLString;
-use crate::util::ColorIndex;
+use crate::pdb::offset_array::OffsetSize;
+use crate::pdb::{offset_array::OffsetArrayImpl, string::DeviceSQLString};
+use crate::util::{ColorIndex, ExplicitPadding};
 use binrw::{
     binread, binrw,
     io::{Read, Seek, SeekFrom, Write},
@@ -508,6 +512,27 @@ impl RowGroup {
     }
 }
 
+/// Carries additional information about a row (if present, always as the first field of a row)
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[brw(little)]
+pub struct Subtype(pub u16);
+
+impl Subtype {
+    /// Returns the offset size (`OffsetSize`) used for this subtype.
+    ///
+    /// If the 0x04 bit is not set in the subtype, returns `OffsetSize::U8`,
+    /// otherwise returns `OffsetSize::U16`.
+    #[must_use]
+    pub fn get_offset_size(&self) -> OffsetSize {
+        if self.0 & 0x04 == 0 {
+            OffsetSize::U8
+        } else {
+            OffsetSize::U16
+        }
+    }
+}
+
 /// Identifies a track.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
@@ -568,7 +593,7 @@ pub struct HistoryPlaylistId(pub u32);
 #[brw(little)]
 pub struct Album {
     /// Unknown field, usually `80 00`.
-    subtype: u16,
+    subtype: Subtype,
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
     index_shift: u16,
     /// Unknown field.
@@ -580,11 +605,13 @@ pub struct Album {
     /// Unknown field.
     unknown3: u32,
     /// Unknown field.
-    unknown4: u8,
+    #[br(args(subtype.get_offset_size()))]
+    unknown4: OffsetArrayImpl<1>,
     /// Album name String
-    #[br(args(0x15, VarOffsetTail::<DeviceSQLString>::guess_offset_source(subtype), ()))]
-    #[bw(args(0x15, ()))]
-    name: VarOffsetTail<DeviceSQLString>,
+    #[brw(args(20 + unknown4.byte_size(), subtype.get_offset_size(), ()))]
+    name: OffsetArray<DeviceSQLString, 1>,
+    /// Explicit padding, used to align rows in a page (manually)
+    padding: ExplicitPadding,
 }
 
 /// Contains the artist name and ID.
@@ -593,18 +620,21 @@ pub struct Album {
 #[brw(little)]
 pub struct Artist {
     /// Determines if the `name` string is located at the 8-bit offset (0x60) or the 16-bit offset (0x64).
-    subtype: u16,
+    subtype: Subtype,
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
     index_shift: u16,
     /// ID of this row.
     id: ArtistId,
     /// Unknown field.
-    unknown1: u8,
-
+    #[br(args(subtype.get_offset_size()))]
+    #[brw(assert(unknown1.assert_offset_size_matches(subtype.get_offset_size())))]
+    unknown1: OffsetArrayImpl<1>,
     /// Name of this artist.
-    #[br(args(9, VarOffsetTail::<DeviceSQLString>::guess_offset_source(subtype), ()))]
-    #[bw(args(9, ()))]
-    name: VarOffsetTail<DeviceSQLString>,
+    #[brw(args(8 + unknown1.byte_size(), subtype.get_offset_size(), ()))]
+    name: OffsetArray<DeviceSQLString, 1>,
+    /// Explicit padding, used to align rows in a page (manually)
+    #[br(args(0x30))]
+    padding: ExplicitPadding,
 }
 
 // impl Artist {
@@ -1121,87 +1151,6 @@ impl Row {
             PlaylistEntry(r) => align_by(align_of_val(r) as u64, offset),
             Track(_) => offset, // already handled by track serialization
             Unknown => offset,
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-enum OffsetSource {
-    Near,
-    Far,
-}
-
-#[binrw]
-#[derive(Debug, PartialEq, Eq, Clone)]
-#[brw(little)]
-#[br(import(offset: u16, source: OffsetSource, args: <T as BinRead>::Args<'_>))]
-#[bw(import(offset: u16, args: <T as BinWrite>::Args<'_>))]
-
-struct VarOffsetTail<T: BinRead + BinWrite> {
-    near: u8,
-    #[br(if(source == OffsetSource::Far))]
-    far: Option<u16>,
-    #[br(seek_before = Self::calculate_name_seek(near, &far, offset)?)]
-    #[bw(seek_before = Self::calculate_name_seek(*near, far, offset)?)]
-    #[brw(args_raw = args)]
-    inner: T,
-    // use offset + a couple bytes as a limit (though this is rather a heuristic)
-    #[br(parse_with = Self::guess_padding, args(offset + 0x10))]
-    #[bw(ignore)]
-    #[bw(pad_after=*padding)]
-    padding: u64,
-}
-
-impl<T: BinRead + BinWrite> VarOffsetTail<T> {
-    fn calculate_name_seek(near: u8, far: &Option<u16>, offset: u16) -> BinResult<SeekFrom> {
-        let offset_field = match (near, far) {
-            (0, None) => {
-                return Err(binrw::Error::AssertFail {
-                    pos: 0,
-                    message: "Encountered invalid offsets".into(),
-                })
-            }
-            (_, Some(far)) => far - 3,
-            (near, None) => u16::from(near) - 1,
-        };
-        let offset = offset_field
-            .checked_sub(offset)
-            .ok_or_else(|| binrw::Error::AssertFail {
-                pos: 0,
-                message: format!(
-                    "Underflow attempting to calculate offset ({offset_field:#X}-{offset:#X})"
-                ),
-            })?;
-        Ok(SeekFrom::Current(offset.into()))
-    }
-    #[binrw::parser(reader)]
-    fn guess_padding(limit: u16) -> BinResult<u64> {
-        let mut count = 0u64;
-        // We never expect to read many bytes here, so this is fine
-        #[allow(clippy::unbuffered_bytes)]
-        for byte in reader.bytes() {
-            if byte? != 0 {
-                break;
-            }
-            // to avoid scanning an entire page after the last row,
-            // we limit here
-            // if the limit is reached, assume end of page and no padding
-            // used
-            if count == u64::from(limit) {
-                count = 0;
-                break;
-            }
-            count += 1;
-        }
-        // don't consume the non-zero byte we just read
-        reader.seek_relative(-1)?;
-        Ok(count)
-    }
-    pub fn guess_offset_source(subtype: u16) -> OffsetSource {
-        if (subtype & 0x04) != 0 {
-            OffsetSource::Far
-        } else {
-            OffsetSource::Near
         }
     }
 }
