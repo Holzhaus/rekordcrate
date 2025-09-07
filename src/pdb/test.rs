@@ -495,6 +495,17 @@ fn color_row() {
 }
 
 #[test]
+fn playlist_entry_row() {
+    let row = PlaylistEntry {
+        entry_index: 1,
+        track_id: TrackId(1),
+        playlist_id: PlaylistTreeNodeId(6),
+    };
+
+    test_roundtrip(&[1, 0, 0, 0, 1, 0, 0, 0, 6, 0, 0, 0], row);
+}
+
+#[test]
 fn column_entry() {
     let row = ColumnEntry {
         id: 1,
@@ -7132,6 +7143,2054 @@ fn colors_page() {
     let page_size = 4096;
     test_roundtrip_with_args(
         include_bytes!("../../data/pdb/unit_tests/colors_page.bin"),
+        page,
+        (page_size,),
+        (page_size,),
+    );
+}
+
+#[test]
+fn playlist_entries_page() {
+    let mut row_groups = vec![
+        RowGroup {
+            row_offsets: Default::default(),
+            row_presence_flags: 0,
+            unknown: 0,
+            rows: vec![],
+        };
+        18
+    ];
+
+    row_groups[17].unknown = 2048;
+
+    row_groups[0]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 1,
+            track_id: TrackId(1),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 2,
+            track_id: TrackId(2),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 3,
+            track_id: TrackId(3),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 4,
+            track_id: TrackId(4),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 5,
+            track_id: TrackId(5),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 6,
+            track_id: TrackId(6),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 7,
+            track_id: TrackId(7),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 8,
+            track_id: TrackId(8),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 9,
+            track_id: TrackId(9),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 10,
+            track_id: TrackId(10),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 11,
+            track_id: TrackId(11),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 12,
+            track_id: TrackId(12),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 13,
+            track_id: TrackId(13),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 14,
+            track_id: TrackId(14),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 15,
+            track_id: TrackId(15),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 16,
+            track_id: TrackId(16),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+
+    row_groups[1]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 17,
+            track_id: TrackId(17),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 18,
+            track_id: TrackId(18),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 19,
+            track_id: TrackId(19),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 20,
+            track_id: TrackId(20),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 21,
+            track_id: TrackId(21),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 22,
+            track_id: TrackId(22),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 23,
+            track_id: TrackId(23),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 24,
+            track_id: TrackId(24),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 25,
+            track_id: TrackId(25),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 26,
+            track_id: TrackId(26),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 27,
+            track_id: TrackId(27),
+            playlist_id: PlaylistTreeNodeId(6),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 1,
+            track_id: TrackId(28),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 2,
+            track_id: TrackId(29),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 3,
+            track_id: TrackId(30),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 4,
+            track_id: TrackId(31),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 5,
+            track_id: TrackId(32),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+
+    row_groups[2]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 6,
+            track_id: TrackId(33),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 7,
+            track_id: TrackId(34),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 8,
+            track_id: TrackId(35),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 9,
+            track_id: TrackId(36),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 10,
+            track_id: TrackId(37),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 11,
+            track_id: TrackId(15),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 12,
+            track_id: TrackId(38),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 13,
+            track_id: TrackId(39),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 14,
+            track_id: TrackId(40),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 15,
+            track_id: TrackId(41),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 16,
+            track_id: TrackId(42),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 17,
+            track_id: TrackId(22),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 18,
+            track_id: TrackId(43),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 19,
+            track_id: TrackId(44),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 20,
+            track_id: TrackId(45),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 21,
+            track_id: TrackId(46),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+
+    row_groups[3]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 22,
+            track_id: TrackId(47),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 23,
+            track_id: TrackId(48),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 24,
+            track_id: TrackId(49),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 25,
+            track_id: TrackId(50),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 26,
+            track_id: TrackId(51),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 27,
+            track_id: TrackId(52),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 28,
+            track_id: TrackId(53),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 29,
+            track_id: TrackId(54),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 30,
+            track_id: TrackId(55),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 31,
+            track_id: TrackId(56),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 32,
+            track_id: TrackId(57),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 33,
+            track_id: TrackId(58),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 34,
+            track_id: TrackId(59),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 35,
+            track_id: TrackId(60),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 36,
+            track_id: TrackId(61),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 37,
+            track_id: TrackId(26),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+
+    row_groups[4]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 38,
+            track_id: TrackId(4),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 39,
+            track_id: TrackId(62),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 40,
+            track_id: TrackId(63),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 41,
+            track_id: TrackId(64),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 42,
+            track_id: TrackId(65),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 43,
+            track_id: TrackId(66),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 44,
+            track_id: TrackId(67),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 45,
+            track_id: TrackId(68),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 46,
+            track_id: TrackId(69),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 47,
+            track_id: TrackId(70),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 48,
+            track_id: TrackId(71),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 49,
+            track_id: TrackId(72),
+            playlist_id: PlaylistTreeNodeId(7),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 1,
+            track_id: TrackId(73),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 2,
+            track_id: TrackId(74),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 3,
+            track_id: TrackId(75),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 4,
+            track_id: TrackId(76),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+
+    row_groups[5]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 5,
+            track_id: TrackId(77),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 6,
+            track_id: TrackId(78),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 7,
+            track_id: TrackId(79),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 8,
+            track_id: TrackId(80),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 9,
+            track_id: TrackId(81),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 10,
+            track_id: TrackId(82),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 11,
+            track_id: TrackId(83),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 12,
+            track_id: TrackId(84),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 13,
+            track_id: TrackId(85),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 14,
+            track_id: TrackId(86),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 15,
+            track_id: TrackId(87),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 16,
+            track_id: TrackId(88),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 17,
+            track_id: TrackId(89),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 18,
+            track_id: TrackId(90),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 19,
+            track_id: TrackId(91),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 20,
+            track_id: TrackId(92),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+
+    row_groups[6]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 21,
+            track_id: TrackId(93),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 22,
+            track_id: TrackId(94),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 23,
+            track_id: TrackId(95),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 24,
+            track_id: TrackId(96),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 25,
+            track_id: TrackId(97),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 26,
+            track_id: TrackId(98),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 27,
+            track_id: TrackId(99),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 28,
+            track_id: TrackId(100),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 29,
+            track_id: TrackId(101),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 30,
+            track_id: TrackId(102),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 31,
+            track_id: TrackId(103),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 32,
+            track_id: TrackId(4),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 33,
+            track_id: TrackId(33),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 34,
+            track_id: TrackId(104),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 35,
+            track_id: TrackId(105),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 36,
+            track_id: TrackId(106),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+
+    row_groups[7]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 37,
+            track_id: TrackId(107),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 38,
+            track_id: TrackId(108),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 39,
+            track_id: TrackId(109),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 40,
+            track_id: TrackId(110),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 41,
+            track_id: TrackId(111),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 42,
+            track_id: TrackId(112),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 43,
+            track_id: TrackId(113),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 44,
+            track_id: TrackId(114),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 45,
+            track_id: TrackId(115),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 46,
+            track_id: TrackId(116),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 47,
+            track_id: TrackId(117),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 48,
+            track_id: TrackId(118),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 49,
+            track_id: TrackId(119),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 50,
+            track_id: TrackId(120),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 51,
+            track_id: TrackId(121),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[7]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 52,
+            track_id: TrackId(122),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+
+    row_groups[8]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 53,
+            track_id: TrackId(123),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 54,
+            track_id: TrackId(124),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 55,
+            track_id: TrackId(125),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 56,
+            track_id: TrackId(126),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 57,
+            track_id: TrackId(127),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 58,
+            track_id: TrackId(128),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 59,
+            track_id: TrackId(129),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 60,
+            track_id: TrackId(130),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 61,
+            track_id: TrackId(131),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 62,
+            track_id: TrackId(132),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 63,
+            track_id: TrackId(133),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 64,
+            track_id: TrackId(134),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 65,
+            track_id: TrackId(52),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 66,
+            track_id: TrackId(135),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 67,
+            track_id: TrackId(136),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[8]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 68,
+            track_id: TrackId(137),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+
+    row_groups[9]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 69,
+            track_id: TrackId(138),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 70,
+            track_id: TrackId(139),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 71,
+            track_id: TrackId(140),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 72,
+            track_id: TrackId(141),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 73,
+            track_id: TrackId(142),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 74,
+            track_id: TrackId(143),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 75,
+            track_id: TrackId(144),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 76,
+            track_id: TrackId(145),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 77,
+            track_id: TrackId(146),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 78,
+            track_id: TrackId(66),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 79,
+            track_id: TrackId(147),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 80,
+            track_id: TrackId(148),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 81,
+            track_id: TrackId(149),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 82,
+            track_id: TrackId(150),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 83,
+            track_id: TrackId(53),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[9]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 84,
+            track_id: TrackId(151),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+
+    row_groups[10]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 85,
+            track_id: TrackId(152),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 86,
+            track_id: TrackId(153),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 87,
+            track_id: TrackId(154),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 88,
+            track_id: TrackId(155),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 89,
+            track_id: TrackId(156),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 90,
+            track_id: TrackId(157),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 91,
+            track_id: TrackId(158),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 92,
+            track_id: TrackId(159),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 93,
+            track_id: TrackId(160),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 94,
+            track_id: TrackId(161),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 95,
+            track_id: TrackId(162),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 96,
+            track_id: TrackId(163),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 97,
+            track_id: TrackId(164),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 98,
+            track_id: TrackId(165),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 99,
+            track_id: TrackId(166),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[10]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 100,
+            track_id: TrackId(167),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+
+    row_groups[11]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 101,
+            track_id: TrackId(54),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[11]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 102,
+            track_id: TrackId(47),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[11]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 103,
+            track_id: TrackId(168),
+            playlist_id: PlaylistTreeNodeId(8),
+        }))
+        .unwrap();
+    row_groups[11]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 1,
+            track_id: TrackId(169),
+            playlist_id: PlaylistTreeNodeId(9),
+        }))
+        .unwrap();
+    row_groups[11]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 2,
+            track_id: TrackId(170),
+            playlist_id: PlaylistTreeNodeId(9),
+        }))
+        .unwrap();
+    row_groups[11]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 3,
+            track_id: TrackId(171),
+            playlist_id: PlaylistTreeNodeId(9),
+        }))
+        .unwrap();
+    row_groups[11]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 4,
+            track_id: TrackId(57),
+            playlist_id: PlaylistTreeNodeId(9),
+        }))
+        .unwrap();
+    row_groups[11]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 5,
+            track_id: TrackId(172),
+            playlist_id: PlaylistTreeNodeId(9),
+        }))
+        .unwrap();
+    row_groups[11]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 6,
+            track_id: TrackId(173),
+            playlist_id: PlaylistTreeNodeId(9),
+        }))
+        .unwrap();
+    row_groups[11]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 7,
+            track_id: TrackId(174),
+            playlist_id: PlaylistTreeNodeId(9),
+        }))
+        .unwrap();
+    row_groups[11]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 8,
+            track_id: TrackId(175),
+            playlist_id: PlaylistTreeNodeId(9),
+        }))
+        .unwrap();
+    row_groups[11]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 9,
+            track_id: TrackId(125),
+            playlist_id: PlaylistTreeNodeId(9),
+        }))
+        .unwrap();
+    row_groups[11]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 10,
+            track_id: TrackId(176),
+            playlist_id: PlaylistTreeNodeId(9),
+        }))
+        .unwrap();
+    row_groups[11]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 11,
+            track_id: TrackId(177),
+            playlist_id: PlaylistTreeNodeId(9),
+        }))
+        .unwrap();
+    row_groups[11]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 12,
+            track_id: TrackId(178),
+            playlist_id: PlaylistTreeNodeId(9),
+        }))
+        .unwrap();
+    row_groups[11]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 13,
+            track_id: TrackId(179),
+            playlist_id: PlaylistTreeNodeId(9),
+        }))
+        .unwrap();
+
+    row_groups[12]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 14,
+            track_id: TrackId(180),
+            playlist_id: PlaylistTreeNodeId(9),
+        }))
+        .unwrap();
+    row_groups[12]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 15,
+            track_id: TrackId(181),
+            playlist_id: PlaylistTreeNodeId(9),
+        }))
+        .unwrap();
+    row_groups[12]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 16,
+            track_id: TrackId(182),
+            playlist_id: PlaylistTreeNodeId(9),
+        }))
+        .unwrap();
+    row_groups[12]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 17,
+            track_id: TrackId(183),
+            playlist_id: PlaylistTreeNodeId(9),
+        }))
+        .unwrap();
+    row_groups[12]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 18,
+            track_id: TrackId(166),
+            playlist_id: PlaylistTreeNodeId(9),
+        }))
+        .unwrap();
+    row_groups[12]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 1,
+            track_id: TrackId(184),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[12]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 2,
+            track_id: TrackId(185),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[12]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 3,
+            track_id: TrackId(77),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[12]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 4,
+            track_id: TrackId(186),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[12]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 5,
+            track_id: TrackId(187),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[12]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 6,
+            track_id: TrackId(188),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[12]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 7,
+            track_id: TrackId(189),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[12]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 8,
+            track_id: TrackId(190),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[12]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 9,
+            track_id: TrackId(191),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[12]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 10,
+            track_id: TrackId(90),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[12]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 11,
+            track_id: TrackId(192),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+
+    row_groups[13]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 12,
+            track_id: TrackId(193),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[13]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 13,
+            track_id: TrackId(194),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[13]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 14,
+            track_id: TrackId(195),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[13]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 15,
+            track_id: TrackId(101),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[13]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 16,
+            track_id: TrackId(196),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[13]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 17,
+            track_id: TrackId(197),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[13]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 18,
+            track_id: TrackId(198),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[13]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 19,
+            track_id: TrackId(199),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[13]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 20,
+            track_id: TrackId(200),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[13]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 21,
+            track_id: TrackId(201),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[13]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 22,
+            track_id: TrackId(202),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[13]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 23,
+            track_id: TrackId(203),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[13]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 24,
+            track_id: TrackId(204),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[13]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 25,
+            track_id: TrackId(205),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[13]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 26,
+            track_id: TrackId(206),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[13]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 27,
+            track_id: TrackId(207),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+
+    row_groups[14]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 28,
+            track_id: TrackId(208),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[14]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 29,
+            track_id: TrackId(209),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[14]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 30,
+            track_id: TrackId(210),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[14]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 31,
+            track_id: TrackId(211),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[14]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 32,
+            track_id: TrackId(212),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[14]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 33,
+            track_id: TrackId(213),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[14]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 34,
+            track_id: TrackId(214),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[14]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 35,
+            track_id: TrackId(215),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[14]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 36,
+            track_id: TrackId(168),
+            playlist_id: PlaylistTreeNodeId(10),
+        }))
+        .unwrap();
+    row_groups[14]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 1,
+            track_id: TrackId(74),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[14]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 2,
+            track_id: TrackId(79),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[14]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 3,
+            track_id: TrackId(80),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[14]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 4,
+            track_id: TrackId(81),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[14]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 5,
+            track_id: TrackId(82),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[14]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 6,
+            track_id: TrackId(87),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[14]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 7,
+            track_id: TrackId(189),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+
+    row_groups[15]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 8,
+            track_id: TrackId(216),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[15]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 9,
+            track_id: TrackId(217),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[15]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 10,
+            track_id: TrackId(218),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[15]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 11,
+            track_id: TrackId(219),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[15]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 12,
+            track_id: TrackId(220),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[15]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 13,
+            track_id: TrackId(221),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[15]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 14,
+            track_id: TrackId(222),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[15]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 15,
+            track_id: TrackId(223),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[15]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 16,
+            track_id: TrackId(195),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[15]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 17,
+            track_id: TrackId(105),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[15]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 18,
+            track_id: TrackId(224),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[15]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 19,
+            track_id: TrackId(107),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[15]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 20,
+            track_id: TrackId(225),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[15]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 21,
+            track_id: TrackId(226),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[15]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 22,
+            track_id: TrackId(227),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[15]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 23,
+            track_id: TrackId(228),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+
+    row_groups[16]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 24,
+            track_id: TrackId(229),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[16]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 25,
+            track_id: TrackId(10),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[16]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 26,
+            track_id: TrackId(230),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[16]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 27,
+            track_id: TrackId(231),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[16]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 28,
+            track_id: TrackId(232),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[16]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 29,
+            track_id: TrackId(233),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[16]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 30,
+            track_id: TrackId(234),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[16]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 31,
+            track_id: TrackId(17),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[16]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 32,
+            track_id: TrackId(235),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[16]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 33,
+            track_id: TrackId(138),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[16]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 34,
+            track_id: TrackId(236),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[16]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 35,
+            track_id: TrackId(147),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[16]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 36,
+            track_id: TrackId(237),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[16]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 37,
+            track_id: TrackId(208),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[16]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 38,
+            track_id: TrackId(238),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[16]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 39,
+            track_id: TrackId(239),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+
+    row_groups[17]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 40,
+            track_id: TrackId(240),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[17]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 41,
+            track_id: TrackId(241),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[17]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 42,
+            track_id: TrackId(242),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[17]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 43,
+            track_id: TrackId(243),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[17]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 44,
+            track_id: TrackId(244),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[17]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 45,
+            track_id: TrackId(245),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[17]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 46,
+            track_id: TrackId(120),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[17]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 47,
+            track_id: TrackId(246),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[17]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 48,
+            track_id: TrackId(247),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[17]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 49,
+            track_id: TrackId(248),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[17]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 50,
+            track_id: TrackId(249),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+    row_groups[17]
+        .add_row(Row::PlaylistEntry(PlaylistEntry {
+            entry_index: 51,
+            track_id: TrackId(250),
+            playlist_id: PlaylistTreeNodeId(11),
+        }))
+        .unwrap();
+
+    let page = Page {
+        page_index: PageIndex(18),
+        page_type: PageType::PlaylistEntries,
+        next_page: PageIndex(54),
+        unknown1: 1420,
+        unknown2: 0,
+        num_rows_small: 28,
+        unknown3: 129,
+        unknown4: 35,
+        page_flags: PageFlags(36),
+        free_size: 8,
+        used_size: 3408,
+        unknown5: 1,
+        num_rows_large: 283,
+        unknown6: 0,
+        unknown7: 0,
+        row_groups,
+    };
+
+    let page_size = 4096;
+    test_roundtrip_with_args(
+        include_bytes!("../../data/pdb/unit_tests/playlist_entries_page.bin"),
         page,
         (page_size,),
         (page_size,),
