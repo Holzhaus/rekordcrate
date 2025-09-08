@@ -24,7 +24,7 @@ jobs:
                   command: generate-lockfile
 
             - name: Set up Python
-              uses: actions/setup-python@v5
+              uses: actions/setup-python@v6
 
             - name: Detect code style issues
               uses: pre-commit/action@v3.0.1
