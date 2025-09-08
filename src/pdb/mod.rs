@@ -28,13 +28,13 @@ mod test;
 
 use std::convert::TryInto;
 
-use crate::pdb::offset_array::OffsetSize;
-use crate::pdb::{offset_array::OffsetArrayImpl, string::DeviceSQLString};
+use crate::pdb::offset_array::{OffsetArrayImpl, OffsetSize};
+use crate::pdb::string::DeviceSQLString;
 use crate::util::{ColorIndex, ExplicitPadding};
 use binrw::{
     binread, binrw,
     io::{Read, Seek, SeekFrom, Write},
-    BinRead, BinResult, BinWrite, Endian, FilePtr16,
+    BinRead, BinResult, BinWrite, Endian,
 };
 
 /// Do not read anything, but the return the current stream position of `reader`.
@@ -587,6 +587,19 @@ pub struct PlaylistTreeNodeId(pub u32);
 #[brw(little)]
 pub struct HistoryPlaylistId(pub u32);
 
+#[binrw]
+#[brw(little)]
+#[brw(import(base: i64, offsets: &OffsetArrayImpl<2>, args: ()))]
+#[derive(Debug, PartialEq, Clone, Eq)]
+/// Represents a trailing name field at the end of a row, used for album and artist names.
+pub struct TrailingName {
+    #[brw(args(base, args))]
+    #[br(parse_with = offsets.read_offset(1))]
+    #[bw(write_with = offsets.write_offset(1))]
+    /// The name a the end of the row this is used in
+    name: DeviceSQLString,
+}
+
 /// Contains the album name, along with an ID of the corresponding artist.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -604,12 +617,9 @@ pub struct Album {
     id: AlbumId,
     /// Unknown field.
     unknown3: u32,
-    /// Unknown field.
-    #[br(args(subtype.get_offset_size()))]
-    unknown4: OffsetArrayImpl<1>,
-    /// Album name String
-    #[brw(args(20 + unknown4.byte_size(), subtype.get_offset_size(), ()))]
-    name: OffsetArray<DeviceSQLString, 1>,
+    /// The offsets and its data and the end of this row
+    #[brw(args(20, subtype.get_offset_size(), ()))]
+    offsets: OffsetArray<TrailingName, 2>,
     /// Explicit padding, used to align rows in a page (manually)
     padding: ExplicitPadding,
 }
@@ -625,13 +635,9 @@ pub struct Artist {
     index_shift: u16,
     /// ID of this row.
     id: ArtistId,
-    /// Unknown field.
-    #[br(args(subtype.get_offset_size()))]
-    #[brw(assert(unknown1.assert_offset_size_matches(subtype.get_offset_size())))]
-    unknown1: OffsetArrayImpl<1>,
-    /// Name of this artist.
-    #[brw(args(8 + unknown1.byte_size(), subtype.get_offset_size(), ()))]
-    name: OffsetArray<DeviceSQLString, 1>,
+    /// offsets at the row end
+    #[brw(args(8, subtype.get_offset_size(), ()))]
+    offsets: OffsetArray<TrailingName, 2>,
     /// Explicit padding, used to align rows in a page (manually)
     #[br(args(0x30))]
     padding: ExplicitPadding,
@@ -810,18 +816,126 @@ pub struct ColumnEntry {
     pub column_name: DeviceSQLString,
 }
 
+#[binrw]
+#[brw(little)]
+#[brw(import(base: i64, offsets: &OffsetArrayImpl<23>, _args: ()))]
+#[derive(Debug, PartialEq, Clone, Eq)]
+/// String fields stored via the offset table in Track rows
+pub struct TrackStrings {
+    /// International Standard Recording Code (ISRC), in mangled format.
+    #[brw(args(base, ()))]
+    #[br(parse_with = offsets.read_offset(2))]
+    #[bw(write_with = offsets.write_offset(2))]
+    isrc: DeviceSQLString,
+    /// Unknown string field.
+    #[brw(args(base, ()))]
+    #[br(parse_with = offsets.read_offset(3))]
+    #[bw(write_with = offsets.write_offset(3))]
+    unknown_string1: DeviceSQLString,
+    /// Unknown string field.
+    #[brw(args(base, ()))]
+    #[br(parse_with = offsets.read_offset(4))]
+    #[bw(write_with = offsets.write_offset(4))]
+    unknown_string2: DeviceSQLString,
+    /// Unknown string field.
+    #[brw(args(base, ()))]
+    #[br(parse_with = offsets.read_offset(5))]
+    #[bw(write_with = offsets.write_offset(5))]
+    unknown_string3: DeviceSQLString,
+    /// Unknown string field.
+    #[brw(args(base, ()))]
+    #[br(parse_with = offsets.read_offset(6))]
+    #[bw(write_with = offsets.write_offset(6))]
+    unknown_string4: DeviceSQLString,
+    /// Unknown string field (named by [@flesniak](https://github.com/flesniak)).
+    #[brw(args(base, ()))]
+    #[br(parse_with = offsets.read_offset(7))]
+    #[bw(write_with = offsets.write_offset(7))]
+    message: DeviceSQLString,
+    /// Probably describes whether the track is public on kuvo.com (?). Value is either "ON" or empty string.
+    #[brw(args(base, ()))]
+    #[br(parse_with = offsets.read_offset(8))]
+    #[bw(write_with = offsets.write_offset(8))]
+    kuvo_public: DeviceSQLString,
+    /// Determines if hotcues should be autoloaded. Value is either "ON" or empty string.
+    #[brw(args(base, ()))]
+    #[br(parse_with = offsets.read_offset(9))]
+    #[bw(write_with = offsets.write_offset(9))]
+    autoload_hotcues: DeviceSQLString,
+    /// Unknown string field.
+    #[brw(args(base, ()))]
+    #[br(parse_with = offsets.read_offset(10))]
+    #[bw(write_with = offsets.write_offset(10))]
+    unknown_string5: DeviceSQLString,
+    /// Unknown string field (usually empty).
+    #[brw(args(base, ()))]
+    #[br(parse_with = offsets.read_offset(11))]
+    #[bw(write_with = offsets.write_offset(11))]
+    unknown_string6: DeviceSQLString,
+    /// Date when the track was added to the Rekordbox collection.
+    #[brw(args(base, ()))]
+    #[br(parse_with = offsets.read_offset(12))]
+    #[bw(write_with = offsets.write_offset(12))]
+    date_added: DeviceSQLString,
+    /// Date when the track was released.
+    #[brw(args(base, ()))]
+    #[br(parse_with = offsets.read_offset(13))]
+    #[bw(write_with = offsets.write_offset(13))]
+    release_date: DeviceSQLString,
+    /// Name of the remix (if any).
+    #[brw(args(base, ()))]
+    #[br(parse_with = offsets.read_offset(14))]
+    #[bw(write_with = offsets.write_offset(14))]
+    mix_name: DeviceSQLString,
+    /// Unknown string field (usually empty).
+    #[brw(args(base, ()))]
+    #[br(parse_with = offsets.read_offset(15))]
+    #[bw(write_with = offsets.write_offset(15))]
+    unknown_string7: DeviceSQLString,
+    /// File path of the track analysis file.
+    #[brw(args(base, ()))]
+    #[br(parse_with = offsets.read_offset(16))]
+    #[bw(write_with = offsets.write_offset(16))]
+    analyze_path: DeviceSQLString,
+    /// Date when the track analysis was performed.
+    #[brw(args(base, ()))]
+    #[br(parse_with = offsets.read_offset(17))]
+    #[bw(write_with = offsets.write_offset(17))]
+    analyze_date: DeviceSQLString,
+    /// Track comment.
+    #[brw(args(base, ()))]
+    #[br(parse_with = offsets.read_offset(18))]
+    #[bw(write_with = offsets.write_offset(18))]
+    comment: DeviceSQLString,
+    /// Track title.
+    #[brw(args(base, ()))]
+    #[br(parse_with = offsets.read_offset(19))]
+    #[bw(write_with = offsets.write_offset(19))]
+    title: DeviceSQLString,
+    /// Unknown string field (usually empty).
+    #[brw(args(base, ()))]
+    #[br(parse_with = offsets.read_offset(20))]
+    #[bw(write_with = offsets.write_offset(20))]
+    unknown_string8: DeviceSQLString,
+    /// Name of the file.
+    #[brw(args(base, ()))]
+    #[br(parse_with = offsets.read_offset(21))]
+    #[bw(write_with = offsets.write_offset(21))]
+    filename: DeviceSQLString,
+    /// Path of the file.
+    #[brw(args(base, ()))]
+    #[br(parse_with = offsets.read_offset(22))]
+    #[bw(write_with = offsets.write_offset(22))]
+    file_path: DeviceSQLString,
+}
+
 /// Contains the album name, along with an ID of the corresponding artist.
-#[binread]
+#[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
-#[br(little)]
+#[brw(little)]
 pub struct Track {
-    /// Position of start of this row (needed of offset calculations).
-    ///
-    /// **Note:** This is a virtual field and not actually read from the file.
-    #[br(temp, parse_with = current_offset)]
-    base_offset: u64,
     /// Unknown field, usually `24 00`.
-    unknown1: u16,
+    subtype: Subtype,
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
     index_shift: u16,
     /// Unknown field, called `bitmask` by [@flesniak](https://github.com/flesniak).
@@ -878,199 +992,23 @@ pub struct Track {
     color: ColorIndex,
     /// User rating of this track (0 to 5 starts).
     rating: u8,
-    /// Unknown field, apparently always "1".
-    unknown6: u16,
-    /// Unknown field (alternating "2" and "3"?).
-    unknown7: u16,
-    /// International Standard Recording Code (ISRC), in mangled format.
-    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-    isrc: DeviceSQLString,
-    /// Unknown string field.
-    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-    unknown_string1: DeviceSQLString,
-    /// Unknown string field.
-    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-    unknown_string2: DeviceSQLString,
-    /// Unknown string field.
-    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-    unknown_string3: DeviceSQLString,
-    /// Unknown string field.
-    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-    unknown_string4: DeviceSQLString,
-    /// Unknown string field (named by [@flesniak](https://github.com/flesniak)).
-    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-    message: DeviceSQLString,
-    /// Probably describes whether the track is public on kuvo.com (?). Value is either "ON" or empty string.
-    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-    kuvo_public: DeviceSQLString,
-    /// Determines if hotcues should be autoloaded. Value is either "ON" or empty string.
-    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-    autoload_hotcues: DeviceSQLString,
-    /// Unknown string field.
-    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-    unknown_string5: DeviceSQLString,
-    /// Unknown string field (usually empty).
-    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-    unknown_string6: DeviceSQLString,
-    /// Date when the track was added to the Rekordbox collection.
-    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-    date_added: DeviceSQLString,
-    /// Date when the track was released.
-    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-    release_date: DeviceSQLString,
-    /// Name of the remix (if any).
-    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-    mix_name: DeviceSQLString,
-    /// Unknown string field (usually empty).
-    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-    unknown_string7: DeviceSQLString,
-    /// File path of the track analysis file.
-    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-    analyze_path: DeviceSQLString,
-    /// Date when the track analysis was performed.
-    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-    analyze_date: DeviceSQLString,
-    /// Track comment.
-    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-    comment: DeviceSQLString,
-    /// Track title.
-    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-    title: DeviceSQLString,
-    /// Unknown string field (usually empty).
-    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-    unknown_string8: DeviceSQLString,
-    /// Name of the file.
-    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-    filename: DeviceSQLString,
-    /// Path of the file.
-    #[br(offset = base_offset, parse_with = FilePtr16::parse)]
-    file_path: DeviceSQLString,
-}
-
-// #[bw(little)] on #[binread] types does
-// not seem to work so we manually define the endianness here.
-impl binrw::meta::WriteEndian for Track {
-    const ENDIAN: binrw::meta::EndianKind = binrw::meta::EndianKind::Endian(Endian::Little);
-}
-
-impl BinWrite for Track {
-    type Args<'a> = ();
-
-    fn write_options<W: Write + Seek>(
-        &self,
-        writer: &mut W,
-        endian: Endian,
-        _args: Self::Args<'_>,
-    ) -> BinResult<()> {
-        debug_assert!(endian == Endian::Little);
-
-        let base_position = writer.stream_position()?;
-        self.unknown1.write_options(writer, endian, ())?;
-        self.index_shift.write_options(writer, endian, ())?;
-        self.bitmask.write_options(writer, endian, ())?;
-        self.sample_rate.write_options(writer, endian, ())?;
-        self.composer_id.write_options(writer, endian, ())?;
-        self.file_size.write_options(writer, endian, ())?;
-        self.unknown2.write_options(writer, endian, ())?;
-        self.unknown3.write_options(writer, endian, ())?;
-        self.unknown4.write_options(writer, endian, ())?;
-        self.artwork_id.write_options(writer, endian, ())?;
-        self.key_id.write_options(writer, endian, ())?;
-        self.orig_artist_id.write_options(writer, endian, ())?;
-        self.label_id.write_options(writer, endian, ())?;
-        self.remixer_id.write_options(writer, endian, ())?;
-        self.bitrate.write_options(writer, endian, ())?;
-        self.track_number.write_options(writer, endian, ())?;
-        self.tempo.write_options(writer, endian, ())?;
-        self.genre_id.write_options(writer, endian, ())?;
-        self.album_id.write_options(writer, endian, ())?;
-        self.artist_id.write_options(writer, endian, ())?;
-        self.id.write_options(writer, endian, ())?;
-        self.disc_number.write_options(writer, endian, ())?;
-        self.play_count.write_options(writer, endian, ())?;
-        self.year.write_options(writer, endian, ())?;
-        self.sample_depth.write_options(writer, endian, ())?;
-        self.duration.write_options(writer, endian, ())?;
-        self.unknown5.write_options(writer, endian, ())?;
-        self.color.write_options(writer, endian, ())?;
-        self.rating.write_options(writer, endian, ())?;
-        self.unknown6.write_options(writer, endian, ())?;
-        self.unknown7.write_options(writer, endian, ())?;
-
-        let start_of_string_section = writer.stream_position()?;
-        debug_assert_eq!(start_of_string_section - base_position, 0x5e);
-
-        // Skip offsets, because we want to write the actual strings first.
-        let mut string_offsets = [0u16; 21];
-        writer.seek(SeekFrom::Current(0x2a))?;
-        for (i, string) in [
-            &self.isrc,
-            &self.unknown_string1,
-            &self.unknown_string2,
-            &self.unknown_string3,
-            &self.unknown_string4,
-            &self.message,
-            &self.kuvo_public,
-            &self.autoload_hotcues,
-            &self.unknown_string5,
-            &self.unknown_string6,
-            &self.date_added,
-            &self.release_date,
-            &self.mix_name,
-            &self.unknown_string7,
-            &self.analyze_path,
-            &self.analyze_date,
-            &self.comment,
-            &self.title,
-            &self.unknown_string8,
-            &self.filename,
-            &self.file_path,
-        ]
-        .into_iter()
-        .enumerate()
-        {
-            let current_position = writer.stream_position()?;
-            let offset: u16 = current_position
-                .checked_sub(base_position)
-                .and_then(|v| u16::try_from(v).ok())
-                .ok_or_else(|| binrw::Error::AssertFail {
-                    pos: current_position,
-                    message: "Wraparound while calculating row offset".to_string(),
-                })?;
-            string_offsets[i] = offset;
-            string.write_options(writer, endian, ())?;
-        }
-
-        let end_of_row = writer.stream_position()?;
-        writer.seek(SeekFrom::Start(start_of_string_section))?;
-        string_offsets.write_options(writer, endian, ())?;
-        writer.seek(SeekFrom::Start(end_of_row))?;
-
-        // TODO(Swiftb0y): encapsulate this properly
-        // Rows don't seem to be directly adjacent to each other
-        // but instead have gaps in between. They probably adhere to their
-        // member variable alignment.
-        // I have seen gaps of 52 to 55 bytes (ending after the last char
-        // of the previous row and the first byte of the next row).
-        // I have 0 idea why these gaps are this big or how to accurately
-        // guess their size.
-        // Rows also don't have a fixed size. Their sizes seem to fluctuate
-        // between 0 and 48 bytes in size (though the fluctuations always
-        // were multiple of 12)
-
-        let mut padding_base = 0x34;
-        // This is a heuristic that seems to match the padding behavior of the
-        // original file for the `track_page` test case. The actual logic
-        // is unknown.
-        // We're assigning a different padding base for even and odd tracks
-        if self.id.0 % 2 == 0 {
-            padding_base += 4;
-        }
-        padding_base = ((end_of_row + padding_base) & !0b11) - end_of_row;
-        writer.seek(SeekFrom::Current(padding_base as i64))?;
-
-        Ok(())
-    }
+    #[brw(args(0x5A, subtype.get_offset_size(), ()))]
+    offsets: OffsetArray<TrackStrings, 23>,
+    // Track paddings in general seem to follow this odd formula.
+    // A similar oddity is the case with other rows employing an OffsetArray
+    // (though with different padding_base)
+    // let mut padding_base = 0x34;
+    // // This is a heuristic that seems to match the padding behavior of the
+    // // original file for the `track_page` test case. The actual logic
+    // // is unknown.
+    // // We're assigning a different padding base for even and odd tracks
+    // if self.id.0 % 2 == 0 {
+    //     padding_base += 4;
+    // }
+    // padding_base = ((end_of_row + padding_base) & !0b11) - end_of_row;
+    // writer.seek(SeekFrom::Current(padding_base as i64))?;
+    #[br(args(0x40))]
+    padding: ExplicitPadding,
 }
 
 /// A table row contains the actual data.
