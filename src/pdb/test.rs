@@ -180,7 +180,7 @@ fn demo_tracks_header() {
 #[test]
 fn track_row() {
     let row = Track {
-        unknown1: 36,
+        subtype: Subtype(0x24),
         index_shift: 160,
         bitmask: 788224,
         sample_rate: 44100,
@@ -209,33 +209,41 @@ fn track_row() {
         unknown5: 41,
         color: ColorIndex::None,
         rating: 0,
-        unknown6: 1,
-        unknown7: 3,
-        isrc: DeviceSQLString::new_isrc("".to_string()).unwrap(),
-        unknown_string1: DeviceSQLString::empty(),
-        unknown_string2: "3".parse().unwrap(),
-        unknown_string3: "3".parse().unwrap(),
-        unknown_string4: DeviceSQLString::empty(),
-        message: DeviceSQLString::empty(),
-        kuvo_public: DeviceSQLString::empty(),
-        autoload_hotcues: "ON".parse().unwrap(),
-        unknown_string5: DeviceSQLString::empty(),
-        unknown_string6: DeviceSQLString::empty(),
-        date_added: "2018-05-25".parse().unwrap(),
-        release_date: DeviceSQLString::empty(),
-        mix_name: DeviceSQLString::empty(),
-        unknown_string7: DeviceSQLString::empty(),
-        analyze_path: "/PIONEER/USBANLZ/P016/0000875E/ANLZ0000.DAT"
-            .parse()
-            .unwrap(),
-        analyze_date: "2022-02-02".parse().unwrap(),
-        comment: "Tracks by www.loopmasters.com".parse().unwrap(),
-        title: "Demo Track 1".parse().unwrap(),
-        unknown_string8: DeviceSQLString::empty(),
-        filename: "Demo Track 1.mp3".parse().unwrap(),
-        file_path: "/Contents/Loopmasters/UnknownAlbum/Demo Track 1.mp3"
-            .parse()
-            .unwrap(),
+        offsets: OffsetArray {
+            offsets: [
+                1u16, 3, 136, 137, 138, 140, 142, 143, 144, 145, 148, 149, 150, 161, 162, 163, 164,
+                208, 219, 249, 262, 263, 280,
+            ]
+            .into(),
+            inner: TrackStrings {
+                isrc: DeviceSQLString::new_isrc("".to_string()).unwrap(),
+                unknown_string1: DeviceSQLString::empty(),
+                unknown_string2: "3".parse().unwrap(),
+                unknown_string3: "3".parse().unwrap(),
+                unknown_string4: DeviceSQLString::empty(),
+                message: DeviceSQLString::empty(),
+                kuvo_public: DeviceSQLString::empty(),
+                autoload_hotcues: "ON".parse().unwrap(),
+                unknown_string5: DeviceSQLString::empty(),
+                unknown_string6: DeviceSQLString::empty(),
+                date_added: "2018-05-25".parse().unwrap(),
+                release_date: DeviceSQLString::empty(),
+                mix_name: DeviceSQLString::empty(),
+                unknown_string7: DeviceSQLString::empty(),
+                analyze_path: "/PIONEER/USBANLZ/P016/0000875E/ANLZ0000.DAT"
+                    .parse()
+                    .unwrap(),
+                analyze_date: "2022-02-02".parse().unwrap(),
+                comment: "Tracks by www.loopmasters.com".parse().unwrap(),
+                title: "Demo Track 1".parse().unwrap(),
+                unknown_string8: DeviceSQLString::empty(),
+                filename: "Demo Track 1.mp3".parse().unwrap(),
+                file_path: "/Contents/Loopmasters/UnknownAlbum/Demo Track 1.mp3"
+                    .parse()
+                    .unwrap(),
+            },
+        },
+        padding: 0.into(),
     };
     test_roundtrip(
         &[
@@ -395,7 +403,7 @@ fn track_page() {
     };
     row_groups
         .add_row(Row::Track(Track {
-            unknown1: 36,
+            subtype: Subtype(0x24),
             index_shift: 0,
             bitmask: 788224,
             sample_rate: 44100,
@@ -424,38 +432,46 @@ fn track_page() {
             unknown5: 41,
             color: ColorIndex::None,
             rating: 0,
-            unknown6: 11,
-            unknown7: 3,
-            isrc: DeviceSQLString::new_isrc(String::new()).unwrap(),
-            unknown_string1: "".parse().unwrap(),
-            unknown_string2: "1".parse().unwrap(),
-            unknown_string3: "1".parse().unwrap(),
-            unknown_string4: "".parse().unwrap(),
-            message: "".parse().unwrap(),
-            kuvo_public: "ON".parse().unwrap(),
-            autoload_hotcues: "ON".parse().unwrap(),
-            unknown_string5: "".parse().unwrap(),
-            unknown_string6: "".parse().unwrap(),
-            date_added: "2015-09-07".parse().unwrap(),
-            release_date: "".parse().unwrap(),
-            mix_name: "".parse().unwrap(),
-            unknown_string7: "".parse().unwrap(),
-            analyze_path: "/PIONEER/USBANLZ/P019/00020AA9/ANLZ0000.DAT"
-                .parse()
-                .unwrap(),
-            analyze_date: "2025-09-01".parse().unwrap(),
-            comment: "".parse().unwrap(),
-            title: "NOISE".parse().unwrap(),
-            unknown_string8: "".parse().unwrap(),
-            filename: "NOISE.wav".parse().unwrap(),
-            file_path: "/Contents/UnknownArtist/UnknownAlbum/NOISE.wav"
-                .parse()
-                .unwrap(),
+            offsets: OffsetArray {
+                offsets: [
+                    0x0bu16, 0x03, 0x88, 0x89, 0x8a, 0x8c, 0x8e, 0x8f, 0x90, 0x93, 0x96, 0x97,
+                    0x98, 0xa3, 0xa4, 0xa5, 0xa6, 0xd2, 0xdd, 0xde, 0xe4, 0xe5, 0xef,
+                ]
+                .into(),
+                inner: TrackStrings {
+                    isrc: DeviceSQLString::new_isrc(String::new()).unwrap(),
+                    unknown_string1: "".parse().unwrap(),
+                    unknown_string2: "1".parse().unwrap(),
+                    unknown_string3: "1".parse().unwrap(),
+                    unknown_string4: "".parse().unwrap(),
+                    message: "".parse().unwrap(),
+                    kuvo_public: "ON".parse().unwrap(),
+                    autoload_hotcues: "ON".parse().unwrap(),
+                    unknown_string5: "".parse().unwrap(),
+                    unknown_string6: "".parse().unwrap(),
+                    date_added: "2015-09-07".parse().unwrap(),
+                    release_date: "".parse().unwrap(),
+                    mix_name: "".parse().unwrap(),
+                    unknown_string7: "".parse().unwrap(),
+                    analyze_path: "/PIONEER/USBANLZ/P019/00020AA9/ANLZ0000.DAT"
+                        .parse()
+                        .unwrap(),
+                    analyze_date: "2025-09-01".parse().unwrap(),
+                    comment: "".parse().unwrap(),
+                    title: "NOISE".parse().unwrap(),
+                    unknown_string8: "".parse().unwrap(),
+                    filename: "NOISE.wav".parse().unwrap(),
+                    file_path: "/Contents/UnknownArtist/UnknownAlbum/NOISE.wav"
+                        .parse()
+                        .unwrap(),
+                },
+            },
+            padding: 0x32.into(),
         }))
         .unwrap();
     row_groups
         .add_row(Row::Track(Track {
-            unknown1: 36,
+            subtype: Subtype(0x24),
             index_shift: 32,
             bitmask: 788224,
             sample_rate: 44100,
@@ -484,38 +500,46 @@ fn track_page() {
             unknown5: 41,
             color: ColorIndex::None,
             rating: 0,
-            unknown6: 11,
-            unknown7: 3,
-            isrc: DeviceSQLString::new_isrc(String::new()).unwrap(),
-            unknown_string1: "".parse().unwrap(),
-            unknown_string2: "1".parse().unwrap(),
-            unknown_string3: "1".parse().unwrap(),
-            unknown_string4: "".parse().unwrap(),
-            message: "".parse().unwrap(),
-            kuvo_public: "ON".parse().unwrap(),
-            autoload_hotcues: "ON".parse().unwrap(),
-            unknown_string5: "".parse().unwrap(),
-            unknown_string6: "".parse().unwrap(),
-            date_added: "2015-09-07".parse().unwrap(),
-            release_date: "".parse().unwrap(),
-            mix_name: "".parse().unwrap(),
-            unknown_string7: "".parse().unwrap(),
-            analyze_path: "/PIONEER/USBANLZ/P043/00011517/ANLZ0000.DAT"
-                .parse()
-                .unwrap(),
-            analyze_date: "2025-09-01".parse().unwrap(),
-            comment: "".parse().unwrap(),
-            title: "SINEWAVE".parse().unwrap(),
-            unknown_string8: "".parse().unwrap(),
-            filename: "SINEWAVE.wav".parse().unwrap(),
-            file_path: "/Contents/UnknownArtist/UnknownAlbum/SINEWAVE.wav"
-                .parse()
-                .unwrap(),
+            offsets: OffsetArray {
+                offsets: [
+                    0x0bu16, 0x03, 0x88, 0x89, 0x8a, 0x8c, 0x8e, 0x8f, 0x90, 0x93, 0x96, 0x97,
+                    0x98, 0xa3, 0xa4, 0xa5, 0xa6, 0xd2, 0xdd, 0xde, 0xe7, 0xe8, 0xf5,
+                ]
+                .into(),
+                inner: TrackStrings {
+                    isrc: DeviceSQLString::new_isrc(String::new()).unwrap(),
+                    unknown_string1: "".parse().unwrap(),
+                    unknown_string2: "1".parse().unwrap(),
+                    unknown_string3: "1".parse().unwrap(),
+                    unknown_string4: "".parse().unwrap(),
+                    message: "".parse().unwrap(),
+                    kuvo_public: "ON".parse().unwrap(),
+                    autoload_hotcues: "ON".parse().unwrap(),
+                    unknown_string5: "".parse().unwrap(),
+                    unknown_string6: "".parse().unwrap(),
+                    date_added: "2015-09-07".parse().unwrap(),
+                    release_date: "".parse().unwrap(),
+                    mix_name: "".parse().unwrap(),
+                    unknown_string7: "".parse().unwrap(),
+                    analyze_path: "/PIONEER/USBANLZ/P043/00011517/ANLZ0000.DAT"
+                        .parse()
+                        .unwrap(),
+                    analyze_date: "2025-09-01".parse().unwrap(),
+                    comment: "".parse().unwrap(),
+                    title: "SINEWAVE".parse().unwrap(),
+                    unknown_string8: "".parse().unwrap(),
+                    filename: "SINEWAVE.wav".parse().unwrap(),
+                    file_path: "/Contents/UnknownArtist/UnknownAlbum/SINEWAVE.wav"
+                        .parse()
+                        .unwrap(),
+                },
+            },
+            padding: 0x35.into(),
         }))
         .unwrap();
     row_groups
         .add_row(Row::Track(Track {
-            unknown1: 36,
+            subtype: Subtype(0x24),
             index_shift: 64,
             bitmask: 788224,
             sample_rate: 44100,
@@ -544,38 +568,46 @@ fn track_page() {
             unknown5: 41,
             color: ColorIndex::None,
             rating: 0,
-            unknown6: 11,
-            unknown7: 3,
-            isrc: DeviceSQLString::new_isrc(String::new()).unwrap(),
-            unknown_string1: "".parse().unwrap(),
-            unknown_string2: "1".parse().unwrap(),
-            unknown_string3: "1".parse().unwrap(),
-            unknown_string4: "".parse().unwrap(),
-            message: "".parse().unwrap(),
-            kuvo_public: "ON".parse().unwrap(),
-            autoload_hotcues: "ON".parse().unwrap(),
-            unknown_string5: "".parse().unwrap(),
-            unknown_string6: "".parse().unwrap(),
-            date_added: "2015-09-07".parse().unwrap(),
-            release_date: "".parse().unwrap(),
-            mix_name: "".parse().unwrap(),
-            unknown_string7: "".parse().unwrap(),
-            analyze_path: "/PIONEER/USBANLZ/P017/00009B77/ANLZ0000.DAT"
-                .parse()
-                .unwrap(),
-            analyze_date: "2025-09-01".parse().unwrap(),
-            comment: "".parse().unwrap(),
-            title: "SIREN".parse().unwrap(),
-            unknown_string8: "".parse().unwrap(),
-            filename: "SIREN.wav".parse().unwrap(),
-            file_path: "/Contents/UnknownArtist/UnknownAlbum/SIREN.wav"
-                .parse()
-                .unwrap(),
+            offsets: OffsetArray {
+                offsets: [
+                    0x0bu16, 0x03, 0x88, 0x89, 0x8a, 0x8c, 0x8e, 0x8f, 0x90, 0x93, 0x96, 0x97,
+                    0x98, 0xa3, 0xa4, 0xa5, 0xa6, 0xd2, 0xdd, 0xde, 0xe4, 0xe5, 0xef,
+                ]
+                .into(),
+                inner: TrackStrings {
+                    isrc: DeviceSQLString::new_isrc(String::new()).unwrap(),
+                    unknown_string1: "".parse().unwrap(),
+                    unknown_string2: "1".parse().unwrap(),
+                    unknown_string3: "1".parse().unwrap(),
+                    unknown_string4: "".parse().unwrap(),
+                    message: "".parse().unwrap(),
+                    kuvo_public: "ON".parse().unwrap(),
+                    autoload_hotcues: "ON".parse().unwrap(),
+                    unknown_string5: "".parse().unwrap(),
+                    unknown_string6: "".parse().unwrap(),
+                    date_added: "2015-09-07".parse().unwrap(),
+                    release_date: "".parse().unwrap(),
+                    mix_name: "".parse().unwrap(),
+                    unknown_string7: "".parse().unwrap(),
+                    analyze_path: "/PIONEER/USBANLZ/P017/00009B77/ANLZ0000.DAT"
+                        .parse()
+                        .unwrap(),
+                    analyze_date: "2025-09-01".parse().unwrap(),
+                    comment: "".parse().unwrap(),
+                    title: "SIREN".parse().unwrap(),
+                    unknown_string8: "".parse().unwrap(),
+                    filename: "SIREN.wav".parse().unwrap(),
+                    file_path: "/Contents/UnknownArtist/UnknownAlbum/SIREN.wav"
+                        .parse()
+                        .unwrap(),
+                },
+            },
+            padding: 0x32.into(),
         }))
         .unwrap();
     row_groups
         .add_row(Row::Track(Track {
-            unknown1: 36,
+            subtype: Subtype(0x24),
             index_shift: 96,
             bitmask: 788224,
             sample_rate: 44100,
@@ -604,38 +636,46 @@ fn track_page() {
             unknown5: 41,
             color: ColorIndex::None,
             rating: 0,
-            unknown6: 11,
-            unknown7: 3,
-            isrc: DeviceSQLString::new_isrc(String::new()).unwrap(),
-            unknown_string1: "".parse().unwrap(),
-            unknown_string2: "1".parse().unwrap(),
-            unknown_string3: "1".parse().unwrap(),
-            unknown_string4: "".parse().unwrap(),
-            message: "".parse().unwrap(),
-            kuvo_public: "ON".parse().unwrap(),
-            autoload_hotcues: "ON".parse().unwrap(),
-            unknown_string5: "".parse().unwrap(),
-            unknown_string6: "".parse().unwrap(),
-            date_added: "2015-09-07".parse().unwrap(),
-            release_date: "".parse().unwrap(),
-            mix_name: "".parse().unwrap(),
-            unknown_string7: "".parse().unwrap(),
-            analyze_path: "/PIONEER/USBANLZ/P021/00006D2B/ANLZ0000.DAT"
-                .parse()
-                .unwrap(),
-            analyze_date: "2025-09-01".parse().unwrap(),
-            comment: "".parse().unwrap(),
-            title: "HORN".parse().unwrap(),
-            unknown_string8: "".parse().unwrap(),
-            filename: "HORN.wav".parse().unwrap(),
-            file_path: "/Contents/UnknownArtist/UnknownAlbum/HORN.wav"
-                .parse()
-                .unwrap(),
+            offsets: OffsetArray {
+                offsets: [
+                    0x0bu16, 0x03, 0x88, 0x89, 0x8a, 0x8c, 0x8e, 0x8f, 0x90, 0x93, 0x96, 0x97,
+                    0x98, 0xa3, 0xa4, 0xa5, 0xa6, 0xd2, 0xdd, 0xde, 0xe3, 0xe4, 0xed,
+                ]
+                .into(),
+                inner: TrackStrings {
+                    isrc: DeviceSQLString::new_isrc(String::new()).unwrap(),
+                    unknown_string1: "".parse().unwrap(),
+                    unknown_string2: "1".parse().unwrap(),
+                    unknown_string3: "1".parse().unwrap(),
+                    unknown_string4: "".parse().unwrap(),
+                    message: "".parse().unwrap(),
+                    kuvo_public: "ON".parse().unwrap(),
+                    autoload_hotcues: "ON".parse().unwrap(),
+                    unknown_string5: "".parse().unwrap(),
+                    unknown_string6: "".parse().unwrap(),
+                    date_added: "2015-09-07".parse().unwrap(),
+                    release_date: "".parse().unwrap(),
+                    mix_name: "".parse().unwrap(),
+                    unknown_string7: "".parse().unwrap(),
+                    analyze_path: "/PIONEER/USBANLZ/P021/00006D2B/ANLZ0000.DAT"
+                        .parse()
+                        .unwrap(),
+                    analyze_date: "2025-09-01".parse().unwrap(),
+                    comment: "".parse().unwrap(),
+                    title: "HORN".parse().unwrap(),
+                    unknown_string8: "".parse().unwrap(),
+                    filename: "HORN.wav".parse().unwrap(),
+                    file_path: "/Contents/UnknownArtist/UnknownAlbum/HORN.wav"
+                        .parse()
+                        .unwrap(),
+                },
+            },
+            padding: 0x35.into(),
         }))
         .unwrap();
     row_groups
         .add_row(Row::Track(Track {
-            unknown1: 36,
+            subtype: Subtype(0x24),
             index_shift: 128,
             bitmask: 788224,
             sample_rate: 44100,
@@ -664,33 +704,41 @@ fn track_page() {
             unknown5: 41,
             color: ColorIndex::None,
             rating: 0,
-            unknown6: 1,
-            unknown7: 3,
-            isrc: DeviceSQLString::new_isrc(String::new()).unwrap(),
-            unknown_string1: "".parse().unwrap(),
-            unknown_string2: "1".parse().unwrap(),
-            unknown_string3: "1".parse().unwrap(),
-            unknown_string4: "".parse().unwrap(),
-            message: "".parse().unwrap(),
-            kuvo_public: "ON".parse().unwrap(),
-            autoload_hotcues: "ON".parse().unwrap(),
-            unknown_string5: "".parse().unwrap(),
-            unknown_string6: "".parse().unwrap(),
-            date_added: "2018-05-25".parse().unwrap(),
-            release_date: "".parse().unwrap(),
-            mix_name: "".parse().unwrap(),
-            unknown_string7: "".parse().unwrap(),
-            analyze_path: "/PIONEER/USBANLZ/P016/0000875E/ANLZ0000.DAT"
-                .parse()
-                .unwrap(),
-            analyze_date: "2025-09-01".parse().unwrap(),
-            comment: "Tracks by www.loopmasters.com".parse().unwrap(),
-            title: "Demo Track 1".parse().unwrap(),
-            unknown_string8: "".parse().unwrap(),
-            filename: "Demo Track 1.mp3".parse().unwrap(),
-            file_path: "/Contents/Loopmasters/UnknownAlbum/Demo Track 1.mp3"
-                .parse()
-                .unwrap(),
+            offsets: OffsetArray {
+                offsets: [
+                    0x01u16, 0x03, 0x88, 0x89, 0x8a, 0x8c, 0x8e, 0x8f, 0x90, 0x93, 0x96, 0x97,
+                    0x98, 0xa3, 0xa4, 0xa5, 0xa6, 0xd2, 0xdd, 0xfb, 0x108, 0x109, 0x11a,
+                ]
+                .into(),
+                inner: TrackStrings {
+                    isrc: DeviceSQLString::new_isrc(String::new()).unwrap(),
+                    unknown_string1: "".parse().unwrap(),
+                    unknown_string2: "1".parse().unwrap(),
+                    unknown_string3: "1".parse().unwrap(),
+                    unknown_string4: "".parse().unwrap(),
+                    message: "".parse().unwrap(),
+                    kuvo_public: "ON".parse().unwrap(),
+                    autoload_hotcues: "ON".parse().unwrap(),
+                    unknown_string5: "".parse().unwrap(),
+                    unknown_string6: "".parse().unwrap(),
+                    date_added: "2018-05-25".parse().unwrap(),
+                    release_date: "".parse().unwrap(),
+                    mix_name: "".parse().unwrap(),
+                    unknown_string7: "".parse().unwrap(),
+                    analyze_path: "/PIONEER/USBANLZ/P016/0000875E/ANLZ0000.DAT"
+                        .parse()
+                        .unwrap(),
+                    analyze_date: "2025-09-01".parse().unwrap(),
+                    comment: "Tracks by www.loopmasters.com".parse().unwrap(),
+                    title: "Demo Track 1".parse().unwrap(),
+                    unknown_string8: "".parse().unwrap(),
+                    filename: "Demo Track 1.mp3".parse().unwrap(),
+                    file_path: "/Contents/Loopmasters/UnknownAlbum/Demo Track 1.mp3"
+                        .parse()
+                        .unwrap(),
+                },
+            },
+            padding: 0.into(), // TODO
         }))
         .unwrap();
 
