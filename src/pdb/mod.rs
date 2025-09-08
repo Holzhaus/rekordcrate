@@ -1139,7 +1139,7 @@ impl Row {
         match &self {
             Album(_) => offset,
             Artist(_) => offset,
-            Artwork(r) => align_by(align_of_val(r) as u64, offset),
+            Artwork(_) => align_by(4, offset),
             Color(_) => align_by(4, offset),
             ColumnEntry(r) => align_by(align_of_val(r) as u64, offset),
             Genre(_) => align_by(4, offset), // fixed alignment to 4 bytes
