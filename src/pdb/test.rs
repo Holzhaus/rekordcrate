@@ -370,6 +370,27 @@ fn color_row() {
 }
 
 #[test]
+fn playlist_tree_row() {
+    let row = PlaylistTreeNode {
+        parent_id: PlaylistTreeNodeId(0),
+        unknown: 0,
+        sort_order: 0,
+        id: PlaylistTreeNodeId(1),
+        node_is_folder: 1,
+        name: "current set 2021 reduced".parse().unwrap(),
+    };
+
+    test_roundtrip(
+        &[
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0x33, 0x63, 0x75, 0x72,
+            0x72, 0x65, 0x6e, 0x74, 0x20, 0x73, 0x65, 0x74, 0x20, 0x32, 0x30, 0x32, 0x31, 0x20,
+            0x72, 0x65, 0x64, 0x75, 0x63, 0x65, 0x64,
+        ],
+        row,
+    );
+}
+
+#[test]
 fn playlist_entry_row() {
     let row = PlaylistEntry {
         entry_index: 1,
@@ -6810,6 +6831,320 @@ fn colors_page() {
     let page_size = 4096;
     test_roundtrip_with_args(
         include_bytes!("../../data/pdb/unit_tests/colors_page.bin"),
+        page,
+        (page_size,),
+        (page_size,),
+    );
+}
+
+#[test]
+fn playlist_tree_page() {
+    let mut row_groups = vec![
+        RowGroup {
+            row_offsets: Default::default(),
+            row_presence_flags: 0,
+            unknown: 0,
+            rows: vec![],
+        };
+        2
+    ];
+
+    row_groups[1].unknown = 1024;
+
+    row_groups[0]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(0),
+            unknown: 0,
+            sort_order: 0,
+            id: PlaylistTreeNodeId(1),
+            node_is_folder: 1,
+            name: "folderb".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 0,
+            id: PlaylistTreeNodeId(2),
+            node_is_folder: 0,
+            name: "listaz".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 2,
+            id: PlaylistTreeNodeId(3),
+            node_is_folder: 0,
+            name: "listay".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 4,
+            id: PlaylistTreeNodeId(4),
+            node_is_folder: 0,
+            name: "listax".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 6,
+            id: PlaylistTreeNodeId(5),
+            node_is_folder: 0,
+            name: "listaw".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 8,
+            id: PlaylistTreeNodeId(6),
+            node_is_folder: 0,
+            name: "listav".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 10,
+            id: PlaylistTreeNodeId(7),
+            node_is_folder: 0,
+            name: "listau".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 12,
+            id: PlaylistTreeNodeId(8),
+            node_is_folder: 0,
+            name: "listat".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 14,
+            id: PlaylistTreeNodeId(9),
+            node_is_folder: 0,
+            name: "listas".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 16,
+            id: PlaylistTreeNodeId(10),
+            node_is_folder: 0,
+            name: "listar".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 18,
+            id: PlaylistTreeNodeId(11),
+            node_is_folder: 0,
+            name: "listaq".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 20,
+            id: PlaylistTreeNodeId(12),
+            node_is_folder: 0,
+            name: "listap".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 22,
+            id: PlaylistTreeNodeId(13),
+            node_is_folder: 0,
+            name: "listao".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 24,
+            id: PlaylistTreeNodeId(14),
+            node_is_folder: 0,
+            name: "listan".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 26,
+            id: PlaylistTreeNodeId(15),
+            node_is_folder: 0,
+            name: "listam".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 28,
+            id: PlaylistTreeNodeId(16),
+            node_is_folder: 0,
+            name: "listak".parse().unwrap(),
+        }))
+        .unwrap();
+
+    row_groups[1]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 30,
+            id: PlaylistTreeNodeId(17),
+            node_is_folder: 0,
+            name: "listal".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 32,
+            id: PlaylistTreeNodeId(18),
+            node_is_folder: 0,
+            name: "listaj".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 34,
+            id: PlaylistTreeNodeId(19),
+            node_is_folder: 0,
+            name: "listag".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 36,
+            id: PlaylistTreeNodeId(20),
+            node_is_folder: 0,
+            name: "listai".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 38,
+            id: PlaylistTreeNodeId(21),
+            node_is_folder: 0,
+            name: "listae".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 40,
+            id: PlaylistTreeNodeId(22),
+            node_is_folder: 0,
+            name: "listaf".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 42,
+            id: PlaylistTreeNodeId(23),
+            node_is_folder: 0,
+            name: "listah".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 44,
+            id: PlaylistTreeNodeId(24),
+            node_is_folder: 0,
+            name: "listac".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 46,
+            id: PlaylistTreeNodeId(25),
+            node_is_folder: 0,
+            name: "listad".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 48,
+            id: PlaylistTreeNodeId(26),
+            node_is_folder: 0,
+            name: "listaa".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::PlaylistTreeNode(PlaylistTreeNode {
+            parent_id: PlaylistTreeNodeId(1),
+            unknown: 0,
+            sort_order: 50,
+            id: PlaylistTreeNodeId(27),
+            node_is_folder: 0,
+            name: "listab".parse().unwrap(),
+        }))
+        .unwrap();
+
+    let page = Page {
+        page_index: PageIndex(16),
+        page_type: PageType::PlaylistTree,
+        next_page: PageIndex(46),
+        unknown1: 36,
+        unknown2: 0,
+        num_rows_small: 27,
+        unknown3: 96,
+        unknown4: 3,
+        page_flags: PageFlags(36),
+        free_size: 3238,
+        used_size: 756,
+        unknown5: 1,
+        num_rows_large: 26,
+        unknown6: 0,
+        unknown7: 0,
+        row_groups,
+    };
+
+    let page_size = 4096;
+    test_roundtrip_with_args(
+        include_bytes!("../../data/pdb/unit_tests/playlist_tree_page.bin"),
         page,
         (page_size,),
         (page_size,),

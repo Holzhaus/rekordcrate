@@ -1147,7 +1147,7 @@ impl Row {
             HistoryEntry(r) => align_by(align_of_val(r) as u64, offset),
             Key(_) => align_by(4, offset),
             Label(_) => align_by(4, offset),
-            PlaylistTreeNode(r) => align_by(align_of_val(r) as u64, offset),
+            PlaylistTreeNode(_) => align_by(4, offset),
             PlaylistEntry(r) => align_by(align_of_val(r) as u64, offset),
             Track(_) => offset, // already handled by track serialization
             Unknown => offset,
