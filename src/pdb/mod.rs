@@ -28,8 +28,8 @@ mod test;
 
 use std::convert::TryInto;
 
-use crate::pdb::offset_array::OffsetSize;
-use crate::pdb::{offset_array::OffsetArrayImpl, string::DeviceSQLString};
+use crate::pdb::offset_array::{OffsetArrayImpl, OffsetSize};
+use crate::pdb::string::DeviceSQLString;
 use crate::util::{ColorIndex, ExplicitPadding};
 use binrw::{
     binread, binrw,
@@ -580,6 +580,19 @@ pub struct PlaylistTreeNodeId(pub u32);
 #[brw(little)]
 pub struct HistoryPlaylistId(pub u32);
 
+#[binrw]
+#[brw(little)]
+#[brw(import(base: i64, offsets: &OffsetArrayImpl<2>, args: ()))]
+#[derive(Debug, PartialEq, Clone, Eq)]
+/// Represents a trailing name field at the end of a row, used for album and artist names.
+pub struct TrailingName {
+    #[brw(args(base, args))]
+    #[br(parse_with = offsets.read_offset(1))]
+    #[bw(write_with = offsets.write_offset(1))]
+    /// The name a the end of the row this is used in
+    name: DeviceSQLString,
+}
+
 /// Contains the album name, along with an ID of the corresponding artist.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -597,12 +610,9 @@ pub struct Album {
     id: AlbumId,
     /// Unknown field.
     unknown3: u32,
-    /// Unknown field.
-    #[br(args(subtype.get_offset_size()))]
-    unknown4: OffsetArrayImpl<1>,
-    /// Album name String
-    #[brw(args(20 + unknown4.byte_size(), subtype.get_offset_size(), ()))]
-    name: OffsetArray<DeviceSQLString, 1>,
+    /// The offsets and its data and the end of this row
+    #[brw(args(20, subtype.get_offset_size(), ()))]
+    offsets: OffsetArray<TrailingName, 2>,
     /// Explicit padding, used to align rows in a page (manually)
     padding: ExplicitPadding,
 }
@@ -618,13 +628,9 @@ pub struct Artist {
     index_shift: u16,
     /// ID of this row.
     id: ArtistId,
-    /// Unknown field.
-    #[br(args(subtype.get_offset_size()))]
-    #[brw(assert(unknown1.assert_offset_size_matches(subtype.get_offset_size())))]
-    unknown1: OffsetArrayImpl<1>,
-    /// Name of this artist.
-    #[brw(args(8 + unknown1.byte_size(), subtype.get_offset_size(), ()))]
-    name: OffsetArray<DeviceSQLString, 1>,
+    /// offsets at the row end
+    #[brw(args(8, subtype.get_offset_size(), ()))]
+    offsets: OffsetArray<TrailingName, 2>,
     /// Explicit padding, used to align rows in a page (manually)
     #[br(args(0x30))]
     padding: ExplicitPadding,
