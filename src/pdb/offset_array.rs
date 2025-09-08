@@ -42,6 +42,24 @@ where
     const ENDIAN: binrw::meta::EndianKind = binrw::meta::EndianKind::Endian(binrw::Endian::Little);
 }
 
+impl<T, const N: usize> OffsetArray<T, N> {
+    fn calculate_base(start: u64, offset: usize) -> BinResult<i64> {
+        let base = i64::try_from(start).map_err(|err| binrw::Error::AssertFail {
+            pos: start,
+            message: format!("{err}"),
+        })?;
+        let offset = i64::try_from(offset).map_err(|err| binrw::Error::AssertFail {
+            pos: start,
+            message: format!("{err}"),
+        })?;
+        base.checked_sub(offset)
+            .ok_or_else(|| binrw::Error::AssertFail {
+                pos: start,
+                message: format!("Stream position underflow: {start}-{offset}"),
+            })
+    }
+}
+
 impl<T, const N: usize, IA> BinRead for OffsetArray<T, N>
 where
     for<'a> T: BinRead<Args<'a> = (i64, &'a OffsetArrayImpl<N>, IA)>,
@@ -61,20 +79,7 @@ where
                 message: format!("offsetsize mismatch! {offset_size:?}"),
             });
         }
-        let base = i64::try_from(start).map_err(|err| binrw::Error::AssertFail {
-            pos: start,
-            message: format!("{err}"),
-        })?;
-        let offset = i64::try_from(offset).map_err(|err| binrw::Error::AssertFail {
-            pos: start,
-            message: format!("{err}"),
-        })?;
-        let base = base
-            .checked_sub(offset)
-            .ok_or_else(|| binrw::Error::AssertFail {
-                pos: start,
-                message: format!("Stream position underflow: {start}-{offset}"),
-            })?;
+        let base = Self::calculate_base(start, offset)?;
         let inner = T::read_options(reader, endian, (base, &offsets, args))?;
         Ok(Self { offsets, inner })
     }
@@ -100,20 +105,7 @@ where
             });
         }
         self.offsets.write_options(writer, endian, ())?;
-        let base = i64::try_from(start).map_err(|err| binrw::Error::AssertFail {
-            pos: start,
-            message: format!("{err}"),
-        })?;
-        let offset = i64::try_from(offset).map_err(|err| binrw::Error::AssertFail {
-            pos: start,
-            message: format!("{err}"),
-        })?;
-        let base = base
-            .checked_sub(offset)
-            .ok_or_else(|| binrw::Error::AssertFail {
-                pos: start,
-                message: format!("Stream position underflow: {start}-{offset}"),
-            })?;
+        let base = Self::calculate_base(start, offset)?;
         self.inner
             .write_options(writer, endian, (base, &self.offsets, args))?;
         Ok(())
@@ -138,40 +130,40 @@ impl<const N: usize> OffsetArrayImpl<N> {
             (Self::U8(_), OffsetSize::U8) | (Self::U16(_), OffsetSize::U16)
         )
     }
+    fn calculate_start(&self, index: usize, base: i64) -> BinResult<u64> {
+        match self {
+            OffsetArrayImpl::U8(offsets) => Self::calculate_start_helper(offsets, index, base),
+            OffsetArrayImpl::U16(offsets) => Self::calculate_start_helper(offsets, index, base),
+        }
+    }
+    /// This abstracts over the inner u8/u16
+    fn calculate_start_helper<Num>(offsets: &[Num; N], index: usize, base: i64) -> BinResult<u64>
+    where
+        i64: From<Num>,
+        Num: std::fmt::Display + std::fmt::Debug + Copy,
+    {
+        let offset = offsets.get(index).ok_or_else(|| binrw::Error::AssertFail {
+            pos: base.try_into().unwrap_or_default(),
+            message: format!("can't get offset at index {index} for offsets {offsets:?}"),
+        })?;
+        let start =
+            (base + i64::from(*offset))
+                .try_into()
+                .map_err(|err| binrw::Error::AssertFail {
+                    pos: base.try_into().unwrap_or_default(),
+                    message: format!("{err}: {base}+{offset}"),
+                })?;
+        Ok(start)
+    }
 
     pub fn read_offset<'a, T: BinRead, R: binrw::io::Read + binrw::io::Seek>(
         &'a self,
         index: usize,
     ) -> impl FnOnce(&mut R, binrw::Endian, (i64, T::Args<'_>)) -> BinResult<T> + 'a {
-        move |reader, endian, (base, inner_args)| match self {
-            OffsetArrayImpl::U8(offsets) => {
-                let offset = offsets.get(index).ok_or_else(|| binrw::Error::AssertFail {
-                    pos: base.try_into().unwrap_or_default(),
-                    message: format!("can't get offset at index {index} for offsets {offsets:?}"),
-                })?;
-                let start = (base + i64::from(*offset)).try_into().map_err(|err| {
-                    binrw::Error::AssertFail {
-                        pos: base.try_into().unwrap_or_default(),
-                        message: format!("{err}: {base}+{offset}"),
-                    }
-                })?;
-                reader.seek(SeekFrom::Start(start))?;
-                T::read_options(reader, endian, inner_args)
-            }
-            OffsetArrayImpl::U16(offsets) => {
-                let offset = offsets.get(index).ok_or_else(|| binrw::Error::AssertFail {
-                    pos: base.try_into().unwrap_or_default(),
-                    message: format!("can't get offset at index {index} for offsets {offsets:?}"),
-                })?;
-                let start = (base + i64::from(*offset)).try_into().map_err(|err| {
-                    binrw::Error::AssertFail {
-                        pos: base.try_into().unwrap_or_default(),
-                        message: format!("{err}: {base}+{offset}"),
-                    }
-                })?;
-                reader.seek(SeekFrom::Start(start))?;
-                T::read_options(reader, endian, inner_args)
-            }
+        move |reader, endian, (base, inner_args)| {
+            let start = self.calculate_start(index, base)?;
+            reader.seek(SeekFrom::Start(start))?;
+            T::read_options(reader, endian, inner_args)
         }
     }
 
@@ -179,58 +171,12 @@ impl<const N: usize> OffsetArrayImpl<N> {
         &'a self,
         index: usize,
     ) -> impl FnOnce(&T, &mut R, binrw::Endian, (i64, T::Args<'_>)) -> BinResult<()> + 'a {
-        move |element, writer, endian, (base, inner_args)| match self {
-            OffsetArrayImpl::U8(offsets) => {
-                let offset = offsets.get(index).ok_or_else(|| binrw::Error::AssertFail {
-                    pos: base.try_into().unwrap_or_default(),
-                    message: format!("can't get offset at index {index} for offsets {offsets:?}"),
-                })?;
-                let start = (base + i64::from(*offset)).try_into().map_err(|err| {
-                    binrw::Error::AssertFail {
-                        pos: base.try_into().unwrap_or_default(),
-                        message: format!("{err}: {base}+{offset}"),
-                    }
-                })?;
-                writer.seek(SeekFrom::Start(start))?;
-                element.write_options(writer, endian, inner_args)
-            }
-            OffsetArrayImpl::U16(offsets) => {
-                let offset = offsets.get(index).ok_or_else(|| binrw::Error::AssertFail {
-                    pos: base.try_into().unwrap_or_default(),
-                    message: format!("can't get offset at index {index} for offsets {offsets:?}"),
-                })?;
-                let start = (base + i64::from(*offset)).try_into().map_err(|err| {
-                    binrw::Error::AssertFail {
-                        pos: base.try_into().unwrap_or_default(),
-                        message: format!("{err}: {base}+{offset}"),
-                    }
-                })?;
-                writer.seek(SeekFrom::Start(start))?;
-                element.write_options(writer, endian, inner_args)
-            }
+        move |element, writer, endian, (base, inner_args)| {
+            let start = self.calculate_start(index, base)?;
+            writer.seek(SeekFrom::Start(start))?;
+            element.write_options(writer, endian, inner_args)
         }
     }
-    // pub fn read_offsets<'a, T: BinRead, R: binrw::io::Read + binrw::io::Seek>(&'a self)
-    //     -> impl FnOnce(&mut R, binrw::Endian, (i64, T::Args<'_>)) -> BinResult<[T; N]> + 'a
-    // where
-    //     for<'b> T::Args<'b>: Clone
-    // {
-    //     move |reader, endian, args| {
-    //         (0..N).map(|i| self.read_offset(i)(reader, endian, args.clone())).collect().map()
-    //     }
-    // }
-
-    // pub fn write_offsets<'a, T: BinWrite, R: binrw::io::Write + binrw::io::Seek>(&'a self)
-    //     -> impl FnOnce(&[T], &mut R, binrw::Endian, (i64, T::Args<'_>)) -> BinResult<()> + 'a
-    // where
-    //     for<'b> T::Args<'b>: Clone
-    // {
-    //     move |elems, reader, endian, args| {
-    //         (0..N).zip(elems).map(|(i, elem)|
-    //             self.write_offset(i)(elem, reader, endian, args.clone())
-    //         ).collect()
-    //     }
-    // }
 }
 
 impl<const N: usize> From<[u8; N]> for OffsetArrayImpl<N> {
