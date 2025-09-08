@@ -9198,3 +9198,688 @@ fn playlist_entries_page() {
         (page_size,),
     );
 }
+
+#[test]
+fn artworks_page() {
+    let mut row_groups = vec![
+        RowGroup {
+            row_offsets: Default::default(),
+            row_presence_flags: 0,
+            unknown: 0,
+            rows: vec![],
+        };
+        7
+    ];
+
+    row_groups[6].unknown = 512;
+
+    row_groups[0]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(1),
+            path: "/PIONEER/Artwork/00001/a1.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(2),
+            path: "/PIONEER/Artwork/00001/a2.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(3),
+            path: "/PIONEER/Artwork/00001/a3.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(4),
+            path: "/PIONEER/Artwork/00001/a4.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(5),
+            path: "/PIONEER/Artwork/00001/a5.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(6),
+            path: "/PIONEER/Artwork/00001/a6.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(7),
+            path: "/PIONEER/Artwork/00001/a7.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(8),
+            path: "/PIONEER/Artwork/00001/a8.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(9),
+            path: "/PIONEER/Artwork/00001/a9.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(10),
+            path: "/PIONEER/Artwork/00001/a10.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(11),
+            path: "/PIONEER/Artwork/00001/a11.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(12),
+            path: "/PIONEER/Artwork/00001/a12.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(13),
+            path: "/PIONEER/Artwork/00001/a13.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(14),
+            path: "/PIONEER/Artwork/00001/a14.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(15),
+            path: "/PIONEER/Artwork/00001/a15.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(16),
+            path: "/PIONEER/Artwork/00001/a16.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+
+    row_groups[1]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(17),
+            path: "/PIONEER/Artwork/00001/a17.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(18),
+            path: "/PIONEER/Artwork/00001/a18.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(19),
+            path: "/PIONEER/Artwork/00001/a19.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(20),
+            path: "/PIONEER/Artwork/00002/a20.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(21),
+            path: "/PIONEER/Artwork/00002/a21.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(22),
+            path: "/PIONEER/Artwork/00002/a22.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(23),
+            path: "/PIONEER/Artwork/00002/a23.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(24),
+            path: "/PIONEER/Artwork/00002/a24.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(25),
+            path: "/PIONEER/Artwork/00002/a25.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(26),
+            path: "/PIONEER/Artwork/00002/a26.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(27),
+            path: "/PIONEER/Artwork/00002/a27.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(28),
+            path: "/PIONEER/Artwork/00002/a28.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(29),
+            path: "/PIONEER/Artwork/00002/a29.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(30),
+            path: "/PIONEER/Artwork/00002/a30.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(31),
+            path: "/PIONEER/Artwork/00002/a31.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(32),
+            path: "/PIONEER/Artwork/00002/a32.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+
+    row_groups[2]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(33),
+            path: "/PIONEER/Artwork/00002/a33.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(34),
+            path: "/PIONEER/Artwork/00002/a34.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(35),
+            path: "/PIONEER/Artwork/00002/a35.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(36),
+            path: "/PIONEER/Artwork/00002/a36.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(37),
+            path: "/PIONEER/Artwork/00002/a37.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(38),
+            path: "/PIONEER/Artwork/00002/a38.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(39),
+            path: "/PIONEER/Artwork/00002/a39.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(40),
+            path: "/PIONEER/Artwork/00003/a40.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(41),
+            path: "/PIONEER/Artwork/00003/a41.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(42),
+            path: "/PIONEER/Artwork/00003/a42.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(43),
+            path: "/PIONEER/Artwork/00003/a43.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(44),
+            path: "/PIONEER/Artwork/00003/a44.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(45),
+            path: "/PIONEER/Artwork/00003/a45.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(46),
+            path: "/PIONEER/Artwork/00003/a46.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(47),
+            path: "/PIONEER/Artwork/00003/a47.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[2]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(48),
+            path: "/PIONEER/Artwork/00003/a48.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+
+    row_groups[3]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(49),
+            path: "/PIONEER/Artwork/00003/a49.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(50),
+            path: "/PIONEER/Artwork/00003/a50.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(51),
+            path: "/PIONEER/Artwork/00003/a51.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(52),
+            path: "/PIONEER/Artwork/00003/a52.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(53),
+            path: "/PIONEER/Artwork/00003/a53.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(54),
+            path: "/PIONEER/Artwork/00003/a54.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(55),
+            path: "/PIONEER/Artwork/00003/a55.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(56),
+            path: "/PIONEER/Artwork/00003/a56.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(57),
+            path: "/PIONEER/Artwork/00003/a57.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(58),
+            path: "/PIONEER/Artwork/00003/a58.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(59),
+            path: "/PIONEER/Artwork/00003/a59.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(60),
+            path: "/PIONEER/Artwork/00004/a60.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(61),
+            path: "/PIONEER/Artwork/00004/a61.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(62),
+            path: "/PIONEER/Artwork/00004/a62.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(63),
+            path: "/PIONEER/Artwork/00004/a63.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[3]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(64),
+            path: "/PIONEER/Artwork/00004/a64.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+
+    row_groups[4]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(65),
+            path: "/PIONEER/Artwork/00004/a65.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(66),
+            path: "/PIONEER/Artwork/00004/a66.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(67),
+            path: "/PIONEER/Artwork/00004/a67.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(68),
+            path: "/PIONEER/Artwork/00004/a68.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(69),
+            path: "/PIONEER/Artwork/00004/a69.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(70),
+            path: "/PIONEER/Artwork/00004/a70.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(71),
+            path: "/PIONEER/Artwork/00004/a71.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(72),
+            path: "/PIONEER/Artwork/00004/a72.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(73),
+            path: "/PIONEER/Artwork/00004/a73.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(74),
+            path: "/PIONEER/Artwork/00004/a74.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(75),
+            path: "/PIONEER/Artwork/00004/a75.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(76),
+            path: "/PIONEER/Artwork/00004/a76.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(77),
+            path: "/PIONEER/Artwork/00004/a77.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(78),
+            path: "/PIONEER/Artwork/00004/a78.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(79),
+            path: "/PIONEER/Artwork/00004/a79.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[4]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(80),
+            path: "/PIONEER/Artwork/00005/a80.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+
+    row_groups[5]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(81),
+            path: "/PIONEER/Artwork/00005/a81.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(82),
+            path: "/PIONEER/Artwork/00005/a82.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(83),
+            path: "/PIONEER/Artwork/00005/a83.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(84),
+            path: "/PIONEER/Artwork/00005/a84.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(85),
+            path: "/PIONEER/Artwork/00005/a85.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(86),
+            path: "/PIONEER/Artwork/00005/a86.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(87),
+            path: "/PIONEER/Artwork/00005/a87.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(88),
+            path: "/PIONEER/Artwork/00005/a88.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(89),
+            path: "/PIONEER/Artwork/00005/a89.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(90),
+            path: "/PIONEER/Artwork/00005/a90.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(91),
+            path: "/PIONEER/Artwork/00005/a91.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(92),
+            path: "/PIONEER/Artwork/00005/a92.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(93),
+            path: "/PIONEER/Artwork/00005/a93.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(94),
+            path: "/PIONEER/Artwork/00005/a94.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(95),
+            path: "/PIONEER/Artwork/00005/a95.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[5]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(96),
+            path: "/PIONEER/Artwork/00005/a96.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+
+    row_groups[6]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(97),
+            path: "/PIONEER/Artwork/00005/a97.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(98),
+            path: "/PIONEER/Artwork/00005/a98.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(99),
+            path: "/PIONEER/Artwork/00005/a99.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(100),
+            path: "/PIONEER/Artwork/00006/a100.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(101),
+            path: "/PIONEER/Artwork/00006/a101.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(102),
+            path: "/PIONEER/Artwork/00006/a102.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(103),
+            path: "/PIONEER/Artwork/00006/a103.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(104),
+            path: "/PIONEER/Artwork/00006/a104.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(105),
+            path: "/PIONEER/Artwork/00006/a105.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+    row_groups[6]
+        .add_row(Row::Artwork(Artwork {
+            id: ArtworkId(106),
+            path: "/PIONEER/Artwork/00006/a106.jpg".parse().unwrap(),
+        }))
+        .unwrap();
+
+    let page = Page {
+        page_index: PageIndex(28),
+        page_type: PageType::Artwork,
+        next_page: PageIndex(53),
+        unknown1: 1019,
+        unknown2: 0,
+        num_rows_small: 106,
+        unknown3: 64,
+        unknown4: 13,
+        page_flags: PageFlags(36),
+        free_size: 0,
+        used_size: 3816,
+        unknown5: 1,
+        num_rows_large: 105,
+        unknown6: 0,
+        unknown7: 0,
+        row_groups,
+    };
+
+    let page_size = 4096;
+    test_roundtrip_with_args(
+        include_bytes!("../../data/pdb/unit_tests/artworks_page.bin"),
+        page,
+        (page_size,),
+        (page_size,),
+    );
+}
