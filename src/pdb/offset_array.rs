@@ -6,17 +6,96 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
+//! Module for reading and writing offset arrays.
+//! An offset array consists of an array of offsets, followed by data at those offsets.
+//! The offsets can be either u8 or u16, specified by the `OffsetSize` enum.
+//! The inner type `T` is read/written with the offsets and a base offset passed as arguments.
+//! The inner type `T` must implement `BinRead` and `BinWrite`, and its `Args` must be a tuple of
+//! `(i64, &OffsetArrayImpl<N>, IA)`, where the first argument is the base offset,
+//! the second argument is a reference to the `OffsetArrayImpl<N>`, and the third argument is any additional
+//! arguments required by `T`.
+//! The `OffsetArray` itself takes as arguments a tuple of `(usize, OffsetSize, IA)`, where the first argument is the
+//! offset to subtract from the start of the offset array to get the base offset, the second argument is the
+//! `OffsetSize`, and the third argument is any additional arguments required by `T`.
+//! The number of offsets is determined by the const generic parameter `N`.
+//! For example, an `OffsetArray<T, 3>` will read/write 3 offsets, followed by the data for `T`.
+//! The offsets are read/written in little-endian format.
+//! The inner type `T` is also read/written in little-endian format.
+//! This struct implements `Deref` to `T`, so the inner value can be accessed directly.
+//!! Example:
+//! ```
+//! # use binrw::{binrw, BinRead, BinWrite};
+//! # use rekordcrate::pdb::offset_array::{OffsetArray, OffsetArrayImpl, OffsetSize};
+//! #[binrw]
+//! #[brw(little)]
+//! #[br(import(base: i64, offsets: &OffsetArrayImpl<1>, args: <T as BinRead>::Args<'_>))]
+//! #[bw(import(base: i64, offsets: &OffsetArrayImpl<1>, args: <T as BinWrite>::Args<'_>))]
+//! #[derive(Debug, PartialEq)]
+//! struct SingleTarget<T: BinRead + BinWrite>(
+//!     #[brw(args(base, args))]
+//!     #[br(parse_with = offsets.read_offset(0))]
+//!     #[bw(write_with = offsets.write_offset(0))]
+//!     T,
+//! );
+//! let near_u8_tail = OffsetArray {
+//!     offsets: [1u8].into(),
+//!     inner: SingleTarget(42u8),
+//! };
+//! ```
+
 use binrw::{binrw, io::SeekFrom, BinRead, BinResult, BinWrite};
 
+/// Specifies whether the offsets are stored as u8 or u16.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum OffsetSize {
+    /// Offsets are stored as u8.
     U8,
+    /// Offsets are stored as u16.
     U16,
 }
-
+/// An array of offsets, followed by data at those offsets.
+/// The offsets are relative to the start of the offset array, minus an optional offset.
+/// The offsets can be either u8 or u16, specified by the `OffsetSize`
+/// The inner type `T` is read/written with the offsets and a base offset passed as arguments.
+/// The inner type `T` must implement `BinRead` and `BinWrite`, and its `Args` must be a tuple of
+/// `(i64, &OffsetArrayImpl<N>, IA)`, where the first argument is the base offset,
+/// the second argument is a reference to the `OffsetArrayImpl<N>`, and the third argument is any additional
+/// arguments required by `T`.
+/// The `OffsetArray` itself takes as arguments a tuple of `(usize, OffsetSize, IA)`, where the first argument is the
+/// offset to subtract from the start of the offset array to get the base offset, the second argument is the
+/// `OffsetSize`, and the third argument is any additional arguments required by `T`.
+/// The number of offsets is determined by the const generic parameter `N`.
+/// For example, an `OffsetArray<T, 3>` will read/write 3 offsets, followed by the data for `T`.
+/// The offsets are read/written in little-endian format.
+/// The inner type `T` is also read/written in little-endian format.
+/// This struct implements `Deref` to `T`, so the inner value can be accessed directly.
+/// Example:
+/// ```
+/// # use binrw::{binrw, BinRead, BinWrite};
+/// # use rekordcrate::pdb::offset_array::{OffsetArray, OffsetArrayImpl, OffsetSize};
+/// # use binrw::VecArgs;
+/// #[binrw]
+/// #[brw(little)]
+/// #[br(import(base: i64, offsets: &OffsetArrayImpl<1>, args: <T as BinRead>::Args<'_>))]
+/// #[bw(import(base: i64, offsets: &OffsetArrayImpl<1>, args: <T as BinWrite>::Args<'_>))]
+/// #[derive(Debug, PartialEq)]
+/// struct SingleTarget<T: BinRead + BinWrite>(
+///     #[brw(args(base, args))]
+///     #[br(parse_with = offsets.read_offset(0))]
+///     #[bw(write_with = offsets.write_offset(0))]
+///     T,
+/// );
+///
+/// let near_u8_tail = OffsetArray {
+///     offsets: [1u8].into(),
+///     inner: SingleTarget(42u8),
+/// };
+/// ```
 #[derive(Debug, PartialEq, Clone, Eq)]
 pub struct OffsetArray<T, const N: usize> {
+    /// The offsets, either u8 or u16.
     pub offsets: OffsetArrayImpl<N>,
+    /// The inner value, read/written with the offsets.
     pub inner: T,
 }
 
@@ -112,13 +191,20 @@ where
     }
 }
 
+/// The implementation of the offset array, which can be either u8 or u16.
+/// This is a private implementation detail, use `OffsetArray` instead.
+/// This enum is used to read/write the offsets, and to provide the `read_offset` and
+/// `write_offset` methods to read/write the inner type `T` at the specified offsets.
+/// The offsets are stored in little-endian format.
 #[binrw]
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[brw(little)]
 #[br(import(size: OffsetSize))]
 pub enum OffsetArrayImpl<const N: usize> {
+    /// Offsets are stored as u8.
     #[br(pre_assert(size == OffsetSize::U8))]
     U8([u8; N]),
+    /// Offsets are stored as u16.
     #[br(pre_assert(size == OffsetSize::U16))]
     U16([u16; N]),
 }
@@ -155,7 +241,11 @@ impl<const N: usize> OffsetArrayImpl<N> {
                 })?;
         Ok(start)
     }
-
+    /// Returns a parser that reads a type  `T` at the specified index.
+    /// The parser takes as arguments a tuple of `(i64, T::Args<'_>)`, where the first argument is the base offset,
+    /// and the second argument is any additional arguments required by `T`.
+    /// The parser seeks to the calculated start position, and then reads `T` with the provided arguments.
+    /// The parser returns a `BinResult<T>`.
     pub fn read_offset<'a, T: BinRead, R: binrw::io::Read + binrw::io::Seek>(
         &'a self,
         index: usize,
@@ -167,6 +257,11 @@ impl<const N: usize> OffsetArrayImpl<N> {
         }
     }
 
+    /// Returns a writer that writes a type `T` at the specified index.
+    /// The writer takes as arguments a tuple of `(i64, T::Args<'_})`, where the first argument is the base offset,
+    /// and the second argument is any additional arguments required by `T`.
+    /// The writer seeks to the calculated start position, and then writes `T` with the provided arguments.
+    /// The writer returns a `BinResult<()>`.
     pub fn write_offset<'a, T: BinWrite, R: binrw::io::Write + binrw::io::Seek>(
         &'a self,
         index: usize,

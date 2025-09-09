@@ -18,7 +18,7 @@
 //! - <https://github.com/henrybetts/Rekordbox-Decoding>
 //! - <https://github.com/flesniak/python-prodj-link/tree/master/prodj/pdblib>
 
-mod offset_array;
+pub mod offset_array;
 pub mod string;
 
 use offset_array::OffsetArray;
