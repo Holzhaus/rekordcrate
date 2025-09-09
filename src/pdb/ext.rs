@@ -23,6 +23,7 @@ use crate::pdb::{DeviceSQLString, OffsetArray, OffsetArrayContainer, Subtype, Tr
 use binrw::binrw;
 use std::num::NonZero;
 
+/// A unique identifier for a tag or category.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 #[brw(little)]
@@ -31,6 +32,7 @@ pub struct TagId(pub u32);
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 #[brw(little)]
+/// A possibly absent parent ID. If the ID is zero (None), then there is no parent.
 pub struct ParentId(
     #[br(try)] // failing to parse is fine, since then its just non-zero
     pub  Option<NonZero<u32>>,
@@ -51,6 +53,7 @@ struct TagOrCategoryStrings {
     unknown: DeviceSQLString,
 }
 
+/// A tag or category that can be assigned to tracks for the purpose of categorization.
 // https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/exports.html#tag-rows
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]

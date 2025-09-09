@@ -44,10 +44,14 @@ fn current_offset<R: Read + Seek>(reader: &mut R, _: Endian, _: ()) -> BinResult
     reader.stream_position().map_err(binrw::Error::Io)
 }
 
+/// The type of the database were looking at.
+/// This influences the meaning of the the pagetypes found in tables.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
 pub enum DatabaseType {
     #[default] // use plain by default for use of migration
+    /// Standard export.pdb files.
     Plain,
+    /// Extended exportExt.pdb files.
     Ext,
 }
 
@@ -58,9 +62,12 @@ pub enum DatabaseType {
 #[brw(import(db_type: DatabaseType))]
 pub enum PageType {
     #[br(pre_assert(db_type == DatabaseType::Plain))]
+    /// Pagetypes present in `export.pdb` files.
     Plain(PlainPageType),
     #[br(pre_assert(db_type == DatabaseType::Ext))]
+    /// Pagetypes present in `exportExt.pdb` files.
     Ext(ExtPageType),
+    /// Unknown page type.
     Unknown(u32),
 }
 
@@ -1127,6 +1134,7 @@ impl PlainRow {
 pub enum Row {
     // TODO(Swiftb0y: come up with something prettier than the match hell below)
     #[br(pre_assert(matches!(page_type, PageType::Plain(_))))]
+    /// A row in a "plain" database (export.pdb), which contains one of the known row types.
     Plain(
         #[br(args(match page_type {
             PageType::Plain(v) => v,
@@ -1135,6 +1143,7 @@ pub enum Row {
         PlainRow,
     ),
     #[br(pre_assert(matches!(page_type, PageType::Ext(_))))]
+    /// A row in an "ext" database (exportExt.pdb), which contains extended track information.
     Ext(
         #[br(args(match page_type {
             PageType::Ext(v) => v,
