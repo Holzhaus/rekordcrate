@@ -57,7 +57,7 @@ pub enum StringError {
 #[derive(PartialEq, Eq, Clone)]
 #[binrw]
 #[brw(little)]
-pub struct DeviceSQLString(DeviceSQLStringImpl);
+pub struct DeviceSQLString(#[br(dbg)] DeviceSQLStringImpl);
 impl DeviceSQLString {
     /// Initializes a [`DeviceSQLString`] from a plain Rust [`std::string::String`]
     pub fn new(string: &str) -> Result<Self, StringError> {

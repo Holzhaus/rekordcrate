@@ -18,6 +18,7 @@
 //! - <https://github.com/henrybetts/Rekordbox-Decoding>
 //! - <https://github.com/flesniak/python-prodj-link/tree/master/prodj/pdblib>
 
+pub mod ext;
 pub mod offset_array;
 pub mod string;
 
@@ -28,6 +29,7 @@ mod test;
 
 use std::convert::TryInto;
 
+use crate::pdb::ext::{ExtPageType, ExtRow};
 use crate::pdb::offset_array::{OffsetArray, OffsetSize};
 use crate::pdb::string::DeviceSQLString;
 use crate::util::{ColorIndex, ExplicitPadding};
@@ -42,11 +44,31 @@ fn current_offset<R: Read + Seek>(reader: &mut R, _: Endian, _: ()) -> BinResult
     reader.stream_position().map_err(binrw::Error::Io)
 }
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
+pub enum DatabaseType {
+    #[default] // use plain by default for use of migration
+    Plain,
+    Ext,
+}
+
 /// The type of pages found inside a `Table`.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[brw(little)]
+#[brw(import(db_type: DatabaseType))]
 pub enum PageType {
+    #[br(pre_assert(db_type == DatabaseType::Plain))]
+    Plain(PlainPageType),
+    #[br(pre_assert(db_type == DatabaseType::Ext))]
+    Ext(ExtPageType),
+    Unknown(u32),
+}
+
+/// The type of pages found inside a `Table` of export.pdb files.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[brw(little)]
+pub enum PlainPageType {
     /// Holds rows of track metadata, such as title, artist, genre, artwork ID, playing time, etc.
     #[brw(magic = 0u32)]
     Tracks,
@@ -91,8 +113,6 @@ pub enum PageType {
     /// Holds information used by rekordbox to synchronize history playlists (not yet studied).
     #[brw(magic = 19u32)]
     History,
-    /// Unknown Page type.
-    Unknown(u32),
 }
 
 /// Points to a table page and can be used to calculate the page's file offset by multiplying it
@@ -115,8 +135,10 @@ impl PageIndex {
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
+#[brw(import(db_type: DatabaseType))]
 pub struct Table {
     /// Identifies the type of rows that this table contains.
+    #[brw(args(db_type))]
     pub page_type: PageType,
     /// Unknown field, maybe links to a chain of empty pages if the database is ever garbage
     /// collected (?).
@@ -135,6 +157,7 @@ pub struct Table {
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
+#[brw(import(db_type: DatabaseType))]
 pub struct Header {
     /// Unknown purpose, perhaps an unoriginal signature, seems to always have the value 0.
     #[br(temp, assert(unknown1 == 0))]
@@ -161,7 +184,8 @@ pub struct Header {
     #[bw(calc = 0u32)]
     gap: u32,
     /// Each table is a linked list of pages containing rows of a particular type.
-    #[br(count = num_tables)]
+    #[br(count = num_tables, args {inner: (db_type,)})]
+    #[bw(args(db_type))]
     pub tables: Vec<Table>,
 }
 
@@ -171,17 +195,17 @@ impl Header {
         &self,
         reader: &mut R,
         _: Endian,
-        args: (&PageIndex, &PageIndex),
+        args: (&PageIndex, &PageIndex, DatabaseType),
     ) -> BinResult<Vec<Page>> {
         let endian = Endian::Little;
-        let (first_page, last_page) = args;
+        let (first_page, last_page, db_type) = args;
 
         let mut pages = vec![];
         let mut page_index = first_page.clone();
         loop {
             let page_offset = SeekFrom::Start(page_index.offset(self.page_size));
             reader.seek(page_offset).map_err(binrw::Error::Io)?;
-            let page = Page::read_options(reader, endian, (self.page_size,))?;
+            let page = Page::read_options(reader, endian, (self.page_size, db_type))?;
             let is_last_page = &page.page_index == last_page;
             page_index = page.next_page.clone();
             pages.push(page);
@@ -237,7 +261,7 @@ fn write_page_contents<W: Write + Seek>(
 /// offset found in the page footer at the end of the page.
 #[binrw]
 #[derive(Debug, PartialEq)]
-#[brw(little, import(page_size: u32))]
+#[brw(little, import(page_size: u32, db_type: DatabaseType))]
 pub struct Page {
     /// Stream position at the beginning of the page; used to compute heap base for standalone buffers.
     #[br(temp, parse_with = current_offset)]
@@ -254,6 +278,7 @@ pub struct Page {
     /// Type of information that the rows of this page contain.
     ///
     /// Should match the page type of the table that this page belongs to.
+    #[brw(args(db_type))]
     pub page_type: PageType,
     /// Index of the next page with the same page type.
     ///
@@ -1015,61 +1040,58 @@ pub struct Track {
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
-#[br(import(page_type: PageType))]
+#[br(import(page_type: PlainPageType))]
 // The large enum size is unfortunate, but since users of this library will probably use iterators
 // to consume the results on demand, we can live with this. The alternative of using a `Box` would
 // require a heap allocation per row, which is arguably worse. Hence, the warning is disabled for
 // this enum.
 #[allow(clippy::large_enum_variant)]
-pub enum Row {
+pub enum PlainRow {
     /// Contains the album name, along with an ID of the corresponding artist.
-    #[br(pre_assert(page_type == PageType::Albums))]
+    #[br(pre_assert(page_type == PlainPageType::Albums))]
     Album(Album),
     /// Contains the artist name and ID.
-    #[br(pre_assert(page_type == PageType::Artists))]
+    #[br(pre_assert(page_type == PlainPageType::Artists))]
     Artist(Artist),
     /// Contains the artwork path and ID.
-    #[br(pre_assert(page_type == PageType::Artwork))]
+    #[br(pre_assert(page_type == PlainPageType::Artwork))]
     Artwork(Artwork),
     /// Contains numeric color ID
-    #[br(pre_assert(page_type == PageType::Colors))]
+    #[br(pre_assert(page_type == PlainPageType::Colors))]
     Color(Color),
     /// Represents a musical genre.
-    #[br(pre_assert(page_type == PageType::Genres))]
+    #[br(pre_assert(page_type == PlainPageType::Genres))]
     Genre(Genre),
     /// Represents a history playlist.
-    #[br(pre_assert(page_type == PageType::HistoryPlaylists))]
+    #[br(pre_assert(page_type == PlainPageType::HistoryPlaylists))]
     HistoryPlaylist(HistoryPlaylist),
     /// Represents a history playlist.
-    #[br(pre_assert(page_type == PageType::HistoryEntries))]
+    #[br(pre_assert(page_type == PlainPageType::HistoryEntries))]
     HistoryEntry(HistoryEntry),
     /// Represents a musical key.
-    #[br(pre_assert(page_type == PageType::Keys))]
+    #[br(pre_assert(page_type == PlainPageType::Keys))]
     Key(Key),
     /// Represents a record label.
-    #[br(pre_assert(page_type == PageType::Labels))]
+    #[br(pre_assert(page_type == PlainPageType::Labels))]
     Label(Label),
     /// Represents a node in the playlist tree (either a folder or a playlist).
-    #[br(pre_assert(page_type == PageType::PlaylistTree))]
+    #[br(pre_assert(page_type == PlainPageType::PlaylistTree))]
     PlaylistTreeNode(PlaylistTreeNode),
     /// Represents a track entry in a playlist.
-    #[br(pre_assert(page_type == PageType::PlaylistEntries))]
+    #[br(pre_assert(page_type == PlainPageType::PlaylistEntries))]
     PlaylistEntry(PlaylistEntry),
     /// Contains the metadata categories by which Tracks can be browsed by.
-    #[br(pre_assert(page_type == PageType::Columns))]
+    #[br(pre_assert(page_type == PlainPageType::Columns))]
     ColumnEntry(ColumnEntry),
     /// Contains the album name, along with an ID of the corresponding artist.
-    #[br(pre_assert(page_type == PageType::Tracks))]
+    #[br(pre_assert(page_type == PlainPageType::Tracks))]
     Track(Track),
-    /// The row format (and also its size) is unknown, which means it can't be parsed.
-    #[br(pre_assert(matches!(page_type, PageType::History | PageType::Unknown(_))))]
-    Unknown,
 }
 
-impl Row {
+impl PlainRow {
     #[must_use]
     const fn align_by(&self, offset: u64) -> u64 {
-        use crate::pdb::Row::*;
+        use crate::pdb::PlainRow::*;
         use crate::util::align_by;
         use std::mem::align_of_val;
         // unfortunately I couldn't find any less copy-pastey way of doing this
@@ -1088,7 +1110,50 @@ impl Row {
             PlaylistTreeNode(_) => align_by(4, offset),
             PlaylistEntry(r) => align_by(align_of_val(r) as u64, offset),
             Track(_) => offset, // already handled by track serialization
-            Unknown => offset,
+        }
+    }
+}
+
+/// A table row contains the actual data.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[brw(little)]
+#[br(import(page_type: PageType))]
+// The large enum size is unfortunate, but since users of this library will probably use iterators
+// to consume the results on demand, we can live with this. The alternative of using a `Box` would
+// require a heap allocation per row, which is arguably worse. Hence, the warning is disabled for
+// this enum.
+#[allow(clippy::large_enum_variant)]
+pub enum Row {
+    // TODO(Swiftb0y: come up with something prettier than the match hell below)
+    #[br(pre_assert(matches!(page_type, PageType::Plain(_))))]
+    Plain(
+        #[br(args(match page_type {
+            PageType::Plain(v) => v,
+            _ => unreachable!("by above pre_assert")
+        }))]
+        PlainRow,
+    ),
+    #[br(pre_assert(matches!(page_type, PageType::Ext(_))))]
+    Ext(
+        #[br(args(match page_type {
+            PageType::Ext(v) => v,
+            _ => unreachable!("by above pre_assert")
+        }))]
+        ExtRow,
+    ),
+    /// The row format (and also its size) is unknown, which means it can't be parsed.
+    #[br(pre_assert(matches!(page_type, PageType::Plain(PlainPageType::History) | PageType::Unknown(_))))]
+    Unknown,
+}
+
+impl Row {
+    #[must_use]
+    fn align_by(&self, offset: u64) -> u64 {
+        match self {
+            Row::Plain(plain_row) => plain_row.align_by(offset),
+            Row::Ext(ext_row) => ext_row.align_by(offset),
+            Row::Unknown => offset,
         }
     }
 }

@@ -12,7 +12,7 @@ fn pdb_{name}() {{
         let pages = header.read_pages(
                 &mut reader,
                 binrw::Endian::NATIVE,
-                (&table.first_page, &table.last_page),
+                (&table.first_page, &table.last_page, DatabaseType::Plain),
             )
             .expect("failed to read pages");
 

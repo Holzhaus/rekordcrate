@@ -9,7 +9,7 @@
 use binrw::BinRead;
 use clap::{Parser, Subcommand};
 use rekordcrate::anlz::ANLZ;
-use rekordcrate::pdb::{Header, PageType, Row};
+use rekordcrate::pdb::{DatabaseType, Header, PageType, PlainPageType, PlainRow, Row};
 use rekordcrate::setting::Setting;
 use rekordcrate::xml::Document;
 use std::path::PathBuf;
@@ -38,6 +38,12 @@ enum Commands {
     },
     /// Parse and dump a Pioneer Database (`.PDB`) file.
     DumpPDB {
+        /// File to parse.
+        #[arg(value_name = "PDB_FILE")]
+        path: PathBuf,
+    },
+    /// Parse and dump a Pioneer Database (`.PDB`) file.
+    DumpExtPDB {
         /// File to parse.
         #[arg(value_name = "PDB_FILE")]
         path: PathBuf,
@@ -80,20 +86,25 @@ fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
     }
 
     let mut reader = std::fs::File::open(path)?;
-    let header = Header::read(&mut reader)?;
+    let header = Header::read_args(&mut reader, (DatabaseType::Plain,))?;
 
     let mut tree: HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>> = HashMap::new();
 
     header
         .tables
         .iter()
-        .filter(|table| table.page_type == PageType::PlaylistTree)
+        .filter(|table| {
+            matches!(
+                table.page_type,
+                PageType::Plain(PlainPageType::PlaylistTree)
+            )
+        })
         .flat_map(|table| {
             header
                 .read_pages(
                     &mut reader,
                     binrw::Endian::NATIVE,
-                    (&table.first_page, &table.last_page),
+                    (&table.first_page, &table.last_page, DatabaseType::Plain),
                 )
                 .unwrap()
                 .into_iter()
@@ -103,7 +114,7 @@ fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
                         .present_rows()
                         .iter()
                         .map(|row| {
-                            if let Row::PlaylistTreeNode(playlist_tree) = row {
+                            if let Row::Plain(PlainRow::PlaylistTreeNode(playlist_tree)) = row {
                                 playlist_tree.clone()
                             } else {
                                 unreachable!("encountered non-playlist tree row in playlist table");
@@ -128,9 +139,9 @@ fn dump_anlz(path: &PathBuf) -> rekordcrate::Result<()> {
     Ok(())
 }
 
-fn dump_pdb(path: &PathBuf) -> rekordcrate::Result<()> {
+fn dump_pdb(path: &PathBuf, typ: DatabaseType) -> rekordcrate::Result<()> {
     let mut reader = std::fs::File::open(path)?;
-    let header = Header::read(&mut reader)?;
+    let header = Header::read_args(&mut reader, (typ,))?;
 
     println!("{:#?}", header);
 
@@ -140,7 +151,7 @@ fn dump_pdb(path: &PathBuf) -> rekordcrate::Result<()> {
             .read_pages(
                 &mut reader,
                 binrw::Endian::NATIVE,
-                (&table.first_page, &table.last_page),
+                (&table.first_page, &table.last_page, typ),
             )
             .unwrap()
             .into_iter()
@@ -181,9 +192,10 @@ fn main() -> rekordcrate::Result<()> {
 
     match &cli.command {
         Commands::ListPlaylists { path } => list_playlists(path),
-        Commands::DumpPDB { path } => dump_pdb(path),
+        Commands::DumpPDB { path } => dump_pdb(path, DatabaseType::Plain),
         Commands::DumpANLZ { path } => dump_anlz(path),
         Commands::DumpSetting { path } => dump_setting(path),
         Commands::DumpXML { path } => dump_xml(path),
+        Commands::DumpExtPDB { path } => dump_pdb(path, DatabaseType::Ext),
     }
 }
