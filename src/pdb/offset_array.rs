@@ -11,8 +11,8 @@
 //! The offsets can be either u8 or u16, specified by the `OffsetSize` enum.
 //! The inner type `T` is read/written with the offsets and a base offset passed as arguments.
 //! The inner type `T` must implement `BinRead` and `BinWrite`, and its `Args` must be a tuple of
-//! `(i64, &OffsetArrayImpl<N>, IA)`, where the first argument is the base offset,
-//! the second argument is a reference to the `OffsetArrayImpl<N>`, and the third argument is any additional
+//! `(i64, &OffsetArray<N>, IA)`, where the first argument is the base offset,
+//! the second argument is a reference to the `OffsetArray<N>`, and the third argument is any additional
 //! arguments required by `T`.
 //! The `OffsetArray` itself takes as arguments a tuple of `(usize, OffsetSize, IA)`, where the first argument is the
 //! offset to subtract from the start of the offset array to get the base offset, the second argument is the
@@ -25,11 +25,11 @@
 //!! Example:
 //! ```
 //! # use binrw::{binrw, BinRead, BinWrite};
-//! # use rekordcrate::pdb::offset_array::{OffsetArray, OffsetArrayImpl, OffsetSize};
+//! # use rekordcrate::pdb::offset_array::{OffsetArrayContainer, OffsetArray, OffsetSize};
 //! #[binrw]
 //! #[brw(little)]
-//! #[br(import(base: i64, offsets: &OffsetArrayImpl<1>, args: <T as BinRead>::Args<'_>))]
-//! #[bw(import(base: i64, offsets: &OffsetArrayImpl<1>, args: <T as BinWrite>::Args<'_>))]
+//! #[br(import(base: i64, offsets: &OffsetArray<1>, args: <T as BinRead>::Args<'_>))]
+//! #[bw(import(base: i64, offsets: &OffsetArray<1>, args: <T as BinWrite>::Args<'_>))]
 //! #[derive(Debug, PartialEq)]
 //! struct SingleTarget<T: BinRead + BinWrite>(
 //!     #[brw(args(base, args))]
@@ -37,7 +37,7 @@
 //!     #[bw(write_with = offsets.write_offset(0))]
 //!     T,
 //! );
-//! let near_u8_tail = OffsetArray {
+//! let near_u8_tail = OffsetArrayContainer {
 //!     offsets: [1u8].into(),
 //!     inner: SingleTarget(42u8),
 //! };
@@ -58,8 +58,8 @@ pub enum OffsetSize {
 /// The offsets can be either u8 or u16, specified by the `OffsetSize`
 /// The inner type `T` is read/written with the offsets and a base offset passed as arguments.
 /// The inner type `T` must implement `BinRead` and `BinWrite`, and its `Args` must be a tuple of
-/// `(i64, &OffsetArrayImpl<N>, IA)`, where the first argument is the base offset,
-/// the second argument is a reference to the `OffsetArrayImpl<N>`, and the third argument is any additional
+/// `(i64, &OffsetArray<N>, IA)`, where the first argument is the base offset,
+/// the second argument is a reference to the `OffsetArray<N>`, and the third argument is any additional
 /// arguments required by `T`.
 /// The `OffsetArray` itself takes as arguments a tuple of `(usize, OffsetSize, IA)`, where the first argument is the
 /// offset to subtract from the start of the offset array to get the base offset, the second argument is the
@@ -72,12 +72,12 @@ pub enum OffsetSize {
 /// Example:
 /// ```
 /// # use binrw::{binrw, BinRead, BinWrite};
-/// # use rekordcrate::pdb::offset_array::{OffsetArray, OffsetArrayImpl, OffsetSize};
+/// # use rekordcrate::pdb::offset_array::{OffsetArrayContainer, OffsetArray, OffsetSize};
 /// # use binrw::VecArgs;
 /// #[binrw]
 /// #[brw(little)]
-/// #[br(import(base: i64, offsets: &OffsetArrayImpl<1>, args: <T as BinRead>::Args<'_>))]
-/// #[bw(import(base: i64, offsets: &OffsetArrayImpl<1>, args: <T as BinWrite>::Args<'_>))]
+/// #[br(import(base: i64, offsets: &OffsetArray<1>, args: <T as BinRead>::Args<'_>))]
+/// #[bw(import(base: i64, offsets: &OffsetArray<1>, args: <T as BinWrite>::Args<'_>))]
 /// #[derive(Debug, PartialEq)]
 /// struct SingleTarget<T: BinRead + BinWrite>(
 ///     #[brw(args(base, args))]
@@ -86,34 +86,34 @@ pub enum OffsetSize {
 ///     T,
 /// );
 ///
-/// let near_u8_tail = OffsetArray {
+/// let near_u8_tail = OffsetArrayContainer {
 ///     offsets: [1u8].into(),
 ///     inner: SingleTarget(42u8),
 /// };
 /// ```
 #[derive(Debug, PartialEq, Clone, Eq)]
-pub struct OffsetArray<T, const N: usize> {
+pub struct OffsetArrayContainer<T, const N: usize> {
     /// The offsets, either u8 or u16.
-    pub offsets: OffsetArrayImpl<N>,
+    pub offsets: OffsetArray<N>,
     /// The inner value, read/written with the offsets.
     pub inner: T,
 }
 
-impl<T, const N: usize> std::ops::Deref for OffsetArray<T, N> {
+impl<T, const N: usize> std::ops::Deref for OffsetArrayContainer<T, N> {
     type Target = T;
     fn deref(&self) -> &Self::Target {
         &(self.inner)
     }
 }
 
-impl<T: BinRead + BinWrite, const N: usize> binrw::meta::WriteEndian for OffsetArray<T, N>
+impl<T: BinRead + BinWrite, const N: usize> binrw::meta::WriteEndian for OffsetArrayContainer<T, N>
 where
     for<'a> <T as BinRead>::Args<'a>: Clone,
     for<'a> <T as BinWrite>::Args<'a>: Clone,
 {
     const ENDIAN: binrw::meta::EndianKind = binrw::meta::EndianKind::Endian(binrw::Endian::Little);
 }
-impl<T: BinRead + BinWrite, const N: usize> binrw::meta::ReadEndian for OffsetArray<T, N>
+impl<T: BinRead + BinWrite, const N: usize> binrw::meta::ReadEndian for OffsetArrayContainer<T, N>
 where
     for<'a> <T as BinRead>::Args<'a>: Clone,
     for<'a> <T as BinWrite>::Args<'a>: Clone,
@@ -121,7 +121,7 @@ where
     const ENDIAN: binrw::meta::EndianKind = binrw::meta::EndianKind::Endian(binrw::Endian::Little);
 }
 
-impl<T, const N: usize> OffsetArray<T, N> {
+impl<T, const N: usize> OffsetArrayContainer<T, N> {
     fn calculate_base(start: u64, offset: usize) -> BinResult<i64> {
         let base = i64::try_from(start).map_err(|err| binrw::Error::AssertFail {
             pos: start,
@@ -139,9 +139,9 @@ impl<T, const N: usize> OffsetArray<T, N> {
     }
 }
 
-impl<T, const N: usize, IA> BinRead for OffsetArray<T, N>
+impl<T, const N: usize, IA> BinRead for OffsetArrayContainer<T, N>
 where
-    for<'a> T: BinRead<Args<'a> = (i64, &'a OffsetArrayImpl<N>, IA)>,
+    for<'a> T: BinRead<Args<'a> = (i64, &'a OffsetArray<N>, IA)>,
 {
     type Args<'a> = (usize, OffsetSize, IA);
 
@@ -151,7 +151,7 @@ where
         (offset, offset_size, args): Self::Args<'_>,
     ) -> BinResult<Self> {
         let start = reader.stream_position()?;
-        let offsets = OffsetArrayImpl::<N>::read_options(reader, endian, (offset_size,))?;
+        let offsets = OffsetArray::<N>::read_options(reader, endian, (offset_size,))?;
         if !offsets.assert_offset_size_matches(offset_size) {
             return Err(binrw::Error::AssertFail {
                 pos: start,
@@ -164,9 +164,9 @@ where
     }
 }
 
-impl<T, const N: usize, IA> BinWrite for OffsetArray<T, N>
+impl<T, const N: usize, IA> BinWrite for OffsetArrayContainer<T, N>
 where
-    for<'a> T: BinWrite<Args<'a> = (i64, &'a OffsetArrayImpl<N>, IA)>,
+    for<'a> T: BinWrite<Args<'a> = (i64, &'a OffsetArray<N>, IA)>,
 {
     type Args<'a> = (usize, OffsetSize, IA);
 
@@ -192,7 +192,7 @@ where
 }
 
 /// The implementation of the offset array, which can be either u8 or u16.
-/// This is a private implementation detail, use `OffsetArray` instead.
+/// This is a private implementation detail, use `OffsetArrayContainer` instead.
 /// This enum is used to read/write the offsets, and to provide the `read_offset` and
 /// `write_offset` methods to read/write the inner type `T` at the specified offsets.
 /// The offsets are stored in little-endian format.
@@ -200,7 +200,7 @@ where
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[brw(little)]
 #[br(import(size: OffsetSize))]
-pub enum OffsetArrayImpl<const N: usize> {
+pub enum OffsetArray<const N: usize> {
     /// Offsets are stored as u8.
     #[br(pre_assert(size == OffsetSize::U8))]
     U8([u8; N]),
@@ -209,7 +209,7 @@ pub enum OffsetArrayImpl<const N: usize> {
     U16([u16; N]),
 }
 
-impl<const N: usize> OffsetArrayImpl<N> {
+impl<const N: usize> OffsetArray<N> {
     fn assert_offset_size_matches(&self, offset_size: OffsetSize) -> bool {
         matches!(
             (self, offset_size),
@@ -218,8 +218,8 @@ impl<const N: usize> OffsetArrayImpl<N> {
     }
     fn calculate_start(&self, index: usize, base: i64) -> BinResult<u64> {
         match self {
-            OffsetArrayImpl::U8(offsets) => Self::calculate_start_helper(offsets, index, base),
-            OffsetArrayImpl::U16(offsets) => Self::calculate_start_helper(offsets, index, base),
+            OffsetArray::U8(offsets) => Self::calculate_start_helper(offsets, index, base),
+            OffsetArray::U16(offsets) => Self::calculate_start_helper(offsets, index, base),
         }
     }
     /// This abstracts over the inner u8/u16
@@ -274,13 +274,13 @@ impl<const N: usize> OffsetArrayImpl<N> {
     }
 }
 
-impl<const N: usize> From<[u8; N]> for OffsetArrayImpl<N> {
+impl<const N: usize> From<[u8; N]> for OffsetArray<N> {
     fn from(arr: [u8; N]) -> Self {
         Self::U8(arr)
     }
 }
 
-impl<const N: usize> From<[u16; N]> for OffsetArrayImpl<N> {
+impl<const N: usize> From<[u16; N]> for OffsetArray<N> {
     fn from(arr: [u16; N]) -> Self {
         Self::U16(arr)
     }
@@ -296,15 +296,15 @@ mod test {
 
     #[binrw]
     #[brw(little)]
-    #[br(import(_base: i64, _offsets: &OffsetArrayImpl<N>, args: <T as BinRead>::Args<'_>))]
-    #[bw(import(_base: i64, _offsets: &OffsetArrayImpl<N>, args: <T as BinWrite>::Args<'_>))]
+    #[br(import(_base: i64, _offsets: &OffsetArray<N>, args: <T as BinRead>::Args<'_>))]
+    #[bw(import(_base: i64, _offsets: &OffsetArray<N>, args: <T as BinWrite>::Args<'_>))]
     #[derive(Debug, PartialEq)]
     struct IgnoreArgs<T: BinRead + BinWrite, const N: usize>(#[brw(args_raw = args)] T);
 
     #[binrw]
     #[brw(little)]
-    #[br(import(base: i64, offsets: &OffsetArrayImpl<1>, args: <T as BinRead>::Args<'_>))]
-    #[bw(import(base: i64, offsets: &OffsetArrayImpl<1>, args: <T as BinWrite>::Args<'_>))]
+    #[br(import(base: i64, offsets: &OffsetArray<1>, args: <T as BinRead>::Args<'_>))]
+    #[bw(import(base: i64, offsets: &OffsetArray<1>, args: <T as BinWrite>::Args<'_>))]
     #[derive(Debug, PartialEq)]
     // This could also be used outside of tests, it just isn't yet (though a version is, called "TrailingName")
     pub struct SingleTarget<T: BinRead + BinWrite>(
@@ -323,8 +323,8 @@ mod test {
 
     #[test]
     fn empty() {
-        let empty_offset_tail_u8 = OffsetArray {
-            offsets: OffsetArrayImpl::U8([]),
+        let empty_offset_tail_u8 = OffsetArrayContainer {
+            offsets: OffsetArray::U8([]),
             inner: IgnoreArgs(()),
         };
         test_roundtrip_with_args(
@@ -333,8 +333,8 @@ mod test {
             (0, OffsetSize::U8, ()),
             (0, OffsetSize::U8, ()),
         );
-        let empty_offset_tail_u16 = OffsetArray {
-            offsets: OffsetArrayImpl::U16([]),
+        let empty_offset_tail_u16 = OffsetArrayContainer {
+            offsets: OffsetArray::U16([]),
             inner: IgnoreArgs(vec![(); 0]),
         };
         test_roundtrip_with_args(
@@ -353,7 +353,7 @@ mod test {
     }
     #[test]
     fn near_u8() {
-        let near_u8_tail = OffsetArray {
+        let near_u8_tail = OffsetArrayContainer {
             offsets: [1u8].into(),
             inner: SingleTarget(42u8),
         };
@@ -366,7 +366,7 @@ mod test {
     }
     #[test]
     fn buffer() {
-        let buffer = OffsetArray {
+        let buffer = OffsetArrayContainer {
             offsets: [1u8].into(),
             inner: SingleTarget(0xDEADBEEF_u32.to_be_bytes()),
         };
@@ -379,7 +379,7 @@ mod test {
     }
     #[test]
     fn near_remote() {
-        let near_remote = OffsetArray {
+        let near_remote = OffsetArrayContainer {
             offsets: [4u8].into(),
             inner: SingleTarget(42u8),
         };
@@ -392,7 +392,7 @@ mod test {
     }
     #[test]
     fn far_remote() {
-        let far_remote = OffsetArray {
+        let far_remote = OffsetArrayContainer {
             offsets: [3u16].into(),
             inner: SingleTarget(42u8),
         };
@@ -405,7 +405,7 @@ mod test {
     }
     #[test]
     fn near_offset() {
-        let near_offset = OffsetArray {
+        let near_offset = OffsetArrayContainer {
             offsets: [4u8].into(),
             inner: SingleTarget(42u8),
         };
@@ -420,8 +420,8 @@ mod test {
 
     #[binrw]
     #[brw(little)]
-    #[br(import(base: i64, offsets: &OffsetArrayImpl<N>, args: <T as BinRead>::Args<'_>))]
-    #[bw(import(base: i64, offsets: &OffsetArrayImpl<N>, args: <T as BinWrite>::Args<'_>))]
+    #[br(import(base: i64, offsets: &OffsetArray<N>, args: <T as BinRead>::Args<'_>))]
+    #[bw(import(base: i64, offsets: &OffsetArray<N>, args: <T as BinWrite>::Args<'_>))]
     #[derive(Debug, PartialEq)]
     struct Multiple<T: BinRead + BinWrite, const N: usize>
     where
@@ -440,7 +440,7 @@ mod test {
 
     #[test]
     fn multiple() {
-        let multiple = OffsetArray {
+        let multiple = OffsetArrayContainer {
             offsets: [2u8, 3u8].into(),
             inner: Multiple {
                 a: 0xC0u8,
@@ -456,7 +456,7 @@ mod test {
     }
     #[test]
     fn switched_ordering() {
-        let multiple = OffsetArray {
+        let multiple = OffsetArrayContainer {
             offsets: [3u8, 2u8].into(),
             inner: Multiple {
                 a: 0xC0u8,

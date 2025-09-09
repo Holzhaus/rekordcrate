@@ -21,14 +21,14 @@
 pub mod offset_array;
 pub mod string;
 
-use offset_array::OffsetArray;
+use offset_array::OffsetArrayContainer;
 
 #[cfg(test)]
 mod test;
 
 use std::convert::TryInto;
 
-use crate::pdb::offset_array::{OffsetArrayImpl, OffsetSize};
+use crate::pdb::offset_array::{OffsetArray, OffsetSize};
 use crate::pdb::string::DeviceSQLString;
 use crate::util::{ColorIndex, ExplicitPadding};
 use binrw::{
@@ -589,7 +589,7 @@ pub struct HistoryPlaylistId(pub u32);
 
 #[binrw]
 #[brw(little)]
-#[brw(import(base: i64, offsets: &OffsetArrayImpl<2>, args: ()))]
+#[brw(import(base: i64, offsets: &OffsetArray<2>, args: ()))]
 #[derive(Debug, PartialEq, Clone, Eq)]
 /// Represents a trailing name field at the end of a row, used for album and artist names.
 pub struct TrailingName {
@@ -619,7 +619,7 @@ pub struct Album {
     unknown3: u32,
     /// The offsets and its data and the end of this row
     #[brw(args(20, subtype.get_offset_size(), ()))]
-    offsets: OffsetArray<TrailingName, 2>,
+    offsets: OffsetArrayContainer<TrailingName, 2>,
     /// Explicit padding, used to align rows in a page (manually)
     padding: ExplicitPadding,
 }
@@ -637,7 +637,7 @@ pub struct Artist {
     id: ArtistId,
     /// offsets at the row end
     #[brw(args(8, subtype.get_offset_size(), ()))]
-    offsets: OffsetArray<TrailingName, 2>,
+    offsets: OffsetArrayContainer<TrailingName, 2>,
     /// Explicit padding, used to align rows in a page (manually)
     #[br(args(0x30))]
     padding: ExplicitPadding,
@@ -818,7 +818,7 @@ pub struct ColumnEntry {
 
 #[binrw]
 #[brw(little)]
-#[brw(import(base: i64, offsets: &OffsetArrayImpl<23>, _args: ()))]
+#[brw(import(base: i64, offsets: &OffsetArray<23>, _args: ()))]
 #[derive(Debug, PartialEq, Clone, Eq)]
 /// String fields stored via the offset table in Track rows
 pub struct TrackStrings {
@@ -993,7 +993,7 @@ pub struct Track {
     /// User rating of this track (0 to 5 starts).
     rating: u8,
     #[brw(args(0x5A, subtype.get_offset_size(), ()))]
-    offsets: OffsetArray<TrackStrings, 23>,
+    offsets: OffsetArrayContainer<TrackStrings, 23>,
     // Track paddings in general seem to follow this odd formula.
     // A similar oddity is the case with other rows employing an OffsetArray
     // (though with different padding_base)
