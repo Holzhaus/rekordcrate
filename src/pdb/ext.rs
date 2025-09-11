@@ -129,7 +129,9 @@ impl ExtRow {
     pub(crate) const fn align_by(&self, offset: u64) -> u64 {
         use crate::util::align_by;
         use std::mem::align_of_val;
-        // Fine for now,
-        align_by(align_of_val(self) as u64, offset)
+        match self {
+            ExtRow::Tag(_) => align_by(4, offset),
+            ExtRow::TrackTag(r) => align_by(align_of_val(r) as u64, offset),
+        }
     }
 }
