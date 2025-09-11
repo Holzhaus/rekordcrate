@@ -36,6 +36,7 @@ pub struct TagId(pub u32);
 /// A possibly absent parent ID. If the ID is zero (None), then there is no parent.
 pub struct ParentId(
     #[br(try)] // failing to parse is fine, since then its just non-zero
+    #[bw(map = |&x| x.map_or(0, |v| v.get()))]
     pub  Option<NonZero<u32>>,
 );
 
