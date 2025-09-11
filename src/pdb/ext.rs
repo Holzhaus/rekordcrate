@@ -20,6 +20,7 @@
 //! - <https://github.com/flesniak/python-prodj-link/tree/master/prodj/pdblib>
 
 use crate::pdb::{DeviceSQLString, OffsetArray, OffsetArrayContainer, Subtype, TrackId};
+use crate::util::ExplicitPadding;
 use binrw::binrw;
 use std::num::NonZero;
 
@@ -75,6 +76,8 @@ pub struct TagOrCategory {
     pub raw_is_category: u32,
     #[brw(args(0x1C, subtype.get_offset_size(), ()))]
     pub offsets: OffsetArrayContainer<TagOrCategoryStrings, 3>,
+    #[br(args(0x20))]
+    pub padding: ExplicitPadding,
 }
 
 // https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/exports.html#tag-track-rows
