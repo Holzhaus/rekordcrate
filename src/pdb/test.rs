@@ -9883,3 +9883,144 @@ fn track_tag_page() {
     );
 }
 
+/* TODO the CDJ-350 seems to create a HistoryPlaylists page for each row.
+Find a player that properly fills a page and improve this test. */
+#[test]
+fn history_playlists_page() {
+    let mut row_groups = vec![
+        RowGroup {
+            row_offsets: Default::default(),
+            row_presence_flags: 0,
+            unknown: 0,
+            rows: vec![],
+        };
+        1
+    ];
+    row_groups[0].unknown = 1;
+
+    row_groups[0]
+        .add_row(Row::Plain(PlainRow::HistoryPlaylist(HistoryPlaylist {
+            id: HistoryPlaylistId(1),
+            name: "HISTORY 001".parse().unwrap(),
+        })))
+        .unwrap();
+
+    let page = Page {
+        page_index: PageIndex(24),
+        page_type: PageType::Plain(PlainPageType::HistoryPlaylists),
+        next_page: PageIndex(59),
+        unknown1: 240,
+        unknown2: 0,
+        num_rows_small: 1,
+        unknown3: 32,
+        unknown4: 0,
+        page_flags: PageFlags(36),
+        free_size: 4034,
+        used_size: 16,
+        unknown5: 1,
+        num_rows_large: 0,
+        unknown6: 0,
+        unknown7: 0,
+        row_groups,
+    };
+
+    let page_size = 4096;
+    test_roundtrip_with_args(
+        include_bytes!("../../data/pdb/unit_tests/history_playlists_page.bin"),
+        page,
+        (page_size, DatabaseType::Plain),
+        (page_size, DatabaseType::Plain),
+    );
+}
+
+// TODO improve the test with a fuller page
+#[test]
+fn history_entries_page() {
+    let mut row_groups = vec![
+        RowGroup {
+            row_offsets: Default::default(),
+            row_presence_flags: 0,
+            unknown: 0,
+            rows: vec![],
+        };
+        1
+    ];
+    row_groups[0].unknown = 64;
+
+    row_groups[0]
+        .add_row(Row::Plain(PlainRow::HistoryEntry(HistoryEntry {
+            track_id: TrackId(35),
+            playlist_id: HistoryPlaylistId(2),
+            entry_index: 1,
+        })))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Plain(PlainRow::HistoryEntry(HistoryEntry {
+            track_id: TrackId(18),
+            playlist_id: HistoryPlaylistId(2),
+            entry_index: 2,
+        })))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Plain(PlainRow::HistoryEntry(HistoryEntry {
+            track_id: TrackId(25),
+            playlist_id: HistoryPlaylistId(2),
+            entry_index: 3,
+        })))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Plain(PlainRow::HistoryEntry(HistoryEntry {
+            track_id: TrackId(5),
+            playlist_id: HistoryPlaylistId(2),
+            entry_index: 4,
+        })))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Plain(PlainRow::HistoryEntry(HistoryEntry {
+            track_id: TrackId(12),
+            playlist_id: HistoryPlaylistId(2),
+            entry_index: 5,
+        })))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Plain(PlainRow::HistoryEntry(HistoryEntry {
+            track_id: TrackId(19),
+            playlist_id: HistoryPlaylistId(2),
+            entry_index: 6,
+        })))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Plain(PlainRow::HistoryEntry(HistoryEntry {
+            track_id: TrackId(6),
+            playlist_id: HistoryPlaylistId(2),
+            entry_index: 7,
+        })))
+        .unwrap();
+
+    let page = Page {
+        page_index: PageIndex(60),
+        page_type: PageType::Plain(PlainPageType::HistoryEntries),
+        next_page: PageIndex(62),
+        unknown1: 254,
+        unknown2: 0,
+        num_rows_small: 7,
+        unknown3: 224,
+        unknown4: 0,
+        page_flags: PageFlags(36),
+        free_size: 3954,
+        used_size: 84,
+        unknown5: 1,
+        num_rows_large: 6,
+        unknown6: 0,
+        unknown7: 0,
+        row_groups,
+    };
+
+    let page_size = 4096;
+    test_roundtrip_with_args(
+        include_bytes!("../../data/pdb/unit_tests/history_entries_page.bin"),
+        page,
+        (page_size, DatabaseType::Plain),
+        (page_size, DatabaseType::Plain),
+    );
+}
