@@ -42,15 +42,15 @@ pub struct ParentId(
 #[brw(little)]
 #[brw(import(base: i64, offsets: &OffsetArray<3>, args: ()))]
 #[derive(Debug, PartialEq, Clone, Eq)]
-struct TagOrCategoryStrings {
+pub struct TagOrCategoryStrings {
     #[brw(args(base, args))]
     #[br(parse_with = offsets.read_offset(1))]
     #[bw(write_with = offsets.write_offset(1))]
-    name: DeviceSQLString,
+    pub name: DeviceSQLString,
     #[brw(args(base, args))]
     #[br(parse_with = offsets.read_offset(2))]
     #[bw(write_with = offsets.write_offset(2))]
-    unknown: DeviceSQLString,
+    pub unknown: DeviceSQLString,
 }
 
 /// A tag or category that can be assigned to tracks for the purpose of categorization.
@@ -59,22 +59,22 @@ struct TagOrCategoryStrings {
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 pub struct TagOrCategory {
-    subtype: Subtype,
+    pub subtype: Subtype,
     // also called tag_index. Seems to increment by 0x20 every row.
-    index_shift: u16,
+    pub index_shift: u16,
     // no idea what these two do, but they aren't always zero
     // as described on https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/exports.html#tag-rows
-    unknown1: u32,
-    unknown2: u32,
-    parent_id: ParentId,
+    pub unknown1: u32,
+    pub unknown2: u32,
+    pub parent_id: ParentId,
     // zero-based position at which this tag should be displayed within its category.
     // If the row represents a category rather than a tag, then this is the zero-based
     // position of the category itself within the category list.
-    position: u32,
-    id: TagId,
-    raw_is_category: u32,
+    pub position: u32,
+    pub id: TagId,
+    pub raw_is_category: u32,
     #[brw(args(0x1C, subtype.get_offset_size(), ()))]
-    offsets: OffsetArrayContainer<TagOrCategoryStrings, 3>,
+    pub offsets: OffsetArrayContainer<TagOrCategoryStrings, 3>,
 }
 
 // https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/exports.html#tag-track-rows
@@ -84,9 +84,9 @@ pub struct TagOrCategory {
 #[brw(little)]
 pub struct TrackTag {
     #[brw(magic(0u32))]
-    track_id: TrackId,
-    tag_id: TagId,
-    unknown_const: u32, // always 3?
+    pub track_id: TrackId,
+    pub tag_id: TagId,
+    pub unknown_const: u32, // always 3?
 }
 
 /// The type of ext pages found inside a `Table`.
