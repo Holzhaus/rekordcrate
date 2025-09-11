@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ColorIndex","RekordcrateError"],"fn":["align_by"],"type":["RekordcrateResult"]};
+window.SIDEBAR_ITEMS = {"enum":["ColorIndex","RekordcrateError"],"fn":["align_by"],"struct":["ExplicitPadding"],"type":["RekordcrateResult"]};
