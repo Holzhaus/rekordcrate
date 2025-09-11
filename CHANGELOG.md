@@ -20,19 +20,49 @@ All notable changes to this project will be documented in this file.
 - pdb: Apply review feedback for 78ee51c
 - pdb: Accept review feedback for 969d507
 - `genres_page` test offset padding and rowgroup ordering
+- pdb: WIP pass artists_page test
+- Add `ofs_name` field to Album row and correctly (de-)serialize it
+- pdb: Set fixed 4-byte alignment on labels
+- pdb: Set 4-byte alignment for Artwork rows
 
 ### Features
 
 - Use "clean" buffer in `track_page` test & refactor `DeviceSQLString` construction
+- Add `artist_page_long` test to cover the 0x64 artist subtype
+- Get `labels_page` passing
+- Add `VarOffsetTail` as an abstraction for trailing var-len data
+- Replace `VarOffsetTail` with `OffsetArray` and add ExplicitPadding
 
 ### Refactor
 
 - Simplify `Page` and `RowGroup` parsing
 - Fix test `assert_eq!(result, expected)` parameter order
+- Move `Row::Artist`-specific padding to `Artist` struct
+- Remove length `assert_eq` from roundtrip tests
+- Use `VarOffsetTail` for Artist rows
+- Use `VarOffsetTail` for `Album` struct
+- Move `VarOffsetTail` to its own module
+- Add separate row `Subtype` type
+- Remodel OffsetArray so it can be used with (almost) any type
+- Use OffsetArray for Track rows
+- Cleanup `pdb/offset_array.rs` a little by reducing duplication
+- OffsetArray->OffsetArrayContainer, OffsetArrayImpl->OffsetArray
+- Outline page test buffers
 
 ### Testing
 
 - pdb: Add genres_page test
+- pdb: Add artists_page test
+- pdb: Move tests to sepparate file
+- pdb: Fix mistake in artists_page test
+- pdb: Corrections after moving tests
+- pdb: WIP added albums_page test
+- pdb: Add labels_page test
+- pdb: Add keys_page test
+- pdb: Add colors_page test and fix colors padding to pass test
+- pdb: Add playlist entry row and page tests
+- pdb: Add playlist tree row and page tests
+- pdb: Add artwork page test
 
 ## [0.3.0] - 2025-01-23
 
