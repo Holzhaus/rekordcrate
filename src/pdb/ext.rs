@@ -37,21 +37,24 @@ pub struct TagId(pub u32);
 pub struct ParentId(
     #[br(try)] // failing to parse is fine, since then its just non-zero
     #[bw(map = |&x| x.map_or(0, |v| v.get()))]
-    pub  Option<NonZero<u32>>,
+    pub Option<NonZero<u32>>,
 );
 
 #[binrw]
 #[brw(little)]
 #[brw(import(base: i64, offsets: &OffsetArray<3>, args: ()))]
 #[derive(Debug, PartialEq, Clone, Eq)]
+/// The strings associated with a tag or category.
 pub struct TagOrCategoryStrings {
     #[brw(args(base, args))]
     #[br(parse_with = offsets.read_offset(1))]
     #[bw(write_with = offsets.write_offset(1))]
+    /// The name of the tag or category.
     pub name: DeviceSQLString,
     #[brw(args(base, args))]
     #[br(parse_with = offsets.read_offset(2))]
     #[bw(write_with = offsets.write_offset(2))]
+    /// String with unknown purpose, often empty.
     pub unknown: DeviceSQLString,
 }
 
@@ -61,23 +64,32 @@ pub struct TagOrCategoryStrings {
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 pub struct TagOrCategory {
+    /// Determines if an 8-bit offset (0x0680) or a 16-bit offset (0x0684) is used for the strings.
     pub subtype: Subtype,
     // also called tag_index. Seems to increment by 0x20 every row.
+    /// Incrementing index (0x20 for each row).
     pub index_shift: u16,
     // no idea what these two do, but they aren't always zero
     // as described on https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/exports.html#tag-rows
+    /// Unknown purpose.
     pub unknown1: u32,
+    /// Unknown purpose.
     pub unknown2: u32,
+    /// The ID of the parent category, if any.
     pub parent_id: ParentId,
-    // zero-based position at which this tag should be displayed within its category.
-    // If the row represents a category rather than a tag, then this is the zero-based
-    // position of the category itself within the category list.
+    /// Zero-based position at which this tag should be displayed within its category.
+    /// If the row represents a category rather than a tag, then this is the zero-based
+    /// position of the category itself within the category list.
     pub position: u32,
+    /// Numeric ID of the tag or category.
     pub id: TagId,
+    /// Non-zero if this row represents a category rather than a tag.
     pub raw_is_category: u32,
     #[brw(args(0x1C, subtype.get_offset_size(), ()))]
+    /// The strings associated with this tag or category.
     pub offsets: OffsetArrayContainer<TagOrCategoryStrings, 3>,
     #[br(args(0x20))]
+    /// Padding at the end of the struct (observed 11 bytes for this rows)
     pub padding: ExplicitPadding,
 }
 
@@ -88,8 +100,11 @@ pub struct TagOrCategory {
 #[brw(little)]
 pub struct TrackTag {
     #[brw(magic(0u32))]
+    /// The ID of the track.
     pub track_id: TrackId,
+    /// The ID of the tag.
     pub tag_id: TagId,
+    /// Unknown purpose, seems to be always 3.
     pub unknown_const: u32, // always 3?
 }
 
