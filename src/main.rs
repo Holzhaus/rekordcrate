@@ -9,7 +9,7 @@
 use binrw::BinRead;
 use clap::{Parser, Subcommand};
 use rekordcrate::anlz::ANLZ;
-use rekordcrate::pdb::{DatabaseType, Header, PageContent, PageType, PlainPageType, PlainRow, Row};
+use rekordcrate::pdb::{DatabaseType, Header, PageType, PlainPageType, PlainRow, Row};
 use rekordcrate::setting::Setting;
 use rekordcrate::xml::Document;
 use std::path::{Path, PathBuf};
@@ -105,10 +105,7 @@ fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
                 )
                 .unwrap()
                 .into_iter()
-                .filter_map(|page| match page.content {
-                    PageContent::Data(data_content) => Some(data_content),
-                    _ => None,
-                })
+                .filter_map(|page| page.content.get_data())
                 .flat_map(|data_content| data_content.row_groups.into_iter())
                 .flat_map(|row_group| {
                     row_group
@@ -158,7 +155,7 @@ fn dump_pdb(path: &PathBuf, typ: DatabaseType) -> rekordcrate::Result<()> {
             .into_iter()
         {
             println!("  {:?}", page);
-            if let PageContent::Data(data_content) = page.content {
+            if let Some(data_content) = page.content.get_data() {
                 data_content.row_groups.iter().for_each(|row_group| {
                     println!("    {:?}", row_group);
                     for row in row_group.present_rows() {

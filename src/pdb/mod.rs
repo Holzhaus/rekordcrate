@@ -242,73 +242,35 @@ impl PageFlags {
 }
 
 /// The content of a page, which can be of different types.
+#[binrw]
 #[derive(Debug, PartialEq)]
+#[br(little, import { page_flags: PageFlags, page_start_pos: u64, page_size: u32, num_rows_small: u8, page_type: PageType })]
+#[bw(little, import { page_flags: PageFlags, page_size: u32, num_rows_small: u8, page_type: PageType })]
 pub enum PageContent {
     /// The page contains data rows.
-    Data(DataPageContent),
+    #[br(pre_assert(page_flags.page_has_data()))]
+    Data(
+        #[br(args { page_start_pos, page_size, num_rows_small, page_type })]
+        #[bw(args(page_size,))]
+        DataPageContent,
+    ),
     /// The page is an index page.
+    #[br(pre_assert(page_flags.is_index_page()))]
     Index,
     /// The page is of an unknown or unsupported format.
+    #[br(pre_assert(!page_flags.page_has_data() && !page_flags.is_index_page()))]
     Unknown,
 }
 
-fn read_page_content<R: Read + Seek>(
-    reader: &mut R,
-    endian: Endian,
-    args: (PageFlags, u64, u32, u8, PageType),
-) -> BinResult<PageContent> {
-    let (page_flags, page_start_pos, page_size, num_rows_small, page_type) = args;
-    if page_flags.is_index_page() {
-        Ok(PageContent::Index)
-    } else if page_flags.page_has_data() {
-        let data_content = DataPageContent::read_options(
-            reader,
-            endian,
-            binrw::args! {
-                page_start_pos,
-                page_size,
-                num_rows_small,
-                page_type,
-            },
-        )?;
-        Ok(PageContent::Data(data_content))
-    } else {
-        Ok(PageContent::Unknown)
-    }
-}
-
-fn write_page_content<W: Write + Seek>(
-    page_content: &PageContent,
-    writer: &mut W,
-    endian: Endian,
-    args: (u32,),
-) -> BinResult<()> {
-    if let PageContent::Data(data_content) = page_content {
-        data_content.unknown5.write_options(writer, endian, ())?;
-        data_content
-            .num_rows_large
-            .write_options(writer, endian, ())?;
-        data_content.unknown6.write_options(writer, endian, ())?;
-        data_content.unknown7.write_options(writer, endian, ())?;
-
-        let (page_size,) = args;
-
-        let header_end_pos = writer.stream_position()?;
-
-        let mut relative_row_offset: u64 = 0;
-
-        // Seek to the very end of the page
-        writer.seek(SeekFrom::Current((page_size - Page::HEADER_SIZE).into()))?;
-
-        for row_group in &data_content.row_groups {
-            relative_row_offset = row_group.write_options_and_get_row_offset(
-                writer,
-                endian,
-                (header_end_pos, relative_row_offset),
-            )?;
+impl PageContent {
+    /// Returns the data content of the page if it is a data page.
+    #[must_use]
+    pub fn get_data(self) -> Option<DataPageContent> {
+        match self {
+            PageContent::Data(data) => Some(data),
+            _ => None,
         }
     }
-    Ok(())
 }
 
 /// A table page.
@@ -375,16 +337,15 @@ pub struct Page {
     /// Used space in bytes in the data section of the page.
     pub used_size: u16,
     /// The content of the page.
-    #[br(parse_with = read_page_content)]
-    #[br(args(page_flags, page_start_pos, page_size, num_rows_small, page_type))]
-    #[bw(write_with = write_page_content, args(page_size))]
+    #[br(args { page_flags, page_start_pos, page_size, num_rows_small, page_type })]
+    #[bw(args { page_flags: *page_flags, page_size, num_rows_small: self.num_rows_small, page_type: self.page_type })]
     pub content: PageContent,
 }
 
 /// The data-containing part of a page.
-#[binrw]
+#[binread]
 #[derive(Debug, PartialEq)]
-#[brw(little, import { page_start_pos: u64, page_size: u32, num_rows_small: u8, page_type: PageType })]
+#[br(little, import { page_start_pos: u64, page_size: u32, num_rows_small: u8, page_type: PageType })]
 pub struct DataPageContent {
     /// Unknown field.
     ///
@@ -409,7 +370,7 @@ pub struct DataPageContent {
     /// Number of rows in this page.
     ///
     /// **Note:** This is a virtual field and not actually read from the file.
-    #[br(temp, calc = Page::calculate_num_rows(num_rows_small, num_rows_large))]
+    #[br(temp, calc = Self::calculate_num_rows(num_rows_small, num_rows_large))]
     #[bw(ignore)]
     num_rows: u16,
     /// Number of rows groups in this page.
@@ -421,7 +382,7 @@ pub struct DataPageContent {
     /// The offset at which the row data for this page are located.
     ///
     /// **Note:** This is a virtual field and not actually read from the file.
-    #[br(temp, calc = page_start_pos + u64::from(Page::HEADER_SIZE))]
+    #[br(temp, calc = page_start_pos + u64::from(Page::HEADER_SIZE) + u64::from(Self::HEADER_SIZE))]
     #[bw(ignore)]
     page_heap_offset: u64,
     /// Row groups belonging to this page.
@@ -432,15 +393,62 @@ pub struct DataPageContent {
     pub row_groups: Vec<RowGroup>,
 }
 
+impl BinWrite for DataPageContent {
+    type Args<'a> = (u32,);
+
+    fn write_options<W: Write + Seek>(
+        &self,
+        writer: &mut W,
+        endian: Endian,
+        (page_size,): Self::Args<'_>,
+    ) -> BinResult<()> {
+        self.unknown5.write_options(writer, endian, ())?;
+        self.num_rows_large.write_options(writer, endian, ())?;
+        self.unknown6.write_options(writer, endian, ())?;
+        self.unknown7.write_options(writer, endian, ())?;
+
+        let header_end_pos = writer.stream_position()?;
+
+        let mut relative_row_offset: u64 = 0;
+
+        // Seek to the very end of the page
+        writer.seek(SeekFrom::Current(
+            (page_size - Page::HEADER_SIZE - DataPageContent::HEADER_SIZE).into(),
+        ))?;
+
+        for row_group in &self.row_groups {
+            relative_row_offset = row_group.write_options_and_get_row_offset(
+                writer,
+                endian,
+                (header_end_pos, relative_row_offset),
+            )?;
+        }
+        Ok(())
+    }
+}
+
+impl DataPageContent {
+    /// Size of the page header in bytes.
+    pub const HEADER_SIZE: u32 = 0x8;
+
+    fn calculate_num_rows(num_rows_small: u8, num_rows_large: u16) -> u16 {
+        if num_rows_large > num_rows_small.into() && num_rows_large != 0x1fff {
+            num_rows_large
+        } else {
+            num_rows_small.into()
+        }
+    }
+}
+
 impl Page {
     /// Size of the page header in bytes.
-    pub const HEADER_SIZE: u32 = 0x28;
+    pub const HEADER_SIZE: u32 = 0x20;
 
     /// Calculate the size of the empty space between the header and the footer.
     fn heap_padding_size(page_size: u32, num_row_groups: u16) -> u32 {
         // Size of all row offsets
         let row_groups_footer_size = u32::from(num_row_groups) * RowGroup::BINARY_SIZE;
-        page_size - Self::HEADER_SIZE - row_groups_footer_size
+        page_size - Self::HEADER_SIZE - DataPageContent::HEADER_SIZE - row_groups_footer_size
     }
 
     #[must_use]
@@ -456,17 +464,9 @@ impl Page {
     pub fn num_rows(&self) -> u16 {
         match &self.content {
             PageContent::Data(content) => {
-                Self::calculate_num_rows(self.num_rows_small, content.num_rows_large)
+                DataPageContent::calculate_num_rows(self.num_rows_small, content.num_rows_large)
             }
             PageContent::Index | PageContent::Unknown => 0,
-        }
-    }
-
-    fn calculate_num_rows(num_rows_small: u8, num_rows_large: u16) -> u16 {
-        if num_rows_large > num_rows_small.into() && num_rows_large != 0x1fff {
-            num_rows_large
-        } else {
-            num_rows_small.into()
         }
     }
 }
