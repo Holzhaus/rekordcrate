@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: MPL-2.0
 
 use binrw::BinRead;
-use rekordcrate::pdb::{DatabaseType, Header, PageType, PlainPageType};
+use rekordcrate::pdb::{DatabaseType, Header, PageContent, PageType, PlainPageType};
 use std::io::Cursor;
 
 fn assert_pdb_row_count(page_type: PlainPageType, expected_row_count: usize) {
@@ -30,7 +30,11 @@ fn assert_pdb_row_count(page_type: PlainPageType, expected_row_count: usize) {
 
     let actual_row_count: usize = pages
         .into_iter()
-        .flat_map(|page| page.row_groups.into_iter())
+        .filter_map(|page| match page.content {
+            PageContent::Data(data_content) => Some(data_content),
+            _ => None,
+        })
+        .flat_map(|data_content| data_content.row_groups.into_iter())
         .map(|row_group| row_group.present_rows().len())
         .sum();
     assert_eq!(

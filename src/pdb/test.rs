@@ -788,11 +788,13 @@ fn track_page() {
         page_flags: PageFlags(36),
         free_size: 2302,
         used_size: 1740,
-        unknown5: 1,
-        num_rows_large: 4,
-        unknown6: 0,
-        unknown7: 0,
-        row_groups: vec![row_groups],
+        content: PageContent::Data(DataPageContent {
+            unknown5: 1,
+            num_rows_large: 4,
+            unknown6: 0,
+            unknown7: 0,
+            row_groups: vec![row_groups],
+        }),
     };
 
     let page_size: u32 = 4096;
@@ -942,11 +944,13 @@ fn genres_page() {
         page_flags: PageFlags(36),
         free_size: 3560,
         used_size: 452,
-        unknown5: 1,
-        num_rows_large: 17,
-        unknown6: 0,
-        unknown7: 0,
-        row_groups,
+        content: PageContent::Data(DataPageContent {
+            unknown5: 1,
+            num_rows_large: 17,
+            unknown6: 0,
+            unknown7: 0,
+            row_groups,
+        }),
     };
 
     let page_size = 4096;
@@ -2707,11 +2711,13 @@ fn artists_page() {
         page_flags: PageFlags(36),
         free_size: 12,
         used_size: 3772,
-        unknown5: 1,
-        num_rows_large: 119,
-        unknown6: 0,
-        unknown7: 0,
-        row_groups,
+        content: PageContent::Data(DataPageContent {
+            unknown5: 1,
+            num_rows_large: 119,
+            unknown6: 0,
+            unknown7: 0,
+            row_groups,
+        }),
     };
 
     let page_size = 4096;
@@ -2829,12 +2835,13 @@ fn artist_page_long() {
         page_flags: PageFlags(36),
         free_size: 2624,
         used_size: 1416,
-        unknown5: 1,
-        num_rows_large: 5,
-        unknown6: 0,
-        unknown7: 0,
-
-        row_groups: vec![rowgroup],
+        content: PageContent::Data(DataPageContent {
+            unknown5: 1,
+            num_rows_large: 5,
+            unknown6: 0,
+            unknown7: 0,
+            row_groups: vec![rowgroup],
+        }),
     };
 
     let page_size = 4096;
@@ -4271,11 +4278,13 @@ fn albums_page() {
         page_flags: PageFlags(36),
         free_size: 36,
         used_size: 3832,
-        unknown5: 1,
-        num_rows_large: 81,
-        unknown6: 0,
-        unknown7: 0,
-        row_groups,
+        content: PageContent::Data(DataPageContent {
+            unknown5: 1,
+            num_rows_large: 81,
+            unknown6: 0,
+            unknown7: 0,
+            row_groups,
+        }),
     };
 
     let page_size: u32 = 4096;
@@ -5385,11 +5394,13 @@ fn labels_page() {
         page_flags: PageFlags(36),
         free_size: 2,
         used_size: 3652,
-        unknown5: 1,
-        num_rows_large: 176,
-        unknown6: 0,
-        unknown7: 0,
-        row_groups,
+        content: PageContent::Data(DataPageContent {
+            unknown5: 1,
+            num_rows_large: 176,
+            unknown6: 0,
+            unknown7: 0,
+            row_groups,
+        }),
     };
 
     let page_size = 4096;
@@ -5795,11 +5806,13 @@ fn keys_page() {
         page_flags: PageFlags(36),
         free_size: 3188,
         used_size: 748,
-        unknown5: 1,
-        num_rows_large: 51,
-        unknown6: 0,
-        unknown7: 0,
-        row_groups,
+        content: PageContent::Data(DataPageContent {
+            unknown5: 1,
+            num_rows_large: 51,
+            unknown6: 0,
+            unknown7: 0,
+            row_groups,
+        }),
     };
 
     let page_size = 4096;
@@ -5905,11 +5918,13 @@ fn colors_page() {
         page_flags: PageFlags(36),
         free_size: 3912,
         used_size: 124,
-        unknown5: 8,
-        num_rows_large: 0,
-        unknown6: 0,
-        unknown7: 0,
-        row_groups,
+        content: PageContent::Data(DataPageContent {
+            unknown5: 8,
+            num_rows_large: 0,
+            unknown6: 0,
+            unknown7: 0,
+            row_groups,
+        }),
     };
 
     let page_size = 4096;
@@ -6219,11 +6234,13 @@ fn playlist_tree_page() {
         page_flags: PageFlags(36),
         free_size: 3238,
         used_size: 756,
-        unknown5: 1,
-        num_rows_large: 26,
-        unknown6: 0,
-        unknown7: 0,
-        row_groups,
+        content: PageContent::Data(DataPageContent {
+            unknown5: 1,
+            num_rows_large: 26,
+            unknown6: 0,
+            unknown7: 0,
+            row_groups,
+        }),
     };
 
     let page_size = 4096;
@@ -8267,11 +8284,13 @@ fn playlist_entries_page() {
         page_flags: PageFlags(36),
         free_size: 8,
         used_size: 3408,
-        unknown5: 1,
-        num_rows_large: 283,
-        unknown6: 0,
-        unknown7: 0,
-        row_groups,
+        content: PageContent::Data(DataPageContent {
+            unknown5: 1,
+            num_rows_large: 283,
+            unknown6: 0,
+            unknown7: 0,
+            row_groups,
+        }),
     };
 
     let page_size = 4096;
@@ -8952,11 +8971,13 @@ fn artworks_page() {
         page_flags: PageFlags(36),
         free_size: 0,
         used_size: 3816,
-        unknown5: 1,
-        num_rows_large: 105,
-        unknown6: 0,
-        unknown7: 0,
-        row_groups,
+        content: PageContent::Data(DataPageContent {
+            unknown5: 1,
+            num_rows_large: 105,
+            unknown6: 0,
+            unknown7: 0,
+            row_groups,
+        }),
     };
 
     let page_size = 4096;
@@ -9457,11 +9478,13 @@ fn tag_page() {
         page_flags: PageFlags(36),
         free_size: 2770,
         used_size: 1232,
-        unknown5: 23,
-        num_rows_large: 0,
-        unknown6: 0,
-        unknown7: 0,
-        row_groups,
+        content: PageContent::Data(DataPageContent {
+            unknown5: 23,
+            num_rows_large: 0,
+            unknown6: 0,
+            unknown7: 0,
+            row_groups,
+        }),
     };
 
     let page_size = 4096;
@@ -9867,11 +9890,13 @@ fn track_tag_page() {
         page_flags: PageFlags(36),
         free_size: 3104,
         used_size: 832,
-        unknown5: 1,
-        num_rows_large: 51,
-        unknown6: 0,
-        unknown7: 0,
-        row_groups,
+        content: PageContent::Data(DataPageContent {
+            unknown5: 1,
+            num_rows_large: 51,
+            unknown6: 0,
+            unknown7: 0,
+            row_groups,
+        }),
     };
 
     let page_size = 4096;
@@ -9917,11 +9942,13 @@ fn history_playlists_page() {
         page_flags: PageFlags(36),
         free_size: 4034,
         used_size: 16,
-        unknown5: 1,
-        num_rows_large: 0,
-        unknown6: 0,
-        unknown7: 0,
-        row_groups,
+        content: PageContent::Data(DataPageContent {
+            unknown5: 1,
+            num_rows_large: 0,
+            unknown6: 0,
+            unknown7: 0,
+            row_groups,
+        }),
     };
 
     let page_size = 4096;
@@ -10009,11 +10036,13 @@ fn history_entries_page() {
         page_flags: PageFlags(36),
         free_size: 3954,
         used_size: 84,
-        unknown5: 1,
-        num_rows_large: 6,
-        unknown6: 0,
-        unknown7: 0,
-        row_groups,
+        content: PageContent::Data(DataPageContent {
+            unknown5: 1,
+            num_rows_large: 6,
+            unknown6: 0,
+            unknown7: 0,
+            row_groups,
+        }),
     };
 
     let page_size = 4096;
