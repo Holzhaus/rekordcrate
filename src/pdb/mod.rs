@@ -258,7 +258,6 @@ pub enum PageContent {
     #[br(pre_assert(page_flags.is_index_page()))]
     Index,
     /// The page is of an unknown or unsupported format.
-    #[br(pre_assert(!page_flags.page_has_data() && !page_flags.is_index_page()))]
     Unknown,
 }
 
@@ -371,25 +370,21 @@ pub struct DataPageContent {
     ///
     /// **Note:** This is a virtual field and not actually read from the file.
     #[br(temp, calc = Self::calculate_num_rows(num_rows_small, num_rows_large))]
-    #[bw(ignore)]
     num_rows: u16,
     /// Number of rows groups in this page.
     ///
     /// **Note:** This is a virtual field and not actually read from the file.
     #[br(temp, calc = num_rows.div_ceil(RowGroup::MAX_ROW_COUNT as u16))]
-    #[bw(ignore)]
     num_row_groups: u16,
     /// The offset at which the row data for this page are located.
     ///
     /// **Note:** This is a virtual field and not actually read from the file.
     #[br(temp, calc = page_start_pos + u64::from(Page::HEADER_SIZE) + u64::from(Self::HEADER_SIZE))]
-    #[bw(ignore)]
     page_heap_offset: u64,
     /// Row groups belonging to this page.
     #[br(seek_before(SeekFrom::Current(Page::heap_padding_size(page_size, num_row_groups).into())))]
     #[br(args {count: num_row_groups.into(), inner: (page_type, page_heap_offset)})]
     #[br(map(|mut vec: Vec<RowGroup>| {vec.reverse(); vec}))]
-    #[bw(ignore)]
     pub row_groups: Vec<RowGroup>,
 }
 
