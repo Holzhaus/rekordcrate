@@ -9,10 +9,10 @@
 use binrw::BinRead;
 use clap::{Parser, Subcommand};
 use rekordcrate::anlz::ANLZ;
-use rekordcrate::pdb::{Header, PageType, Row};
+use rekordcrate::pdb::{DatabaseType, Header, PageType, PlainPageType, PlainRow, Row};
 use rekordcrate::setting::Setting;
 use rekordcrate::xml::Document;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 #[derive(Parser)]
 #[command(author, version, about)]
@@ -41,6 +41,9 @@ enum Commands {
         /// File to parse.
         #[arg(value_name = "PDB_FILE")]
         path: PathBuf,
+        /// Database type: "plain" (export.pdb) or "ext" (exportExt.pdb). Tries to guess based on file name of not specified.
+        #[arg(long, value_name = "DB_TYPE", value_parser = ["plain", "ext"])]
+        db_type: Option<String>,
     },
     /// Parse and dump a Pioneer Settings (`*SETTING.DAT`) file.
     DumpSetting {
@@ -80,20 +83,25 @@ fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
     }
 
     let mut reader = std::fs::File::open(path)?;
-    let header = Header::read(&mut reader)?;
+    let header = Header::read_args(&mut reader, (DatabaseType::Plain,))?;
 
     let mut tree: HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>> = HashMap::new();
 
     header
         .tables
         .iter()
-        .filter(|table| table.page_type == PageType::PlaylistTree)
+        .filter(|table| {
+            matches!(
+                table.page_type,
+                PageType::Plain(PlainPageType::PlaylistTree)
+            )
+        })
         .flat_map(|table| {
             header
                 .read_pages(
                     &mut reader,
                     binrw::Endian::NATIVE,
-                    (&table.first_page, &table.last_page),
+                    (&table.first_page, &table.last_page, DatabaseType::Plain),
                 )
                 .unwrap()
                 .into_iter()
@@ -103,7 +111,7 @@ fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
                         .present_rows()
                         .iter()
                         .map(|row| {
-                            if let Row::PlaylistTreeNode(playlist_tree) = row {
+                            if let Row::Plain(PlainRow::PlaylistTreeNode(playlist_tree)) = row {
                                 playlist_tree.clone()
                             } else {
                                 unreachable!("encountered non-playlist tree row in playlist table");
@@ -128,9 +136,9 @@ fn dump_anlz(path: &PathBuf) -> rekordcrate::Result<()> {
     Ok(())
 }
 
-fn dump_pdb(path: &PathBuf) -> rekordcrate::Result<()> {
+fn dump_pdb(path: &PathBuf, typ: DatabaseType) -> rekordcrate::Result<()> {
     let mut reader = std::fs::File::open(path)?;
-    let header = Header::read(&mut reader)?;
+    let header = Header::read_args(&mut reader, (typ,))?;
 
     println!("{:#?}", header);
 
@@ -140,7 +148,7 @@ fn dump_pdb(path: &PathBuf) -> rekordcrate::Result<()> {
             .read_pages(
                 &mut reader,
                 binrw::Endian::NATIVE,
-                (&table.first_page, &table.last_page),
+                (&table.first_page, &table.last_page, typ),
             )
             .unwrap()
             .into_iter()
@@ -176,12 +184,53 @@ fn dump_xml(path: &PathBuf) -> rekordcrate::Result<()> {
     Ok(())
 }
 
+fn guess_db_type(path: &Path, db_type: Option<&str>) -> Option<DatabaseType> {
+    let db_type_cli = db_type.map(|str| match str {
+        "plain" => DatabaseType::Plain,
+        "ext" => DatabaseType::Ext,
+        invalid => unreachable!("invalid flag {invalid}, should have already been checked by clap"),
+    });
+    let file_name = match path.file_name() {
+        None => {
+            eprintln!("{} not a file!", path.display());
+            return None; // TODO(Swiftb0y): turn this into a proper error
+        }
+        Some(file_name) => file_name,
+    };
+    let db_type_file = if file_name == "export.pdb" {
+        Some(DatabaseType::Plain)
+    } else if file_name == "exportExt.pdb" {
+        Some(DatabaseType::Ext)
+    } else {
+        None
+    };
+    let db_type = match (db_type_cli, db_type_file) {
+        (None, None) => {
+            eprintln!("no DB_TYPE supplied nor could it be guessed!");
+            return None; // TODO(Swiftb0y): turn this into a proper error
+        }
+        (None, Some(guess)) | (Some(guess), None) => guess,
+        (Some(db_type_cli), Some(db_type_file)) if db_type_cli == db_type_file => db_type_cli,
+        (Some(db_type_cli), Some(db_type_file)) => {
+            eprintln!("Warning: passed {db_type_cli:?}, but found {db_type_file:?} from file name, using {db_type_cli:?}!");
+            db_type_cli
+        }
+    };
+    Some(db_type)
+}
+
 fn main() -> rekordcrate::Result<()> {
     let cli = Cli::parse();
 
     match &cli.command {
         Commands::ListPlaylists { path } => list_playlists(path),
-        Commands::DumpPDB { path } => dump_pdb(path),
+        Commands::DumpPDB { path, db_type } => {
+            let db_type = match guess_db_type(path, db_type.as_deref()) {
+                Some(db_type) => db_type,
+                None => return Ok(()), // TODO(Swiftb0y): turn into proper error;
+            };
+            dump_pdb(path, db_type)
+        }
         Commands::DumpANLZ { path } => dump_anlz(path),
         Commands::DumpSetting { path } => dump_setting(path),
         Commands::DumpXML { path } => dump_xml(path),

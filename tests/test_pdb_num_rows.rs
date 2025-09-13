@@ -7,10 +7,10 @@
 // SPDX-License-Identifier: MPL-2.0
 
 use binrw::BinRead;
-use rekordcrate::pdb::{Header, PageType};
+use rekordcrate::pdb::{DatabaseType, Header, PageType, PlainPageType};
 use std::io::Cursor;
 
-fn assert_pdb_row_count(page_type: PageType, expected_row_count: usize) {
+fn assert_pdb_row_count(page_type: PlainPageType, expected_row_count: usize) {
     let data = include_bytes!("../data/pdb/num_rows/export.pdb").as_slice();
     let mut reader = Cursor::new(data);
     let header = Header::read(&mut reader).expect("failed to parse header");
@@ -18,13 +18,13 @@ fn assert_pdb_row_count(page_type: PageType, expected_row_count: usize) {
     let table = header
         .tables
         .iter()
-        .find(|table| table.page_type == page_type)
+        .find(|table| table.page_type == PageType::Plain(page_type))
         .expect("Failed to find table of given type");
     let pages = header
         .read_pages(
             &mut reader,
             binrw::Endian::NATIVE,
-            (&table.first_page, &table.last_page),
+            (&table.first_page, &table.last_page, DatabaseType::Plain),
         )
         .expect("failed to read pages");
 
@@ -42,65 +42,65 @@ fn assert_pdb_row_count(page_type: PageType, expected_row_count: usize) {
 
 #[test]
 fn test_pdb_row_count_albums() {
-    assert_pdb_row_count(PageType::Albums, 2226);
+    assert_pdb_row_count(PlainPageType::Albums, 2226);
 }
 
 #[test]
 fn test_pdb_row_count_artists() {
-    assert_pdb_row_count(PageType::Artists, 2216);
+    assert_pdb_row_count(PlainPageType::Artists, 2216);
 }
 
 #[test]
 fn test_pdb_row_count_artwork() {
-    assert_pdb_row_count(PageType::Artwork, 2178);
+    assert_pdb_row_count(PlainPageType::Artwork, 2178);
 }
 
 #[test]
 fn test_pdb_row_count_colors() {
-    assert_pdb_row_count(PageType::Colors, 8);
+    assert_pdb_row_count(PlainPageType::Colors, 8);
 }
 
 #[test]
 fn test_pdb_row_count_genres() {
-    assert_pdb_row_count(PageType::Genres, 315);
+    assert_pdb_row_count(PlainPageType::Genres, 315);
 }
 
 #[test]
 fn test_pdb_row_count_historyplaylists() {
-    assert_pdb_row_count(PageType::HistoryPlaylists, 1);
+    assert_pdb_row_count(PlainPageType::HistoryPlaylists, 1);
 }
 
 #[test]
 fn test_pdb_row_count_historyentries() {
-    assert_pdb_row_count(PageType::HistoryEntries, 73);
+    assert_pdb_row_count(PlainPageType::HistoryEntries, 73);
 }
 
 #[test]
 fn test_pdb_row_count_keys() {
-    assert_pdb_row_count(PageType::Keys, 67);
+    assert_pdb_row_count(PlainPageType::Keys, 67);
 }
 
 #[test]
 fn test_pdb_row_count_labels() {
-    assert_pdb_row_count(PageType::Labels, 688);
+    assert_pdb_row_count(PlainPageType::Labels, 688);
 }
 
 #[test]
 fn test_pdb_row_count_playlisttree() {
-    assert_pdb_row_count(PageType::PlaylistTree, 104);
+    assert_pdb_row_count(PlainPageType::PlaylistTree, 104);
 }
 
 #[test]
 fn test_pdb_row_count_playlistentries() {
-    assert_pdb_row_count(PageType::PlaylistEntries, 6637);
+    assert_pdb_row_count(PlainPageType::PlaylistEntries, 6637);
 }
 
 #[test]
 fn test_pdb_row_count_columns() {
-    assert_pdb_row_count(PageType::Columns, 27);
+    assert_pdb_row_count(PlainPageType::Columns, 27);
 }
 
 #[test]
 fn test_pdb_row_count_tracks() {
-    assert_pdb_row_count(PageType::Tracks, 3886);
+    assert_pdb_row_count(PlainPageType::Tracks, 3886);
 }
