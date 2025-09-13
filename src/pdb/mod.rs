@@ -28,6 +28,7 @@ use offset_array::OffsetArrayContainer;
 mod test;
 
 use std::convert::TryInto;
+use std::fmt;
 
 use crate::pdb::ext::{ExtPageType, ExtRow};
 use crate::pdb::offset_array::{OffsetArray, OffsetSize};
@@ -241,9 +242,89 @@ impl PageFlags {
     }
 }
 
+/// An entry in an index page.
+#[binrw]
+#[derive(PartialEq, Eq, Clone, Copy)]
+#[brw(little)]
+pub struct IndexEntry(u32);
+
+impl IndexEntry {
+    /// Returns the page index from bits 31-3.
+    #[must_use]
+    pub fn page_index(&self) -> PageIndex {
+        PageIndex(self.0 >> 3)
+    }
+
+    /// Returns the index flags from bits 2-0.
+    #[must_use]
+    pub fn index_flags(&self) -> u8 {
+        (self.0 & 0b111) as u8
+    }
+
+    /// Returns `true` if the entry is an empty slot.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.0 == 0x1FFF_FFF8
+    }
+}
+
+impl fmt::Debug for IndexEntry {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.is_empty() {
+            f.debug_struct("IndexEntry")
+                .field("is_empty", &self.is_empty())
+                .finish()
+        } else {
+            f.debug_struct("IndexEntry")
+                .field("is_empty", &self.is_empty())
+                .field("page_index", &self.page_index())
+                .field("index_flags", &self.index_flags())
+                .finish()
+        }
+    }
+}
+
+/// The content of an index page.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[brw(little)]
+pub struct IndexPageContent {
+    /// Unknown field, usually `1fff` or `0001`.
+    pub unknown_a: u16,
+    /// Unknown field, usually `1fff` or `0000`.
+    pub unknown_b: u16,
+    /// Magic value, must be `0x03ec`.
+    #[br(temp, assert(magic1 == 0x03ec))]
+    #[bw(calc = 0x03ec)]
+    magic1: u16,
+    /// Byte offset for the next index entry.
+    pub next_offset: u16,
+    /// Redundant page index.
+    pub page_index: PageIndex,
+    /// Redundant next page index.
+    pub next_page: PageIndex,
+    /// Magic value, must be `0x03ffffff`.
+    #[br(temp, assert(magic2 == 0x03ff_ffff))]
+    #[bw(calc = 0x03ff_ffff)]
+    magic2: u32,
+    /// Must be zero.
+    #[br(temp, assert(zeros == 0))]
+    #[bw(calc = 0)]
+    zeros: u32,
+    /// Number of index entries in this page.
+    #[br(temp)]
+    #[bw(calc = entries.len() as u16)]
+    num_entries: u16,
+    /// Points to the first empty index entry, or `1fff` if none.
+    pub first_empty: u16,
+    /// The index entries.
+    #[br(count = num_entries)]
+    pub entries: Vec<IndexEntry>,
+}
+
 /// The content of a page, which can be of different types.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 #[br(little, import { page_flags: PageFlags, page_start_pos: u64, page_size: u32, num_rows_small: u8, page_type: PageType })]
 #[bw(little, import { page_flags: PageFlags, page_size: u32, num_rows_small: u8, page_type: PageType })]
 pub enum PageContent {
@@ -256,7 +337,7 @@ pub enum PageContent {
     ),
     /// The page is an index page.
     #[br(pre_assert(page_flags.is_index_page()))]
-    Index,
+    Index(IndexPageContent),
     /// The page is of an unknown or unsupported format.
     Unknown,
 }
@@ -267,6 +348,15 @@ impl PageContent {
     pub fn get_data(self) -> Option<DataPageContent> {
         match self {
             PageContent::Data(data) => Some(data),
+            _ => None,
+        }
+    }
+
+    /// Returns the index content of the page if it is an index page.
+    #[must_use]
+    pub fn get_index(self) -> Option<IndexPageContent> {
+        match self {
+            PageContent::Index(index) => Some(index),
             _ => None,
         }
     }
@@ -343,7 +433,7 @@ pub struct Page {
 
 /// The data-containing part of a page.
 #[binread]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 #[br(little, import { page_start_pos: u64, page_size: u32, num_rows_small: u8, page_type: PageType })]
 pub struct DataPageContent {
     /// Unknown field.
@@ -461,7 +551,7 @@ impl Page {
             PageContent::Data(content) => {
                 DataPageContent::calculate_num_rows(self.num_rows_small, content.num_rows_large)
             }
-            PageContent::Index | PageContent::Unknown => 0,
+            PageContent::Index(_) | PageContent::Unknown => 0,
         }
     }
 }

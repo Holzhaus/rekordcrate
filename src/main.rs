@@ -155,13 +155,19 @@ fn dump_pdb(path: &PathBuf, typ: DatabaseType) -> rekordcrate::Result<()> {
             .into_iter()
         {
             println!("  {:?}", page);
-            if let Some(data_content) = page.content.get_data() {
+            if let Some(data_content) = page.content.clone().get_data() {
                 data_content.row_groups.iter().for_each(|row_group| {
                     println!("    {:?}", row_group);
                     for row in row_group.present_rows() {
                         println!("      {:?}", row);
                     }
                 })
+            }
+            if let Some(index_content) = page.content.get_index() {
+                println!("    {:?}", index_content);
+                for entry in index_content.entries {
+                    println!("      {:?}", entry);
+                }
             }
         }
     }
