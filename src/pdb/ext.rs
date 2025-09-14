@@ -59,7 +59,10 @@ pub struct TagOrCategoryStrings {
 }
 
 /// A tag or category that can be assigned to tracks for the purpose of categorization.
-// https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/exports.html#tag-rows
+///
+/// ## References
+///
+/// - <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/exports.html#tag-rows>
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
