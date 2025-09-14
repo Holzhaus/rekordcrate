@@ -24,6 +24,15 @@ All notable changes to this project will be documented in this file.
 - Add `ofs_name` field to Album row and correctly (de-)serialize it
 - pdb: Set fixed 4-byte alignment on labels
 - pdb: Set 4-byte alignment for Artwork rows
+- pdb: Increase struct fields visibility in ext.rs for use in tests
+- pdb: Add padding field to tag struct
+- pdb: Set fixed 4-byte alignment for tag rows
+- pdb: Add mapping for optional NonZero<u32> in ParentId struct
+
+### Documentation
+
+- pdb: Add doc comments for struct fields in ext.rs
+- Link to upstream Tag row docs in docs
 
 ### Features
 
@@ -32,6 +41,8 @@ All notable changes to this project will be documented in this file.
 - Get `labels_page` passing
 - Add `VarOffsetTail` as an abstraction for trailing var-len data
 - Replace `VarOffsetTail` with `OffsetArray` and add ExplicitPadding
+- Parse rekordbox exportExt.pdb format
+- Convert dump-ext-pdb into flag instead with some guessing magic
 
 ### Refactor
 
@@ -63,6 +74,8 @@ All notable changes to this project will be documented in this file.
 - pdb: Add playlist entry row and page tests
 - pdb: Add playlist tree row and page tests
 - pdb: Add artwork page test
+- pdb: Add tag and track_tag page tests
+- pdb: Add history playlists and entries page tests
 
 ## [0.3.0] - 2025-01-23
 
