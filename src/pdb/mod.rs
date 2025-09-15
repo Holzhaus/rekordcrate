@@ -245,13 +245,15 @@ impl PageFlags {
 pub struct IndexEntry(u32);
 
 impl IndexEntry {
-    /// Returns the page index from bits 31-3.
+    /// Returns bits 31-3 as a `PageIndex` which points to a page containing
+    /// data rows, with `page_flags=0x34` and same `page_type` as this page.
     #[must_use]
     pub fn page_index(&self) -> PageIndex {
         PageIndex(self.0 >> 3)
     }
 
-    /// Returns the index flags from bits 2-0.
+    /// Returns the index flags from bits 2-0. Their meaning is currently
+    /// unknown.
     #[must_use]
     pub fn index_flags(&self) -> u8 {
         (self.0 & 0b111) as u8
@@ -291,7 +293,10 @@ pub struct IndexPageContent {
     pub unknown_b: u16,
     // Magic value `0x03ec`.
     #[brw(magic = 0x03ecu16)]
-    /// Byte offset for the next index entry.
+    /// Offset where the next index entry will be written from the beginning
+    /// of the entries array, i.e. if this is 4 it means the next entry should
+    /// be written at byte `entries+4*4`. We still do not know why this value
+    /// is sometimes different than num_entries.
     pub next_offset: u16,
     /// Redundant page index.
     pub page_index: PageIndex,
@@ -304,6 +309,12 @@ pub struct IndexPageContent {
     #[bw(calc = entries.len() as u16)]
     num_entries: u16,
     /// Points to the first empty index entry, or `1fff` if none.
+    ///
+    /// In real databases, this has been found to be one of three things:
+    /// 1. The same value as `num_entries`.
+    /// 2. `0x1fff`. We assume this has the same meaning as **1.**
+    /// 3. A number smaller than `num_entries`, indicating the first empty
+    /// slot.
     pub first_empty: u16,
     /// The index entries.
     #[br(count = num_entries)]
