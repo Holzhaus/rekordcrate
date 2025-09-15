@@ -264,6 +264,20 @@ impl IndexEntry {
     pub fn is_empty(&self) -> bool {
         self.0 == 0x1FFF_FFF8
     }
+
+    /// Creates a new `IndexEntry` from a `PageIndex` and `index_flags`.
+    #[must_use]
+    pub fn new(page_index: PageIndex, index_flags: u8) -> Self {
+        assert!(page_index.0 <= 0x1FFF_FFFF);
+        assert!(index_flags & 0b111 == index_flags);
+        Self((page_index.0 << 3) | u32::from(index_flags & 0b111))
+    }
+
+    /// Creates a new empty `IndexEntry`.
+    #[must_use]
+    pub fn empty() -> Self {
+        Self(0x1FFF_FFF8)
+    }
 }
 
 impl fmt::Debug for IndexEntry {
