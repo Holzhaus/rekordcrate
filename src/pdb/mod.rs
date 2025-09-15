@@ -345,7 +345,7 @@ pub enum PageContent {
 impl PageContent {
     /// Returns the data content of the page if it is a data page.
     #[must_use]
-    pub fn get_data(self) -> Option<DataPageContent> {
+    pub fn into_data(self) -> Option<DataPageContent> {
         match self {
             PageContent::Data(data) => Some(data),
             _ => None,
@@ -354,7 +354,7 @@ impl PageContent {
 
     /// Returns the index content of the page if it is an index page.
     #[must_use]
-    pub fn get_index(self) -> Option<IndexPageContent> {
+    pub fn into_index(self) -> Option<IndexPageContent> {
         match self {
             PageContent::Index(index) => Some(index),
             _ => None,

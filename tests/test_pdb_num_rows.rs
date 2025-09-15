@@ -30,7 +30,7 @@ fn assert_pdb_row_count(page_type: PlainPageType, expected_row_count: usize) {
 
     let actual_row_count: usize = pages
         .into_iter()
-        .filter_map(|page| page.content.get_data())
+        .filter_map(|page| page.content.into_data())
         .flat_map(|data_content| data_content.row_groups.into_iter())
         .map(|row_group| row_group.present_rows().len())
         .sum();
