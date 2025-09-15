@@ -521,25 +521,6 @@ impl Page {
         let row_groups_footer_size = u32::from(num_row_groups) * RowGroup::BINARY_SIZE;
         page_size - Self::HEADER_SIZE - DataPageContent::HEADER_SIZE - row_groups_footer_size
     }
-
-    #[must_use]
-    /// Returns `true` if the page actually contains row data.
-    pub fn has_data(&self) -> bool {
-        self.page_flags.page_has_data()
-    }
-
-    #[must_use]
-    /// Number of rows on this page.
-    ///
-    /// Note that this number includes rows that have been flagged as missing by the row group.
-    pub fn num_rows(&self) -> u16 {
-        match &self.content {
-            PageContent::Data(content) => {
-                DataPageContent::calculate_num_rows(self.num_rows_small, content.num_rows_large)
-            }
-            PageContent::Index(_) | PageContent::Unknown => 0,
-        }
-    }
 }
 
 /// A group of row indices, which are built backwards from the end of the page. Holds up to sixteen
