@@ -297,16 +297,16 @@ impl fmt::Debug for IndexEntry {
 }
 
 /// The content of an index page.
-#[binrw]
+#[binread]
 #[derive(Debug, PartialEq, Eq, Clone)]
-#[brw(little)]
+#[br(little)]
 pub struct IndexPageContent {
     /// Unknown field, usually `1fff` or `0001`.
     pub unknown_a: u16,
     /// Unknown field, usually `1fff` or `0000`.
     pub unknown_b: u16,
     // Magic value `0x03ec`.
-    #[brw(magic = 0x03ecu16)]
+    #[br(magic = 0x03ecu16)]
     /// Offset where the next index entry will be written from the beginning
     /// of the entries array, i.e. if this is 4 it means the next entry should
     /// be written at byte `entries+4*4`. We still do not know why this value
@@ -317,10 +317,9 @@ pub struct IndexPageContent {
     /// Redundant next page index.
     pub next_page: PageIndex,
     // Magic value `0x0000000003ffffff`.
-    #[brw(magic = 0x0000_0000_03ff_ffffu64)]
+    #[br(magic = 0x0000_0000_03ff_ffffu64)]
     /// Number of index entries in this page.
     #[br(temp)]
-    #[bw(calc = entries.len() as u16)]
     num_entries: u16,
     /// Points to the first empty index entry, or `1fff` if none.
     ///
@@ -333,6 +332,58 @@ pub struct IndexPageContent {
     /// The index entries.
     #[br(count = num_entries)]
     pub entries: Vec<IndexEntry>,
+}
+
+impl BinWrite for IndexPageContent {
+    type Args<'a> = (u32,);
+
+    fn write_options<W: Write + Seek>(
+        &self,
+        writer: &mut W,
+        endian: Endian,
+        (page_size,): Self::Args<'_>,
+    ) -> BinResult<()> {
+        let page_content_start_pos = writer.stream_position()?;
+
+        self.unknown_a.write_options(writer, endian, ())?;
+        self.unknown_b.write_options(writer, endian, ())?;
+        0x03ecu16.write_options(writer, endian, ())?;
+        self.next_offset.write_options(writer, endian, ())?;
+        self.page_index.write_options(writer, endian, ())?;
+        self.next_page.write_options(writer, endian, ())?;
+        0x0000_0000_03ff_ffffu64.write_options(writer, endian, ())?;
+        (self.entries.len() as u16).write_options(writer, endian, ())?;
+        self.first_empty.write_options(writer, endian, ())?;
+
+        for entry in &self.entries {
+            entry.write_options(writer, endian, ())?;
+        }
+
+        let after_entries_pos = writer.stream_position()?;
+        let written_bytes = after_entries_pos - page_content_start_pos;
+
+        let content_size = page_size - Page::HEADER_SIZE;
+        let padding_end_offset = content_size - 20;
+
+        if written_bytes < padding_end_offset as u64 {
+            let empty_entries_to_write = (padding_end_offset as u64 - written_bytes) / 4;
+            let empty_entry = IndexEntry::empty();
+            for _ in 0..empty_entries_to_write {
+                empty_entry.write_options(writer, endian, ())?;
+            }
+        }
+
+        let after_padding_pos = writer.stream_position()?;
+        let final_padding_bytes =
+            content_size as u64 - (after_padding_pos - page_content_start_pos);
+
+        if final_padding_bytes > 0 {
+            let zero_padding = vec![0u8; final_padding_bytes as usize];
+            writer.write_all(&zero_padding)?;
+        }
+
+        Ok(())
+    }
 }
 
 /// The content of a page, which can be of different types.
@@ -350,7 +401,7 @@ pub enum PageContent {
     ),
     /// The page is an index page.
     #[br(pre_assert(page_flags.is_index_page()))]
-    Index(IndexPageContent),
+    Index(#[bw(args(page_size,))] IndexPageContent),
     /// The page is of an unknown or unsupported format.
     Unknown,
 }
