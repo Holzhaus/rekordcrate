@@ -167,10 +167,8 @@ pub struct Table {
 #[brw(little)]
 #[brw(import(db_type: DatabaseType))]
 pub struct Header {
-    /// Unknown purpose, perhaps an unoriginal signature, seems to always have the value 0.
-    #[br(temp, assert(unknown1 == 0))]
-    #[bw(calc = 0u32)]
-    unknown1: u32,
+    // Unknown purpose, perhaps an unoriginal signature, seems to always have the value 0.
+    #[brw(magic = 0u32)]
     /// Size of a single page in bytes.
     ///
     /// The byte offset of a page can be calculated by multiplying a page index with this value.
@@ -187,10 +185,8 @@ pub struct Header {
     unknown: u32,
     /// Always incremented by at least one, sometimes by two or three.
     pub sequence: u32,
-    /// The gap seems to be always zero.
-    #[br(temp, assert(gap == 0))]
-    #[bw(calc = 0u32)]
-    gap: u32,
+    // The gap seems to be always zero.
+    #[brw(magic = 0u32)]
     /// Each table is a linked list of pages containing rows of a particular type.
     #[br(count = num_tables, args {inner: (db_type,)})]
     #[bw(args(db_type))]
@@ -293,24 +289,16 @@ pub struct IndexPageContent {
     pub unknown_a: u16,
     /// Unknown field, usually `1fff` or `0000`.
     pub unknown_b: u16,
-    /// Magic value, must be `0x03ec`.
-    #[br(temp, assert(magic1 == 0x03ec))]
-    #[bw(calc = 0x03ec)]
-    magic1: u16,
+    // Magic value `0x03ec`.
+    #[brw(magic = 0x03ecu16)]
     /// Byte offset for the next index entry.
     pub next_offset: u16,
     /// Redundant page index.
     pub page_index: PageIndex,
     /// Redundant next page index.
     pub next_page: PageIndex,
-    /// Magic value, must be `0x03ffffff`.
-    #[br(temp, assert(magic2 == 0x03ff_ffff))]
-    #[bw(calc = 0x03ff_ffff)]
-    magic2: u32,
-    /// Must be zero.
-    #[br(temp, assert(zeros == 0))]
-    #[bw(calc = 0)]
-    zeros: u32,
+    // Magic value `0x0000000003ffffff`.
+    #[brw(magic = 0x0000_0000_03ff_ffffu64)]
     /// Number of index entries in this page.
     #[br(temp)]
     #[bw(calc = entries.len() as u16)]
@@ -375,10 +363,8 @@ pub struct Page {
     #[br(temp, parse_with = current_offset)]
     #[bw(ignore)]
     page_start_pos: u64,
-    /// Magic signature for pages (must be 0).
-    #[br(temp, assert(magic == 0u32))]
-    #[bw(calc = 0u32)]
-    magic: u32,
+    // Magic signature for pages (must be 0).
+    #[brw(magic = 0u32)]
     /// Index of the page.
     ///
     /// Should match the index used for lookup and can be used to verify that the correct page was loaded.
