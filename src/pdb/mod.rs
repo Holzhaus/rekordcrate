@@ -365,6 +365,11 @@ impl BinWrite for IndexPageContent {
         let content_size = page_size - Page::HEADER_SIZE;
         let padding_end_offset = content_size - 20;
 
+        /* Fill with empty entries (0x1ffffff8) until the last 20 bytes, which
+        are zeroes. If https://github.com/jam1garner/binrw/issues/205 was ever
+        fixed, this entire BinWrite implementation could possibly be removed.
+        */
+
         if written_bytes < padding_end_offset as u64 {
             let empty_entries_to_write = (padding_end_offset as u64 - written_bytes) / 4;
             let empty_entry = IndexEntry::empty();
