@@ -39,6 +39,21 @@ use binrw::{
     io::{Read, Seek, SeekFrom, Write},
     BinRead, BinResult, BinWrite, Endian,
 };
+use thiserror::Error;
+
+/// An error that can occur when parsing a PDB file.
+#[derive(Debug, Error)]
+pub enum PdbError {
+    /// An invalid value was passed when creating a `PageIndex`.
+    #[error("Invalid page index value: {0:#X}")]
+    InvalidPageIndex(u32),
+    /// Invalid flags were passed when creating an `IndexEntry`.
+    #[error("Invalid index flags (expected max 3 bits): {0:#b}")]
+    InvalidIndexFlags(u8),
+    /// A row was added to a full `RowGroup`.
+    #[error("Cannot add row to a full row group (max 16 rows)")]
+    RowGroupFull,
+}
 
 /// Do not read anything, but the return the current stream position of `reader`.
 fn current_offset<R: Read + Seek>(reader: &mut R, _: Endian, _: ()) -> BinResult<u64> {
@@ -130,17 +145,19 @@ pub enum PlainPageType {
 #[brw(little)]
 pub struct PageIndex(u32);
 
-impl PageIndex {
-    /// Failable constructor.
-    #[must_use]
-    pub const fn new(value: u32) -> Option<Self> {
+impl TryFrom<u32> for PageIndex {
+    type Error = PdbError;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
         if value <= 0x1FFF_FFFF {
-            Some(Self(value))
+            Ok(Self(value))
         } else {
-            None
+            Err(PdbError::InvalidPageIndex(value))
         }
     }
+}
 
+impl PageIndex {
     /// Calculate the absolute file offset of the page in the PDB file for the given `page_size`.
     #[must_use]
     pub fn offset(&self, page_size: u32) -> u64 {
@@ -254,12 +271,23 @@ impl PageFlags {
 #[brw(little)]
 pub struct IndexEntry(u32);
 
+impl TryFrom<(PageIndex, u8)> for IndexEntry {
+    type Error = PdbError;
+
+    fn try_from(value: (PageIndex, u8)) -> Result<Self, Self::Error> {
+        let (page_index, index_flags) = value;
+        if index_flags & 0b111 != index_flags {
+            return Err(PdbError::InvalidIndexFlags(index_flags));
+        }
+        Ok(Self((page_index.0 << 3) | (index_flags & 0b111) as u32))
+    }
+}
+
 impl IndexEntry {
     /// Returns bits 31-3 as a `PageIndex` which points to a page containing
     /// data rows, with `page_flags=0x34` and same `page_type` as this page.
-    #[must_use]
-    pub fn page_index(&self) -> Option<PageIndex> {
-        PageIndex::new(self.0 >> 3)
+    pub fn page_index(&self) -> Result<PageIndex, PdbError> {
+        PageIndex::try_from(self.0 >> 3)
     }
 
     /// Returns the index flags from bits 2-0. Their meaning is currently
@@ -273,15 +301,6 @@ impl IndexEntry {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.0 == 0x1FFF_FFF8
-    }
-
-    /// Creates a new `IndexEntry` from a `PageIndex` and `index_flags`.
-    #[must_use]
-    pub const fn new(page_index: PageIndex, index_flags: u8) -> Option<Self> {
-        if index_flags & 0b111 != index_flags {
-            return None;
-        }
-        Some(Self((page_index.0 << 3) | (index_flags & 0b111) as u32))
     }
 
     /// Creates a new empty `IndexEntry`.
@@ -376,13 +395,12 @@ impl BinWrite for IndexPageContent {
         let content_size = page_size - Page::HEADER_SIZE;
         let padding_end_offset = content_size - 20;
 
-        /* Fill with empty entries (0x1ffffff8) until the last 20 bytes, which
-        are zeroes. If https://github.com/jam1garner/binrw/issues/205 was ever
-        fixed, this entire BinWrite implementation could possibly be removed.
-        */
+        // Fill with empty entries (0x1ffffff8) until the last 20 bytes, which
+        // are zeroes. If https://github.com/jam1garner/binrw/issues/205 was ever
+        // fixed, this entire BinWrite implementation could possibly be removed.
 
-        if written_bytes < padding_end_offset as u64 {
-            let empty_entries_to_write = (padding_end_offset as u64 - written_bytes) / 4;
+        if written_bytes < u64::from(padding_end_offset) {
+            let empty_entries_to_write = (u64::from(padding_end_offset) - written_bytes) / 4;
             let empty_entry = IndexEntry::empty();
             for _ in 0..empty_entries_to_write {
                 empty_entry.write_options(writer, endian, ())?;
@@ -651,13 +669,11 @@ impl RowGroup {
     pub fn present_rows(&self) -> &[Row] {
         &self.rows
     }
-    // TODO(Swiftb0y): Add a new error category for user APIs and add the correct
-    // error herer
-    #[allow(clippy::result_unit_err)]
+
     /// Add a row to this rowgroup
-    pub fn add_row(&mut self, row: Row) -> Result<(), ()> {
+    pub fn add_row(&mut self, row: Row) -> Result<(), PdbError> {
         if self.rows.len() >= Self::MAX_ROW_COUNT {
-            return Err(());
+            return Err(PdbError::RowGroupFull);
         }
         self.row_presence_flags |= 1 << self.rows.len() as u16;
         self.rows.push(row);
