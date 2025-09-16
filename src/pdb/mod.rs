@@ -131,6 +131,16 @@ pub enum PlainPageType {
 pub struct PageIndex(u32);
 
 impl PageIndex {
+    /// Failable constructor.
+    #[must_use]
+    pub const fn new(value: u32) -> Option<Self> {
+        if value <= 0x1FFF_FFFF {
+            Some(Self(value))
+        } else {
+            None
+        }
+    }
+
     /// Calculate the absolute file offset of the page in the PDB file for the given `page_size`.
     #[must_use]
     pub fn offset(&self, page_size: u32) -> u64 {
@@ -248,8 +258,8 @@ impl IndexEntry {
     /// Returns bits 31-3 as a `PageIndex` which points to a page containing
     /// data rows, with `page_flags=0x34` and same `page_type` as this page.
     #[must_use]
-    pub fn page_index(&self) -> PageIndex {
-        PageIndex(self.0 >> 3)
+    pub fn page_index(&self) -> Option<PageIndex> {
+        PageIndex::new(self.0 >> 3)
     }
 
     /// Returns the index flags from bits 2-0. Their meaning is currently
@@ -267,15 +277,16 @@ impl IndexEntry {
 
     /// Creates a new `IndexEntry` from a `PageIndex` and `index_flags`.
     #[must_use]
-    pub fn new(page_index: PageIndex, index_flags: u8) -> Self {
-        assert!(page_index.0 <= 0x1FFF_FFFF);
-        assert!(index_flags & 0b111 == index_flags);
-        Self((page_index.0 << 3) | u32::from(index_flags & 0b111))
+    pub const fn new(page_index: PageIndex, index_flags: u8) -> Option<Self> {
+        if index_flags & 0b111 != index_flags {
+            return None;
+        }
+        Some(Self((page_index.0 << 3) | (index_flags & 0b111) as u32))
     }
 
     /// Creates a new empty `IndexEntry`.
     #[must_use]
-    pub fn empty() -> Self {
+    pub const fn empty() -> Self {
         Self(0x1FFF_FFF8)
     }
 }
@@ -289,7 +300,7 @@ impl fmt::Debug for IndexEntry {
         } else {
             f.debug_struct("IndexEntry")
                 .field("is_empty", &self.is_empty())
-                .field("page_index", &self.page_index())
+                .field("page_index", &self.page_index().unwrap())
                 .field("index_flags", &self.index_flags())
                 .finish()
         }
