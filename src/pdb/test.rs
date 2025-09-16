@@ -9000,7 +9000,6 @@ fn tag_page() {
                     unknown: "".parse().unwrap(),
                 },
             },
-            padding: 11.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -9020,7 +9019,6 @@ fn tag_page() {
                     unknown: "".parse().unwrap(),
                 },
             },
-            padding: 11.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -9040,7 +9038,6 @@ fn tag_page() {
                     unknown: "".parse().unwrap(),
                 },
             },
-            padding: 11.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -9060,7 +9057,6 @@ fn tag_page() {
                     unknown: "".parse().unwrap(),
                 },
             },
-            padding: 11.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -9080,7 +9076,6 @@ fn tag_page() {
                     unknown: "".parse().unwrap(),
                 },
             },
-            padding: 11.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -9100,7 +9095,6 @@ fn tag_page() {
                     unknown: "".parse().unwrap(),
                 },
             },
-            padding: 11.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -9120,7 +9114,6 @@ fn tag_page() {
                     unknown: "".parse().unwrap(),
                 },
             },
-            padding: 11.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -9140,7 +9133,6 @@ fn tag_page() {
                     unknown: "".parse().unwrap(),
                 },
             },
-            padding: 11.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -9160,7 +9152,6 @@ fn tag_page() {
                     unknown: "".parse().unwrap(),
                 },
             },
-            padding: 11.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -9180,7 +9171,6 @@ fn tag_page() {
                     unknown: "".parse().unwrap(),
                 },
             },
-            padding: 11.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -9200,7 +9190,6 @@ fn tag_page() {
                     unknown: "".parse().unwrap(),
                 },
             },
-            padding: 11.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -9220,7 +9209,6 @@ fn tag_page() {
                     unknown: "".parse().unwrap(),
                 },
             },
-            padding: 11.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -9240,7 +9228,6 @@ fn tag_page() {
                     unknown: "".parse().unwrap(),
                 },
             },
-            padding: 11.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -9260,7 +9247,6 @@ fn tag_page() {
                     unknown: "".parse().unwrap(),
                 },
             },
-            padding: 11.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -9280,7 +9266,6 @@ fn tag_page() {
                     unknown: "".parse().unwrap(),
                 },
             },
-            padding: 11.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -9300,7 +9285,6 @@ fn tag_page() {
                     unknown: "".parse().unwrap(),
                 },
             },
-            padding: 11.into(),
         })))
         .unwrap();
 
@@ -9321,7 +9305,6 @@ fn tag_page() {
                     unknown: "".parse().unwrap(),
                 },
             },
-            padding: 11.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -9341,7 +9324,6 @@ fn tag_page() {
                     unknown: "".parse().unwrap(),
                 },
             },
-            padding: 11.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -9361,7 +9343,6 @@ fn tag_page() {
                     unknown: "".parse().unwrap(),
                 },
             },
-            padding: 11.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -9381,7 +9362,6 @@ fn tag_page() {
                     unknown: "".parse().unwrap(),
                 },
             },
-            padding: 11.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -9401,7 +9381,6 @@ fn tag_page() {
                     unknown: "".parse().unwrap(),
                 },
             },
-            padding: 11.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -9421,7 +9400,6 @@ fn tag_page() {
                     unknown: "".parse().unwrap(),
                 },
             },
-            padding: 11.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -9441,7 +9419,6 @@ fn tag_page() {
                     unknown: "".parse().unwrap(),
                 },
             },
-            padding: 0.into(),
         })))
         .unwrap();
 
