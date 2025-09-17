@@ -59,6 +59,7 @@ All notable changes to this project will be documented in this file.
 - Cleanup `pdb/offset_array.rs` a little by reducing duplication
 - OffsetArray->OffsetArrayContainer, OffsetArrayImpl->OffsetArray
 - Outline page test buffers
+- pdb: Remove unneeded explicit padding from tag rows
 
 ### Testing
 
