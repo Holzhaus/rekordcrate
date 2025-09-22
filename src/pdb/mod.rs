@@ -149,7 +149,7 @@ impl TryFrom<u32> for PageIndex {
     type Error = PdbError;
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
-        if value <= 0x1FFF_FFFF {
+        if value < 0x03FF_FFFF {
             Ok(Self(value))
         } else {
             Err(PdbError::InvalidPageIndex(value))
