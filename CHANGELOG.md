@@ -28,12 +28,17 @@ All notable changes to this project will be documented in this file.
 - pdb: Add padding field to tag struct
 - pdb: Set fixed 4-byte alignment for tag rows
 - pdb: Add mapping for optional NonZero<u32> in ParentId struct
+- pdb: Explicit pattern matching to avoid extra `clone()`
+- pdb: Custom `BinWrite` for `IndexPageContent` to comply with binary
+- pdb: Address feedback by @Swiftb0y
+- pdb: Only allow PageIndex values less than 0x03FF_FFFF
 - Fix various compiler or clippy warnings with Rust 1.90
 
 ### Documentation
 
 - pdb: Add doc comments for struct fields in ext.rs
 - Link to upstream Tag row docs in docs
+- pdb: Enhance documentation for some index page fields
 
 ### Features
 
@@ -44,6 +49,8 @@ All notable changes to this project will be documented in this file.
 - Replace `VarOffsetTail` with `OffsetArray` and add ExplicitPadding
 - Parse rekordbox exportExt.pdb format
 - Convert dump-ext-pdb into flag instead with some guessing magic
+- pdb: Initial index page implementation
+- pdb: Add methods to create new and empty `IndexEntry` instances
 
 ### Refactor
 
@@ -60,6 +67,13 @@ All notable changes to this project will be documented in this file.
 - Cleanup `pdb/offset_array.rs` a little by reducing duplication
 - OffsetArray->OffsetArrayContainer, OffsetArrayImpl->OffsetArray
 - Outline page test buffers
+- pdb: Prepare for index page implementation
+- pdb: Address feedback from @Swiftb0y
+- pdb: Address NITs from @Swiftb0y
+- pdb: Rename get_* methods to into_* to align with `std`
+- pdb: `#[br(temp, assert/#[bw(calc` -> `#[brw(magic` in structs
+- pdb: Remove unused methods from `Page` impl
+- pdb: Address NITs from @Holzhaus and make clippy happy
 - pdb: Remove unneeded explicit padding from tag rows
 
 ### Testing
@@ -78,6 +92,7 @@ All notable changes to this project will be documented in this file.
 - pdb: Add artwork page test
 - pdb: Add tag and track_tag page tests
 - pdb: Add history playlists and entries page tests
+- pdb: Add `index_page` unit test
 
 ## [0.3.0] - 2025-01-23
 
