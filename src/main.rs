@@ -9,7 +9,7 @@
 use binrw::BinRead;
 use clap::{Parser, Subcommand};
 use rekordcrate::anlz::ANLZ;
-use rekordcrate::pdb::{DatabaseType, Header, PageType, PlainPageType, PlainRow, Row};
+use rekordcrate::pdb::{DatabaseType, Header, PageContent, PageType, PlainPageType, PlainRow, Row};
 use rekordcrate::setting::Setting;
 use rekordcrate::xml::Document;
 use std::path::{Path, PathBuf};
@@ -105,7 +105,8 @@ fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
                 )
                 .unwrap()
                 .into_iter()
-                .flat_map(|page| page.row_groups.into_iter())
+                .filter_map(|page| page.content.into_data())
+                .flat_map(|data_content| data_content.row_groups.into_iter())
                 .flat_map(|row_group| {
                     row_group
                         .present_rows()
@@ -154,12 +155,23 @@ fn dump_pdb(path: &PathBuf, typ: DatabaseType) -> rekordcrate::Result<()> {
             .into_iter()
         {
             println!("  {:?}", page);
-            page.row_groups.iter().for_each(|row_group| {
-                println!("    {:?}", row_group);
-                for row in row_group.present_rows() {
-                    println!("      {:?}", row);
+            match page.content {
+                PageContent::Data(data_content) => {
+                    data_content.row_groups.iter().for_each(|row_group| {
+                        println!("    {:?}", row_group);
+                        for row in row_group.present_rows() {
+                            println!("      {:?}", row);
+                        }
+                    })
                 }
-            })
+                PageContent::Index(index_content) => {
+                    println!("    {:?}", index_content);
+                    for entry in index_content.entries {
+                        println!("      {:?}", entry);
+                    }
+                }
+                PageContent::Unknown => (),
+            }
         }
     }
 

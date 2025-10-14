@@ -28,6 +28,7 @@ use offset_array::OffsetArrayContainer;
 mod test;
 
 use std::convert::TryInto;
+use std::fmt;
 
 use crate::pdb::ext::{ExtPageType, ExtRow};
 use crate::pdb::offset_array::{OffsetArray, OffsetSize};
@@ -38,6 +39,21 @@ use binrw::{
     io::{Read, Seek, SeekFrom, Write},
     BinRead, BinResult, BinWrite, Endian,
 };
+use thiserror::Error;
+
+/// An error that can occur when parsing a PDB file.
+#[derive(Debug, Error)]
+pub enum PdbError {
+    /// An invalid value was passed when creating a `PageIndex`.
+    #[error("Invalid page index value: {0:#X}")]
+    InvalidPageIndex(u32),
+    /// Invalid flags were passed when creating an `IndexEntry`.
+    #[error("Invalid index flags (expected max 3 bits): {0:#b}")]
+    InvalidIndexFlags(u8),
+    /// A row was added to a full `RowGroup`.
+    #[error("Cannot add row to a full row group (max 16 rows)")]
+    RowGroupFull,
+}
 
 /// Do not read anything, but the return the current stream position of `reader`.
 fn current_offset<R: Read + Seek>(reader: &mut R, _: Endian, _: ()) -> BinResult<u64> {
@@ -129,6 +145,18 @@ pub enum PlainPageType {
 #[brw(little)]
 pub struct PageIndex(u32);
 
+impl TryFrom<u32> for PageIndex {
+    type Error = PdbError;
+
+    fn try_from(value: u32) -> Result<Self, Self::Error> {
+        if value < 0x03FF_FFFF {
+            Ok(Self(value))
+        } else {
+            Err(PdbError::InvalidPageIndex(value))
+        }
+    }
+}
+
 impl PageIndex {
     /// Calculate the absolute file offset of the page in the PDB file for the given `page_size`.
     #[must_use]
@@ -166,10 +194,8 @@ pub struct Table {
 #[brw(little)]
 #[brw(import(db_type: DatabaseType))]
 pub struct Header {
-    /// Unknown purpose, perhaps an unoriginal signature, seems to always have the value 0.
-    #[br(temp, assert(unknown1 == 0))]
-    #[bw(calc = 0u32)]
-    unknown1: u32,
+    // Unknown purpose, perhaps an unoriginal signature, seems to always have the value 0.
+    #[brw(magic = 0u32)]
     /// Size of a single page in bytes.
     ///
     /// The byte offset of a page can be calculated by multiplying a page index with this value.
@@ -186,10 +212,8 @@ pub struct Header {
     unknown: u32,
     /// Always incremented by at least one, sometimes by two or three.
     pub sequence: u32,
-    /// The gap seems to be always zero.
-    #[br(temp, assert(gap == 0))]
-    #[bw(calc = 0u32)]
-    gap: u32,
+    // The gap seems to be always zero.
+    #[brw(magic = 0u32)]
     /// Each table is a linked list of pages containing rows of a particular type.
     #[br(count = num_tables, args {inner: (db_type,)})]
     #[bw(args(db_type))]
@@ -234,31 +258,206 @@ impl PageFlags {
     pub fn page_has_data(&self) -> bool {
         (self.0 & 0x40) == 0
     }
+
+    #[must_use]
+    pub fn is_index_page(&self) -> bool {
+        self.0 == 0x64
+    }
 }
 
-fn write_page_contents<W: Write + Seek>(
-    row_groups: &Vec<RowGroup>,
-    writer: &mut W,
-    endian: Endian,
-    args: (u32,),
-) -> BinResult<()> {
-    let (page_size,) = args;
+/// An entry in an index page.
+#[binrw]
+#[derive(PartialEq, Eq, Clone, Copy)]
+#[brw(little)]
+pub struct IndexEntry(u32);
 
-    let header_end_pos = writer.stream_position()?;
+impl TryFrom<(PageIndex, u8)> for IndexEntry {
+    type Error = PdbError;
 
-    let mut relative_row_offset: u64 = 0;
-
-    // Seek to the very end of the page
-    writer.seek(SeekFrom::Current((page_size - Page::HEADER_SIZE).into()))?;
-
-    for row_group in row_groups {
-        relative_row_offset = row_group.write_options_and_get_row_offset(
-            writer,
-            endian,
-            (header_end_pos, relative_row_offset),
-        )?;
+    fn try_from(value: (PageIndex, u8)) -> Result<Self, Self::Error> {
+        let (page_index, index_flags) = value;
+        if index_flags & 0b111 != index_flags {
+            return Err(PdbError::InvalidIndexFlags(index_flags));
+        }
+        Ok(Self((page_index.0 << 3) | (index_flags & 0b111) as u32))
     }
-    Ok(())
+}
+
+impl IndexEntry {
+    /// Returns bits 31-3 as a `PageIndex` which points to a page containing
+    /// data rows, with `page_flags=0x34` and same `page_type` as this page.
+    pub fn page_index(&self) -> Result<PageIndex, PdbError> {
+        PageIndex::try_from(self.0 >> 3)
+    }
+
+    /// Returns the index flags from bits 2-0. Their meaning is currently
+    /// unknown.
+    #[must_use]
+    pub fn index_flags(&self) -> u8 {
+        (self.0 & 0b111) as u8
+    }
+
+    /// Returns `true` if the entry is an empty slot.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.0 == 0x1FFF_FFF8
+    }
+
+    /// Creates a new empty `IndexEntry`.
+    #[must_use]
+    pub const fn empty() -> Self {
+        Self(0x1FFF_FFF8)
+    }
+}
+
+impl fmt::Debug for IndexEntry {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.is_empty() {
+            f.debug_struct("IndexEntry")
+                .field("is_empty", &self.is_empty())
+                .finish()
+        } else {
+            f.debug_struct("IndexEntry")
+                .field("is_empty", &self.is_empty())
+                .field("page_index", &self.page_index().unwrap())
+                .field("index_flags", &self.index_flags())
+                .finish()
+        }
+    }
+}
+
+/// The content of an index page.
+#[binread]
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[br(little)]
+pub struct IndexPageContent {
+    /// Unknown field, usually `1fff` or `0001`.
+    pub unknown_a: u16,
+    /// Unknown field, usually `1fff` or `0000`.
+    pub unknown_b: u16,
+    // Magic value `0x03ec`.
+    #[br(magic = 0x03ecu16)]
+    /// Offset where the next index entry will be written from the beginning
+    /// of the entries array, i.e. if this is 4 it means the next entry should
+    /// be written at byte `entries+4*4`. We still do not know why this value
+    /// is sometimes different than num_entries.
+    pub next_offset: u16,
+    /// Redundant page index.
+    pub page_index: PageIndex,
+    /// Redundant next page index.
+    pub next_page: PageIndex,
+    // Magic value `0x0000000003ffffff`.
+    #[br(magic = 0x0000_0000_03ff_ffffu64)]
+    /// Number of index entries in this page.
+    #[br(temp)]
+    num_entries: u16,
+    /// Points to the first empty index entry, or `1fff` if none.
+    ///
+    /// In real databases, this has been found to be one of three things:
+    /// 1. The same value as `num_entries`.
+    /// 2. `0x1fff`. We assume this has the same meaning as **1.**
+    /// 3. A number smaller than `num_entries`, indicating the first empty
+    /// slot.
+    pub first_empty: u16,
+    /// The index entries.
+    #[br(count = num_entries)]
+    pub entries: Vec<IndexEntry>,
+}
+
+impl BinWrite for IndexPageContent {
+    type Args<'a> = (u32,);
+
+    fn write_options<W: Write + Seek>(
+        &self,
+        writer: &mut W,
+        endian: Endian,
+        (page_size,): Self::Args<'_>,
+    ) -> BinResult<()> {
+        let page_content_start_pos = writer.stream_position()?;
+
+        self.unknown_a.write_options(writer, endian, ())?;
+        self.unknown_b.write_options(writer, endian, ())?;
+        0x03ecu16.write_options(writer, endian, ())?;
+        self.next_offset.write_options(writer, endian, ())?;
+        self.page_index.write_options(writer, endian, ())?;
+        self.next_page.write_options(writer, endian, ())?;
+        0x0000_0000_03ff_ffffu64.write_options(writer, endian, ())?;
+        (self.entries.len() as u16).write_options(writer, endian, ())?;
+        self.first_empty.write_options(writer, endian, ())?;
+
+        for entry in &self.entries {
+            entry.write_options(writer, endian, ())?;
+        }
+
+        let after_entries_pos = writer.stream_position()?;
+        let written_bytes = after_entries_pos - page_content_start_pos;
+
+        let content_size = page_size - Page::HEADER_SIZE;
+        let padding_end_offset = content_size - 20;
+
+        // Fill with empty entries (0x1ffffff8) until the last 20 bytes, which
+        // are zeroes. If https://github.com/jam1garner/binrw/issues/205 was ever
+        // fixed, this entire BinWrite implementation could possibly be removed.
+
+        if written_bytes < u64::from(padding_end_offset) {
+            let empty_entries_to_write = (u64::from(padding_end_offset) - written_bytes) / 4;
+            let empty_entry = IndexEntry::empty();
+            for _ in 0..empty_entries_to_write {
+                empty_entry.write_options(writer, endian, ())?;
+            }
+        }
+
+        let after_padding_pos = writer.stream_position()?;
+        let final_padding_bytes =
+            content_size as u64 - (after_padding_pos - page_content_start_pos);
+
+        if final_padding_bytes > 0 {
+            let zero_padding = vec![0u8; final_padding_bytes as usize];
+            writer.write_all(&zero_padding)?;
+        }
+
+        Ok(())
+    }
+}
+
+/// The content of a page, which can be of different types.
+#[binrw]
+#[derive(Debug, PartialEq, Clone)]
+#[br(little, import { page_flags: PageFlags, page_start_pos: u64, page_size: u32, num_rows_small: u8, page_type: PageType })]
+#[bw(little, import { page_flags: PageFlags, page_size: u32, num_rows_small: u8, page_type: PageType })]
+pub enum PageContent {
+    /// The page contains data rows.
+    #[br(pre_assert(page_flags.page_has_data()))]
+    Data(
+        #[br(args { page_start_pos, page_size, num_rows_small, page_type })]
+        #[bw(args(page_size,))]
+        DataPageContent,
+    ),
+    /// The page is an index page.
+    #[br(pre_assert(page_flags.is_index_page()))]
+    Index(#[bw(args(page_size,))] IndexPageContent),
+    /// The page is of an unknown or unsupported format.
+    Unknown,
+}
+
+impl PageContent {
+    /// Returns the data content of the page if it is a data page.
+    #[must_use]
+    pub fn into_data(self) -> Option<DataPageContent> {
+        match self {
+            PageContent::Data(data) => Some(data),
+            _ => None,
+        }
+    }
+
+    /// Returns the index content of the page if it is an index page.
+    #[must_use]
+    pub fn into_index(self) -> Option<IndexPageContent> {
+        match self {
+            PageContent::Index(index) => Some(index),
+            _ => None,
+        }
+    }
 }
 
 /// A table page.
@@ -274,10 +473,8 @@ pub struct Page {
     #[br(temp, parse_with = current_offset)]
     #[bw(ignore)]
     page_start_pos: u64,
-    /// Magic signature for pages (must be 0).
-    #[br(temp, assert(magic == 0u32))]
-    #[bw(calc = 0u32)]
-    magic: u32,
+    // Magic signature for pages (must be 0).
+    #[brw(magic = 0u32)]
     /// Index of the page.
     ///
     /// Should match the index used for lookup and can be used to verify that the correct page was loaded.
@@ -324,6 +521,17 @@ pub struct Page {
     pub free_size: u16,
     /// Used space in bytes in the data section of the page.
     pub used_size: u16,
+    /// The content of the page.
+    #[br(args { page_flags, page_start_pos, page_size, num_rows_small, page_type })]
+    #[bw(args { page_flags: *page_flags, page_size, num_rows_small: self.num_rows_small, page_type: self.page_type })]
+    pub content: PageContent,
+}
+
+/// The data-containing part of a page.
+#[binread]
+#[derive(Debug, PartialEq, Clone)]
+#[br(little, import { page_start_pos: u64, page_size: u32, num_rows_small: u8, page_type: PageType })]
+pub struct DataPageContent {
     /// Unknown field.
     ///
     /// According to [@flesniak](https://github.com/flesniak):
@@ -348,53 +556,61 @@ pub struct Page {
     ///
     /// **Note:** This is a virtual field and not actually read from the file.
     #[br(temp, calc = Self::calculate_num_rows(num_rows_small, num_rows_large))]
-    #[bw(ignore)]
     num_rows: u16,
     /// Number of rows groups in this page.
     ///
     /// **Note:** This is a virtual field and not actually read from the file.
     #[br(temp, calc = num_rows.div_ceil(RowGroup::MAX_ROW_COUNT as u16))]
-    #[bw(ignore)]
     num_row_groups: u16,
     /// The offset at which the row data for this page are located.
     ///
     /// **Note:** This is a virtual field and not actually read from the file.
-    #[br(temp, calc = page_start_pos + u64::from(Self::HEADER_SIZE))]
-    #[bw(ignore)]
+    #[br(temp, calc = page_start_pos + u64::from(Page::HEADER_SIZE) + u64::from(Self::HEADER_SIZE))]
     page_heap_offset: u64,
     /// Row groups belonging to this page.
-    #[br(seek_before(SeekFrom::Current(Self::heap_padding_size(page_size, num_row_groups).into())))]
+    #[br(seek_before(SeekFrom::Current(Page::heap_padding_size(page_size, num_row_groups).into())))]
     #[br(args {count: num_row_groups.into(), inner: (page_type, page_heap_offset)})]
     #[br(map(|mut vec: Vec<RowGroup>| {vec.reverse(); vec}))]
-    #[br(if(num_row_groups > 0 && page_flags.page_has_data()))]
-    #[bw(write_with = write_page_contents, args(page_size))]
     pub row_groups: Vec<RowGroup>,
 }
 
-impl Page {
+impl BinWrite for DataPageContent {
+    type Args<'a> = (u32,);
+
+    fn write_options<W: Write + Seek>(
+        &self,
+        writer: &mut W,
+        endian: Endian,
+        (page_size,): Self::Args<'_>,
+    ) -> BinResult<()> {
+        self.unknown5.write_options(writer, endian, ())?;
+        self.num_rows_large.write_options(writer, endian, ())?;
+        self.unknown6.write_options(writer, endian, ())?;
+        self.unknown7.write_options(writer, endian, ())?;
+
+        let header_end_pos = writer.stream_position()?;
+
+        let mut relative_row_offset: u64 = 0;
+
+        // Seek to the very end of the page
+        writer.seek(SeekFrom::Current(
+            (page_size - Page::HEADER_SIZE - DataPageContent::HEADER_SIZE).into(),
+        ))?;
+
+        for row_group in &self.row_groups {
+            relative_row_offset = row_group.write_options_and_get_row_offset(
+                writer,
+                endian,
+                (header_end_pos, relative_row_offset),
+            )?;
+        }
+        Ok(())
+    }
+}
+
+impl DataPageContent {
     /// Size of the page header in bytes.
-    pub const HEADER_SIZE: u32 = 0x28;
-
-    /// Calculate the size of the empty space between the header and the footer.
-    fn heap_padding_size(page_size: u32, num_row_groups: u16) -> u32 {
-        // Size of all row offsets
-        let row_groups_footer_size = u32::from(num_row_groups) * RowGroup::BINARY_SIZE;
-        page_size - Self::HEADER_SIZE - row_groups_footer_size
-    }
-
-    #[must_use]
-    /// Returns `true` if the page actually contains row data.
-    pub fn has_data(&self) -> bool {
-        self.page_flags.page_has_data()
-    }
-
-    #[must_use]
-    /// Number of rows on this page.
-    ///
-    /// Note that this number includes rows that have been flagged as missing by the row group.
-    pub fn num_rows(&self) -> u16 {
-        Self::calculate_num_rows(self.num_rows_small, self.num_rows_large)
-    }
+    pub const HEADER_SIZE: u32 = 0x8;
 
     fn calculate_num_rows(num_rows_small: u8, num_rows_large: u16) -> u16 {
         if num_rows_large > num_rows_small.into() && num_rows_large != 0x1fff {
@@ -402,6 +618,18 @@ impl Page {
         } else {
             num_rows_small.into()
         }
+    }
+}
+
+impl Page {
+    /// Size of the page header in bytes.
+    pub const HEADER_SIZE: u32 = 0x20;
+
+    /// Calculate the size of the empty space between the header and the footer.
+    fn heap_padding_size(page_size: u32, num_row_groups: u16) -> u32 {
+        // Size of all row offsets
+        let row_groups_footer_size = u32::from(num_row_groups) * RowGroup::BINARY_SIZE;
+        page_size - Self::HEADER_SIZE - DataPageContent::HEADER_SIZE - row_groups_footer_size
     }
 }
 
@@ -441,13 +669,11 @@ impl RowGroup {
     pub fn present_rows(&self) -> &[Row] {
         &self.rows
     }
-    // TODO(Swiftb0y): Add a new error category for user APIs and add the correct
-    // error herer
-    #[allow(clippy::result_unit_err)]
+
     /// Add a row to this rowgroup
-    pub fn add_row(&mut self, row: Row) -> Result<(), ()> {
+    pub fn add_row(&mut self, row: Row) -> Result<(), PdbError> {
         if self.rows.len() >= Self::MAX_ROW_COUNT {
-            return Err(());
+            return Err(PdbError::RowGroupFull);
         }
         self.row_presence_flags |= 1 << self.rows.len() as u16;
         self.rows.push(row);
