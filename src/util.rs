@@ -77,7 +77,7 @@ pub const fn align_by(alignment: u64, mut offset: u64) -> u64 {
     // In either way, its better to overshoot the alignment
     // than to undershoot it. For CDJ-3000s, this assumption
     // is likely also correct since they use a 64-bit ARM CPU (Renesas R8A774C0HA01BG)
-    if offset % alignment != 0 {
+    if !offset.is_multiple_of(alignment) {
         offset += alignment - (offset % alignment);
     }
     offset

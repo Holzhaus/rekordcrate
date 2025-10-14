@@ -22,7 +22,7 @@ jobs:
                   persist-credentials: true  # Required by EndBug/add-and-commit
 
             - name: Use cached artifacts
-              uses: Swatinem/rust-cache@v2
+              uses: Swatinem/rust-cache@f13886b937689c021905a6b90929199931d60db1
 
             - name: Print Rust version
               run: rustc -vV
@@ -37,7 +37,7 @@ jobs:
               run: echo "GIT_DIRTY=$(git diff --quiet ; printf "%d" "$?")" >> "${GITHUB_ENV}"
 
             - name: Commit new changelog
-              uses: EndBug/add-and-commit@v9
+              uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5
               if: env.GIT_DIRTY != null && env.GIT_DIRTY != '0'
               with:
                   add: CHANGELOG.md

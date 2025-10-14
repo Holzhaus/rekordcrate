@@ -141,7 +141,7 @@ struct Track {
     /// Rating of the track
     /// 0 star = "@0", 1 star = "51", 2 stars = "102", 3 stars = "153", 4 stars = "204", 5 stars = "255"
     #[serde(rename = "@Rating")]
-    rating: Option<i32>,
+    rating: Option<i32>, // TODO: Use StarRating type here
     /// Location of the file
     /// includes the file name (URI formatted)
     #[serde(rename = "@Location")]
@@ -174,6 +174,7 @@ struct Track {
 }
 
 /// 0 star = "@0", 1 star = "51", 2 stars = "102", 3 stars = "153", 4 stars = "204", 5 stars = "255"
+#[expect(dead_code)]
 #[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
 enum StarRating {
     Zero,
