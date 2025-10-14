@@ -28,6 +28,7 @@ All notable changes to this project will be documented in this file.
 - pdb: Add padding field to tag struct
 - pdb: Set fixed 4-byte alignment for tag rows
 - pdb: Add mapping for optional NonZero<u32> in ParentId struct
+- Fix various compiler or clippy warnings with Rust 1.90
 
 ### Documentation
 
