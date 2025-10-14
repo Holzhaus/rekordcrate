@@ -25,7 +25,7 @@ jobs:
               uses: actions/setup-python@v6
 
             - name: Detect code style issues
-              uses: pre-commit/action@v3.0.1
+              uses: pre-commit/action@1b06ec171f2f6faa71ed760c4042bd969e4f8b43
               env:
                   SKIP: no-commit-to-branch
 
