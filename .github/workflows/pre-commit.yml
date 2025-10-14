@@ -18,10 +18,8 @@ jobs:
               with:
                   persist-credentials: false
 
-            - name: Generate Cargo.lock
-              uses: actions-rs/cargo@v1
-              with:
-                  command: generate-lockfile
+            - name: Install Rust toolchain
+              run: rustup toolchain install
 
             - name: Set up Python
               uses: actions/setup-python@v6
