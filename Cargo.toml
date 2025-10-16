@@ -18,9 +18,12 @@ crc16 = "0.4"
 clap = { version = "4.5", features = ["derive"], optional = true }
 parse-display = "0.10"
 thiserror = "2.0"
-quick-xml = { version = "0.38.3", features = ["serialize", "serde-types"] }
-serde = { version = "1.0", features = ["derive"] }
-chrono = "0.4"
+quick-xml = { version = "0.38.3", features = ["serialize", "serde-types"], optional = true }
+serde = { version = "1.0", features = ["derive"], optional = true }
+serde_repr = { version = "0.1.19", optional = true }
+chrono = { version = "0.4", features = ["serde"], optional = true }
+rgb = { version = "0.8.50", no-default-featurs = true, optional = true }
+
 [build-dependencies]
 glob = "0.3"
 
@@ -29,8 +32,9 @@ pretty-hex = "0.4"
 pretty_assertions = "1"
 
 [features]
-default = ["cli"]
+default = ["cli", "xml"]
 cli = ["dep:clap"]
+xml = ["dep:serde", "dep:serde_repr", "dep:quick-xml", "dep:chrono", "dep:rgb"]
 
 [[bin]]
 name = "rekordcrate"
