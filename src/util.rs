@@ -58,6 +58,11 @@ pub enum RekordcrateError {
     /// Represents a breach of the expectation that the pages do not form a cycle.
     #[error("Page list contains a cycle at page: {0:?}")]
     PageOrderViolation(PageIndex),
+
+    /// Represents an `quick_xml::DeError`.
+    #[cfg(feature = "xml")]
+    #[error(transparent)]
+    XmlDeserializationFailed(#[from] quick_xml::DeError),
 }
 
 /// Type alias for results where the error is a `RekordcrateError`.
