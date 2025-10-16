@@ -191,8 +191,7 @@ fn dump_setting(path: &PathBuf) -> rekordcrate::Result<()> {
 fn dump_xml(path: &PathBuf) -> rekordcrate::Result<()> {
     let file = std::fs::File::open(path)?;
     let reader = std::io::BufReader::new(file);
-    let document: rekordcrate::xml::Document =
-        quick_xml::de::from_reader(reader).expect("failed to deserialize XML");
+    let document: rekordcrate::xml::Document = quick_xml::de::from_reader(reader)?;
     println!("{:#?}", document);
 
     Ok(())

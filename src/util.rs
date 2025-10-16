@@ -27,6 +27,11 @@ pub enum RekordcrateError {
     /// Represents an `std::io::Error`.
     #[error(transparent)]
     IOError(#[from] std::io::Error),
+
+    /// Represents an `quick_xml::DeError`.
+    #[cfg(feature = "xml")]
+    #[error(transparent)]
+    XmlDeserializationFailed(#[from] quick_xml::DeError),
 }
 
 /// Type alias for results where the error is a `RekordcrateError`.
