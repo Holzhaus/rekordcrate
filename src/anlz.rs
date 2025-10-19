@@ -25,7 +25,6 @@
 //! - <https://reverseengineering.stackexchange.com/questions/4311/help-reversing-a-edb-database-file-for-pioneers-rekordbox-software>
 
 #![allow(clippy::must_use_candidate)]
-#![allow(unused_parens)] // Workaround for https://github.com/modular-bitfield/modular-bitfield/issues/130
 
 use crate::{util::ColorIndex, xor::XorStream};
 use binrw::{
