@@ -13,7 +13,7 @@ exclude = [".*"]
 
 [dependencies]
 binrw = "0.15"
-modular-bitfield = "0.12"
+modular-bitfield = "0.13"
 crc16 = "0.4"
 clap = { version = "4.5", features = ["derive"], optional = true }
 parse-display = "0.10"
