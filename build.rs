@@ -78,6 +78,7 @@ use rekordcrate::setting::Setting;
         "./tests/tests_setting.rs.in"
     );
 
+    #[cfg(feature = "xml")]
     write_test!(
         out_dir.join("tests_xml.rs"),
         "data/xml/*.xml",
