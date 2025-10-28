@@ -33,7 +33,7 @@
 <a href=#33 id=33 data-nosnippet>33</a><span class="kw">use </span><span class="kw">crate</span>::pdb::ext::{ExtPageType, ExtRow};
 <a href=#34 id=34 data-nosnippet>34</a><span class="kw">use </span><span class="kw">crate</span>::pdb::offset_array::{OffsetArray, OffsetSize};
 <a href=#35 id=35 data-nosnippet>35</a><span class="kw">use </span><span class="kw">crate</span>::pdb::string::DeviceSQLString;
-<a href=#36 id=36 data-nosnippet>36</a><span class="kw">use </span><span class="kw">crate</span>::util::{ColorIndex, ExplicitPadding};
+<a href=#36 id=36 data-nosnippet>36</a><span class="kw">use </span><span class="kw">crate</span>::util::{ColorIndex, ExplicitPadding, FileType};
 <a href=#37 id=37 data-nosnippet>37</a><span class="kw">use </span>binrw::{
 <a href=#38 id=38 data-nosnippet>38</a>    binread, binrw,
 <a href=#39 id=39 data-nosnippet>39</a>    io::{Read, Seek, SeekFrom, Write},
@@ -1076,114 +1076,114 @@
 <a href=#1076 id=1076 data-nosnippet>1076</a>
 <a href=#1077 id=1077 data-nosnippet>1077</a><span class="attr">#[binrw]
 <a href=#1078 id=1078 data-nosnippet>1078</a>#[brw(little)]
-<a href=#1079 id=1079 data-nosnippet>1079</a>#[brw(import(base: i64, offsets: <span class="kw-2">&amp;</span>OffsetArray&lt;<span class="number">23</span>&gt;, _args: ()))]
+<a href=#1079 id=1079 data-nosnippet>1079</a>#[brw(import(base: i64, offsets: <span class="kw-2">&amp;</span>OffsetArray&lt;<span class="number">22</span>&gt;, _args: ()))]
 <a href=#1080 id=1080 data-nosnippet>1080</a>#[derive(Debug, PartialEq, Clone, Eq)]
 <a href=#1081 id=1081 data-nosnippet>1081</a></span><span class="doccomment">/// String fields stored via the offset table in Track rows
 <a href=#1082 id=1082 data-nosnippet>1082</a></span><span class="kw">pub struct </span>TrackStrings {
 <a href=#1083 id=1083 data-nosnippet>1083</a>    <span class="doccomment">/// International Standard Recording Code (ISRC), in mangled format.
 <a href=#1084 id=1084 data-nosnippet>1084</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1085 id=1085 data-nosnippet>1085</a>    #[br(parse_with = offsets.read_offset(<span class="number">2</span>))]
-<a href=#1086 id=1086 data-nosnippet>1086</a>    #[bw(write_with = offsets.write_offset(<span class="number">2</span>))]
+<a href=#1085 id=1085 data-nosnippet>1085</a>    #[br(parse_with = offsets.read_offset(<span class="number">1</span>))]
+<a href=#1086 id=1086 data-nosnippet>1086</a>    #[bw(write_with = offsets.write_offset(<span class="number">1</span>))]
 <a href=#1087 id=1087 data-nosnippet>1087</a>    </span>isrc: DeviceSQLString,
 <a href=#1088 id=1088 data-nosnippet>1088</a>    <span class="doccomment">/// Unknown string field.
 <a href=#1089 id=1089 data-nosnippet>1089</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1090 id=1090 data-nosnippet>1090</a>    #[br(parse_with = offsets.read_offset(<span class="number">3</span>))]
-<a href=#1091 id=1091 data-nosnippet>1091</a>    #[bw(write_with = offsets.write_offset(<span class="number">3</span>))]
+<a href=#1090 id=1090 data-nosnippet>1090</a>    #[br(parse_with = offsets.read_offset(<span class="number">2</span>))]
+<a href=#1091 id=1091 data-nosnippet>1091</a>    #[bw(write_with = offsets.write_offset(<span class="number">2</span>))]
 <a href=#1092 id=1092 data-nosnippet>1092</a>    </span>unknown_string1: DeviceSQLString,
 <a href=#1093 id=1093 data-nosnippet>1093</a>    <span class="doccomment">/// Unknown string field.
 <a href=#1094 id=1094 data-nosnippet>1094</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1095 id=1095 data-nosnippet>1095</a>    #[br(parse_with = offsets.read_offset(<span class="number">4</span>))]
-<a href=#1096 id=1096 data-nosnippet>1096</a>    #[bw(write_with = offsets.write_offset(<span class="number">4</span>))]
+<a href=#1095 id=1095 data-nosnippet>1095</a>    #[br(parse_with = offsets.read_offset(<span class="number">3</span>))]
+<a href=#1096 id=1096 data-nosnippet>1096</a>    #[bw(write_with = offsets.write_offset(<span class="number">3</span>))]
 <a href=#1097 id=1097 data-nosnippet>1097</a>    </span>unknown_string2: DeviceSQLString,
 <a href=#1098 id=1098 data-nosnippet>1098</a>    <span class="doccomment">/// Unknown string field.
 <a href=#1099 id=1099 data-nosnippet>1099</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1100 id=1100 data-nosnippet>1100</a>    #[br(parse_with = offsets.read_offset(<span class="number">5</span>))]
-<a href=#1101 id=1101 data-nosnippet>1101</a>    #[bw(write_with = offsets.write_offset(<span class="number">5</span>))]
+<a href=#1100 id=1100 data-nosnippet>1100</a>    #[br(parse_with = offsets.read_offset(<span class="number">4</span>))]
+<a href=#1101 id=1101 data-nosnippet>1101</a>    #[bw(write_with = offsets.write_offset(<span class="number">4</span>))]
 <a href=#1102 id=1102 data-nosnippet>1102</a>    </span>unknown_string3: DeviceSQLString,
 <a href=#1103 id=1103 data-nosnippet>1103</a>    <span class="doccomment">/// Unknown string field.
 <a href=#1104 id=1104 data-nosnippet>1104</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1105 id=1105 data-nosnippet>1105</a>    #[br(parse_with = offsets.read_offset(<span class="number">6</span>))]
-<a href=#1106 id=1106 data-nosnippet>1106</a>    #[bw(write_with = offsets.write_offset(<span class="number">6</span>))]
+<a href=#1105 id=1105 data-nosnippet>1105</a>    #[br(parse_with = offsets.read_offset(<span class="number">5</span>))]
+<a href=#1106 id=1106 data-nosnippet>1106</a>    #[bw(write_with = offsets.write_offset(<span class="number">5</span>))]
 <a href=#1107 id=1107 data-nosnippet>1107</a>    </span>unknown_string4: DeviceSQLString,
 <a href=#1108 id=1108 data-nosnippet>1108</a>    <span class="doccomment">/// Unknown string field (named by [@flesniak](https://github.com/flesniak)).
 <a href=#1109 id=1109 data-nosnippet>1109</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1110 id=1110 data-nosnippet>1110</a>    #[br(parse_with = offsets.read_offset(<span class="number">7</span>))]
-<a href=#1111 id=1111 data-nosnippet>1111</a>    #[bw(write_with = offsets.write_offset(<span class="number">7</span>))]
+<a href=#1110 id=1110 data-nosnippet>1110</a>    #[br(parse_with = offsets.read_offset(<span class="number">6</span>))]
+<a href=#1111 id=1111 data-nosnippet>1111</a>    #[bw(write_with = offsets.write_offset(<span class="number">6</span>))]
 <a href=#1112 id=1112 data-nosnippet>1112</a>    </span>message: DeviceSQLString,
 <a href=#1113 id=1113 data-nosnippet>1113</a>    <span class="doccomment">/// Probably describes whether the track is public on kuvo.com (?). Value is either "ON" or empty string.
 <a href=#1114 id=1114 data-nosnippet>1114</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1115 id=1115 data-nosnippet>1115</a>    #[br(parse_with = offsets.read_offset(<span class="number">8</span>))]
-<a href=#1116 id=1116 data-nosnippet>1116</a>    #[bw(write_with = offsets.write_offset(<span class="number">8</span>))]
+<a href=#1115 id=1115 data-nosnippet>1115</a>    #[br(parse_with = offsets.read_offset(<span class="number">7</span>))]
+<a href=#1116 id=1116 data-nosnippet>1116</a>    #[bw(write_with = offsets.write_offset(<span class="number">7</span>))]
 <a href=#1117 id=1117 data-nosnippet>1117</a>    </span>kuvo_public: DeviceSQLString,
 <a href=#1118 id=1118 data-nosnippet>1118</a>    <span class="doccomment">/// Determines if hotcues should be autoloaded. Value is either "ON" or empty string.
 <a href=#1119 id=1119 data-nosnippet>1119</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1120 id=1120 data-nosnippet>1120</a>    #[br(parse_with = offsets.read_offset(<span class="number">9</span>))]
-<a href=#1121 id=1121 data-nosnippet>1121</a>    #[bw(write_with = offsets.write_offset(<span class="number">9</span>))]
+<a href=#1120 id=1120 data-nosnippet>1120</a>    #[br(parse_with = offsets.read_offset(<span class="number">8</span>))]
+<a href=#1121 id=1121 data-nosnippet>1121</a>    #[bw(write_with = offsets.write_offset(<span class="number">8</span>))]
 <a href=#1122 id=1122 data-nosnippet>1122</a>    </span>autoload_hotcues: DeviceSQLString,
 <a href=#1123 id=1123 data-nosnippet>1123</a>    <span class="doccomment">/// Unknown string field.
 <a href=#1124 id=1124 data-nosnippet>1124</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1125 id=1125 data-nosnippet>1125</a>    #[br(parse_with = offsets.read_offset(<span class="number">10</span>))]
-<a href=#1126 id=1126 data-nosnippet>1126</a>    #[bw(write_with = offsets.write_offset(<span class="number">10</span>))]
+<a href=#1125 id=1125 data-nosnippet>1125</a>    #[br(parse_with = offsets.read_offset(<span class="number">9</span>))]
+<a href=#1126 id=1126 data-nosnippet>1126</a>    #[bw(write_with = offsets.write_offset(<span class="number">9</span>))]
 <a href=#1127 id=1127 data-nosnippet>1127</a>    </span>unknown_string5: DeviceSQLString,
 <a href=#1128 id=1128 data-nosnippet>1128</a>    <span class="doccomment">/// Unknown string field (usually empty).
 <a href=#1129 id=1129 data-nosnippet>1129</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1130 id=1130 data-nosnippet>1130</a>    #[br(parse_with = offsets.read_offset(<span class="number">11</span>))]
-<a href=#1131 id=1131 data-nosnippet>1131</a>    #[bw(write_with = offsets.write_offset(<span class="number">11</span>))]
+<a href=#1130 id=1130 data-nosnippet>1130</a>    #[br(parse_with = offsets.read_offset(<span class="number">10</span>))]
+<a href=#1131 id=1131 data-nosnippet>1131</a>    #[bw(write_with = offsets.write_offset(<span class="number">10</span>))]
 <a href=#1132 id=1132 data-nosnippet>1132</a>    </span>unknown_string6: DeviceSQLString,
 <a href=#1133 id=1133 data-nosnippet>1133</a>    <span class="doccomment">/// Date when the track was added to the Rekordbox collection.
 <a href=#1134 id=1134 data-nosnippet>1134</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1135 id=1135 data-nosnippet>1135</a>    #[br(parse_with = offsets.read_offset(<span class="number">12</span>))]
-<a href=#1136 id=1136 data-nosnippet>1136</a>    #[bw(write_with = offsets.write_offset(<span class="number">12</span>))]
+<a href=#1135 id=1135 data-nosnippet>1135</a>    #[br(parse_with = offsets.read_offset(<span class="number">11</span>))]
+<a href=#1136 id=1136 data-nosnippet>1136</a>    #[bw(write_with = offsets.write_offset(<span class="number">11</span>))]
 <a href=#1137 id=1137 data-nosnippet>1137</a>    </span>date_added: DeviceSQLString,
 <a href=#1138 id=1138 data-nosnippet>1138</a>    <span class="doccomment">/// Date when the track was released.
 <a href=#1139 id=1139 data-nosnippet>1139</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1140 id=1140 data-nosnippet>1140</a>    #[br(parse_with = offsets.read_offset(<span class="number">13</span>))]
-<a href=#1141 id=1141 data-nosnippet>1141</a>    #[bw(write_with = offsets.write_offset(<span class="number">13</span>))]
+<a href=#1140 id=1140 data-nosnippet>1140</a>    #[br(parse_with = offsets.read_offset(<span class="number">12</span>))]
+<a href=#1141 id=1141 data-nosnippet>1141</a>    #[bw(write_with = offsets.write_offset(<span class="number">12</span>))]
 <a href=#1142 id=1142 data-nosnippet>1142</a>    </span>release_date: DeviceSQLString,
 <a href=#1143 id=1143 data-nosnippet>1143</a>    <span class="doccomment">/// Name of the remix (if any).
 <a href=#1144 id=1144 data-nosnippet>1144</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1145 id=1145 data-nosnippet>1145</a>    #[br(parse_with = offsets.read_offset(<span class="number">14</span>))]
-<a href=#1146 id=1146 data-nosnippet>1146</a>    #[bw(write_with = offsets.write_offset(<span class="number">14</span>))]
+<a href=#1145 id=1145 data-nosnippet>1145</a>    #[br(parse_with = offsets.read_offset(<span class="number">13</span>))]
+<a href=#1146 id=1146 data-nosnippet>1146</a>    #[bw(write_with = offsets.write_offset(<span class="number">13</span>))]
 <a href=#1147 id=1147 data-nosnippet>1147</a>    </span>mix_name: DeviceSQLString,
 <a href=#1148 id=1148 data-nosnippet>1148</a>    <span class="doccomment">/// Unknown string field (usually empty).
 <a href=#1149 id=1149 data-nosnippet>1149</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1150 id=1150 data-nosnippet>1150</a>    #[br(parse_with = offsets.read_offset(<span class="number">15</span>))]
-<a href=#1151 id=1151 data-nosnippet>1151</a>    #[bw(write_with = offsets.write_offset(<span class="number">15</span>))]
+<a href=#1150 id=1150 data-nosnippet>1150</a>    #[br(parse_with = offsets.read_offset(<span class="number">14</span>))]
+<a href=#1151 id=1151 data-nosnippet>1151</a>    #[bw(write_with = offsets.write_offset(<span class="number">14</span>))]
 <a href=#1152 id=1152 data-nosnippet>1152</a>    </span>unknown_string7: DeviceSQLString,
 <a href=#1153 id=1153 data-nosnippet>1153</a>    <span class="doccomment">/// File path of the track analysis file.
 <a href=#1154 id=1154 data-nosnippet>1154</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1155 id=1155 data-nosnippet>1155</a>    #[br(parse_with = offsets.read_offset(<span class="number">16</span>))]
-<a href=#1156 id=1156 data-nosnippet>1156</a>    #[bw(write_with = offsets.write_offset(<span class="number">16</span>))]
+<a href=#1155 id=1155 data-nosnippet>1155</a>    #[br(parse_with = offsets.read_offset(<span class="number">15</span>))]
+<a href=#1156 id=1156 data-nosnippet>1156</a>    #[bw(write_with = offsets.write_offset(<span class="number">15</span>))]
 <a href=#1157 id=1157 data-nosnippet>1157</a>    </span>analyze_path: DeviceSQLString,
 <a href=#1158 id=1158 data-nosnippet>1158</a>    <span class="doccomment">/// Date when the track analysis was performed.
 <a href=#1159 id=1159 data-nosnippet>1159</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1160 id=1160 data-nosnippet>1160</a>    #[br(parse_with = offsets.read_offset(<span class="number">17</span>))]
-<a href=#1161 id=1161 data-nosnippet>1161</a>    #[bw(write_with = offsets.write_offset(<span class="number">17</span>))]
+<a href=#1160 id=1160 data-nosnippet>1160</a>    #[br(parse_with = offsets.read_offset(<span class="number">16</span>))]
+<a href=#1161 id=1161 data-nosnippet>1161</a>    #[bw(write_with = offsets.write_offset(<span class="number">16</span>))]
 <a href=#1162 id=1162 data-nosnippet>1162</a>    </span>analyze_date: DeviceSQLString,
 <a href=#1163 id=1163 data-nosnippet>1163</a>    <span class="doccomment">/// Track comment.
 <a href=#1164 id=1164 data-nosnippet>1164</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1165 id=1165 data-nosnippet>1165</a>    #[br(parse_with = offsets.read_offset(<span class="number">18</span>))]
-<a href=#1166 id=1166 data-nosnippet>1166</a>    #[bw(write_with = offsets.write_offset(<span class="number">18</span>))]
+<a href=#1165 id=1165 data-nosnippet>1165</a>    #[br(parse_with = offsets.read_offset(<span class="number">17</span>))]
+<a href=#1166 id=1166 data-nosnippet>1166</a>    #[bw(write_with = offsets.write_offset(<span class="number">17</span>))]
 <a href=#1167 id=1167 data-nosnippet>1167</a>    </span>comment: DeviceSQLString,
 <a href=#1168 id=1168 data-nosnippet>1168</a>    <span class="doccomment">/// Track title.
 <a href=#1169 id=1169 data-nosnippet>1169</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1170 id=1170 data-nosnippet>1170</a>    #[br(parse_with = offsets.read_offset(<span class="number">19</span>))]
-<a href=#1171 id=1171 data-nosnippet>1171</a>    #[bw(write_with = offsets.write_offset(<span class="number">19</span>))]
+<a href=#1170 id=1170 data-nosnippet>1170</a>    #[br(parse_with = offsets.read_offset(<span class="number">18</span>))]
+<a href=#1171 id=1171 data-nosnippet>1171</a>    #[bw(write_with = offsets.write_offset(<span class="number">18</span>))]
 <a href=#1172 id=1172 data-nosnippet>1172</a>    </span>title: DeviceSQLString,
 <a href=#1173 id=1173 data-nosnippet>1173</a>    <span class="doccomment">/// Unknown string field (usually empty).
 <a href=#1174 id=1174 data-nosnippet>1174</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1175 id=1175 data-nosnippet>1175</a>    #[br(parse_with = offsets.read_offset(<span class="number">20</span>))]
-<a href=#1176 id=1176 data-nosnippet>1176</a>    #[bw(write_with = offsets.write_offset(<span class="number">20</span>))]
+<a href=#1175 id=1175 data-nosnippet>1175</a>    #[br(parse_with = offsets.read_offset(<span class="number">19</span>))]
+<a href=#1176 id=1176 data-nosnippet>1176</a>    #[bw(write_with = offsets.write_offset(<span class="number">19</span>))]
 <a href=#1177 id=1177 data-nosnippet>1177</a>    </span>unknown_string8: DeviceSQLString,
 <a href=#1178 id=1178 data-nosnippet>1178</a>    <span class="doccomment">/// Name of the file.
 <a href=#1179 id=1179 data-nosnippet>1179</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1180 id=1180 data-nosnippet>1180</a>    #[br(parse_with = offsets.read_offset(<span class="number">21</span>))]
-<a href=#1181 id=1181 data-nosnippet>1181</a>    #[bw(write_with = offsets.write_offset(<span class="number">21</span>))]
+<a href=#1180 id=1180 data-nosnippet>1180</a>    #[br(parse_with = offsets.read_offset(<span class="number">20</span>))]
+<a href=#1181 id=1181 data-nosnippet>1181</a>    #[bw(write_with = offsets.write_offset(<span class="number">20</span>))]
 <a href=#1182 id=1182 data-nosnippet>1182</a>    </span>filename: DeviceSQLString,
 <a href=#1183 id=1183 data-nosnippet>1183</a>    <span class="doccomment">/// Path of the file.
 <a href=#1184 id=1184 data-nosnippet>1184</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1185 id=1185 data-nosnippet>1185</a>    #[br(parse_with = offsets.read_offset(<span class="number">22</span>))]
-<a href=#1186 id=1186 data-nosnippet>1186</a>    #[bw(write_with = offsets.write_offset(<span class="number">22</span>))]
+<a href=#1185 id=1185 data-nosnippet>1185</a>    #[br(parse_with = offsets.read_offset(<span class="number">21</span>))]
+<a href=#1186 id=1186 data-nosnippet>1186</a>    #[bw(write_with = offsets.write_offset(<span class="number">21</span>))]
 <a href=#1187 id=1187 data-nosnippet>1187</a>    </span>file_path: DeviceSQLString,
 <a href=#1188 id=1188 data-nosnippet>1188</a>}
 <a href=#1189 id=1189 data-nosnippet>1189</a>
@@ -1250,145 +1250,147 @@
 <a href=#1250 id=1250 data-nosnippet>1250</a>    </span>color: ColorIndex,
 <a href=#1251 id=1251 data-nosnippet>1251</a>    <span class="doccomment">/// User rating of this track (0 to 5 starts).
 <a href=#1252 id=1252 data-nosnippet>1252</a>    </span>rating: u8,
-<a href=#1253 id=1253 data-nosnippet>1253</a>    <span class="attr">#[brw(args(<span class="number">0x5A</span>, subtype.get_offset_size(), ()))]
-<a href=#1254 id=1254 data-nosnippet>1254</a>    </span>offsets: OffsetArrayContainer&lt;TrackStrings, <span class="number">23</span>&gt;,
-<a href=#1255 id=1255 data-nosnippet>1255</a>    <span class="comment">// Track paddings in general seem to follow this odd formula.
-<a href=#1256 id=1256 data-nosnippet>1256</a>    // A similar oddity is the case with other rows employing an OffsetArray
-<a href=#1257 id=1257 data-nosnippet>1257</a>    // (though with different padding_base)
-<a href=#1258 id=1258 data-nosnippet>1258</a>    // let mut padding_base = 0x34;
-<a href=#1259 id=1259 data-nosnippet>1259</a>    // // This is a heuristic that seems to match the padding behavior of the
-<a href=#1260 id=1260 data-nosnippet>1260</a>    // // original file for the `track_page` test case. The actual logic
-<a href=#1261 id=1261 data-nosnippet>1261</a>    // // is unknown.
-<a href=#1262 id=1262 data-nosnippet>1262</a>    // // We're assigning a different padding base for even and odd tracks
-<a href=#1263 id=1263 data-nosnippet>1263</a>    // if self.id.0 % 2 == 0 {
-<a href=#1264 id=1264 data-nosnippet>1264</a>    //     padding_base += 4;
-<a href=#1265 id=1265 data-nosnippet>1265</a>    // }
-<a href=#1266 id=1266 data-nosnippet>1266</a>    // padding_base = ((end_of_row + padding_base) &amp; !0b11) - end_of_row;
-<a href=#1267 id=1267 data-nosnippet>1267</a>    // writer.seek(SeekFrom::Current(padding_base as i64))?;
-<a href=#1268 id=1268 data-nosnippet>1268</a>    </span><span class="attr">#[br(args(<span class="number">0x40</span>))]
-<a href=#1269 id=1269 data-nosnippet>1269</a>    </span>padding: ExplicitPadding,
-<a href=#1270 id=1270 data-nosnippet>1270</a>}
-<a href=#1271 id=1271 data-nosnippet>1271</a>
-<a href=#1272 id=1272 data-nosnippet>1272</a><span class="doccomment">/// A table row contains the actual data.
-<a href=#1273 id=1273 data-nosnippet>1273</a></span><span class="attr">#[binrw]
-<a href=#1274 id=1274 data-nosnippet>1274</a>#[derive(Debug, PartialEq, Eq, Clone)]
-<a href=#1275 id=1275 data-nosnippet>1275</a>#[brw(little)]
-<a href=#1276 id=1276 data-nosnippet>1276</a>#[br(import(page_type: PlainPageType))]
-<a href=#1277 id=1277 data-nosnippet>1277</a></span><span class="comment">// The large enum size is unfortunate, but since users of this library will probably use iterators
-<a href=#1278 id=1278 data-nosnippet>1278</a>// to consume the results on demand, we can live with this. The alternative of using a `Box` would
-<a href=#1279 id=1279 data-nosnippet>1279</a>// require a heap allocation per row, which is arguably worse. Hence, the warning is disabled for
-<a href=#1280 id=1280 data-nosnippet>1280</a>// this enum.
-<a href=#1281 id=1281 data-nosnippet>1281</a></span><span class="attr">#[allow(clippy::large_enum_variant)]
-<a href=#1282 id=1282 data-nosnippet>1282</a></span><span class="kw">pub enum </span>PlainRow {
-<a href=#1283 id=1283 data-nosnippet>1283</a>    <span class="doccomment">/// Contains the album name, along with an ID of the corresponding artist.
-<a href=#1284 id=1284 data-nosnippet>1284</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Albums))]
-<a href=#1285 id=1285 data-nosnippet>1285</a>    </span>Album(Album),
-<a href=#1286 id=1286 data-nosnippet>1286</a>    <span class="doccomment">/// Contains the artist name and ID.
-<a href=#1287 id=1287 data-nosnippet>1287</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Artists))]
-<a href=#1288 id=1288 data-nosnippet>1288</a>    </span>Artist(Artist),
-<a href=#1289 id=1289 data-nosnippet>1289</a>    <span class="doccomment">/// Contains the artwork path and ID.
-<a href=#1290 id=1290 data-nosnippet>1290</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Artwork))]
-<a href=#1291 id=1291 data-nosnippet>1291</a>    </span>Artwork(Artwork),
-<a href=#1292 id=1292 data-nosnippet>1292</a>    <span class="doccomment">/// Contains numeric color ID
-<a href=#1293 id=1293 data-nosnippet>1293</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Colors))]
-<a href=#1294 id=1294 data-nosnippet>1294</a>    </span>Color(Color),
-<a href=#1295 id=1295 data-nosnippet>1295</a>    <span class="doccomment">/// Represents a musical genre.
-<a href=#1296 id=1296 data-nosnippet>1296</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Genres))]
-<a href=#1297 id=1297 data-nosnippet>1297</a>    </span>Genre(Genre),
-<a href=#1298 id=1298 data-nosnippet>1298</a>    <span class="doccomment">/// Represents a history playlist.
-<a href=#1299 id=1299 data-nosnippet>1299</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::HistoryPlaylists))]
-<a href=#1300 id=1300 data-nosnippet>1300</a>    </span>HistoryPlaylist(HistoryPlaylist),
-<a href=#1301 id=1301 data-nosnippet>1301</a>    <span class="doccomment">/// Represents a history playlist.
-<a href=#1302 id=1302 data-nosnippet>1302</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::HistoryEntries))]
-<a href=#1303 id=1303 data-nosnippet>1303</a>    </span>HistoryEntry(HistoryEntry),
-<a href=#1304 id=1304 data-nosnippet>1304</a>    <span class="doccomment">/// Represents a musical key.
-<a href=#1305 id=1305 data-nosnippet>1305</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Keys))]
-<a href=#1306 id=1306 data-nosnippet>1306</a>    </span>Key(Key),
-<a href=#1307 id=1307 data-nosnippet>1307</a>    <span class="doccomment">/// Represents a record label.
-<a href=#1308 id=1308 data-nosnippet>1308</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Labels))]
-<a href=#1309 id=1309 data-nosnippet>1309</a>    </span>Label(Label),
-<a href=#1310 id=1310 data-nosnippet>1310</a>    <span class="doccomment">/// Represents a node in the playlist tree (either a folder or a playlist).
-<a href=#1311 id=1311 data-nosnippet>1311</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::PlaylistTree))]
-<a href=#1312 id=1312 data-nosnippet>1312</a>    </span>PlaylistTreeNode(PlaylistTreeNode),
-<a href=#1313 id=1313 data-nosnippet>1313</a>    <span class="doccomment">/// Represents a track entry in a playlist.
-<a href=#1314 id=1314 data-nosnippet>1314</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::PlaylistEntries))]
-<a href=#1315 id=1315 data-nosnippet>1315</a>    </span>PlaylistEntry(PlaylistEntry),
-<a href=#1316 id=1316 data-nosnippet>1316</a>    <span class="doccomment">/// Contains the metadata categories by which Tracks can be browsed by.
-<a href=#1317 id=1317 data-nosnippet>1317</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Columns))]
-<a href=#1318 id=1318 data-nosnippet>1318</a>    </span>ColumnEntry(ColumnEntry),
-<a href=#1319 id=1319 data-nosnippet>1319</a>    <span class="doccomment">/// Contains the album name, along with an ID of the corresponding artist.
-<a href=#1320 id=1320 data-nosnippet>1320</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Tracks))]
-<a href=#1321 id=1321 data-nosnippet>1321</a>    </span>Track(Track),
-<a href=#1322 id=1322 data-nosnippet>1322</a>}
-<a href=#1323 id=1323 data-nosnippet>1323</a>
-<a href=#1324 id=1324 data-nosnippet>1324</a><span class="kw">impl </span>PlainRow {
-<a href=#1325 id=1325 data-nosnippet>1325</a>    <span class="attr">#[must_use]
-<a href=#1326 id=1326 data-nosnippet>1326</a>    </span><span class="kw">const fn </span>align_by(<span class="kw-2">&amp;</span><span class="self">self</span>, offset: u64) -&gt; u64 {
-<a href=#1327 id=1327 data-nosnippet>1327</a>        <span class="kw">use </span><span class="kw">crate</span>::pdb::PlainRow::<span class="kw-2">*</span>;
-<a href=#1328 id=1328 data-nosnippet>1328</a>        <span class="kw">use </span><span class="kw">crate</span>::util::align_by;
-<a href=#1329 id=1329 data-nosnippet>1329</a>        <span class="kw">use </span>std::mem::align_of_val;
-<a href=#1330 id=1330 data-nosnippet>1330</a>        <span class="comment">// unfortunately I couldn't find any less copy-pastey way of doing this
-<a href=#1331 id=1331 data-nosnippet>1331</a>        // without unnecessarily complex macros.
-<a href=#1332 id=1332 data-nosnippet>1332</a>        </span><span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self </span>{
-<a href=#1333 id=1333 data-nosnippet>1333</a>            Album(<span class="kw">_</span>) =&gt; offset,
-<a href=#1334 id=1334 data-nosnippet>1334</a>            Artist(<span class="kw">_</span>) =&gt; offset,
-<a href=#1335 id=1335 data-nosnippet>1335</a>            Artwork(<span class="kw">_</span>) =&gt; align_by(<span class="number">4</span>, offset),
-<a href=#1336 id=1336 data-nosnippet>1336</a>            Color(<span class="kw">_</span>) =&gt; align_by(<span class="number">4</span>, offset),
-<a href=#1337 id=1337 data-nosnippet>1337</a>            ColumnEntry(r) =&gt; align_by(align_of_val(r) <span class="kw">as </span>u64, offset),
-<a href=#1338 id=1338 data-nosnippet>1338</a>            Genre(<span class="kw">_</span>) =&gt; align_by(<span class="number">4</span>, offset), <span class="comment">// fixed alignment to 4 bytes
-<a href=#1339 id=1339 data-nosnippet>1339</a>            </span>HistoryPlaylist(r) =&gt; align_by(align_of_val(r) <span class="kw">as </span>u64, offset),
-<a href=#1340 id=1340 data-nosnippet>1340</a>            HistoryEntry(r) =&gt; align_by(align_of_val(r) <span class="kw">as </span>u64, offset),
-<a href=#1341 id=1341 data-nosnippet>1341</a>            Key(<span class="kw">_</span>) =&gt; align_by(<span class="number">4</span>, offset),
-<a href=#1342 id=1342 data-nosnippet>1342</a>            Label(<span class="kw">_</span>) =&gt; align_by(<span class="number">4</span>, offset),
-<a href=#1343 id=1343 data-nosnippet>1343</a>            PlaylistTreeNode(<span class="kw">_</span>) =&gt; align_by(<span class="number">4</span>, offset),
-<a href=#1344 id=1344 data-nosnippet>1344</a>            PlaylistEntry(r) =&gt; align_by(align_of_val(r) <span class="kw">as </span>u64, offset),
-<a href=#1345 id=1345 data-nosnippet>1345</a>            Track(<span class="kw">_</span>) =&gt; offset, <span class="comment">// already handled by track serialization
-<a href=#1346 id=1346 data-nosnippet>1346</a>        </span>}
-<a href=#1347 id=1347 data-nosnippet>1347</a>    }
-<a href=#1348 id=1348 data-nosnippet>1348</a>}
-<a href=#1349 id=1349 data-nosnippet>1349</a>
-<a href=#1350 id=1350 data-nosnippet>1350</a><span class="doccomment">/// A table row contains the actual data.
-<a href=#1351 id=1351 data-nosnippet>1351</a></span><span class="attr">#[binrw]
-<a href=#1352 id=1352 data-nosnippet>1352</a>#[derive(Debug, PartialEq, Eq, Clone)]
-<a href=#1353 id=1353 data-nosnippet>1353</a>#[brw(little)]
-<a href=#1354 id=1354 data-nosnippet>1354</a>#[br(import(page_type: PageType))]
-<a href=#1355 id=1355 data-nosnippet>1355</a></span><span class="comment">// The large enum size is unfortunate, but since users of this library will probably use iterators
-<a href=#1356 id=1356 data-nosnippet>1356</a>// to consume the results on demand, we can live with this. The alternative of using a `Box` would
-<a href=#1357 id=1357 data-nosnippet>1357</a>// require a heap allocation per row, which is arguably worse. Hence, the warning is disabled for
-<a href=#1358 id=1358 data-nosnippet>1358</a>// this enum.
-<a href=#1359 id=1359 data-nosnippet>1359</a></span><span class="attr">#[allow(clippy::large_enum_variant)]
-<a href=#1360 id=1360 data-nosnippet>1360</a></span><span class="kw">pub enum </span>Row {
-<a href=#1361 id=1361 data-nosnippet>1361</a>    <span class="comment">// TODO(Swiftb0y: come up with something prettier than the match hell below)
-<a href=#1362 id=1362 data-nosnippet>1362</a>    </span><span class="attr">#[br(pre_assert(<span class="macro">matches!</span>(page_type, PageType::Plain(<span class="kw">_</span>))))]
-<a href=#1363 id=1363 data-nosnippet>1363</a>    </span><span class="doccomment">/// A row in a "plain" database (export.pdb), which contains one of the known row types.
-<a href=#1364 id=1364 data-nosnippet>1364</a>    </span>Plain(
-<a href=#1365 id=1365 data-nosnippet>1365</a>        <span class="attr">#[br(args(<span class="kw">match </span>page_type {
-<a href=#1366 id=1366 data-nosnippet>1366</a>            PageType::Plain(v) =&gt; v,
-<a href=#1367 id=1367 data-nosnippet>1367</a>            <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(<span class="string">"by above pre_assert"</span>)
-<a href=#1368 id=1368 data-nosnippet>1368</a>        }))]
-<a href=#1369 id=1369 data-nosnippet>1369</a>        </span>PlainRow,
-<a href=#1370 id=1370 data-nosnippet>1370</a>    ),
-<a href=#1371 id=1371 data-nosnippet>1371</a>    <span class="attr">#[br(pre_assert(<span class="macro">matches!</span>(page_type, PageType::Ext(<span class="kw">_</span>))))]
-<a href=#1372 id=1372 data-nosnippet>1372</a>    </span><span class="doccomment">/// A row in an "ext" database (exportExt.pdb), which contains extended track information.
-<a href=#1373 id=1373 data-nosnippet>1373</a>    </span>Ext(
-<a href=#1374 id=1374 data-nosnippet>1374</a>        <span class="attr">#[br(args(<span class="kw">match </span>page_type {
-<a href=#1375 id=1375 data-nosnippet>1375</a>            PageType::Ext(v) =&gt; v,
-<a href=#1376 id=1376 data-nosnippet>1376</a>            <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(<span class="string">"by above pre_assert"</span>)
-<a href=#1377 id=1377 data-nosnippet>1377</a>        }))]
-<a href=#1378 id=1378 data-nosnippet>1378</a>        </span>ExtRow,
-<a href=#1379 id=1379 data-nosnippet>1379</a>    ),
-<a href=#1380 id=1380 data-nosnippet>1380</a>    <span class="doccomment">/// The row format (and also its size) is unknown, which means it can't be parsed.
-<a href=#1381 id=1381 data-nosnippet>1381</a>    </span><span class="attr">#[br(pre_assert(<span class="macro">matches!</span>(page_type, PageType::Plain(PlainPageType::History) | PageType::Unknown(<span class="kw">_</span>))))]
-<a href=#1382 id=1382 data-nosnippet>1382</a>    </span>Unknown,
-<a href=#1383 id=1383 data-nosnippet>1383</a>}
-<a href=#1384 id=1384 data-nosnippet>1384</a>
-<a href=#1385 id=1385 data-nosnippet>1385</a><span class="kw">impl </span>Row {
-<a href=#1386 id=1386 data-nosnippet>1386</a>    <span class="attr">#[must_use]
-<a href=#1387 id=1387 data-nosnippet>1387</a>    </span><span class="kw">fn </span>align_by(<span class="kw-2">&amp;</span><span class="self">self</span>, offset: u64) -&gt; u64 {
-<a href=#1388 id=1388 data-nosnippet>1388</a>        <span class="kw">match </span><span class="self">self </span>{
-<a href=#1389 id=1389 data-nosnippet>1389</a>            Row::Plain(plain_row) =&gt; plain_row.align_by(offset),
-<a href=#1390 id=1390 data-nosnippet>1390</a>            Row::Ext(ext_row) =&gt; ext_row.align_by(offset),
-<a href=#1391 id=1391 data-nosnippet>1391</a>            Row::Unknown =&gt; offset,
-<a href=#1392 id=1392 data-nosnippet>1392</a>        }
-<a href=#1393 id=1393 data-nosnippet>1393</a>    }
-<a href=#1394 id=1394 data-nosnippet>1394</a>}</code></pre></div></section></main></body></html>
+<a href=#1253 id=1253 data-nosnippet>1253</a>    <span class="doccomment">/// Format of the file.
+<a href=#1254 id=1254 data-nosnippet>1254</a>    </span>file_type: FileType,
+<a href=#1255 id=1255 data-nosnippet>1255</a>    <span class="attr">#[brw(args(<span class="number">0x5C</span>, subtype.get_offset_size(), ()))]
+<a href=#1256 id=1256 data-nosnippet>1256</a>    </span>offsets: OffsetArrayContainer&lt;TrackStrings, <span class="number">22</span>&gt;,
+<a href=#1257 id=1257 data-nosnippet>1257</a>    <span class="comment">// Track paddings in general seem to follow this odd formula.
+<a href=#1258 id=1258 data-nosnippet>1258</a>    // A similar oddity is the case with other rows employing an OffsetArray
+<a href=#1259 id=1259 data-nosnippet>1259</a>    // (though with different padding_base)
+<a href=#1260 id=1260 data-nosnippet>1260</a>    // let mut padding_base = 0x34;
+<a href=#1261 id=1261 data-nosnippet>1261</a>    // // This is a heuristic that seems to match the padding behavior of the
+<a href=#1262 id=1262 data-nosnippet>1262</a>    // // original file for the `track_page` test case. The actual logic
+<a href=#1263 id=1263 data-nosnippet>1263</a>    // // is unknown.
+<a href=#1264 id=1264 data-nosnippet>1264</a>    // // We're assigning a different padding base for even and odd tracks
+<a href=#1265 id=1265 data-nosnippet>1265</a>    // if self.id.0 % 2 == 0 {
+<a href=#1266 id=1266 data-nosnippet>1266</a>    //     padding_base += 4;
+<a href=#1267 id=1267 data-nosnippet>1267</a>    // }
+<a href=#1268 id=1268 data-nosnippet>1268</a>    // padding_base = ((end_of_row + padding_base) &amp; !0b11) - end_of_row;
+<a href=#1269 id=1269 data-nosnippet>1269</a>    // writer.seek(SeekFrom::Current(padding_base as i64))?;
+<a href=#1270 id=1270 data-nosnippet>1270</a>    </span><span class="attr">#[br(args(<span class="number">0x40</span>))]
+<a href=#1271 id=1271 data-nosnippet>1271</a>    </span>padding: ExplicitPadding,
+<a href=#1272 id=1272 data-nosnippet>1272</a>}
+<a href=#1273 id=1273 data-nosnippet>1273</a>
+<a href=#1274 id=1274 data-nosnippet>1274</a><span class="doccomment">/// A table row contains the actual data.
+<a href=#1275 id=1275 data-nosnippet>1275</a></span><span class="attr">#[binrw]
+<a href=#1276 id=1276 data-nosnippet>1276</a>#[derive(Debug, PartialEq, Eq, Clone)]
+<a href=#1277 id=1277 data-nosnippet>1277</a>#[brw(little)]
+<a href=#1278 id=1278 data-nosnippet>1278</a>#[br(import(page_type: PlainPageType))]
+<a href=#1279 id=1279 data-nosnippet>1279</a></span><span class="comment">// The large enum size is unfortunate, but since users of this library will probably use iterators
+<a href=#1280 id=1280 data-nosnippet>1280</a>// to consume the results on demand, we can live with this. The alternative of using a `Box` would
+<a href=#1281 id=1281 data-nosnippet>1281</a>// require a heap allocation per row, which is arguably worse. Hence, the warning is disabled for
+<a href=#1282 id=1282 data-nosnippet>1282</a>// this enum.
+<a href=#1283 id=1283 data-nosnippet>1283</a></span><span class="attr">#[allow(clippy::large_enum_variant)]
+<a href=#1284 id=1284 data-nosnippet>1284</a></span><span class="kw">pub enum </span>PlainRow {
+<a href=#1285 id=1285 data-nosnippet>1285</a>    <span class="doccomment">/// Contains the album name, along with an ID of the corresponding artist.
+<a href=#1286 id=1286 data-nosnippet>1286</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Albums))]
+<a href=#1287 id=1287 data-nosnippet>1287</a>    </span>Album(Album),
+<a href=#1288 id=1288 data-nosnippet>1288</a>    <span class="doccomment">/// Contains the artist name and ID.
+<a href=#1289 id=1289 data-nosnippet>1289</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Artists))]
+<a href=#1290 id=1290 data-nosnippet>1290</a>    </span>Artist(Artist),
+<a href=#1291 id=1291 data-nosnippet>1291</a>    <span class="doccomment">/// Contains the artwork path and ID.
+<a href=#1292 id=1292 data-nosnippet>1292</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Artwork))]
+<a href=#1293 id=1293 data-nosnippet>1293</a>    </span>Artwork(Artwork),
+<a href=#1294 id=1294 data-nosnippet>1294</a>    <span class="doccomment">/// Contains numeric color ID
+<a href=#1295 id=1295 data-nosnippet>1295</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Colors))]
+<a href=#1296 id=1296 data-nosnippet>1296</a>    </span>Color(Color),
+<a href=#1297 id=1297 data-nosnippet>1297</a>    <span class="doccomment">/// Represents a musical genre.
+<a href=#1298 id=1298 data-nosnippet>1298</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Genres))]
+<a href=#1299 id=1299 data-nosnippet>1299</a>    </span>Genre(Genre),
+<a href=#1300 id=1300 data-nosnippet>1300</a>    <span class="doccomment">/// Represents a history playlist.
+<a href=#1301 id=1301 data-nosnippet>1301</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::HistoryPlaylists))]
+<a href=#1302 id=1302 data-nosnippet>1302</a>    </span>HistoryPlaylist(HistoryPlaylist),
+<a href=#1303 id=1303 data-nosnippet>1303</a>    <span class="doccomment">/// Represents a history playlist.
+<a href=#1304 id=1304 data-nosnippet>1304</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::HistoryEntries))]
+<a href=#1305 id=1305 data-nosnippet>1305</a>    </span>HistoryEntry(HistoryEntry),
+<a href=#1306 id=1306 data-nosnippet>1306</a>    <span class="doccomment">/// Represents a musical key.
+<a href=#1307 id=1307 data-nosnippet>1307</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Keys))]
+<a href=#1308 id=1308 data-nosnippet>1308</a>    </span>Key(Key),
+<a href=#1309 id=1309 data-nosnippet>1309</a>    <span class="doccomment">/// Represents a record label.
+<a href=#1310 id=1310 data-nosnippet>1310</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Labels))]
+<a href=#1311 id=1311 data-nosnippet>1311</a>    </span>Label(Label),
+<a href=#1312 id=1312 data-nosnippet>1312</a>    <span class="doccomment">/// Represents a node in the playlist tree (either a folder or a playlist).
+<a href=#1313 id=1313 data-nosnippet>1313</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::PlaylistTree))]
+<a href=#1314 id=1314 data-nosnippet>1314</a>    </span>PlaylistTreeNode(PlaylistTreeNode),
+<a href=#1315 id=1315 data-nosnippet>1315</a>    <span class="doccomment">/// Represents a track entry in a playlist.
+<a href=#1316 id=1316 data-nosnippet>1316</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::PlaylistEntries))]
+<a href=#1317 id=1317 data-nosnippet>1317</a>    </span>PlaylistEntry(PlaylistEntry),
+<a href=#1318 id=1318 data-nosnippet>1318</a>    <span class="doccomment">/// Contains the metadata categories by which Tracks can be browsed by.
+<a href=#1319 id=1319 data-nosnippet>1319</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Columns))]
+<a href=#1320 id=1320 data-nosnippet>1320</a>    </span>ColumnEntry(ColumnEntry),
+<a href=#1321 id=1321 data-nosnippet>1321</a>    <span class="doccomment">/// Contains the album name, along with an ID of the corresponding artist.
+<a href=#1322 id=1322 data-nosnippet>1322</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Tracks))]
+<a href=#1323 id=1323 data-nosnippet>1323</a>    </span>Track(Track),
+<a href=#1324 id=1324 data-nosnippet>1324</a>}
+<a href=#1325 id=1325 data-nosnippet>1325</a>
+<a href=#1326 id=1326 data-nosnippet>1326</a><span class="kw">impl </span>PlainRow {
+<a href=#1327 id=1327 data-nosnippet>1327</a>    <span class="attr">#[must_use]
+<a href=#1328 id=1328 data-nosnippet>1328</a>    </span><span class="kw">const fn </span>align_by(<span class="kw-2">&amp;</span><span class="self">self</span>, offset: u64) -&gt; u64 {
+<a href=#1329 id=1329 data-nosnippet>1329</a>        <span class="kw">use </span><span class="kw">crate</span>::pdb::PlainRow::<span class="kw-2">*</span>;
+<a href=#1330 id=1330 data-nosnippet>1330</a>        <span class="kw">use </span><span class="kw">crate</span>::util::align_by;
+<a href=#1331 id=1331 data-nosnippet>1331</a>        <span class="kw">use </span>std::mem::align_of_val;
+<a href=#1332 id=1332 data-nosnippet>1332</a>        <span class="comment">// unfortunately I couldn't find any less copy-pastey way of doing this
+<a href=#1333 id=1333 data-nosnippet>1333</a>        // without unnecessarily complex macros.
+<a href=#1334 id=1334 data-nosnippet>1334</a>        </span><span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self </span>{
+<a href=#1335 id=1335 data-nosnippet>1335</a>            Album(<span class="kw">_</span>) =&gt; offset,
+<a href=#1336 id=1336 data-nosnippet>1336</a>            Artist(<span class="kw">_</span>) =&gt; offset,
+<a href=#1337 id=1337 data-nosnippet>1337</a>            Artwork(<span class="kw">_</span>) =&gt; align_by(<span class="number">4</span>, offset),
+<a href=#1338 id=1338 data-nosnippet>1338</a>            Color(<span class="kw">_</span>) =&gt; align_by(<span class="number">4</span>, offset),
+<a href=#1339 id=1339 data-nosnippet>1339</a>            ColumnEntry(r) =&gt; align_by(align_of_val(r) <span class="kw">as </span>u64, offset),
+<a href=#1340 id=1340 data-nosnippet>1340</a>            Genre(<span class="kw">_</span>) =&gt; align_by(<span class="number">4</span>, offset), <span class="comment">// fixed alignment to 4 bytes
+<a href=#1341 id=1341 data-nosnippet>1341</a>            </span>HistoryPlaylist(r) =&gt; align_by(align_of_val(r) <span class="kw">as </span>u64, offset),
+<a href=#1342 id=1342 data-nosnippet>1342</a>            HistoryEntry(r) =&gt; align_by(align_of_val(r) <span class="kw">as </span>u64, offset),
+<a href=#1343 id=1343 data-nosnippet>1343</a>            Key(<span class="kw">_</span>) =&gt; align_by(<span class="number">4</span>, offset),
+<a href=#1344 id=1344 data-nosnippet>1344</a>            Label(<span class="kw">_</span>) =&gt; align_by(<span class="number">4</span>, offset),
+<a href=#1345 id=1345 data-nosnippet>1345</a>            PlaylistTreeNode(<span class="kw">_</span>) =&gt; align_by(<span class="number">4</span>, offset),
+<a href=#1346 id=1346 data-nosnippet>1346</a>            PlaylistEntry(r) =&gt; align_by(align_of_val(r) <span class="kw">as </span>u64, offset),
+<a href=#1347 id=1347 data-nosnippet>1347</a>            Track(<span class="kw">_</span>) =&gt; offset, <span class="comment">// already handled by track serialization
+<a href=#1348 id=1348 data-nosnippet>1348</a>        </span>}
+<a href=#1349 id=1349 data-nosnippet>1349</a>    }
+<a href=#1350 id=1350 data-nosnippet>1350</a>}
+<a href=#1351 id=1351 data-nosnippet>1351</a>
+<a href=#1352 id=1352 data-nosnippet>1352</a><span class="doccomment">/// A table row contains the actual data.
+<a href=#1353 id=1353 data-nosnippet>1353</a></span><span class="attr">#[binrw]
+<a href=#1354 id=1354 data-nosnippet>1354</a>#[derive(Debug, PartialEq, Eq, Clone)]
+<a href=#1355 id=1355 data-nosnippet>1355</a>#[brw(little)]
+<a href=#1356 id=1356 data-nosnippet>1356</a>#[br(import(page_type: PageType))]
+<a href=#1357 id=1357 data-nosnippet>1357</a></span><span class="comment">// The large enum size is unfortunate, but since users of this library will probably use iterators
+<a href=#1358 id=1358 data-nosnippet>1358</a>// to consume the results on demand, we can live with this. The alternative of using a `Box` would
+<a href=#1359 id=1359 data-nosnippet>1359</a>// require a heap allocation per row, which is arguably worse. Hence, the warning is disabled for
+<a href=#1360 id=1360 data-nosnippet>1360</a>// this enum.
+<a href=#1361 id=1361 data-nosnippet>1361</a></span><span class="attr">#[allow(clippy::large_enum_variant)]
+<a href=#1362 id=1362 data-nosnippet>1362</a></span><span class="kw">pub enum </span>Row {
+<a href=#1363 id=1363 data-nosnippet>1363</a>    <span class="comment">// TODO(Swiftb0y: come up with something prettier than the match hell below)
+<a href=#1364 id=1364 data-nosnippet>1364</a>    </span><span class="attr">#[br(pre_assert(<span class="macro">matches!</span>(page_type, PageType::Plain(<span class="kw">_</span>))))]
+<a href=#1365 id=1365 data-nosnippet>1365</a>    </span><span class="doccomment">/// A row in a "plain" database (export.pdb), which contains one of the known row types.
+<a href=#1366 id=1366 data-nosnippet>1366</a>    </span>Plain(
+<a href=#1367 id=1367 data-nosnippet>1367</a>        <span class="attr">#[br(args(<span class="kw">match </span>page_type {
+<a href=#1368 id=1368 data-nosnippet>1368</a>            PageType::Plain(v) =&gt; v,
+<a href=#1369 id=1369 data-nosnippet>1369</a>            <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(<span class="string">"by above pre_assert"</span>)
+<a href=#1370 id=1370 data-nosnippet>1370</a>        }))]
+<a href=#1371 id=1371 data-nosnippet>1371</a>        </span>PlainRow,
+<a href=#1372 id=1372 data-nosnippet>1372</a>    ),
+<a href=#1373 id=1373 data-nosnippet>1373</a>    <span class="attr">#[br(pre_assert(<span class="macro">matches!</span>(page_type, PageType::Ext(<span class="kw">_</span>))))]
+<a href=#1374 id=1374 data-nosnippet>1374</a>    </span><span class="doccomment">/// A row in an "ext" database (exportExt.pdb), which contains extended track information.
+<a href=#1375 id=1375 data-nosnippet>1375</a>    </span>Ext(
+<a href=#1376 id=1376 data-nosnippet>1376</a>        <span class="attr">#[br(args(<span class="kw">match </span>page_type {
+<a href=#1377 id=1377 data-nosnippet>1377</a>            PageType::Ext(v) =&gt; v,
+<a href=#1378 id=1378 data-nosnippet>1378</a>            <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(<span class="string">"by above pre_assert"</span>)
+<a href=#1379 id=1379 data-nosnippet>1379</a>        }))]
+<a href=#1380 id=1380 data-nosnippet>1380</a>        </span>ExtRow,
+<a href=#1381 id=1381 data-nosnippet>1381</a>    ),
+<a href=#1382 id=1382 data-nosnippet>1382</a>    <span class="doccomment">/// The row format (and also its size) is unknown, which means it can't be parsed.
+<a href=#1383 id=1383 data-nosnippet>1383</a>    </span><span class="attr">#[br(pre_assert(<span class="macro">matches!</span>(page_type, PageType::Plain(PlainPageType::History) | PageType::Unknown(<span class="kw">_</span>))))]
+<a href=#1384 id=1384 data-nosnippet>1384</a>    </span>Unknown,
+<a href=#1385 id=1385 data-nosnippet>1385</a>}
+<a href=#1386 id=1386 data-nosnippet>1386</a>
+<a href=#1387 id=1387 data-nosnippet>1387</a><span class="kw">impl </span>Row {
+<a href=#1388 id=1388 data-nosnippet>1388</a>    <span class="attr">#[must_use]
+<a href=#1389 id=1389 data-nosnippet>1389</a>    </span><span class="kw">fn </span>align_by(<span class="kw-2">&amp;</span><span class="self">self</span>, offset: u64) -&gt; u64 {
+<a href=#1390 id=1390 data-nosnippet>1390</a>        <span class="kw">match </span><span class="self">self </span>{
+<a href=#1391 id=1391 data-nosnippet>1391</a>            Row::Plain(plain_row) =&gt; plain_row.align_by(offset),
+<a href=#1392 id=1392 data-nosnippet>1392</a>            Row::Ext(ext_row) =&gt; ext_row.align_by(offset),
+<a href=#1393 id=1393 data-nosnippet>1393</a>            Row::Unknown =&gt; offset,
+<a href=#1394 id=1394 data-nosnippet>1394</a>        }
+<a href=#1395 id=1395 data-nosnippet>1395</a>    }
+<a href=#1396 id=1396 data-nosnippet>1396</a>}</code></pre></div></section></main></body></html>
