@@ -65,6 +65,32 @@ pub enum ColorIndex {
     Purple,
 }
 
+/// Track file type.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub enum FileType {
+    /// Unknown file type.
+    #[brw(magic = 0x0u16)]
+    Unknown,
+    /// MP3.
+    #[brw(magic = 0x1u16)]
+    Mp3,
+    /// M4A.
+    #[brw(magic = 0x4u16)]
+    M4a,
+    /// FLAC.
+    #[brw(magic = 0x5u16)]
+    Flac,
+    /// WAV.
+    #[brw(magic = 0xbu16)]
+    Wav,
+    /// AIFF.
+    #[brw(magic = 0xcu16)]
+    Aiff,
+    /// Value that we haven't seen before.
+    Other(u16),
+}
+
 /// align given value to the alignment requirements by the given type.
 #[must_use]
 pub const fn align_by(alignment: u64, mut offset: u64) -> u64 {
