@@ -8,7 +8,10 @@
 
 //! This library provides access to device libraries exported from Pioneer's Rekordbox DJ software.
 
-#![warn(unsafe_code)]
+// Unsafe code is used to implement:
+// - crate::pdb::io::PageIterator
+// #![warn(unsafe_code)]
+
 #![warn(missing_docs)]
 #![cfg_attr(not(debug_assertions), deny(warnings))]
 #![deny(rust_2018_idioms)]
@@ -31,6 +34,6 @@ pub mod util;
 pub mod xml;
 pub(crate) mod xor;
 
-pub use crate::device::DeviceExport;
+pub use crate::device::DeviceExportLoader;
 pub use crate::util::RekordcrateError as Error;
 pub use crate::util::RekordcrateResult as Result;

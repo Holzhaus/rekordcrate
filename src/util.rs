@@ -11,6 +11,7 @@
 use std::io::{Read, Seek, SeekFrom, Write};
 
 use crate::pdb::string::StringError;
+use crate::pdb::{PageIndex, PageType};
 use binrw::{binrw, file_ptr::IntoSeekFrom, BinRead, BinResult, BinWrite, Endian};
 use thiserror::Error;
 
@@ -37,10 +38,40 @@ pub enum RekordcrateError {
     /// Represents an `std::io::Error`.
     #[error("component not loaded")]
     NotLoadedError,
+
+    /// Represents a failure to handle the PDB database.
+    #[error(transparent)]
+    PdbError(#[from] crate::pdb::PdbError),
+
+    /// Represents a failure to locate a table.
+    #[error("Table not present in database: {0:?}")]
+    TableNotPresent(TableIndex),
+
+    /// Represents a failure to locate a table by page type.
+    #[error("Page type not present in database: {0:?}")]
+    TableTypeNotPresent(PageType),
+
+    /// Represents a failure to locate a page.
+    #[error("Page not present in database: {0:?}")]
+    PageNotPresent(PageIndex),
+
+    /// Represents a breach of the expectation that the pages do not form a cycle.
+    #[error("Page list contains a cycle at page: {0:?}")]
+    PageCycle(PageIndex),
 }
 
 /// Type alias for results where the error is a `RekordcrateError`.
 pub type RekordcrateResult<T> = std::result::Result<T, RekordcrateError>;
+
+/// Index of a table in the PDB header.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Copy)]
+pub struct TableIndex(pub(crate) usize);
+
+impl From<usize> for TableIndex {
+    fn from(value: usize) -> Self {
+        Self(value)
+    }
+}
 
 /// Indexed Color identifiers used for memory cues and tracks.
 #[binrw]

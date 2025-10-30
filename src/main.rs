@@ -8,10 +8,12 @@
 
 use binrw::BinRead;
 use clap::{Parser, Subcommand};
-use rekordcrate::anlz::ANLZ;
-use rekordcrate::pdb::{DatabaseType, Header, PageContent, Track, TrackId};
+use fallible_iterator::FallibleIterator;
+use rekordcrate::pdb::io::Database;
+use rekordcrate::pdb::*;
 use rekordcrate::setting::Setting;
 use rekordcrate::xml::Document;
+use rekordcrate::{anlz::ANLZ, util::TableIndex};
 use std::path::{Path, PathBuf};
 
 #[derive(Parser)]
@@ -29,21 +31,6 @@ enum Commands {
         /// File to parse.
         #[arg(value_name = "PDB_FILE")]
         path: PathBuf,
-    },
-    /// Display settings from a Rekordbox device export.
-    ListSettings {
-        /// Path to parse.
-        #[arg(value_name = "EXPORT_PATH")]
-        path: PathBuf,
-    },
-    /// Export the playlists from a Pioneer Database (`.PDB`) file to M3U files.
-    ExportPlaylists {
-        /// File to parse.
-        #[arg(value_name = "EXPORT_PATH")]
-        path: PathBuf,
-        /// Output directory to write M3U files to.
-        #[arg(value_name = "OUTPUT_DIR")]
-        output_dir: PathBuf,
     },
     /// Parse and dump a Rekordbox Analysis (`ANLZXXXX.DAT`) file.
     DumpANLZ {
@@ -75,121 +62,104 @@ enum Commands {
 }
 
 fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
-    use rekordcrate::device::{Pdb, PlaylistNode};
-    use std::collections::HashMap;
+    use rekordcrate::pdb::{PlaylistTreeNode, PlaylistTreeNodeId};
+    use std::collections::{BTreeMap, HashMap};
 
-    let pdb = Pdb::open_from_path(path)?;
-    let playlists = pdb.get_playlists()?;
-    let tracks: HashMap<_, _> = pdb.get_tracks().map(|t| (t.id, t)).collect();
+    let mut reader = std::fs::File::open(path)?;
+    let mut db = Database::open_non_persistent(&mut reader, DatabaseType::Plain)?;
 
-    fn print_node(pdb: &Pdb, tracks: &HashMap<TrackId, &Track>, node: &PlaylistNode, level: usize) {
-        let indentation = "    ".repeat(level);
-        match node {
-            PlaylistNode::Folder(folder) => {
-                println!("{}🗀 {}", indentation, folder.name);
-                for child in &folder.children {
-                    print_node(pdb, tracks, child, level + 1);
-                }
-            }
-            PlaylistNode::Playlist(playlist) => {
-                println!("{}🗎 {}", indentation, playlist.name);
-                let mut entries: Vec<_> = pdb.get_playlist_entries(playlist.id).collect();
-                entries.sort_by_key(|(index, _)| *index);
-                for (index, track_id) in entries {
-                    if let Some(track) = tracks.get(&track_id) {
-                        println!("{}  ♫ {}: {}", indentation, index, track.offsets.title);
-                    } else {
-                        println!(
-                            "{}  ♫ {}: <Track for {:?} not found>",
-                            indentation, index, track_id
-                        );
-                    }
-                }
-            }
-        }
-    }
+    let mut playlist_tree: HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>> = HashMap::new();
+    let mut playlist_entries: HashMap<PlaylistTreeNodeId, BTreeMap<u32, TrackId>> = HashMap::new();
+    let mut artists: HashMap<ArtistId, Artist> = HashMap::new();
+    let mut tracks: HashMap<TrackId, Track> = HashMap::new();
 
-    for node in &playlists {
-        print_node(&pdb, &tracks, node, 0);
-    }
+    db.iter_rows::<PlaylistTreeNode>()?.for_each(|tree_node| {
+        playlist_tree
+            .entry(tree_node.parent_id)
+            .or_default()
+            .push(tree_node.clone());
+        Ok(())
+    })?;
 
-    Ok(())
-}
+    db.iter_rows::<Artist>()?.for_each(|artist| {
+        artists.insert(artist.id, artist.clone());
+        Ok(())
+    })?;
 
-fn export_playlists(path: &Path, output_dir: &PathBuf) -> rekordcrate::Result<()> {
-    use rekordcrate::device::PlaylistNode;
-    use rekordcrate::pdb::{Track, TrackId};
-    use rekordcrate::DeviceExport;
-    use std::collections::HashMap;
-    use std::io::Write;
+    db.iter_rows::<Track>()?.for_each(|track| {
+        tracks.insert(track.id, track.clone());
+        Ok(())
+    })?;
 
-    let mut export = DeviceExport::new(path.into());
-    export.load_pdb()?;
-    let pdb = export.pdb().ok_or(rekordcrate::Error::NotLoadedError)?;
-    let playlists = pdb.get_playlists()?;
-    let tracks = pdb
-        .get_tracks()
-        .map(|track| (track.id, track))
-        .collect::<HashMap<_, _>>();
+    db.iter_rows::<PlaylistEntry>()?.for_each(|entry| {
+        playlist_entries
+            .entry(entry.playlist_id)
+            .or_default()
+            .insert(entry.entry_index, entry.track_id);
+        Ok(())
+    })?;
 
-    fn walk_tree(
-        pdb: &rekordcrate::device::Pdb,
-        tracks: &HashMap<TrackId, &Track>,
-        node: PlaylistNode,
-        path: &PathBuf,
-        export_path: &Path,
-    ) -> rekordcrate::Result<()> {
-        match node {
-            PlaylistNode::Folder(folder) => {
-                folder.children.into_iter().try_for_each(|child| {
-                    walk_tree(pdb, tracks, child, &path.join(&folder.name), export_path)
-                })?;
-            }
-            PlaylistNode::Playlist(playlist) => {
-                let mut playlist_entries: Vec<(u32, TrackId)> =
-                    pdb.get_playlist_entries(playlist.id).collect();
-                playlist_entries.sort_by_key(|entry| entry.0);
-
-                std::fs::create_dir_all(path)?;
-                let playlist_path = path.join(format!("{}.m3u", playlist.name));
-
-                println!("{}", playlist_path.display());
-                let mut file = std::fs::File::create(playlist_path)?;
-                playlist_entries
-                    .into_iter()
-                    .filter_map(|(_index, id)| tracks.get(&id))
-                    .try_for_each(|track| -> rekordcrate::Result<()> {
-                        let track_path = track.offsets.file_path.clone().into_string()?;
-                        Ok(writeln!(
-                            &mut file,
-                            "{}",
-                            export_path
-                                .canonicalize()?
-                                .join(track_path.strip_prefix('/').unwrap_or(&track_path))
-                                .display(),
-                        )?)
-                    })?;
+    fn print_track(
+        track_id: &TrackId,
+        artists: &HashMap<ArtistId, Artist>,
+        tracks: &HashMap<TrackId, Track>,
+    ) {
+        let track = match tracks.get(track_id) {
+            Some(track) => track,
+            None => {
+                println!("<Track for {track_id:?} not found>");
+                return;
             }
         };
-
-        Ok(())
+        let artist = match artists.get(&track.artist_id) {
+            Some(artist) => artist,
+            None => {
+                println!(
+                    "<Artist for {:?} not found> - {}",
+                    &track.artist_id, track.offsets.title
+                );
+                return;
+            }
+        };
+        println!("{} - {}", artist.offsets.name, track.offsets.title)
+    }
+    fn print_children_of(
+        tree: &HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>>,
+        tree_entries: &HashMap<PlaylistTreeNodeId, BTreeMap<u32, TrackId>>,
+        artists: &HashMap<ArtistId, Artist>,
+        tracks: &HashMap<TrackId, Track>,
+        id: PlaylistTreeNodeId,
+        level: usize,
+    ) {
+        tree.get(&id)
+            .iter()
+            .flat_map(|nodes| nodes.iter())
+            .for_each(|node| {
+                let indentation = "    ".repeat(level);
+                println!(
+                    "{}{} {}",
+                    indentation,
+                    if node.is_folder() { "🗀" } else { "🗎" },
+                    node.name,
+                );
+                if let Some(playlist_tracks) = tree_entries.get(&node.id) {
+                    for (index, track_id) in playlist_tracks.iter() {
+                        print!("{}  ♫ {}: ", indentation, index);
+                        print_track(track_id, artists, tracks);
+                    }
+                }
+                print_children_of(tree, tree_entries, artists, tracks, node.id, level + 1);
+            });
     }
 
-    playlists
-        .into_iter()
-        .try_for_each(|node| walk_tree(pdb, &tracks, node, output_dir, export.get_path()))?;
-
-    Ok(())
-}
-
-fn list_settings(path: &Path) -> rekordcrate::Result<()> {
-    use rekordcrate::DeviceExport;
-
-    let mut export = DeviceExport::new(path.into());
-    export.load_settings();
-    let settings = export.get_settings();
-
-    print!("{}", settings);
+    print_children_of(
+        &playlist_tree,
+        &playlist_entries,
+        &artists,
+        &tracks,
+        PlaylistTreeNodeId(0),
+        0,
+    );
 
     Ok(())
 }
@@ -204,35 +174,28 @@ fn dump_anlz(path: &PathBuf) -> rekordcrate::Result<()> {
 
 fn dump_pdb(path: &PathBuf, typ: DatabaseType) -> rekordcrate::Result<()> {
     let mut reader = std::fs::File::open(path)?;
-    let header = Header::read_args(&mut reader, (typ,))?;
+    let mut db = Database::open_non_persistent(&mut reader, typ)?;
 
-    println!("{:#?}", header);
+    println!("{:#?}", db.get_header());
 
-    for (i, table) in header.tables.iter().enumerate() {
-        println!("Table {}: {:?}", i, table.page_type);
-        for page in header
-            .read_pages(
-                &mut reader,
-                binrw::Endian::NATIVE,
-                (&table.first_page, &table.last_page, typ),
-            )
-            .unwrap()
-            .into_iter()
-        {
-            println!("  {:?}", page);
-            match page.content {
+    let tables = db.get_header().tables.clone();
+    for (i, table) in tables.iter().enumerate() {
+        let id = TableIndex::from(i);
+        println!("Table {:?}: {:?}", id, table.page_type);
+        let mut page_iter = db.iter_pages_for_table(id)?;
+        while let Some(page) = page_iter.next()? {
+            match &page.content {
                 PageContent::Data(data_content) => {
-                    for (_, row) in data_content.rows {
+                    for row in data_content.rows.values() {
                         println!("      {:?}", row);
                     }
                 }
                 PageContent::Index(index_content) => {
                     println!("    {:?}", index_content);
-                    for entry in index_content.entries {
+                    for entry in index_content.entries.iter() {
                         println!("      {:?}", entry);
                     }
                 }
-                PageContent::Unknown => (),
             }
         }
     }
@@ -298,8 +261,6 @@ fn main() -> rekordcrate::Result<()> {
 
     match &cli.command {
         Commands::ListPlaylists { path } => list_playlists(path),
-        Commands::ListSettings { path } => list_settings(path),
-        Commands::ExportPlaylists { path, output_dir } => export_playlists(path, output_dir),
         Commands::DumpPDB { path, db_type } => {
             let db_type = match guess_db_type(path, db_type.as_deref()) {
                 Some(db_type) => db_type,

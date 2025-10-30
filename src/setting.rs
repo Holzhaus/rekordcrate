@@ -183,6 +183,42 @@ impl SettingData {
             Self::MySetting2(_) => 40,
         }
     }
+
+    /// If this is a `DevSetting`, return a reference to it.
+    #[must_use]
+    pub fn as_dev_setting(&self) -> Option<&DevSetting> {
+        match &self {
+            Self::DevSetting(ds) => Some(ds),
+            _ => None,
+        }
+    }
+
+    /// If this is a `DJMMySetting`, return a reference to it.
+    #[must_use]
+    pub fn as_djm_my_setting(&self) -> Option<&DJMMySetting> {
+        match &self {
+            Self::DJMMySetting(ds) => Some(ds),
+            _ => None,
+        }
+    }
+
+    /// If this is a `MySetting`, return a reference to it.
+    #[must_use]
+    pub fn as_my_setting(&self) -> Option<&MySetting> {
+        match &self {
+            Self::MySetting(ds) => Some(ds),
+            _ => None,
+        }
+    }
+
+    /// If this is a `MySetting2`, return a reference to it.
+    #[must_use]
+    pub fn as_my_setting2(&self) -> Option<&MySetting2> {
+        match &self {
+            Self::MySetting2(ds) => Some(ds),
+            _ => None,
+        }
+    }
 }
 
 /// Payload of a `DEVSETTING.DAT` file (32 bytes).
