@@ -6,38 +6,43 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-use binrw::BinRead;
-use rekordcrate::pdb::{DatabaseType, Header, PageType, PlainPageType};
+use rekordcrate::pdb::{Database, DatabaseType, PageType, PlainPageType};
 use std::io::Cursor;
 
 fn assert_pdb_row_count(page_type: PlainPageType, expected_row_count: usize) {
     let data = include_bytes!("../data/pdb/num_rows/export.pdb").as_slice();
     let mut reader = Cursor::new(data);
-    let header = Header::read(&mut reader).expect("failed to parse header");
+    let mut db = Database::open_non_persistent(&mut reader, DatabaseType::Plain)
+        .expect("Failed to open database");
 
-    let table = header
-        .tables
-        .iter()
-        .find(|table| table.page_type == PageType::Plain(page_type))
-        .expect("Failed to find table of given type");
-    let pages = header
-        .read_pages(
-            &mut reader,
-            binrw::Endian::NATIVE,
-            (&table.first_page, &table.last_page, DatabaseType::Plain),
-        )
-        .expect("failed to read pages");
+    let (table_id, _) = db
+        .get_header()
+        .get_table_for_type(PageType::Plain(page_type))
+        .expect("Failed to get table by page type");
+    let page_ids = db
+        .load_pages_for_table(table_id)
+        .expect("Failed to load pages for table");
 
-    let actual_row_count: usize = pages
+    let actual_row_count: usize = page_ids
         .into_iter()
-        .filter_map(|page| page.content.into_data())
-        .flat_map(|data_content| data_content.row_groups.into_iter())
-        .map(|row_group| row_group.present_rows().len())
+        .filter_map(|page_id| {
+            db.load_page(page_id)
+                .expect("failed to load page")
+                .content
+                .as_data()
+                .map(|data_content| {
+                    data_content
+                        .row_groups
+                        .iter()
+                        .map(|row_group| row_group.present_rows().len())
+                        .sum::<usize>()
+                })
+        })
         .sum();
     assert_eq!(
         actual_row_count, expected_row_count,
         "wrong row count for page type {:?}",
-        table.page_type
+        page_type
     );
 }
 

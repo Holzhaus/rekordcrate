@@ -9,7 +9,9 @@
 use binrw::BinRead;
 use clap::{Parser, Subcommand};
 use rekordcrate::anlz::ANLZ;
-use rekordcrate::pdb::{DatabaseType, Header, PageContent, PageType, PlainPageType, PlainRow, Row};
+use rekordcrate::pdb::{
+    Database, DatabaseType, PageContent, PageType, PlainPageType, PlainRow, Row,
+};
 use rekordcrate::setting::Setting;
 use rekordcrate::xml::Document;
 use std::path::{Path, PathBuf};
@@ -83,46 +85,33 @@ fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
     }
 
     let mut reader = std::fs::File::open(path)?;
-    let header = Header::read_args(&mut reader, (DatabaseType::Plain,))?;
+    let mut db = Database::open_non_persistent(&mut reader, DatabaseType::Plain)?;
 
     let mut tree: HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>> = HashMap::new();
 
-    header
-        .tables
-        .iter()
-        .filter(|table| {
-            matches!(
-                table.page_type,
-                PageType::Plain(PlainPageType::PlaylistTree)
-            )
-        })
-        .flat_map(|table| {
-            header
-                .read_pages(
-                    &mut reader,
-                    binrw::Endian::NATIVE,
-                    (&table.first_page, &table.last_page, DatabaseType::Plain),
-                )
-                .unwrap()
-                .into_iter()
-                .filter_map(|page| page.content.into_data())
-                .flat_map(|data_content| data_content.row_groups.into_iter())
-                .flat_map(|row_group| {
-                    row_group
-                        .present_rows()
-                        .iter()
-                        .map(|row| {
-                            if let Row::Plain(PlainRow::PlaylistTreeNode(playlist_tree)) = row {
-                                playlist_tree.clone()
-                            } else {
-                                unreachable!("encountered non-playlist tree row in playlist table");
-                            }
-                        })
-                        .collect::<Vec<PlaylistTreeNode>>()
-                        .into_iter()
-                })
-        })
-        .for_each(|row| tree.entry(row.parent_id).or_default().push(row));
+    let (table_id, _) = db
+        .get_header()
+        .get_table_for_type(PageType::Plain(PlainPageType::PlaylistTree))
+        .expect("failed to find playlist tree table");
+    let page_ids = db
+        .load_pages_for_table(table_id)
+        .expect("failed to read pages");
+    for page_id in page_ids {
+        let page = db.load_page(page_id).expect("failed to load page");
+        if let Some(data_content) = page.content.as_data() {
+            for row_group in data_content.row_groups.iter() {
+                for row in row_group.present_rows() {
+                    if let Row::Plain(PlainRow::PlaylistTreeNode(playlist_tree)) = row {
+                        tree.entry(playlist_tree.parent_id)
+                            .or_default()
+                            .push(playlist_tree.clone());
+                    } else {
+                        unreachable!("encountered non-playlist tree row in playlist table");
+                    }
+                }
+            }
+        }
+    }
 
     print_children_of(&tree, PlaylistTreeNodeId(0), 0);
 
@@ -139,23 +128,18 @@ fn dump_anlz(path: &PathBuf) -> rekordcrate::Result<()> {
 
 fn dump_pdb(path: &PathBuf, typ: DatabaseType) -> rekordcrate::Result<()> {
     let mut reader = std::fs::File::open(path)?;
-    let header = Header::read_args(&mut reader, (typ,))?;
+    let mut db = Database::open_non_persistent(&mut reader, typ)?;
 
-    println!("{:#?}", header);
+    println!("{:#?}", db.get_header());
 
-    for (i, table) in header.tables.iter().enumerate() {
-        println!("Table {}: {:?}", i, table.page_type);
-        for page in header
-            .read_pages(
-                &mut reader,
-                binrw::Endian::NATIVE,
-                (&table.first_page, &table.last_page, typ),
-            )
-            .unwrap()
-            .into_iter()
-        {
+    let table_ids = db.get_header().get_table_ids();
+    for i in table_ids {
+        println!("Table {}: {:?}", i, db.get_header().tables[i].page_type);
+        let page_ids = db.load_pages_for_table(i).expect("failed to read pages");
+        for page_id in page_ids {
+            let page = db.load_page(page_id).expect("failed to load page");
             println!("  {:?}", page);
-            match page.content {
+            match &page.content {
                 PageContent::Data(data_content) => {
                     data_content.row_groups.iter().for_each(|row_group| {
                         println!("    {:?}", row_group);
@@ -166,7 +150,7 @@ fn dump_pdb(path: &PathBuf, typ: DatabaseType) -> rekordcrate::Result<()> {
                 }
                 PageContent::Index(index_content) => {
                     println!("    {:?}", index_content);
-                    for entry in index_content.entries {
+                    for entry in index_content.entries.iter() {
                         println!("      {:?}", entry);
                     }
                 }

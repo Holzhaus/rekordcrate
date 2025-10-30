@@ -53,7 +53,179 @@ pub enum PdbError {
     /// A row was added to a full `RowGroup`.
     #[error("Cannot add row to a full row group (max 16 rows)")]
     RowGroupFull,
+    /// Invalid table index.
+    #[error("Invalid table index: {0}")]
+    InvalidTableIndex(usize),
+    /// An error occurred while reading or writing binary data.
+    #[error("Binary read/write error: {0}")]
+    ReadWriteError(#[from] binrw::Error),
 }
+
+/// A lazily loaded PDB database.
+#[binrw]
+#[brw(little)]
+#[brw(import(db_type: DatabaseType))]
+#[derive(Debug, PartialEq)]
+struct LazyDatabase {
+    /// The PDB header.
+    #[brw(args(db_type))]
+    header: Header,
+    /// The pages of the database, initially not loaded.
+    #[br(calc = vec![LazyPage::NotLoaded; (header.next_unused_page.0 - 1) as usize])]
+    #[bw(args(db_type, header.page_size))]
+    pages: Vec<LazyPage>,
+}
+
+#[derive(Debug, PartialEq, Clone)]
+enum LazyPage {
+    NotLoaded,
+    Loaded(Page),
+}
+
+impl BinWrite for LazyPage {
+    type Args<'a> = (DatabaseType, u32);
+
+    fn write_options<W: Write + Seek>(
+        &self,
+        _writer: &mut W,
+        _endian: Endian,
+        (_db_type, _page_size): Self::Args<'_>,
+    ) -> BinResult<()> {
+        // Not yet tested.
+        unimplemented!()
+        /*
+        match self {
+            LazyPage::NotLoaded => {
+                // Just seek forward by without writing anything.
+                writer.seek(SeekFrom::Current(page_size as i64))?;
+                Ok(())
+            }
+            LazyPage::Loaded(page) => {
+                page.write_options(writer, endian, (page_size, db_type))
+            }
+        }
+        */
+    }
+}
+
+/// A PDB database opened for reading or writing.
+pub struct Database<'io, IO> {
+    io: &'io mut IO,
+    db_type: DatabaseType,
+    content: LazyDatabase,
+}
+
+impl<'io, IO> fmt::Debug for Database<'io, IO> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Database")
+            .field("db_type", &self.db_type)
+            .field("header", &self.content.header)
+            .finish()
+    }
+}
+
+impl<'r, R: Read + Seek> Database<'r, R> {
+    /// Opens a PDB database without writing back to disk.
+    /// Still allows modifying data in memory.
+    pub fn open_non_persistent(io: &'r mut R, db_type: DatabaseType) -> Result<Self, PdbError> {
+        let endian = Endian::Little;
+        let content = LazyDatabase::read_options(io, endian, (db_type,))?;
+        Ok(Self {
+            io,
+            db_type,
+            content,
+        })
+    }
+
+    /// Loads a page into memory.
+    pub fn load_page(&mut self, index: PageIndex) -> Result<&mut Page, PdbError> {
+        let endian = Endian::Little;
+        let page_entry = self
+            .content
+            .pages
+            .get_mut(index.0 as usize - 1)
+            .ok_or_else(|| PdbError::InvalidPageIndex(index.0))?;
+        if let LazyPage::NotLoaded = page_entry {
+            // Load the page from the file
+            let page_offset = SeekFrom::Start(index.offset(self.content.header.page_size));
+            self.io.seek(page_offset).map_err(binrw::Error::Io)?;
+            let page = Page::read_options(
+                self.io,
+                endian,
+                (self.content.header.page_size, self.db_type),
+            )?;
+            *page_entry = LazyPage::Loaded(page);
+        }
+        match page_entry {
+            LazyPage::Loaded(page) => Ok(page),
+            _ => unreachable!(),
+        }
+    }
+
+    /// Loads all pages for a table into memory, returning their indices.
+    pub fn load_pages_for_table(&mut self, table_index: usize) -> Result<Vec<PageIndex>, PdbError> {
+        let table = self
+            .get_header()
+            .tables
+            .get(table_index)
+            .ok_or_else(|| PdbError::InvalidTableIndex(table_index))?;
+        let (first_page, last_page) = (table.first_page, table.last_page);
+
+        let mut page_index = first_page;
+        let mut page_indices = vec![];
+        loop {
+            page_indices.push(page_index);
+            let page = self.load_page(page_index)?;
+            let is_last_page = page.page_index == last_page;
+            page_index = page.next_page;
+
+            if is_last_page {
+                break;
+            }
+        }
+        Ok(page_indices)
+    }
+
+    /// Returns a reference to the PDB header.
+    #[must_use]
+    pub fn get_header(&self) -> &Header {
+        &self.content.header
+    }
+
+    /// Returns a mutable reference to the PDB header.
+    #[must_use]
+    pub fn get_header_mut(&mut self) -> &mut Header {
+        &mut self.content.header
+    }
+}
+
+// Not yet tested.
+/*
+impl <'rw, RW: Read + Write + Seek> Database<'rw, RW> {
+    /// Opens a PDB database for reading and writing.
+    pub fn open(
+        io: &'rw mut RW,
+        db_type: DatabaseType,
+    ) -> Result<Self, PdbError> {
+        let endian = Endian::Little;
+        let content = LazyDatabase::read_options(io, endian, (db_type,))?;
+        Ok(Self { io, db_type, content })
+    }
+
+    /// Flushes all changes to the underlying IO.
+    pub fn flush(&mut self) -> Result<(), PdbError> {
+        let endian = Endian::Little;
+        self.content.write_options(self.io, endian, (self.db_type, ))?;
+        Ok(())
+    }
+
+    /// Closes the database, flushing changes.
+    pub fn close(mut self) -> Result<(), PdbError> {
+        self.flush()?;
+        Ok(())
+    }
+}
+*/
 
 /// Do not read anything, but the return the current stream position of `reader`.
 fn current_offset<R: Read + Seek>(reader: &mut R, _: Endian, _: ()) -> BinResult<u64> {
@@ -141,7 +313,7 @@ pub enum PlainPageType {
 /// Points to a table page and can be used to calculate the page's file offset by multiplying it
 /// with the page size (found in the file header).
 #[binrw]
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Copy)]
 #[brw(little)]
 pub struct PageIndex(u32);
 
@@ -221,31 +393,19 @@ pub struct Header {
 }
 
 impl Header {
-    /// Returns pages for the given Table.
-    pub fn read_pages<R: Read + Seek>(
-        &self,
-        reader: &mut R,
-        _: Endian,
-        args: (&PageIndex, &PageIndex, DatabaseType),
-    ) -> BinResult<Vec<Page>> {
-        let endian = Endian::Little;
-        let (first_page, last_page, db_type) = args;
+    /// Returns the available table IDs.
+    #[must_use]
+    pub fn get_table_ids(&self) -> Vec<usize> {
+        (0..self.tables.len()).collect()
+    }
 
-        let mut pages = vec![];
-        let mut page_index = first_page.clone();
-        loop {
-            let page_offset = SeekFrom::Start(page_index.offset(self.page_size));
-            reader.seek(page_offset).map_err(binrw::Error::Io)?;
-            let page = Page::read_options(reader, endian, (self.page_size, db_type))?;
-            let is_last_page = &page.page_index == last_page;
-            page_index = page.next_page.clone();
-            pages.push(page);
-
-            if is_last_page {
-                break;
-            }
-        }
-        Ok(pages)
+    /// Finds the table for a given page type.
+    #[must_use]
+    pub fn get_table_for_type(&self, page_type: PageType) -> Option<(usize, &Table)> {
+        self.tables
+            .iter()
+            .enumerate()
+            .find(|(_, table)| table.page_type == page_type)
     }
 }
 
@@ -450,9 +610,27 @@ impl PageContent {
         }
     }
 
+    /// Returns a reference to the data content of the page if it is a data page.
+    #[must_use]
+    pub fn as_data(&self) -> Option<&DataPageContent> {
+        match self {
+            PageContent::Data(data) => Some(data),
+            _ => None,
+        }
+    }
+
     /// Returns the index content of the page if it is an index page.
     #[must_use]
     pub fn into_index(self) -> Option<IndexPageContent> {
+        match self {
+            PageContent::Index(index) => Some(index),
+            _ => None,
+        }
+    }
+
+    /// Returns a reference to the index content of the page if it is an index page.
+    #[must_use]
+    pub fn as_index(&self) -> Option<&IndexPageContent> {
         match self {
             PageContent::Index(index) => Some(index),
             _ => None,
@@ -466,7 +644,7 @@ impl PageContent {
 /// followed by the data section that holds the row data. Each row needs to be located using an
 /// offset found in the page footer at the end of the page.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 #[brw(little, import(page_size: u32, db_type: DatabaseType))]
 pub struct Page {
     /// Stream position at the beginning of the page; used to compute heap base for standalone buffers.
