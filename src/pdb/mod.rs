@@ -20,6 +20,7 @@
 
 pub mod bitfields;
 pub mod ext;
+pub mod io;
 pub mod offset_array;
 pub mod string;
 
@@ -38,12 +39,9 @@ use std::fmt;
 use crate::pdb::ext::{ExtPageType, ExtRow};
 use crate::pdb::offset_array::OffsetSize;
 use crate::pdb::string::DeviceSQLString;
-use crate::util::{parse_at_offsets, write_at_offsets, ColorIndex, FileType};
-use binrw::{
-    binrw,
-    io::{Read, Seek, SeekFrom, Write},
-    BinRead, BinResult, BinWrite, Endian,
-};
+use crate::util::{parse_at_offsets, write_at_offsets, ColorIndex, FileType, TableIndex};
+use binrw::{binrw, BinRead, BinResult, BinWrite, Endian};
+use std::io::{Read, Seek, SeekFrom, Write};
 use thiserror::Error;
 
 /// An error that can occur when parsing a PDB file.
@@ -55,9 +53,6 @@ pub enum PdbError {
     /// Invalid flags were passed when creating an `IndexEntry`.
     #[error("Invalid index flags (expected max 3 bits): {0:#b}")]
     InvalidIndexFlags(u8),
-    /// A row was added to a full `RowGroup`.
-    #[error("Cannot add row to a full row group (max 16 rows)")]
-    RowGroupFull,
 }
 
 /// The type of the database were looking at.
@@ -141,12 +136,23 @@ pub enum PlainPageType {
     History,
 }
 
+/// A row variant that can be extracted from a generic `Row`.
+pub trait RowVariant {
+    /// The page type that contains rows of this variant.
+    const PAGE_TYPE: PageType;
+
+    /// Extracts a reference to this row variant from a generic `Row`.
+    fn from_row(row: &Row) -> Option<&Self>;
+    /// Extracts a mutable reference to this row variant from a generic `Row`.
+    fn from_row_mut(row: &mut Row) -> Option<&mut Self>;
+}
+
 /// Points to a table page and can be used to calculate the page's file offset by multiplying it
 /// with the page size (found in the file header).
 #[binrw]
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Hash)]
 #[brw(little)]
-pub struct PageIndex(u32);
+pub struct PageIndex(pub(crate) u32);
 
 impl TryFrom<u32> for PageIndex {
     type Error = PdbError;
@@ -220,31 +226,24 @@ pub struct Header {
 }
 
 impl Header {
-    /// Returns pages for the given Table.
-    pub fn read_pages<R: Read + Seek>(
-        &self,
-        reader: &mut R,
-        _: Endian,
-        args: (&PageIndex, &PageIndex, DatabaseType),
-    ) -> BinResult<Vec<Page>> {
-        let endian = Endian::Little;
-        let (first_page, last_page, db_type) = args;
+    /// Finds the table for a given page type.
+    #[must_use]
+    pub fn find_table(&self, page_type: PageType) -> Option<(TableIndex, &Table)> {
+        self.tables
+            .iter()
+            .enumerate()
+            .find(|(_, table)| table.page_type == page_type)
+            .map(|(i, table)| (TableIndex::from(i), table))
+    }
 
-        let mut pages = vec![];
-        let mut page_index = first_page.clone();
-        loop {
-            let page_offset = SeekFrom::Start(page_index.offset(self.page_size));
-            reader.seek(page_offset).map_err(binrw::Error::Io)?;
-            let page = Page::read_options(reader, endian, (self.page_size, db_type))?;
-            let is_last_page = &page.header.page_index == last_page;
-            page_index = page.header.next_page.clone();
-            pages.push(page);
-
-            if is_last_page {
-                break;
-            }
-        }
-        Ok(pages)
+    /// Finds the table for a given page type.
+    #[must_use]
+    pub fn find_table_mut(&mut self, page_type: PageType) -> Option<(TableIndex, &mut Table)> {
+        self.tables
+            .iter_mut()
+            .enumerate()
+            .find(|(_, table)| table.page_type == page_type)
+            .map(|(i, table)| (TableIndex::from(i), table))
     }
 }
 
@@ -437,8 +436,6 @@ pub enum PageContent {
     /// The page is an index page.
     #[br(pre_assert(header.page_flags.is_index_page()))]
     Index(#[bw(args { page_size })] IndexPageContent),
-    /// The page is of an unknown or unsupported format.
-    Unknown,
 }
 
 impl PageContent {
@@ -451,9 +448,45 @@ impl PageContent {
         }
     }
 
+    /// Returns a reference to the data content of the page if it is a data page.
+    #[must_use]
+    pub fn as_data(&self) -> Option<&DataPageContent> {
+        match self {
+            PageContent::Data(data) => Some(data),
+            _ => None,
+        }
+    }
+
+    /// Returns a mutable reference to the data content of the page if it is a data page.
+    #[must_use]
+    pub fn as_data_mut(&mut self) -> Option<&mut DataPageContent> {
+        match self {
+            PageContent::Data(data) => Some(data),
+            _ => None,
+        }
+    }
+
     /// Returns the index content of the page if it is an index page.
     #[must_use]
     pub fn into_index(self) -> Option<IndexPageContent> {
+        match self {
+            PageContent::Index(index) => Some(index),
+            _ => None,
+        }
+    }
+
+    /// Returns a reference to the index content of the page if it is an index page.
+    #[must_use]
+    pub fn as_index(&self) -> Option<&IndexPageContent> {
+        match self {
+            PageContent::Index(index) => Some(index),
+            _ => None,
+        }
+    }
+
+    /// Returns a mutable reference to the index content of the page if it is an index page.
+    #[must_use]
+    pub fn as_index_mut(&mut self) -> Option<&mut IndexPageContent> {
         match self {
             PageContent::Index(index) => Some(index),
             _ => None,
@@ -515,7 +548,7 @@ impl PageHeader {
 /// followed by the data section that holds the row data. Each row needs to be located using an
 /// offset found in the page footer at the end of the page.
 #[binrw]
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 #[brw(little)]
 #[br(import(page_size: u32, db_type: DatabaseType))]
 #[bw(import(page_size: u32))]
@@ -539,7 +572,7 @@ impl Page {
     /// the Row once we know we can insert it, avoiding unnecessary copies.
     pub fn allocate_row<'a>(&'a mut self, bytes: u16) -> Option<impl FnOnce(Row) + 'a> {
         match self.content {
-            PageContent::Index(_) | PageContent::Unknown => None,
+            PageContent::Index(_) => None,
             PageContent::Data(ref mut dpc) => {
                 // Always align rows to 4 bytes.
                 let bytes = bytes.next_multiple_of(4);
@@ -622,10 +655,9 @@ pub struct DataPageContent {
     pub header: DataPageHeader,
 
     /// Row groups at the end of the page.
-    ///
-    /// Seek to the end of the page as we read/write row groups backwards,
-    /// but restore the position after to read/write the actual rows.
-    #[brw(seek_before(SeekFrom::Current(Self::page_heap_size(page_size).into())), restore_position)]
+    // Seek to the end of the page as we read/write row groups backwards,
+    // but restore the position after to read/write the actual rows.
+    #[brw(seek_before(SeekFrom::Current(Self::page_heap_size(page_size) as i64)), restore_position)]
     #[br(args {count: page_header.packed_row_counts.num_row_groups().into()})]
     pub row_groups: Vec<RowGroup>,
 
@@ -634,9 +666,20 @@ pub struct DataPageContent {
     /// The offsets here should match those in `row_groups`.
     #[br(args(page_header.page_type))]
     #[br(parse_with = parse_at_offsets(row_groups.iter().flat_map(RowGroup::present_rows_offsets)))]
+    // `write_at_offsets` restores the writer position after writing.
     #[bw(write_with = write_at_offsets)]
     #[br(assert(rows.len() == page_header.packed_row_counts.num_rows_valid().into(), "parsing page {:?}: num_rows_valid {} does not match parsed row count {}", page_header.page_index, page_header.packed_row_counts.num_rows_valid(), rows.len()))]
     pub rows: BTreeMap<u16, Row>,
+
+    // Seek to the end of the data content area.
+    //
+    // It's tempting to use `bw(align_after = ...)` or `bw(pad_size_to = ...)`
+    // instead of this manual seek, but those cause binrw to write zeros over the top
+    // of the row groups and rows above!
+    #[br(temp)]
+    #[bw(calc = ())]
+    #[brw(seek_before = SeekFrom::Current(Self::page_heap_size(page_size) as i64))]
+    _dummy: (),
 }
 
 impl DataPageContent {
@@ -726,7 +769,8 @@ pub struct RowGroup {
 }
 
 impl RowGroup {
-    const MAX_ROW_COUNT: usize = 16;
+    /// Maximum number of rows in a row group.
+    pub const MAX_ROW_COUNT: usize = 16;
     const HEADER_SIZE: u16 = 4; // row_presence_flags and unknown fields.
     const OFFSET_SIZE: u16 = 2;
     const BINARY_SIZE: u16 = (Self::MAX_ROW_COUNT as u16) * Self::OFFSET_SIZE + Self::HEADER_SIZE;
@@ -980,6 +1024,23 @@ pub struct Album {
     offsets: OffsetArrayContainer<TrailingName, 1>,
 }
 
+impl RowVariant for Album {
+    const PAGE_TYPE: PageType = PageType::Plain(PlainPageType::Albums);
+
+    fn from_row(row: &Row) -> Option<&Self> {
+        match row {
+            Row::Plain(PlainRow::Album(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn from_row_mut(row: &mut Row) -> Option<&mut Self> {
+        match row {
+            Row::Plain(PlainRow::Album(row)) => Some(row),
+            _ => None,
+        }
+    }
+}
+
 impl PageHeapObject for Album {
     type Args<'a> = ();
     fn heap_bytes_required(&self, _: ()) -> u16 {
@@ -1015,6 +1076,23 @@ pub struct Artist {
     pub offsets: OffsetArrayContainer<TrailingName, 1>,
 }
 
+impl RowVariant for Artist {
+    const PAGE_TYPE: PageType = PageType::Plain(PlainPageType::Artists);
+
+    fn from_row(row: &Row) -> Option<&Self> {
+        match row {
+            Row::Plain(PlainRow::Artist(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn from_row_mut(row: &mut Row) -> Option<&mut Self> {
+        match row {
+            Row::Plain(PlainRow::Artist(row)) => Some(row),
+            _ => None,
+        }
+    }
+}
+
 impl PageHeapObject for Artist {
     type Args<'a> = ();
     fn heap_bytes_required(&self, _: ()) -> u16 {
@@ -1039,6 +1117,23 @@ pub struct Artwork {
     id: ArtworkId,
     /// Path to the album art file.
     path: DeviceSQLString,
+}
+
+impl RowVariant for Artwork {
+    const PAGE_TYPE: PageType = PageType::Plain(PlainPageType::Artwork);
+
+    fn from_row(row: &Row) -> Option<&Self> {
+        match row {
+            Row::Plain(PlainRow::Artwork(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn from_row_mut(row: &mut Row) -> Option<&mut Self> {
+        match row {
+            Row::Plain(PlainRow::Artwork(row)) => Some(row),
+            _ => None,
+        }
+    }
 }
 
 impl PageHeapObject for Artwork {
@@ -1070,6 +1165,23 @@ pub struct Color {
     name: DeviceSQLString,
 }
 
+impl RowVariant for Color {
+    const PAGE_TYPE: PageType = PageType::Plain(PlainPageType::Colors);
+
+    fn from_row(row: &Row) -> Option<&Self> {
+        match row {
+            Row::Plain(PlainRow::Color(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn from_row_mut(row: &mut Row) -> Option<&mut Self> {
+        match row {
+            Row::Plain(PlainRow::Color(row)) => Some(row),
+            _ => None,
+        }
+    }
+}
+
 impl PageHeapObject for Color {
     type Args<'a> = ();
     fn heap_bytes_required(&self, _: ()) -> u16 {
@@ -1096,6 +1208,23 @@ pub struct Genre {
     name: DeviceSQLString,
 }
 
+impl RowVariant for Genre {
+    const PAGE_TYPE: PageType = PageType::Plain(PlainPageType::Genres);
+
+    fn from_row(row: &Row) -> Option<&Self> {
+        match row {
+            Row::Plain(PlainRow::Genre(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn from_row_mut(row: &mut Row) -> Option<&mut Self> {
+        match row {
+            Row::Plain(PlainRow::Genre(row)) => Some(row),
+            _ => None,
+        }
+    }
+}
+
 impl PageHeapObject for Genre {
     type Args<'a> = ();
     fn heap_bytes_required(&self, _: ()) -> u16 {
@@ -1117,6 +1246,23 @@ pub struct HistoryPlaylist {
     id: HistoryPlaylistId,
     /// Name of the playlist.
     name: DeviceSQLString,
+}
+
+impl RowVariant for HistoryPlaylist {
+    const PAGE_TYPE: PageType = PageType::Plain(PlainPageType::HistoryPlaylists);
+
+    fn from_row(row: &Row) -> Option<&Self> {
+        match row {
+            Row::Plain(PlainRow::HistoryPlaylist(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn from_row_mut(row: &mut Row) -> Option<&mut Self> {
+        match row {
+            Row::Plain(PlainRow::HistoryPlaylist(row)) => Some(row),
+            _ => None,
+        }
+    }
 }
 
 impl PageHeapObject for HistoryPlaylist {
@@ -1142,6 +1288,23 @@ pub struct HistoryEntry {
     playlist_id: HistoryPlaylistId,
     /// Position within the playlist.
     entry_index: u32,
+}
+
+impl RowVariant for HistoryEntry {
+    const PAGE_TYPE: PageType = PageType::Plain(PlainPageType::HistoryEntries);
+
+    fn from_row(row: &Row) -> Option<&Self> {
+        match row {
+            Row::Plain(PlainRow::HistoryEntry(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn from_row_mut(row: &mut Row) -> Option<&mut Self> {
+        match row {
+            Row::Plain(PlainRow::HistoryEntry(row)) => Some(row),
+            _ => None,
+        }
+    }
 }
 
 impl PageHeapObject for HistoryEntry {
@@ -1203,6 +1366,23 @@ impl PageHeapObject for History {
     }
 }
 
+impl RowVariant for History {
+    const PAGE_TYPE: PageType = PageType::Plain(PlainPageType::History);
+
+    fn from_row(row: &Row) -> Option<&Self> {
+        match row {
+            Row::Plain(PlainRow::History(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn from_row_mut(row: &mut Row) -> Option<&mut Self> {
+        match row {
+            Row::Plain(PlainRow::History(row)) => Some(row),
+            _ => None,
+        }
+    }
+}
+
 /// Represents a musical key.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -1214,6 +1394,23 @@ pub struct Key {
     id2: u32,
     /// Name of the key.
     name: DeviceSQLString,
+}
+
+impl RowVariant for Key {
+    const PAGE_TYPE: PageType = PageType::Plain(PlainPageType::Keys);
+
+    fn from_row(row: &Row) -> Option<&Self> {
+        match row {
+            Row::Plain(PlainRow::Key(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn from_row_mut(row: &mut Row) -> Option<&mut Self> {
+        match row {
+            Row::Plain(PlainRow::Key(row)) => Some(row),
+            _ => None,
+        }
+    }
 }
 
 impl PageHeapObject for Key {
@@ -1238,6 +1435,23 @@ pub struct Label {
     id: LabelId,
     /// Name of the record label.
     name: DeviceSQLString,
+}
+
+impl RowVariant for Label {
+    const PAGE_TYPE: PageType = PageType::Plain(PlainPageType::Labels);
+
+    fn from_row(row: &Row) -> Option<&Self> {
+        match row {
+            Row::Plain(PlainRow::Label(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn from_row_mut(row: &mut Row) -> Option<&mut Self> {
+        match row {
+            Row::Plain(PlainRow::Label(row)) => Some(row),
+            _ => None,
+        }
+    }
 }
 
 impl PageHeapObject for Label {
@@ -1269,6 +1483,23 @@ pub struct PlaylistTreeNode {
     node_is_folder: u32,
     /// Name of this node, as shown when navigating the menu.
     pub name: DeviceSQLString,
+}
+
+impl RowVariant for PlaylistTreeNode {
+    const PAGE_TYPE: PageType = PageType::Plain(PlainPageType::PlaylistTree);
+
+    fn from_row(row: &Row) -> Option<&Self> {
+        match row {
+            Row::Plain(PlainRow::PlaylistTreeNode(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn from_row_mut(row: &mut Row) -> Option<&mut Self> {
+        match row {
+            Row::Plain(PlainRow::PlaylistTreeNode(row)) => Some(row),
+            _ => None,
+        }
+    }
 }
 
 impl PlaylistTreeNode {
@@ -1308,6 +1539,23 @@ pub struct PlaylistEntry {
     pub playlist_id: PlaylistTreeNodeId,
 }
 
+impl RowVariant for PlaylistEntry {
+    const PAGE_TYPE: PageType = PageType::Plain(PlainPageType::PlaylistEntries);
+
+    fn from_row(row: &Row) -> Option<&Self> {
+        match row {
+            Row::Plain(PlainRow::PlaylistEntry(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn from_row_mut(row: &mut Row) -> Option<&mut Self> {
+        match row {
+            Row::Plain(PlainRow::PlaylistEntry(row)) => Some(row),
+            _ => None,
+        }
+    }
+}
+
 impl PageHeapObject for PlaylistEntry {
     type Args<'a> = ();
     fn heap_bytes_required(&self, _: ()) -> u16 {
@@ -1342,6 +1590,23 @@ pub struct ColumnEntry {
     // TODO since there are only finite many categories, it would make sense
     // to encode those as an enum as part of the high-level api.
     pub column_name: DeviceSQLString,
+}
+
+impl RowVariant for ColumnEntry {
+    const PAGE_TYPE: PageType = PageType::Plain(PlainPageType::Columns);
+
+    fn from_row(row: &Row) -> Option<&Self> {
+        match row {
+            Row::Plain(PlainRow::ColumnEntry(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn from_row_mut(row: &mut Row) -> Option<&mut Self> {
+        match row {
+            Row::Plain(PlainRow::ColumnEntry(row)) => Some(row),
+            _ => None,
+        }
+    }
 }
 
 impl PageHeapObject for ColumnEntry {
@@ -1530,12 +1795,29 @@ pub struct Track {
     /// Color row ID for this track (non-zero if set).
     color: ColorIndex,
     /// User rating of this track (0 to 5 starts).
-    rating: u8,
+    pub rating: u8,
     /// Format of the file.
     file_type: FileType,
     /// offsets (strings) at row end
     #[brw(args(0x5C, subtype.get_offset_size(), ()))]
     pub offsets: OffsetArrayContainer<TrackStrings, 21>,
+}
+
+impl RowVariant for Track {
+    const PAGE_TYPE: PageType = PageType::Plain(PlainPageType::Tracks);
+
+    fn from_row(row: &Row) -> Option<&Self> {
+        match row {
+            Row::Plain(PlainRow::Track(track)) => Some(track),
+            _ => None,
+        }
+    }
+    fn from_row_mut(row: &mut Row) -> Option<&mut Self> {
+        match row {
+            Row::Plain(PlainRow::Track(track)) => Some(track),
+            _ => None,
+        }
+    }
 }
 
 impl PageHeapObject for Track {
@@ -1650,6 +1932,23 @@ impl PageHeapObject for Menu {
     }
 }
 
+impl RowVariant for Menu {
+    const PAGE_TYPE: PageType = PageType::Plain(PlainPageType::Menu);
+
+    fn from_row(row: &Row) -> Option<&Self> {
+        match row {
+            Row::Plain(PlainRow::Menu(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn from_row_mut(row: &mut Row) -> Option<&mut Self> {
+        match row {
+            Row::Plain(PlainRow::Menu(row)) => Some(row),
+            _ => None,
+        }
+    }
+}
+
 /// A table row contains the actual data.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -1662,59 +1961,56 @@ impl PageHeapObject for Menu {
 #[allow(clippy::large_enum_variant)]
 pub enum PlainRow {
     /// Contains the album name, along with an ID of the corresponding artist.
-    ///
-    /// Fresh album rows typically have a bit of padding, presumably to allow
-    /// edits on DJ gear.
+    // FIXME: Fresh album rows typically have about 6 bytes of padding,
+    // presumably to allow edits on DJ gear.
     #[br(pre_assert(page_type == PlainPageType::Albums))]
-    Album(#[bw(align_after = 4)] Album),
+    Album(Album),
     /// Contains the artist name and ID.
-    ///
-    /// Fresh artist rows typically have a bit of padding, presumably to allow
-    /// edits on DJ gear.
+    // FIXME: Fresh artist rows typically have about 6 bytes of padding,
+    // presumably to allow edits on DJ gear.
     #[br(pre_assert(page_type == PlainPageType::Artists))]
-    Artist(#[bw(align_after = 4)] Artist),
+    Artist(Artist),
     /// Contains the artwork path and ID.
     #[br(pre_assert(page_type == PlainPageType::Artwork))]
-    Artwork(#[bw(align_after = 4)] Artwork),
+    Artwork(Artwork),
     /// Contains numeric color ID
     #[br(pre_assert(page_type == PlainPageType::Colors))]
-    Color(#[bw(align_after = 4)] Color),
+    Color(Color),
     /// Represents a musical genre.
     #[br(pre_assert(page_type == PlainPageType::Genres))]
-    Genre(#[bw(align_after = 4)] Genre),
+    Genre(Genre),
     /// Represents a history playlist.
     #[br(pre_assert(page_type == PlainPageType::HistoryPlaylists))]
-    HistoryPlaylist(#[bw(align_after = 4)] HistoryPlaylist),
+    HistoryPlaylist(HistoryPlaylist),
     /// Represents a history playlist.
     #[br(pre_assert(page_type == PlainPageType::HistoryEntries))]
-    HistoryEntry(#[bw(align_after = 4)] HistoryEntry),
+    HistoryEntry(HistoryEntry),
     /// Represents a history sync row.
     #[br(pre_assert(page_type == PlainPageType::History))]
-    History(#[bw(align_after = 4)] History),
+    History(History),
     /// Represents a musical key.
     #[br(pre_assert(page_type == PlainPageType::Keys))]
-    Key(#[bw(align_after = 4)] Key),
+    Key(Key),
     /// Represents a record label.
     #[br(pre_assert(page_type == PlainPageType::Labels))]
-    Label(#[bw(align_after = 4)] Label),
+    Label(Label),
     /// Represents a node in the playlist tree (either a folder or a playlist).
     #[br(pre_assert(page_type == PlainPageType::PlaylistTree))]
-    PlaylistTreeNode(#[bw(align_after = 4)] PlaylistTreeNode),
+    PlaylistTreeNode(PlaylistTreeNode),
     /// Represents a track entry in a playlist.
     #[br(pre_assert(page_type == PlainPageType::PlaylistEntries))]
-    PlaylistEntry(#[bw(align_after = 4)] PlaylistEntry),
+    PlaylistEntry(PlaylistEntry),
     /// Contains the metadata categories by which Tracks can be browsed by.
     #[br(pre_assert(page_type == PlainPageType::Columns))]
-    ColumnEntry(#[bw(align_after = 4)] ColumnEntry),
+    ColumnEntry(ColumnEntry),
     /// Manages the active menus on the CDJ.
     #[br(pre_assert(page_type == PlainPageType::Menu))]
-    Menu(#[bw(align_after = 4)] Menu),
+    Menu(Menu),
     /// Contains a track entry.
-    ///
-    /// Fresh track rows typically have a bit of padding, presumably to allow
-    /// edits on DJ gear.
+    // FIXME: Fresh track rows typically have about 48 bytes of padding,
+    // presumably to allow edits on DJ gear.
     #[br(pre_assert(page_type == PlainPageType::Tracks))]
-    Track(#[bw(align_after = 4)] Track),
+    Track(Track),
 }
 
 impl PageHeapObject for PlainRow {
@@ -1751,6 +2047,10 @@ impl PageHeapObject for PlainRow {
 // to consume the results on demand, we can live with this. The alternative of using a `Box` would
 // require a heap allocation per row, which is arguably worse. Hence, the warning is disabled for
 // this enum.
+//
+// FIXME: Rows must always be aligned to 4 bytes, and certain row types typically have padding
+// after each row too (see PlainRow). This is irrelevant while we write rows to precise offsets
+// but needs to be considered when we generate row offsets from scratch.
 #[allow(clippy::large_enum_variant)]
 pub enum Row {
     // TODO(Swiftb0y: come up with something prettier than the match hell below)
@@ -1775,6 +2075,19 @@ pub enum Row {
     /// The row format (and also its size) is unknown, which means it can't be parsed.
     #[br(pre_assert(matches!(page_type, PageType::Unknown(_))))]
     Unknown,
+}
+
+impl Row {
+    /// Attempt to convert this row into a reference to the given variant type.
+    #[must_use]
+    pub fn as_variant<T: RowVariant>(&self) -> Option<&T> {
+        T::from_row(self)
+    }
+    /// Attempt to convert this row into a mutable reference to the given variant type.
+    #[must_use]
+    pub fn as_variant_mut<T: RowVariant>(&mut self) -> Option<&mut T> {
+        T::from_row_mut(self)
+    }
 }
 
 impl PageHeapObject for Row {

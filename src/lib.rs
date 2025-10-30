@@ -31,6 +31,6 @@ pub mod util;
 pub mod xml;
 pub(crate) mod xor;
 
-pub use crate::device::DeviceExport;
+pub use crate::device::DeviceExportLoader;
 pub use crate::util::RekordcrateError as Error;
 pub use crate::util::RekordcrateResult as Result;
