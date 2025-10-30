@@ -4,21 +4,21 @@ fn pdb_{name}() {{
     println!("Parsing file: {filepath}");
     let data = include_bytes!("{filepath}").as_slice();
     let mut reader = Cursor::new(data);
-    let header = Header::read(&mut reader).expect("failed to parse header");
-    println!("{{:#?}}", header);
+    let mut db = Database::open_non_persistent(&mut reader, DatabaseType::Plain).expect("failed to open database");
+    println!("{{:#?}}", db.get_header());
 
-    for (i, table) in header.tables.iter().enumerate() {{
-        println!("Table {{}}: {{:?}}", i, table.page_type);
-        let pages = header.read_pages(
-                &mut reader,
-                binrw::Endian::NATIVE,
-                (&table.first_page, &table.last_page, DatabaseType::Plain),
-            )
-            .expect("failed to read pages");
+    let tables = db.get_header().tables.clone();
+    for (i, table) in tables.iter().enumerate() {{
+        let id = TableIndex::from(i);
+        println!("Table {{:?}}: {{:?}}", id, table.page_type);
+        if matches!(table.page_type, PageType::Unknown(_)) {{
+            println!("Skipping table {{:?}} with unknown type {{:?}}", id, table.page_type);
+            continue;
+        }}
+        let mut page_iter = db.iter_pages_for_table(id).expect("failed to read pages");
 
-        for page in pages.into_iter() {{
+        while let Some(page) = page_iter.next().expect("failed to load page") {{
             println!("  {{:?}}", page);
         }}
     }}
-
 }}

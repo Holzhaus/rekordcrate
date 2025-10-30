@@ -9,6 +9,8 @@ use super::ext::*;
 use super::*;
 use crate::util::testing::{test_roundtrip, test_roundtrip_with_args};
 use crate::util::MaybeCalculated::*;
+use crate::util::{ColorIndex, FileType};
+use std::collections::BTreeMap;
 use std::num::NonZero;
 
 #[test]

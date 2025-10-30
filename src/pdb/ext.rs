@@ -189,10 +189,10 @@ pub enum ExtPageType {
 pub enum ExtRow {
     /// Contains the album name, along with an ID of the corresponding artist.
     #[br(pre_assert(page_type == ExtPageType::Tag))]
-    Tag(#[bw(align_after = 4)] TagOrCategory),
+    Tag(TagOrCategory),
     /// Contains the artist name and ID.
     #[br(pre_assert(page_type == ExtPageType::TrackTag))]
-    TrackTag(#[bw(align_after = 4)] TrackTag),
+    TrackTag(TrackTag),
 }
 
 impl PageHeapObject for ExtRow {
