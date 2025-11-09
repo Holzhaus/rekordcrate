@@ -603,11 +603,11 @@ impl BinWrite for DataPageContent {
             (page_size - Page::HEADER_SIZE - DataPageContent::HEADER_SIZE).into(),
         ))?;
 
-        for row_group in &self.row_groups {
+        for (i, row_group) in self.row_groups.iter().enumerate() {
             relative_row_offset = row_group.write_options_and_get_row_offset(
                 writer,
                 endian,
-                (header_end_pos, relative_row_offset),
+                (i, header_end_pos, relative_row_offset),
             )?;
         }
         Ok(())
@@ -717,20 +717,8 @@ impl RowGroup {
         &self,
         writer: &mut W,
         endian: Endian,
-        args: (u64, u64),
+        (group_index, heap_start, relative_row_offset): (usize, u64, u64),
     ) -> binrw::BinResult<u64> {
-        let (heap_start, relative_row_offset) = args;
-
-        let rows_to_write_count = self.present_rows().len();
-
-        // The number of flags set should match the number of present rows.
-        if rows_to_write_count != self.row_presence_flags.count_ones() as usize {
-            return Err(binrw::Error::AssertFail {
-                pos: heap_start,
-                message: "Mismatch between present row count and row_presence_flags".to_string(),
-            });
-        }
-
         let rowgroup_start = writer.stream_position()? - u64::from(Self::BINARY_SIZE);
 
         let free_space_start = heap_start + relative_row_offset;
@@ -743,7 +731,7 @@ impl RowGroup {
             let row_position = writer.stream_position()?;
             let aligned_position = row.align_by(row_position);
             writer.seek(SeekFrom::Start(aligned_position))?;
-            row.write_options(writer, endian, ())?;
+            row.write_options(writer, endian, (Self::MAX_ROW_COUNT * group_index + i,))?;
 
             let large_offset = aligned_position.checked_sub(heap_start).ok_or_else(|| {
                 binrw::Error::AssertFail {
@@ -872,13 +860,15 @@ pub struct TrailingName {
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
+#[bw(import(row_index: usize))]
 pub struct Album {
     /// Unknown field, usually `80 00`.
     subtype: Subtype,
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
-    /// Appears to start at zero for the first entry in a page and increment by 0x20
-    /// for each subsequent entry in that page.
-    index_shift: u16,
+    /// Appears to always be 0x20 * row index.
+    #[br(temp)]
+    #[bw(calc = 0x20 * row_index as u16)]
+    _index_shift: u16,
     /// Unknown field.
     unknown2: u32,
     /// ID of the artist row associated with this row.
@@ -898,13 +888,15 @@ pub struct Album {
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
+#[bw(import(row_index: usize))]
 pub struct Artist {
     /// Determines if the `name` string is located at the 8-bit offset (0x60) or the 16-bit offset (0x64).
     subtype: Subtype,
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
-    /// Appears to start at zero for the first entry in a page and increment by 0x20
-    /// for each subsequent entry in that page.
-    index_shift: u16,
+    /// Appears to always be 0x20 * row index.
+    #[br(temp)]
+    #[bw(calc = 0x20 * row_index as u16)]
+    _index_shift: u16,
     /// ID of this row.
     id: ArtistId,
     /// offsets at the row end
@@ -1207,13 +1199,15 @@ pub struct TrackStrings {
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
+#[bw(import (row_index: usize))]
 pub struct Track {
     /// Unknown field, usually `24 00`.
     subtype: Subtype,
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
-    /// Appears to start at zero for the first entry in a page and increment by 0x20
-    /// for each subsequent entry in that page.
-    index_shift: u16,
+    /// Appears to always be 0x20 * row index.
+    #[br(temp)]
+    #[bw(calc = 0x20 * row_index as u16)]
+    _index_shift: u16,
     /// Unknown field, called `bitmask` by [@flesniak](https://github.com/flesniak).
     /// Appears to always be 0x000c0700.
     bitmask: u32,
@@ -1297,6 +1291,7 @@ pub struct Track {
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 #[br(import(page_type: PlainPageType))]
+#[bw(import (row_index: usize))]
 // The large enum size is unfortunate, but since users of this library will probably use iterators
 // to consume the results on demand, we can live with this. The alternative of using a `Box` would
 // require a heap allocation per row, which is arguably worse. Hence, the warning is disabled for
@@ -1305,10 +1300,10 @@ pub struct Track {
 pub enum PlainRow {
     /// Contains the album name, along with an ID of the corresponding artist.
     #[br(pre_assert(page_type == PlainPageType::Albums))]
-    Album(Album),
+    Album(#[bw(args(row_index))] Album),
     /// Contains the artist name and ID.
     #[br(pre_assert(page_type == PlainPageType::Artists))]
-    Artist(Artist),
+    Artist(#[bw(args(row_index))] Artist),
     /// Contains the artwork path and ID.
     #[br(pre_assert(page_type == PlainPageType::Artwork))]
     Artwork(Artwork),
@@ -1341,7 +1336,7 @@ pub enum PlainRow {
     ColumnEntry(ColumnEntry),
     /// Contains the album name, along with an ID of the corresponding artist.
     #[br(pre_assert(page_type == PlainPageType::Tracks))]
-    Track(Track),
+    Track(#[bw(args(row_index))] Track),
 }
 
 impl PlainRow {
@@ -1375,6 +1370,7 @@ impl PlainRow {
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 #[br(import(page_type: PageType))]
+#[bw(import(row_index: usize))]
 // The large enum size is unfortunate, but since users of this library will probably use iterators
 // to consume the results on demand, we can live with this. The alternative of using a `Box` would
 // require a heap allocation per row, which is arguably worse. Hence, the warning is disabled for
@@ -1389,6 +1385,7 @@ pub enum Row {
             PageType::Plain(v) => v,
             _ => unreachable!("by above pre_assert")
         }))]
+        #[bw(args(row_index))]
         PlainRow,
     ),
     #[br(pre_assert(matches!(page_type, PageType::Ext(_))))]
