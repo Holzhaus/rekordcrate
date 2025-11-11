@@ -1,5 +1,5 @@
 (function() {
-    var implementors = Object.fromEntries([["rekordcrate",[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.91.0/core/str/traits/trait.FromStr.html\" title=\"trait core::str::traits::FromStr\">FromStr</a> for <a class=\"struct\" href=\"rekordcrate/pdb/string/struct.DeviceSQLString.html\" title=\"struct rekordcrate::pdb::string::DeviceSQLString\">DeviceSQLString</a>"]]]]);
+    var implementors = Object.fromEntries([["rekordcrate",[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.91.1/core/str/traits/trait.FromStr.html\" title=\"trait core::str::traits::FromStr\">FromStr</a> for <a class=\"struct\" href=\"rekordcrate/pdb/string/struct.DeviceSQLString.html\" title=\"struct rekordcrate::pdb::string::DeviceSQLString\">DeviceSQLString</a>"]]]]);
     if (window.register_implementors) {
         window.register_implementors(implementors);
     } else {
