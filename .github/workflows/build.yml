@@ -13,7 +13,7 @@ jobs:
             feature-combinations: ${{ steps.cargo-toml-features.outputs.feature-combinations }}
         steps:
             - name: Check out repository
-              uses: actions/checkout@v5
+              uses: actions/checkout@v6
               with:
                   persist-credentials: false
             - name: Determine Cargo Features
@@ -32,7 +32,7 @@ jobs:
             CRATE_FEATURES: ${{ join(matrix.features, ',') }}
         steps:
             - name: Check out repository
-              uses: actions/checkout@v5
+              uses: actions/checkout@v6
               with:
                   persist-credentials: false
             - name: Print Rust version
@@ -55,7 +55,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         steps:
             - name: Check out repository
-              uses: actions/checkout@v5
+              uses: actions/checkout@v6
               with:
                   persist-credentials: false
             - name: Authenticate with registry
