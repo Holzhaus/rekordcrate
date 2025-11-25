@@ -15,7 +15,7 @@ fn assert_pdb_row_count(page_type: PlainPageType, expected_row_count: usize) {
     let mut db = Database::open_non_persistent(&mut reader, DatabaseType::Plain)
         .expect("Failed to open database");
 
-    let (table_id, _) = db
+    let table_id = db
         .get_header()
         .get_table_for_type(PageType::Plain(page_type))
         .expect("Failed to get table by page type");

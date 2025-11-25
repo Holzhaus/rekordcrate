@@ -89,7 +89,7 @@ fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
 
     let mut tree: HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>> = HashMap::new();
 
-    let (table_id, _) = db
+    let table_id = db
         .get_header()
         .get_table_for_type(PageType::Plain(PlainPageType::PlaylistTree))
         .expect("failed to find playlist tree table");
@@ -132,9 +132,8 @@ fn dump_pdb(path: &PathBuf, typ: DatabaseType) -> rekordcrate::Result<()> {
 
     println!("{:#?}", db.get_header());
 
-    let table_ids = db.get_header().get_table_ids();
-    for i in table_ids {
-        println!("Table {}: {:?}", i, db.get_header().tables[i].page_type);
+    for (i, page_type) in db.get_header().get_tables() {
+        println!("Table {:?}: {:?}", i, page_type);
         let page_ids = db.load_pages_for_table(i).expect("failed to read pages");
         for page_id in page_ids {
             let page = db.load_page(page_id).expect("failed to load page");

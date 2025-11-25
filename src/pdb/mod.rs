@@ -54,8 +54,8 @@ pub enum PdbError {
     #[error("Cannot add row to a full row group (max 16 rows)")]
     RowGroupFull,
     /// Invalid table index.
-    #[error("Invalid table index: {0}")]
-    InvalidTableIndex(usize),
+    #[error("Invalid table index: {0:?}")]
+    InvalidTableIndex(TableIndex),
     /// An error occurred while reading or writing binary data.
     #[error("Binary read/write error: {0}")]
     ReadWriteError(#[from] binrw::Error),
@@ -150,11 +150,14 @@ impl<'r, R: Read + Seek> Database<'r, R> {
     }
 
     /// Loads all pages for a table into memory, returning their indices.
-    pub fn load_pages_for_table(&mut self, table_index: usize) -> Result<Vec<PageIndex>, PdbError> {
+    pub fn load_pages_for_table(
+        &mut self,
+        table_index: TableIndex,
+    ) -> Result<Vec<PageIndex>, PdbError> {
         let table = self
             .get_header()
             .tables
-            .get(table_index)
+            .get(table_index.0)
             .ok_or_else(|| PdbError::InvalidTableIndex(table_index))?;
         let (first_page, last_page) = (table.first_page, table.last_page);
 
@@ -269,6 +272,15 @@ pub enum PlainPageType {
     History,
 }
 
+/// Index of a table in the PDB header.
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Copy)]
+pub struct TableIndex(usize);
+
+impl From<usize> for TableIndex {
+    fn from(value: usize) -> Self {
+        Self(value)
+    }
+}
 /// Points to a table page and can be used to calculate the page's file offset by multiplying it
 /// with the page size (found in the file header).
 #[binrw]
@@ -348,23 +360,28 @@ pub struct Header {
     /// Each table is a linked list of pages containing rows of a particular type.
     #[br(count = num_tables, args {inner: (db_type,)})]
     #[bw(args(db_type))]
-    pub tables: Vec<Table>,
+    tables: Vec<Table>,
 }
 
 impl Header {
     /// Returns the available table IDs.
     #[must_use]
-    pub fn get_table_ids(&self) -> Vec<usize> {
-        (0..self.tables.len()).collect()
+    pub fn get_tables(&self) -> Vec<(TableIndex, PageType)> {
+        self.tables
+            .iter()
+            .enumerate()
+            .map(|(i, table)| (TableIndex::from(i), table.page_type))
+            .collect()
     }
 
     /// Finds the table for a given page type.
     #[must_use]
-    pub fn get_table_for_type(&self, page_type: PageType) -> Option<(usize, &Table)> {
+    pub fn get_table_for_type(&self, page_type: PageType) -> Option<TableIndex> {
         self.tables
             .iter()
             .enumerate()
             .find(|(_, table)| table.page_type == page_type)
+            .map(|(i, _)| TableIndex::from(i))
     }
 }
 
