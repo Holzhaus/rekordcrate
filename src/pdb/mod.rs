@@ -186,34 +186,6 @@ impl<'r, R: Read + Seek> Database<'r, R> {
     }
 }
 
-// Not yet tested.
-/*
-impl <'rw, RW: Read + Write + Seek> Database<'rw, RW> {
-    /// Opens a PDB database for reading and writing.
-    pub fn open(
-        io: &'rw mut RW,
-        db_type: DatabaseType,
-    ) -> Result<Self, PdbError> {
-        let endian = Endian::Little;
-        let content = LazyDatabase::read_options(io, endian, (db_type,))?;
-        Ok(Self { io, db_type, content })
-    }
-
-    /// Flushes all changes to the underlying IO.
-    pub fn flush(&mut self) -> Result<(), PdbError> {
-        let endian = Endian::Little;
-        self.content.write_options(self.io, endian, (self.db_type, ))?;
-        Ok(())
-    }
-
-    /// Closes the database, flushing changes.
-    pub fn close(mut self) -> Result<(), PdbError> {
-        self.flush()?;
-        Ok(())
-    }
-}
-*/
-
 /// Do not read anything, but the return the current stream position of `reader`.
 fn current_offset<R: Read + Seek>(reader: &mut R, _: Endian, _: ()) -> BinResult<u64> {
     reader.stream_position().map_err(binrw::Error::Io)
