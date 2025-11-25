@@ -91,20 +91,7 @@ impl BinWrite for LazyPage {
         _endian: Endian,
         (_db_type, _page_size): Self::Args<'_>,
     ) -> BinResult<()> {
-        // Not yet tested.
-        unimplemented!()
-        /*
-        match self {
-            LazyPage::NotLoaded => {
-                // Just seek forward by without writing anything.
-                writer.seek(SeekFrom::Current(page_size as i64))?;
-                Ok(())
-            }
-            LazyPage::Loaded(page) => {
-                page.write_options(writer, endian, (page_size, db_type))
-            }
-        }
-        */
+        todo!()
     }
 }
 
