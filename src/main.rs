@@ -109,7 +109,6 @@ fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
                 .flat_map(|data_content| data_content.row_groups.into_iter())
                 .flat_map(|row_group| {
                     row_group
-                        .present_rows()
                         .iter()
                         .map(|row| {
                             if let Row::Plain(PlainRow::PlaylistTreeNode(playlist_tree)) = row {
@@ -159,7 +158,7 @@ fn dump_pdb(path: &PathBuf, typ: DatabaseType) -> rekordcrate::Result<()> {
                 PageContent::Data(data_content) => {
                     data_content.row_groups.iter().for_each(|row_group| {
                         println!("    {:?}", row_group);
-                        for row in row_group.present_rows() {
+                        for row in row_group {
                             println!("      {:?}", row);
                         }
                     })
