@@ -179,7 +179,6 @@ pub(crate) mod testing {
             assert_eq!(pretty_hex($cond), pretty_hex($expected));
         };
     }
-
     pub fn test_roundtrip_with_args<'a, T>(
         bin: &[u8],
         obj: T,
@@ -190,26 +189,37 @@ pub(crate) mod testing {
         <T as binrw::BinWrite>::Args<'a>: Clone,
         T: BinRead + BinWrite + PartialEq + core::fmt::Debug + ReadEndian + WriteEndian,
     {
+        test_read_with_args(bin, &obj, read_args);
+        test_write_with_args(bin, &obj, write_args);
+    }
+
+    pub fn test_read_with_args<'a, T>(
+        bin: &[u8],
+        obj: &T,
+        read_args: <T as binrw::BinRead>::Args<'a>,
+    ) where
+        <T as binrw::BinRead>::Args<'a>: Clone,
+        T: BinRead + PartialEq + core::fmt::Debug + ReadEndian,
+    {
         let endian = Endian::NATIVE;
-        // T->binary
+        let mut cursor = binrw::io::Cursor::new(bin);
+        let parsed = T::read_options(&mut cursor, endian, read_args.clone()).unwrap();
+        assert_eq!(&parsed, obj);
+    }
+
+    pub fn test_write_with_args<'a, T>(
+        bin: &[u8],
+        obj: &T,
+        write_args: <T as binrw::BinWrite>::Args<'a>,
+    ) where
+        <T as binrw::BinWrite>::Args<'a>: Clone,
+        T: BinWrite + PartialEq + core::fmt::Debug + WriteEndian,
+    {
+        let endian = Endian::NATIVE;
         let mut writer = binrw::io::Cursor::new(Vec::with_capacity(bin.len()));
         obj.write_options(&mut writer, endian, write_args.clone())
             .unwrap();
         assert_eq_hex!(&writer.get_ref(), &bin);
-        // T->binary->T
-        writer.set_position(0);
-        let parsed = T::read_options(&mut writer, endian, read_args.clone()).unwrap();
-        assert_eq!(parsed, obj);
-        // binary->T
-        let mut cursor = binrw::io::Cursor::new(bin);
-        let parsed = T::read_options(&mut cursor, endian, read_args.clone()).unwrap();
-        assert_eq!(parsed, obj);
-        // binary->T->binary
-        writer.set_position(0);
-        parsed
-            .write_options(&mut writer, endian, write_args.clone())
-            .unwrap();
-        assert_eq_hex!(&bin, &writer.get_ref());
     }
 
     pub fn test_roundtrip<'a, T>(bin: &[u8], obj: T)

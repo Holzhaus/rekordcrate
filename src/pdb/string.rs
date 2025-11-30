@@ -133,6 +133,14 @@ impl DeviceSQLString {
             content: Vec::new(),
         })
     }
+
+    /// Returns the alignment requirement of this string when written to the PDB.
+    pub(crate) fn align_by(&self) -> u64 {
+        match &self.0 {
+            DeviceSQLStringImpl::ShortASCII { .. } => 1,
+            DeviceSQLStringImpl::Long { .. } => 4,
+        }
+    }
 }
 
 impl fmt::Debug for DeviceSQLString {

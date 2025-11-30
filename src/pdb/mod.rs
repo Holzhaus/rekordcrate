@@ -22,8 +22,6 @@ pub mod ext;
 pub mod offset_array;
 pub mod string;
 
-use offset_array::OffsetArrayContainer;
-
 #[cfg(test)]
 mod test;
 
@@ -31,7 +29,7 @@ use std::convert::TryInto;
 use std::fmt;
 
 use crate::pdb::ext::{ExtPageType, ExtRow};
-use crate::pdb::offset_array::{OffsetArray, OffsetSize};
+use crate::pdb::offset_array::{OffsetArrayContainer, OffsetSize, SeekArray};
 use crate::pdb::string::DeviceSQLString;
 use crate::util::{ColorIndex, ExplicitPadding, FileType};
 use binrw::{
@@ -857,13 +855,13 @@ pub struct HistoryPlaylistId(pub u32);
 
 #[binrw]
 #[brw(little)]
-#[brw(import(base: i64, offsets: &OffsetArray<2>, args: ()))]
+#[brw(import(seeks: &SeekArray<1>, _args: ()))]
 #[derive(Debug, PartialEq, Clone, Eq)]
 /// Represents a trailing name field at the end of a row, used for album and artist names.
 pub struct TrailingName {
-    #[brw(args(base, args))]
-    #[br(parse_with = offsets.read_offset(1))]
-    #[bw(write_with = offsets.write_offset(1))]
+    #[br(parse_with = seeks.parser(0))]
+    #[bw(write_with = seeks.writer(0))]
+    #[bw(align_before = name.align_by())]
     /// The name a the end of the row this is used in
     name: DeviceSQLString,
 }
@@ -889,7 +887,7 @@ pub struct Album {
     unknown3: u32,
     /// The offsets and its data and the end of this row
     #[brw(args(20, subtype.get_offset_size(), ()))]
-    offsets: OffsetArrayContainer<TrailingName, 2>,
+    offsets: OffsetArrayContainer<TrailingName, 1>,
     /// Explicit padding, used to align rows in a page (manually)
     padding: ExplicitPadding,
 }
@@ -909,7 +907,7 @@ pub struct Artist {
     id: ArtistId,
     /// offsets at the row end
     #[brw(args(8, subtype.get_offset_size(), ()))]
-    offsets: OffsetArrayContainer<TrailingName, 2>,
+    offsets: OffsetArrayContainer<TrailingName, 1>,
     /// Explicit padding, used to align rows in a page (manually)
     #[br(args(0x30))]
     padding: ExplicitPadding,
@@ -1090,116 +1088,116 @@ pub struct ColumnEntry {
 
 #[binrw]
 #[brw(little)]
-#[brw(import(base: i64, offsets: &OffsetArray<22>, _args: ()))]
+#[brw(import(seeks: &SeekArray<21>, _args: ()))]
 #[derive(Debug, PartialEq, Clone, Eq)]
 /// String fields stored via the offset table in Track rows
 pub struct TrackStrings {
     /// International Standard Recording Code (ISRC), in mangled format.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(1))]
-    #[bw(write_with = offsets.write_offset(1))]
+    #[br(parse_with = seeks.parser(0))]
+    #[bw(write_with = seeks.writer(0))]
+    #[bw(align_before = isrc.align_by())]
     isrc: DeviceSQLString,
     /// Lyricist of the track.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(2))]
-    #[bw(write_with = offsets.write_offset(2))]
+    #[br(parse_with = seeks.parser(1))]
+    #[bw(write_with = seeks.writer(1))]
+    #[bw(align_before = lyricist.align_by())]
     lyricist: DeviceSQLString,
     /// Unknown string field containing a number.
     /// Appears to increment when the track is exported or modified in Rekordbox.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(3))]
-    #[bw(write_with = offsets.write_offset(3))]
+    #[br(parse_with = seeks.parser(2))]
+    #[bw(write_with = seeks.writer(2))]
+    #[bw(align_before = unknown_string2.align_by())]
     unknown_string2: DeviceSQLString,
     /// Unknown string field containing a number.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(4))]
-    #[bw(write_with = offsets.write_offset(4))]
+    #[br(parse_with = seeks.parser(3))]
+    #[bw(write_with = seeks.writer(3))]
+    #[bw(align_before = unknown_string3.align_by())]
     unknown_string3: DeviceSQLString,
     /// Unknown string field.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(5))]
-    #[bw(write_with = offsets.write_offset(5))]
+    #[br(parse_with = seeks.parser(4))]
+    #[bw(write_with = seeks.writer(4))]
+    #[bw(align_before = unknown_string4.align_by())]
     unknown_string4: DeviceSQLString,
     /// Track "message", a field in the Rekordbox UI.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(6))]
-    #[bw(write_with = offsets.write_offset(6))]
+    #[br(parse_with = seeks.parser(5))]
+    #[bw(write_with = seeks.writer(5))]
+    #[bw(align_before = message.align_by())]
     message: DeviceSQLString,
     /// "Publish track information" in Rekordbox, value is either "ON" or empty string.
     /// Appears related to the Stagehand product to control DJ equipment remotely.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(7))]
-    #[bw(write_with = offsets.write_offset(7))]
+    #[br(parse_with = seeks.parser(6))]
+    #[bw(write_with = seeks.writer(6))]
+    #[bw(align_before = publish_track_information.align_by())]
     publish_track_information: DeviceSQLString,
     /// Determines if hotcues should be autoloaded. Value is either "ON" or empty string.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(8))]
-    #[bw(write_with = offsets.write_offset(8))]
+    #[br(parse_with = seeks.parser(7))]
+    #[bw(write_with = seeks.writer(7))]
+    #[bw(align_before = autoload_hotcues.align_by())]
     autoload_hotcues: DeviceSQLString,
     /// Unknown string field (usually empty).
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(9))]
-    #[bw(write_with = offsets.write_offset(9))]
+    #[br(parse_with = seeks.parser(8))]
+    #[bw(write_with = seeks.writer(8))]
+    #[bw(align_before = unknown_string5.align_by())]
     unknown_string5: DeviceSQLString,
     /// Unknown string field (usually empty).
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(10))]
-    #[bw(write_with = offsets.write_offset(10))]
+    #[br(parse_with = seeks.parser(9))]
+    #[bw(write_with = seeks.writer(9))]
+    #[bw(align_before = unknown_string6.align_by())]
     unknown_string6: DeviceSQLString,
     /// Date when the track was added to the Rekordbox collection (YYYY-MM-DD).
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(11))]
-    #[bw(write_with = offsets.write_offset(11))]
+    #[br(parse_with = seeks.parser(10))]
+    #[bw(write_with = seeks.writer(10))]
+    #[bw(align_before = date_added.align_by())]
     date_added: DeviceSQLString,
     /// Date when the track was released (YYYY-MM-DD).
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(12))]
-    #[bw(write_with = offsets.write_offset(12))]
+    #[br(parse_with = seeks.parser(11))]
+    #[bw(write_with = seeks.writer(11))]
+    #[bw(align_before = release_date.align_by())]
     release_date: DeviceSQLString,
     /// Name of the remix (if any).
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(13))]
-    #[bw(write_with = offsets.write_offset(13))]
+    #[br(parse_with = seeks.parser(12))]
+    #[bw(write_with = seeks.writer(12))]
+    #[bw(align_before = mix_name.align_by())]
     mix_name: DeviceSQLString,
     /// Unknown string field (usually empty).
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(14))]
-    #[bw(write_with = offsets.write_offset(14))]
+    #[br(parse_with = seeks.parser(13))]
+    #[bw(write_with = seeks.writer(13))]
+    #[bw(align_before = unknown_string7.align_by())]
     unknown_string7: DeviceSQLString,
     /// File path of the track analysis file.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(15))]
-    #[bw(write_with = offsets.write_offset(15))]
+    #[br(parse_with = seeks.parser(14))]
+    #[bw(write_with = seeks.writer(14))]
+    #[bw(align_before = analyze_path.align_by())]
     analyze_path: DeviceSQLString,
     /// Date when the track analysis was performed (YYYY-MM-DD).
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(16))]
-    #[bw(write_with = offsets.write_offset(16))]
+    #[br(parse_with = seeks.parser(15))]
+    #[bw(write_with = seeks.writer(15))]
+    #[bw(align_before = analyze_date.align_by())]
     analyze_date: DeviceSQLString,
     /// Track comment.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(17))]
-    #[bw(write_with = offsets.write_offset(17))]
+    #[br(parse_with = seeks.parser(16))]
+    #[bw(write_with = seeks.writer(16))]
+    #[bw(align_before = comment.align_by())]
     comment: DeviceSQLString,
     /// Track title.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(18))]
-    #[bw(write_with = offsets.write_offset(18))]
+    #[br(parse_with = seeks.parser(17))]
+    #[bw(write_with = seeks.writer(17))]
+    #[bw(align_before = title.align_by())]
     title: DeviceSQLString,
     /// Unknown string field (usually empty).
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(19))]
-    #[bw(write_with = offsets.write_offset(19))]
+    #[br(parse_with = seeks.parser(18))]
+    #[bw(write_with = seeks.writer(18))]
+    #[bw(align_before = unknown_string8.align_by())]
     unknown_string8: DeviceSQLString,
     /// Name of the file.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(20))]
-    #[bw(write_with = offsets.write_offset(20))]
+    #[br(parse_with = seeks.parser(19))]
+    #[bw(write_with = seeks.writer(19))]
+    #[bw(align_before = filename.align_by())]
     filename: DeviceSQLString,
     /// Path of the file.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(21))]
-    #[bw(write_with = offsets.write_offset(21))]
+    #[br(parse_with = seeks.parser(20))]
+    #[bw(write_with = seeks.writer(20))]
+    #[bw(align_before = file_path.align_by())]
     file_path: DeviceSQLString,
 }
 
@@ -1274,7 +1272,7 @@ pub struct Track {
     /// Format of the file.
     file_type: FileType,
     #[brw(args(0x5C, subtype.get_offset_size(), ()))]
-    offsets: OffsetArrayContainer<TrackStrings, 22>,
+    offsets: OffsetArrayContainer<TrackStrings, 21>,
     // Track paddings in general seem to follow this odd formula.
     // A similar oddity is the case with other rows employing an OffsetArray
     // (though with different padding_base)
