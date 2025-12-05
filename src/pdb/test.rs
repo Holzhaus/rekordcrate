@@ -183,7 +183,6 @@ fn demo_tracks_header() {
 fn track_row() {
     let row = Track {
         subtype: Subtype(0x24),
-        index_shift: 160,
         bitmask: 788224,
         sample_rate: 44100,
         composer_id: ArtistId(0),
@@ -250,7 +249,7 @@ fn track_row() {
     };
     test_roundtrip(
         &[
-            36, 0, 160, 0, 0, 7, 12, 0, 68, 172, 0, 0, 0, 0, 0, 0, 168, 71, 105, 0, 218, 177, 193,
+            36, 0, 0, 0, 0, 7, 12, 0, 68, 172, 0, 0, 0, 0, 0, 0, 168, 71, 105, 0, 218, 177, 193,
             12, 128, 250, 231, 5, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 64,
             1, 0, 0, 0, 0, 0, 0, 0, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 16, 0, 172, 0, 41, 0, 0, 0, 1, 0, 3, 0, 136, 0, 137, 0, 138, 0, 140, 0,
@@ -275,7 +274,6 @@ fn track_row() {
 fn artist_row() {
     let row = Artist {
         subtype: Subtype(0x60),
-        index_shift: 32,
         id: ArtistId(1),
         offsets: OffsetArrayContainer {
             offsets: [3u8, 10u8].into(),
@@ -287,8 +285,7 @@ fn artist_row() {
     };
     test_roundtrip(
         &[
-            96, 0, 32, 0, 1, 0, 0, 0, 3, 10, 25, 76, 111, 111, 112, 109, 97, 115, 116, 101, 114,
-            115,
+            96, 0, 0, 0, 1, 0, 0, 0, 3, 10, 25, 76, 111, 111, 112, 109, 97, 115, 116, 101, 114, 115,
         ],
         row,
     );
@@ -298,7 +295,6 @@ fn artist_row() {
 fn album_row() {
     let row1 = Album {
         subtype: Subtype(0x80),
-        index_shift: 32,
         unknown2: 0,
         artist_id: ArtistId(2),
         id: AlbumId(2),
@@ -314,7 +310,7 @@ fn album_row() {
 
     test_roundtrip(
         &[
-            0x80, 0x00, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x02, 0x00,
+            0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x02, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x16, 0x15, 0x47, 0x4f, 0x4f, 0x44, 0x20,
             0x4c, 0x55, 0x43, 0x4b,
         ],
@@ -322,7 +318,6 @@ fn album_row() {
     );
     let row2 = Album {
         subtype: Subtype(0x80),
-        index_shift: 64,
         unknown2: 0,
         artist_id: ArtistId(0),
         id: AlbumId(3),
@@ -338,7 +333,7 @@ fn album_row() {
 
     test_roundtrip(
         &[
-            0x80, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00,
+            0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x16, 0x23, 0x54, 0x65, 0x63, 0x68, 0x6e,
             0x6f, 0x20, 0x52, 0x61, 0x76, 0x65, 0x20, 0x32, 0x30, 0x32, 0x33,
         ],
@@ -439,7 +434,6 @@ fn track_page() {
     row_groups
         .add_row(Row::Plain(PlainRow::Track(Track {
             subtype: Subtype(0x24),
-            index_shift: 0,
             bitmask: 788224,
             sample_rate: 44100,
             composer_id: ArtistId(0),
@@ -508,7 +502,6 @@ fn track_page() {
     row_groups
         .add_row(Row::Plain(PlainRow::Track(Track {
             subtype: Subtype(0x24),
-            index_shift: 32,
             bitmask: 788224,
             sample_rate: 44100,
             composer_id: ArtistId(0),
@@ -577,7 +570,6 @@ fn track_page() {
     row_groups
         .add_row(Row::Plain(PlainRow::Track(Track {
             subtype: Subtype(0x24),
-            index_shift: 64,
             bitmask: 788224,
             sample_rate: 44100,
             composer_id: ArtistId(0),
@@ -646,7 +638,6 @@ fn track_page() {
     row_groups
         .add_row(Row::Plain(PlainRow::Track(Track {
             subtype: Subtype(0x24),
-            index_shift: 96,
             bitmask: 788224,
             sample_rate: 44100,
             composer_id: ArtistId(0),
@@ -715,7 +706,6 @@ fn track_page() {
     row_groups
         .add_row(Row::Plain(PlainRow::Track(Track {
             subtype: Subtype(0x24),
-            index_shift: 128,
             bitmask: 788224,
             sample_rate: 44100,
             composer_id: ArtistId(0),
@@ -1024,7 +1014,6 @@ fn artists_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 0,
             id: ArtistId(1),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1038,7 +1027,6 @@ fn artists_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 32,
             id: ArtistId(2),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1052,7 +1040,6 @@ fn artists_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 64,
             id: ArtistId(3),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1066,7 +1053,6 @@ fn artists_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 96,
             id: ArtistId(4),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1080,7 +1066,6 @@ fn artists_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 128,
             id: ArtistId(5),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1094,7 +1079,6 @@ fn artists_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 160,
             id: ArtistId(6),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1108,7 +1092,6 @@ fn artists_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 192,
             id: ArtistId(7),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1122,7 +1105,6 @@ fn artists_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 224,
             id: ArtistId(8),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1136,7 +1118,6 @@ fn artists_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 256,
             id: ArtistId(9),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1150,7 +1131,6 @@ fn artists_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 288,
             id: ArtistId(10),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1164,7 +1144,6 @@ fn artists_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 320,
             id: ArtistId(11),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1178,7 +1157,6 @@ fn artists_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 352,
             id: ArtistId(12),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1192,7 +1170,6 @@ fn artists_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 384,
             id: ArtistId(13),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1206,7 +1183,6 @@ fn artists_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 416,
             id: ArtistId(14),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1220,7 +1196,6 @@ fn artists_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 448,
             id: ArtistId(15),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1234,7 +1209,6 @@ fn artists_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 480,
             id: ArtistId(16),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1249,7 +1223,6 @@ fn artists_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 512,
             id: ArtistId(17),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1263,7 +1236,6 @@ fn artists_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 544,
             id: ArtistId(18),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1277,7 +1249,6 @@ fn artists_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 576,
             id: ArtistId(19),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1291,7 +1262,6 @@ fn artists_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 608,
             id: ArtistId(20),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1305,7 +1275,6 @@ fn artists_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 640,
             id: ArtistId(21),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1319,7 +1288,6 @@ fn artists_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 672,
             id: ArtistId(22),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1333,7 +1301,6 @@ fn artists_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 704,
             id: ArtistId(23),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1347,7 +1314,6 @@ fn artists_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 736,
             id: ArtistId(24),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1361,7 +1327,6 @@ fn artists_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 768,
             id: ArtistId(25),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1375,7 +1340,6 @@ fn artists_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 800,
             id: ArtistId(26),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1389,7 +1353,6 @@ fn artists_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 832,
             id: ArtistId(27),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1403,7 +1366,6 @@ fn artists_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 864,
             id: ArtistId(28),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1417,7 +1379,6 @@ fn artists_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 896,
             id: ArtistId(29),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1431,7 +1392,6 @@ fn artists_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 928,
             id: ArtistId(30),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1445,7 +1405,6 @@ fn artists_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 960,
             id: ArtistId(31),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1459,7 +1418,6 @@ fn artists_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 992,
             id: ArtistId(32),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1474,7 +1432,6 @@ fn artists_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1024,
             id: ArtistId(33),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1488,7 +1445,6 @@ fn artists_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1056,
             id: ArtistId(34),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1502,7 +1458,6 @@ fn artists_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1088,
             id: ArtistId(35),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 12u8].into(),
@@ -1516,7 +1471,6 @@ fn artists_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1120,
             id: ArtistId(36),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1530,7 +1484,6 @@ fn artists_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1152,
             id: ArtistId(37),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1544,7 +1497,6 @@ fn artists_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1184,
             id: ArtistId(38),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1558,7 +1510,6 @@ fn artists_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1216,
             id: ArtistId(39),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1572,7 +1523,6 @@ fn artists_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1248,
             id: ArtistId(40),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1586,7 +1536,6 @@ fn artists_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1280,
             id: ArtistId(41),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1600,7 +1549,6 @@ fn artists_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1312,
             id: ArtistId(42),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1614,7 +1562,6 @@ fn artists_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1344,
             id: ArtistId(43),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1628,7 +1575,6 @@ fn artists_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1376,
             id: ArtistId(44),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1642,7 +1588,6 @@ fn artists_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1408,
             id: ArtistId(45),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1656,7 +1601,6 @@ fn artists_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1440,
             id: ArtistId(46),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1670,7 +1614,6 @@ fn artists_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1472,
             id: ArtistId(47),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1684,7 +1627,6 @@ fn artists_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1504,
             id: ArtistId(48),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1699,7 +1641,6 @@ fn artists_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1536,
             id: ArtistId(49),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1713,7 +1654,6 @@ fn artists_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1568,
             id: ArtistId(50),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1727,7 +1667,6 @@ fn artists_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1600,
             id: ArtistId(51),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1741,7 +1680,6 @@ fn artists_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1632,
             id: ArtistId(52),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1755,7 +1693,6 @@ fn artists_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1664,
             id: ArtistId(53),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1769,7 +1706,6 @@ fn artists_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1696,
             id: ArtistId(54),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1783,7 +1719,6 @@ fn artists_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1728,
             id: ArtistId(55),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1797,7 +1732,6 @@ fn artists_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1760,
             id: ArtistId(56),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1811,7 +1745,6 @@ fn artists_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1792,
             id: ArtistId(57),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1825,7 +1758,6 @@ fn artists_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1824,
             id: ArtistId(58),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1839,7 +1771,6 @@ fn artists_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1856,
             id: ArtistId(59),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1853,7 +1784,6 @@ fn artists_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1888,
             id: ArtistId(60),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1867,7 +1797,6 @@ fn artists_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1920,
             id: ArtistId(61),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1881,7 +1810,6 @@ fn artists_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1952,
             id: ArtistId(62),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1895,7 +1823,6 @@ fn artists_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 1984,
             id: ArtistId(63),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1909,7 +1836,6 @@ fn artists_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2016,
             id: ArtistId(64),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1924,7 +1850,6 @@ fn artists_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2048,
             id: ArtistId(65),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1938,7 +1863,6 @@ fn artists_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2080,
             id: ArtistId(66),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1952,7 +1876,6 @@ fn artists_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2112,
             id: ArtistId(67),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1966,7 +1889,6 @@ fn artists_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2144,
             id: ArtistId(68),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1980,7 +1902,6 @@ fn artists_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2176,
             id: ArtistId(69),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -1994,7 +1915,6 @@ fn artists_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2208,
             id: ArtistId(70),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2008,7 +1928,6 @@ fn artists_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2240,
             id: ArtistId(71),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2022,7 +1941,6 @@ fn artists_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2272,
             id: ArtistId(72),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2036,7 +1954,6 @@ fn artists_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2304,
             id: ArtistId(73),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2050,7 +1967,6 @@ fn artists_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2336,
             id: ArtistId(74),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2064,7 +1980,6 @@ fn artists_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2368,
             id: ArtistId(75),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2078,7 +1993,6 @@ fn artists_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2400,
             id: ArtistId(76),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2092,7 +2006,6 @@ fn artists_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2432,
             id: ArtistId(77),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2106,7 +2019,6 @@ fn artists_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2464,
             id: ArtistId(78),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2120,7 +2032,6 @@ fn artists_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2496,
             id: ArtistId(79),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2134,7 +2045,6 @@ fn artists_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2528,
             id: ArtistId(80),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2148,7 +2058,6 @@ fn artists_page() {
     row_groups[5]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2560,
             id: ArtistId(81),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2162,7 +2071,6 @@ fn artists_page() {
     row_groups[5]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2592,
             id: ArtistId(82),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2176,7 +2084,6 @@ fn artists_page() {
     row_groups[5]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2624,
             id: ArtistId(83),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2190,7 +2097,6 @@ fn artists_page() {
     row_groups[5]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2656,
             id: ArtistId(84),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2204,7 +2110,6 @@ fn artists_page() {
     row_groups[5]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2688,
             id: ArtistId(85),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2218,7 +2123,6 @@ fn artists_page() {
     row_groups[5]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2720,
             id: ArtistId(86),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2232,7 +2136,6 @@ fn artists_page() {
     row_groups[5]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2752,
             id: ArtistId(87),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2246,7 +2149,6 @@ fn artists_page() {
     row_groups[5]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2784,
             id: ArtistId(88),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2260,7 +2162,6 @@ fn artists_page() {
     row_groups[5]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2816,
             id: ArtistId(89),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2274,7 +2175,6 @@ fn artists_page() {
     row_groups[5]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2848,
             id: ArtistId(90),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2288,7 +2188,6 @@ fn artists_page() {
     row_groups[5]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2880,
             id: ArtistId(91),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2302,7 +2201,6 @@ fn artists_page() {
     row_groups[5]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2912,
             id: ArtistId(92),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2316,7 +2214,6 @@ fn artists_page() {
     row_groups[5]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2944,
             id: ArtistId(93),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2330,7 +2227,6 @@ fn artists_page() {
     row_groups[5]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 2976,
             id: ArtistId(94),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2344,7 +2240,6 @@ fn artists_page() {
     row_groups[5]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3008,
             id: ArtistId(95),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2358,7 +2253,6 @@ fn artists_page() {
     row_groups[5]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3040,
             id: ArtistId(96),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2372,7 +2266,6 @@ fn artists_page() {
     row_groups[6]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3072,
             id: ArtistId(97),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2386,7 +2279,6 @@ fn artists_page() {
     row_groups[6]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3104,
             id: ArtistId(98),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2400,7 +2292,6 @@ fn artists_page() {
     row_groups[6]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3136,
             id: ArtistId(99),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2414,7 +2305,6 @@ fn artists_page() {
     row_groups[6]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3168,
             id: ArtistId(100),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2428,7 +2318,6 @@ fn artists_page() {
     row_groups[6]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3200,
             id: ArtistId(101),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2442,7 +2331,6 @@ fn artists_page() {
     row_groups[6]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3232,
             id: ArtistId(102),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2456,7 +2344,6 @@ fn artists_page() {
     row_groups[6]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3264,
             id: ArtistId(103),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2470,7 +2357,6 @@ fn artists_page() {
     row_groups[6]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3296,
             id: ArtistId(104),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2484,7 +2370,6 @@ fn artists_page() {
     row_groups[6]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3328,
             id: ArtistId(105),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2498,7 +2383,6 @@ fn artists_page() {
     row_groups[6]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3360,
             id: ArtistId(106),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2512,7 +2396,6 @@ fn artists_page() {
     row_groups[6]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3392,
             id: ArtistId(107),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2526,7 +2409,6 @@ fn artists_page() {
     row_groups[6]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3424,
             id: ArtistId(108),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2540,7 +2422,6 @@ fn artists_page() {
     row_groups[6]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3456,
             id: ArtistId(109),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2554,7 +2435,6 @@ fn artists_page() {
     row_groups[6]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3488,
             id: ArtistId(110),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2568,7 +2448,6 @@ fn artists_page() {
     row_groups[6]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3520,
             id: ArtistId(111),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2582,7 +2461,6 @@ fn artists_page() {
     row_groups[6]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3552,
             id: ArtistId(112),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2596,7 +2474,6 @@ fn artists_page() {
     row_groups[7]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3584,
             id: ArtistId(113),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2610,7 +2487,6 @@ fn artists_page() {
     row_groups[7]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3616,
             id: ArtistId(114),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2624,7 +2500,6 @@ fn artists_page() {
     row_groups[7]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3648,
             id: ArtistId(115),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2638,7 +2513,6 @@ fn artists_page() {
     row_groups[7]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3680,
             id: ArtistId(116),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2652,7 +2526,6 @@ fn artists_page() {
     row_groups[7]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3712,
             id: ArtistId(117),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2666,7 +2539,6 @@ fn artists_page() {
     row_groups[7]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3744,
             id: ArtistId(118),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2680,7 +2552,6 @@ fn artists_page() {
     row_groups[7]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3776,
             id: ArtistId(119),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2694,7 +2565,6 @@ fn artists_page() {
     row_groups[7]
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 3808,
             id: ArtistId(120),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2747,7 +2617,6 @@ fn artist_page_long() {
     rowgroup
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x64),
-            index_shift: 0,
             id: ArtistId(1),
             offsets: OffsetArrayContainer {
                 offsets: [3u16, 12u16].into(),
@@ -2761,7 +2630,6 @@ fn artist_page_long() {
     rowgroup
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 32,
             id: ArtistId(2),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2775,7 +2643,6 @@ fn artist_page_long() {
     rowgroup
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x64),
-            index_shift: 64,
             id: ArtistId(3),
             offsets: OffsetArrayContainer {
                 offsets: [3u16, 12u16].into(),
@@ -2789,7 +2656,6 @@ fn artist_page_long() {
     rowgroup
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x60),
-            index_shift: 96,
             id: ArtistId(4),
             offsets: OffsetArrayContainer {
                 offsets: [3u8, 10u8].into(),
@@ -2803,7 +2669,6 @@ fn artist_page_long() {
     rowgroup
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x64),
-            index_shift: 128,
             id: ArtistId(5),
             offsets: OffsetArrayContainer {
                 offsets: [3u16, 12u16].into(),
@@ -2817,7 +2682,6 @@ fn artist_page_long() {
     rowgroup
         .add_row(Row::Plain(PlainRow::Artist(Artist {
             subtype: Subtype(0x64),
-            index_shift: 160,
             id: ArtistId(6),
             offsets: OffsetArrayContainer {
                 offsets: [3u16, 12u16].into(),
@@ -2874,7 +2738,6 @@ fn albums_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 0,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(1),
@@ -2891,7 +2754,6 @@ fn albums_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 32,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(2),
@@ -2908,7 +2770,6 @@ fn albums_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 64,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(3),
@@ -2925,7 +2786,6 @@ fn albums_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 96,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(4),
@@ -2942,7 +2802,6 @@ fn albums_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 128,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(5),
@@ -2959,7 +2818,6 @@ fn albums_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 160,
             unknown2: 0,
             artist_id: ArtistId(12),
             id: AlbumId(6),
@@ -2976,7 +2834,6 @@ fn albums_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 192,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(7),
@@ -2993,7 +2850,6 @@ fn albums_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 224,
             unknown2: 0,
             artist_id: ArtistId(18),
             id: AlbumId(8),
@@ -3010,7 +2866,6 @@ fn albums_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 256,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(9),
@@ -3027,7 +2882,6 @@ fn albums_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 288,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(10),
@@ -3044,7 +2898,6 @@ fn albums_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 320,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(11),
@@ -3061,7 +2914,6 @@ fn albums_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 352,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(12),
@@ -3078,7 +2930,6 @@ fn albums_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 384,
             unknown2: 0,
             artist_id: ArtistId(25),
             id: AlbumId(13),
@@ -3095,7 +2946,6 @@ fn albums_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 416,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(14),
@@ -3112,7 +2962,6 @@ fn albums_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 448,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(15),
@@ -3129,7 +2978,6 @@ fn albums_page() {
     row_groups[0]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 480,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(16),
@@ -3146,7 +2994,6 @@ fn albums_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 512,
             unknown2: 0,
             artist_id: ArtistId(31),
             id: AlbumId(17),
@@ -3163,7 +3010,6 @@ fn albums_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 544,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(18),
@@ -3180,7 +3026,6 @@ fn albums_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 576,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(19),
@@ -3197,7 +3042,6 @@ fn albums_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 608,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(20),
@@ -3214,7 +3058,6 @@ fn albums_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 640,
             unknown2: 0,
             artist_id: ArtistId(34),
             id: AlbumId(21),
@@ -3231,7 +3074,6 @@ fn albums_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 672,
             unknown2: 0,
             artist_id: ArtistId(36),
             id: AlbumId(22),
@@ -3248,7 +3090,6 @@ fn albums_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 704,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(23),
@@ -3265,7 +3106,6 @@ fn albums_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 736,
             unknown2: 0,
             artist_id: ArtistId(39),
             id: AlbumId(24),
@@ -3282,7 +3122,6 @@ fn albums_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 768,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(25),
@@ -3299,7 +3138,6 @@ fn albums_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 800,
             unknown2: 0,
             artist_id: ArtistId(45),
             id: AlbumId(26),
@@ -3316,7 +3154,6 @@ fn albums_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 832,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(27),
@@ -3333,7 +3170,6 @@ fn albums_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 864,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(28),
@@ -3350,7 +3186,6 @@ fn albums_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 896,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(29),
@@ -3367,7 +3202,6 @@ fn albums_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 928,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(30),
@@ -3384,7 +3218,6 @@ fn albums_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 960,
             unknown2: 0,
             artist_id: ArtistId(39),
             id: AlbumId(31),
@@ -3403,7 +3236,6 @@ fn albums_page() {
     row_groups[1]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 992,
             unknown2: 0,
             artist_id: ArtistId(51),
             id: AlbumId(32),
@@ -3420,7 +3252,6 @@ fn albums_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1024,
             unknown2: 0,
             artist_id: ArtistId(52),
             id: AlbumId(33),
@@ -3437,7 +3268,6 @@ fn albums_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1056,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(34),
@@ -3454,7 +3284,6 @@ fn albums_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1088,
             unknown2: 0,
             artist_id: ArtistId(55),
             id: AlbumId(35),
@@ -3471,7 +3300,6 @@ fn albums_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1120,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(36),
@@ -3488,7 +3316,6 @@ fn albums_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1152,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(37),
@@ -3505,7 +3332,6 @@ fn albums_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1184,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(38),
@@ -3522,7 +3348,6 @@ fn albums_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1216,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(39),
@@ -3539,7 +3364,6 @@ fn albums_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1248,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(40),
@@ -3556,7 +3380,6 @@ fn albums_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1280,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(41),
@@ -3573,7 +3396,6 @@ fn albums_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1312,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(42),
@@ -3590,7 +3412,6 @@ fn albums_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1344,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(43),
@@ -3607,7 +3428,6 @@ fn albums_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1376,
             unknown2: 0,
             artist_id: ArtistId(64),
             id: AlbumId(44),
@@ -3624,7 +3444,6 @@ fn albums_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1408,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(45),
@@ -3643,7 +3462,6 @@ fn albums_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1440,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(46),
@@ -3660,7 +3478,6 @@ fn albums_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1472,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(47),
@@ -3677,7 +3494,6 @@ fn albums_page() {
     row_groups[2]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1504,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(48),
@@ -3694,7 +3510,6 @@ fn albums_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1536,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(49),
@@ -3711,7 +3526,6 @@ fn albums_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1568,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(50),
@@ -3728,7 +3542,6 @@ fn albums_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1600,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(51),
@@ -3745,7 +3558,6 @@ fn albums_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1632,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(52),
@@ -3762,7 +3574,6 @@ fn albums_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1664,
             unknown2: 0,
             artist_id: ArtistId(29),
             id: AlbumId(53),
@@ -3779,7 +3590,6 @@ fn albums_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1696,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(54),
@@ -3796,7 +3606,6 @@ fn albums_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1728,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(55),
@@ -3813,7 +3622,6 @@ fn albums_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1760,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(56),
@@ -3832,7 +3640,6 @@ fn albums_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1792,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(57),
@@ -3849,7 +3656,6 @@ fn albums_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1824,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(58),
@@ -3866,7 +3672,6 @@ fn albums_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1856,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(59),
@@ -3883,7 +3688,6 @@ fn albums_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1888,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(60),
@@ -3900,7 +3704,6 @@ fn albums_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1920,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(61),
@@ -3917,7 +3720,6 @@ fn albums_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1952,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(62),
@@ -3934,7 +3736,6 @@ fn albums_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 1984,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(63),
@@ -3951,7 +3752,6 @@ fn albums_page() {
     row_groups[3]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 2016,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(64),
@@ -3968,7 +3768,6 @@ fn albums_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 2048,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(65),
@@ -3985,7 +3784,6 @@ fn albums_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 2080,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(66),
@@ -4002,7 +3800,6 @@ fn albums_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 2112,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(67),
@@ -4019,7 +3816,6 @@ fn albums_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 2144,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(68),
@@ -4036,7 +3832,6 @@ fn albums_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 2176,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(69),
@@ -4053,7 +3848,6 @@ fn albums_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 2208,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(70),
@@ -4070,7 +3864,6 @@ fn albums_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 2240,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(71),
@@ -4087,7 +3880,6 @@ fn albums_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 2272,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(72),
@@ -4104,7 +3896,6 @@ fn albums_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 2304,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(73),
@@ -4121,7 +3912,6 @@ fn albums_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 2336,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(74),
@@ -4138,7 +3928,6 @@ fn albums_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 2368,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(75),
@@ -4155,7 +3944,6 @@ fn albums_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 2400,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(76),
@@ -4172,7 +3960,6 @@ fn albums_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 2432,
             unknown2: 0,
             artist_id: ArtistId(101),
             id: AlbumId(77),
@@ -4189,7 +3976,6 @@ fn albums_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 2464,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(78),
@@ -4206,7 +3992,6 @@ fn albums_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 2496,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(79),
@@ -4223,7 +4008,6 @@ fn albums_page() {
     row_groups[4]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 2528,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(80),
@@ -4240,7 +4024,6 @@ fn albums_page() {
     row_groups[5]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 2560,
             unknown2: 0,
             artist_id: ArtistId(0),
             id: AlbumId(81),
@@ -4257,7 +4040,6 @@ fn albums_page() {
     row_groups[5]
         .add_row(Row::Plain(PlainRow::Album(Album {
             subtype: Subtype(0x80),
-            index_shift: 2592,
             unknown2: 0,
             artist_id: ArtistId(108),
             id: AlbumId(82),
