@@ -4,21 +4,16 @@ fn pdb_{name}() {{
     println!("Parsing file: {filepath}");
     let data = include_bytes!("{filepath}").as_slice();
     let mut reader = Cursor::new(data);
-    let header = Header::read(&mut reader).expect("failed to parse header");
-    println!("{{:#?}}", header);
+    let mut db = Database::open_non_persistent(&mut reader, DatabaseType::Plain).expect("failed to open database");
+    println!("{{:#?}}", db.get_header());
 
-    for (i, table) in header.tables.iter().enumerate() {{
-        println!("Table {{}}: {{:?}}", i, table.page_type);
-        let pages = header.read_pages(
-                &mut reader,
-                binrw::Endian::NATIVE,
-                (&table.first_page, &table.last_page, DatabaseType::Plain),
-            )
-            .expect("failed to read pages");
+    for (i, page_type) in db.get_header().get_tables() {{
+        println!("Table {{:?}}: {{:?}}", i, page_type);
+        let page_ids = db.load_pages_for_table(i).expect("failed to read pages");
 
-        for page in pages.into_iter() {{
+        for page_id in page_ids {{
+            let page = db.load_page(page_id).expect("failed to load page");
             println!("  {{:?}}", page);
         }}
     }}
-
 }}

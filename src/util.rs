@@ -27,6 +27,10 @@ pub enum RekordcrateError {
     /// Represents an `std::io::Error`.
     #[error(transparent)]
     IOError(#[from] std::io::Error),
+
+    /// Represents a failure to handle the PDB database.
+    #[error(transparent)]
+    PdbError(#[from] crate::pdb::PdbError),
 }
 
 /// Type alias for results where the error is a `RekordcrateError`.
