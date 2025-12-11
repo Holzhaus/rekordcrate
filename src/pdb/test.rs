@@ -426,8 +426,6 @@ fn column_entry() {
 #[test]
 fn track_page() {
     let mut row_groups = RowGroup {
-        row_offsets: Default::default(),
-        row_presence_flags: 0,
         unknown: 16,
         rows: vec![],
     };
@@ -806,14 +804,10 @@ fn track_page() {
 fn genres_page() {
     let mut row_groups = vec![
         RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
             unknown: 0, // This is different from the usual
             rows: vec![],
         },
         RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
             unknown: 2, // This is different from the usual
             rows: vec![],
         },
@@ -962,51 +956,35 @@ fn genres_page() {
 fn artists_page() {
     let mut row_groups = vec![
         RowGroup {
-            row_offsets: Default::default(),
             unknown: 0,
-            row_presence_flags: 0,
             rows: vec![],
         },
         RowGroup {
-            row_offsets: Default::default(),
             unknown: 0,
-            row_presence_flags: 0,
             rows: vec![],
         },
         RowGroup {
-            row_offsets: Default::default(),
             unknown: 0,
-            row_presence_flags: 0,
             rows: vec![],
         },
         RowGroup {
-            row_offsets: Default::default(),
             unknown: 0,
-            row_presence_flags: 0,
             rows: vec![],
         },
         RowGroup {
-            row_offsets: Default::default(),
             unknown: 0,
-            row_presence_flags: 0,
             rows: vec![],
         },
         RowGroup {
-            row_offsets: Default::default(),
             unknown: 0,
-            row_presence_flags: 0,
             rows: vec![],
         },
         RowGroup {
-            row_offsets: Default::default(),
             unknown: 0,
-            row_presence_flags: 0,
             rows: vec![],
         },
         RowGroup {
-            row_offsets: Default::default(),
             unknown: 128,
-            row_presence_flags: 0,
             rows: vec![],
         },
     ];
@@ -2609,8 +2587,6 @@ fn artists_page() {
 fn artist_page_long() {
     use std::iter::repeat_n;
     let mut rowgroup = RowGroup {
-        row_offsets: [0; RowGroup::MAX_ROW_COUNT],
-        row_presence_flags: 7,
         unknown: 0x20,
         rows: Default::default(),
     };
@@ -2727,8 +2703,6 @@ fn artist_page_long() {
 fn albums_page() {
     let mut row_groups = vec![
         RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
             unknown: 0,
             rows: vec![],
         };
@@ -4088,8 +4062,6 @@ fn albums_page() {
 fn labels_page() {
     let mut row_groups = vec![
         RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
             unknown: 0,
             rows: vec![],
         };
@@ -5204,8 +5176,6 @@ fn labels_page() {
 fn keys_page() {
     let mut row_groups = vec![
         RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
             unknown: 0,
             rows: vec![],
         };
@@ -5615,8 +5585,6 @@ fn keys_page() {
 #[test]
 fn colors_page() {
     let mut row_groups = vec![RowGroup {
-        row_offsets: Default::default(),
-        row_presence_flags: 0,
         unknown: 255,
         rows: vec![],
     }];
@@ -5728,8 +5696,6 @@ fn colors_page() {
 fn playlist_tree_page() {
     let mut row_groups = vec![
         RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
             unknown: 0,
             rows: vec![],
         };
@@ -6044,8 +6010,6 @@ fn playlist_tree_page() {
 fn playlist_entries_page() {
     let mut row_groups = vec![
         RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
             unknown: 0,
             rows: vec![],
         };
@@ -8094,8 +8058,6 @@ fn playlist_entries_page() {
 fn artworks_page() {
     let mut row_groups = vec![
         RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
             unknown: 0,
             rows: vec![],
         };
@@ -8781,8 +8743,6 @@ fn artworks_page() {
 fn tag_page() {
     let mut row_groups = vec![
         RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
             unknown: 0,
             rows: vec![],
         };
@@ -9265,8 +9225,6 @@ fn tag_page() {
 fn track_tag_page() {
     let mut row_groups = vec![
         RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
             unknown: 0,
             rows: vec![],
         };
@@ -9679,8 +9637,6 @@ Find a player that properly fills a page and improve this test. */
 fn history_playlists_page() {
     let mut row_groups = vec![
         RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
             unknown: 0,
             rows: vec![],
         };
@@ -9730,8 +9686,6 @@ fn history_playlists_page() {
 fn history_entries_page() {
     let mut row_groups = vec![
         RowGroup {
-            row_offsets: Default::default(),
-            row_presence_flags: 0,
             unknown: 0,
             rows: vec![],
         };

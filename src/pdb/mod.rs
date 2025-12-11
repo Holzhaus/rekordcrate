@@ -650,8 +650,9 @@ pub struct RowGroup {
     /// bits in `row_present_flags`. This instance allows the row itself to be lazily loaded, unless it
     /// is not present, in which case there is no content to be loaded.
     // rustc doesn't seem to recognize that this is used below, ignore for now
-    #[allow(dead_code)]
+    #[br(temp)]
     row_offsets: [u16; Self::MAX_ROW_COUNT],
+    #[br(temp)]
     row_presence_flags: u16,
     /// Unknown field.
     /// Often zero, sometimes a multiple of 2, rarely something else.
@@ -674,18 +675,11 @@ impl RowGroup {
     const MAX_ROW_COUNT: usize = 16;
     const BINARY_SIZE: u32 = (Self::MAX_ROW_COUNT as u32) * 2 + 4; // size the serialized structure
 
-    /// Get all rows present in this rowgroup
-    #[must_use]
-    pub fn present_rows(&self) -> &[Row] {
-        &self.rows
-    }
-
     /// Add a row to this rowgroup
     pub fn add_row(&mut self, row: Row) -> Result<(), PdbError> {
         if self.rows.len() >= Self::MAX_ROW_COUNT {
             return Err(PdbError::RowGroupFull);
         }
-        self.row_presence_flags |= 1 << self.rows.len() as u16;
         self.rows.push(row);
         Ok(())
     }
@@ -701,6 +695,38 @@ impl RowGroup {
             .filter_map(move |(i, row_offset)| {
                 (row_presence_flags & (1 << i) != 0).then_some(*row_offset)
             })
+    }
+}
+
+impl std::ops::Deref for RowGroup {
+    type Target = [Row];
+
+    fn deref(&self) -> &Self::Target {
+        &self.rows
+    }
+}
+
+impl std::ops::DerefMut for RowGroup {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.rows
+    }
+}
+
+impl<'a> IntoIterator for &'a RowGroup {
+    type Item = &'a Row;
+    type IntoIter = std::slice::Iter<'a, Row>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a mut RowGroup {
+    type Item = &'a mut Row;
+    type IntoIter = std::slice::IterMut<'a, Row>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_mut()
     }
 }
 
@@ -724,10 +750,11 @@ impl RowGroup {
         let free_space_start = heap_start + relative_row_offset;
         const INVALID_ROW_OFFSET: u16 = u16::MAX;
         let mut row_offsets = [INVALID_ROW_OFFSET; Self::MAX_ROW_COUNT];
+        let mut row_presence_flags: u16 = 0;
 
         // Write rows
         writer.seek(SeekFrom::Start(free_space_start))?;
-        for (i, row) in self.present_rows().iter().enumerate() {
+        for (i, row) in self.rows.iter().enumerate() {
             let row_position = writer.stream_position()?;
             let aligned_position = row.align_by(row_position);
             writer.seek(SeekFrom::Start(aligned_position))?;
@@ -745,6 +772,7 @@ impl RowGroup {
                     pos: aligned_position,
                     message: format!("Error converting offset: {:?}", error),
                 })?;
+            row_presence_flags |= 1 << i;
         }
         let written_space_end = writer.stream_position()?;
         writer.seek(SeekFrom::Start(rowgroup_start))?;
@@ -759,7 +787,7 @@ impl RowGroup {
                 offset.write_options(writer, endian, ())?;
             }
         }
-        self.row_presence_flags.write_options(writer, endian, ())?;
+        row_presence_flags.write_options(writer, endian, ())?;
         self.unknown.write_options(writer, endian, ())?;
         // Seek back to the beginning of this rowgroup (which is the end of the next rowgroup)
         writer.seek(SeekFrom::Start(rowgroup_start))?;
