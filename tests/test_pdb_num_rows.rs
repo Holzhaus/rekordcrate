@@ -93,7 +93,7 @@ fn test_pdb_row_count_playlisttree() {
 
 #[test]
 fn test_pdb_row_count_playlistentries() {
-    assert_pdb_row_count(PlainPageType::PlaylistEntries, 6637);
+    assert_pdb_row_count(PlainPageType::PlaylistEntries, 7440);
 }
 
 #[test]
