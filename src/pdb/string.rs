@@ -237,17 +237,22 @@ impl Default for DeviceSQLString {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::util::testing::test_roundtrip;
+    use crate::util::testing::test_identical;
 
     #[test]
     fn default_string() -> Result<(), StringError> {
-        test_roundtrip(&[0x3], DeviceSQLString::default());
+        test_identical(&[0x3], &DeviceSQLString::default(), (), ());
         Ok(())
     }
 
     #[test]
     fn short_ascii_string() -> Result<(), StringError> {
-        test_roundtrip(&[0x9, 0x66, 0x6F, 0x6F], DeviceSQLString::new("foo")?);
+        test_identical(
+            &[0x9, 0x66, 0x6F, 0x6F],
+            &DeviceSQLString::new("foo")?,
+            (),
+            (),
+        );
         Ok(())
     }
 
@@ -266,7 +271,12 @@ mod test {
             0x20, 0x64, 0x6F, 0x6C, 0x6F, 0x72, 0x65, 0x20, 0x6D, 0x61, 0x67, 0x6E, 0x61, 0x20,
             0x61, 0x6C, 0x69, 0x71, 0x75,
         ];
-        test_roundtrip(&long_string_serialized, DeviceSQLString::new(long_string)?);
+        test_identical(
+            &long_string_serialized,
+            &DeviceSQLString::new(long_string)?,
+            (),
+            (),
+        );
         Ok(())
     }
 
@@ -276,7 +286,7 @@ mod test {
             0x90, 0x14, 0x00, 0x00, 0x49, 0x00, 0x20, 0x00, 0x64, 0x27, 0x20, 0x00, 0x52, 0x00,
             0x75, 0x00, 0x73, 0x00, 0x74, 0x00,
         ];
-        test_roundtrip(&serialized, DeviceSQLString::new("I ❤ Rust")?);
+        test_identical(&serialized, &DeviceSQLString::new("I ❤ Rust")?, (), ());
         Ok(())
     }
 
@@ -304,11 +314,13 @@ mod test {
             0x90, 0x12, 0x00, 0x00, 0x03, 0x47, 0x42, 0x41, 0x59, 0x45, 0x36, 0x37, 0x30, 0x30,
             0x31, 0x34, 0x39, 0x00,
         ];
-        test_roundtrip(
+        test_identical(
             &serialized,
-            DeviceSQLString::new_isrc("GBAYE6700149".to_string())?,
+            &DeviceSQLString::new_isrc("GBAYE6700149".to_string())?,
+            (),
+            (),
         );
-        test_roundtrip(&[0x3], DeviceSQLString::new_isrc("".to_string())?);
+        test_identical(&[0x3], &DeviceSQLString::new_isrc("".to_string())?, (), ());
 
         assert_eq!(
             DeviceSQLString::new_isrc("non-conforming garbage".to_string()).unwrap_err(),

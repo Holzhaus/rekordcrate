@@ -292,7 +292,7 @@ mod test {
     use binrw::VecArgs;
 
     use super::*;
-    use crate::util::testing::test_roundtrip_with_args;
+    use crate::util::testing::test_identical;
 
     #[binrw]
     #[brw(little)]
@@ -327,9 +327,9 @@ mod test {
             offsets: OffsetArray::U8([]),
             inner: IgnoreArgs(()),
         };
-        test_roundtrip_with_args(
+        test_identical(
             &[],
-            empty_offset_tail_u8,
+            &empty_offset_tail_u8,
             (0, OffsetSize::U8, ()),
             (0, OffsetSize::U8, ()),
         );
@@ -337,9 +337,9 @@ mod test {
             offsets: OffsetArray::U16([]),
             inner: IgnoreArgs(vec![(); 0]),
         };
-        test_roundtrip_with_args(
+        test_identical(
             &[],
-            empty_offset_tail_u16,
+            &empty_offset_tail_u16,
             (
                 0,
                 OffsetSize::U16,
@@ -357,9 +357,9 @@ mod test {
             offsets: [1u8].into(),
             inner: SingleTarget(42u8),
         };
-        test_roundtrip_with_args(
+        test_identical(
             &[0x01, 42],
-            near_u8_tail,
+            &near_u8_tail,
             (0, OffsetSize::U8, ()),
             (0, OffsetSize::U8, ()),
         );
@@ -370,9 +370,9 @@ mod test {
             offsets: [1u8].into(),
             inner: SingleTarget(0xDEADBEEF_u32.to_be_bytes()),
         };
-        test_roundtrip_with_args(
+        test_identical(
             &[0x01, 0xDE, 0xAD, 0xBE, 0xEF],
-            buffer,
+            &buffer,
             (0, OffsetSize::U8, ()),
             (0, OffsetSize::U8, ()),
         );
@@ -383,9 +383,9 @@ mod test {
             offsets: [4u8].into(),
             inner: SingleTarget(42u8),
         };
-        test_roundtrip_with_args(
+        test_identical(
             &[0x04, 0x00, 0x00, 0x00, 42],
-            near_remote,
+            &near_remote,
             (0, OffsetSize::U8, ()),
             (0, OffsetSize::U8, ()),
         );
@@ -396,9 +396,9 @@ mod test {
             offsets: [3u16].into(),
             inner: SingleTarget(42u8),
         };
-        test_roundtrip_with_args(
+        test_identical(
             &[0x03, 0x00, 0x00, 42],
-            far_remote,
+            &far_remote,
             (0, OffsetSize::U16, ()),
             (0, OffsetSize::U16, ()),
         );
@@ -410,9 +410,9 @@ mod test {
             inner: SingleTarget(42u8),
         };
         let offset = 3;
-        test_roundtrip_with_args(
+        test_identical(
             &[0x04, 42],
-            near_offset,
+            &near_offset,
             (offset, OffsetSize::U8, ()),
             (offset, OffsetSize::U8, ()),
         );
@@ -447,9 +447,9 @@ mod test {
                 b: 0xDEu8,
             },
         };
-        test_roundtrip_with_args(
+        test_identical(
             &[0x02, 0x03, 0xC0, 0xDE],
-            multiple,
+            &multiple,
             (0, OffsetSize::U8, ()),
             (0, OffsetSize::U8, ()),
         );
@@ -463,9 +463,9 @@ mod test {
                 b: 0xDEu8,
             },
         };
-        test_roundtrip_with_args(
+        test_identical(
             &[0x03, 0x02, 0xDE, 0xC0],
-            multiple,
+            &multiple,
             (0, OffsetSize::U8, ()),
             (0, OffsetSize::U8, ()),
         );

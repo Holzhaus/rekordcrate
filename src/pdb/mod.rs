@@ -33,7 +33,7 @@ use std::fmt;
 use crate::pdb::ext::{ExtPageType, ExtRow};
 use crate::pdb::offset_array::{OffsetArray, OffsetSize};
 use crate::pdb::string::DeviceSQLString;
-use crate::util::{ColorIndex, ExplicitPadding, FileType};
+use crate::util::{ColorIndex, FileType};
 use binrw::{
     binread, binrw,
     io::{Read, Seek, SeekFrom, Write},
@@ -756,20 +756,20 @@ impl RowGroup {
         writer.seek(SeekFrom::Start(free_space_start))?;
         for (i, row) in self.rows.iter().enumerate() {
             let row_position = writer.stream_position()?;
-            let aligned_position = row.align_by(row_position);
-            writer.seek(SeekFrom::Start(aligned_position))?;
+            writer.seek(SeekFrom::Start(row_position))?;
             row.write_options(writer, endian, (Self::MAX_ROW_COUNT * group_index + i,))?;
 
-            let large_offset = aligned_position.checked_sub(heap_start).ok_or_else(|| {
-                binrw::Error::AssertFail {
-                    pos: aligned_position,
-                    message: "Wraparound while calculating row offset".to_string(),
-                }
-            })?;
+            let large_offset =
+                row_position
+                    .checked_sub(heap_start)
+                    .ok_or_else(|| binrw::Error::AssertFail {
+                        pos: row_position,
+                        message: "Wraparound while calculating row offset".to_string(),
+                    })?;
             row_offsets[i] = large_offset
                 .try_into()
                 .map_err(|error| binrw::Error::AssertFail {
-                    pos: aligned_position,
+                    pos: row_position,
                     message: format!("Error converting offset: {:?}", error),
                 })?;
             row_presence_flags |= 1 << i;
@@ -908,8 +908,6 @@ pub struct Album {
     /// The offsets and its data and the end of this row
     #[brw(args(20, subtype.get_offset_size(), ()))]
     offsets: OffsetArrayContainer<TrailingName, 2>,
-    /// Explicit padding, used to align rows in a page (manually)
-    padding: ExplicitPadding,
 }
 
 /// Contains the artist name and ID.
@@ -930,33 +928,7 @@ pub struct Artist {
     /// offsets at the row end
     #[brw(args(8, subtype.get_offset_size(), ()))]
     offsets: OffsetArrayContainer<TrailingName, 2>,
-    /// Explicit padding, used to align rows in a page (manually)
-    #[br(args(0x30))]
-    padding: ExplicitPadding,
 }
-
-// impl Artist {
-//
-// This is the auto alignment code for artist rows specifically, it has been retired temporarily
-// by manual padding settings. Its stays here commented so it can be reused later.
-//
-// #[writer(writer: writer, endian: endian)]
-// fn write_string_with_padding(str: &DeviceSQLString, subtype: u16) -> BinResult<()> {
-//     str.write_options(writer, endian, ())?;
-//     let string_end = writer.stream_position()?;
-
-//     let aligned_down = string_end & !0b11;
-//     let next_position = match (subtype, string_end % 4) {
-//         (0x64, _) => align_by(4, string_end) + 4,
-//         (_, 3) => aligned_down + 12,
-//         (_, _) => aligned_down + 8,
-//     };
-//     let total_pad = next_position - string_end;
-//     // TODO(Swiftb0y): https://github.com/jam1garner/binrw/discussions/344
-//     writer.write_all(&vec![0u8; total_pad as usize])?;
-//     Ok(())
-// }
-// }
 
 /// Contains the artwork path and ID.
 #[binrw]
@@ -1297,21 +1269,6 @@ pub struct Track {
     file_type: FileType,
     #[brw(args(0x5C, subtype.get_offset_size(), ()))]
     offsets: OffsetArrayContainer<TrackStrings, 22>,
-    // Track paddings in general seem to follow this odd formula.
-    // A similar oddity is the case with other rows employing an OffsetArray
-    // (though with different padding_base)
-    // let mut padding_base = 0x34;
-    // // This is a heuristic that seems to match the padding behavior of the
-    // // original file for the `track_page` test case. The actual logic
-    // // is unknown.
-    // // We're assigning a different padding base for even and odd tracks
-    // if self.id.0 % 2 == 0 {
-    //     padding_base += 4;
-    // }
-    // padding_base = ((end_of_row + padding_base) & !0b11) - end_of_row;
-    // writer.seek(SeekFrom::Current(padding_base as i64))?;
-    #[br(args(0x40))]
-    padding: ExplicitPadding,
 }
 
 /// A table row contains the actual data.
@@ -1327,70 +1284,53 @@ pub struct Track {
 #[allow(clippy::large_enum_variant)]
 pub enum PlainRow {
     /// Contains the album name, along with an ID of the corresponding artist.
+    ///
+    /// Fresh album rows typically have a bit of padding, presumably to allow
+    /// edits on DJ gear.
     #[br(pre_assert(page_type == PlainPageType::Albums))]
-    Album(#[bw(args(row_index))] Album),
+    Album(#[bw(pad_after = 6, align_after = 4, args(row_index))] Album),
     /// Contains the artist name and ID.
+    ///
+    /// Fresh artist rows typically have a bit of padding, presumably to allow
+    /// edits on DJ gear.
     #[br(pre_assert(page_type == PlainPageType::Artists))]
-    Artist(#[bw(args(row_index))] Artist),
+    Artist(#[bw(pad_after = 6, align_after = 4, args(row_index))] Artist),
     /// Contains the artwork path and ID.
     #[br(pre_assert(page_type == PlainPageType::Artwork))]
-    Artwork(Artwork),
+    Artwork(#[bw(pad_after = 0, align_after = 4)] Artwork),
     /// Contains numeric color ID
     #[br(pre_assert(page_type == PlainPageType::Colors))]
-    Color(Color),
+    Color(#[bw(pad_after = 0, align_after = 4)] Color),
     /// Represents a musical genre.
     #[br(pre_assert(page_type == PlainPageType::Genres))]
-    Genre(Genre),
+    Genre(#[bw(pad_after = 0, align_after = 4)] Genre),
     /// Represents a history playlist.
     #[br(pre_assert(page_type == PlainPageType::HistoryPlaylists))]
-    HistoryPlaylist(HistoryPlaylist),
+    HistoryPlaylist(#[bw(pad_after = 0, align_after = 4)] HistoryPlaylist),
     /// Represents a history playlist.
     #[br(pre_assert(page_type == PlainPageType::HistoryEntries))]
-    HistoryEntry(HistoryEntry),
+    HistoryEntry(#[bw(pad_after = 0, align_after = 4)] HistoryEntry),
     /// Represents a musical key.
     #[br(pre_assert(page_type == PlainPageType::Keys))]
-    Key(Key),
+    Key(#[bw(pad_after = 0, align_after = 4)] Key),
     /// Represents a record label.
     #[br(pre_assert(page_type == PlainPageType::Labels))]
-    Label(Label),
+    Label(#[bw(pad_after = 0, align_after = 4)] Label),
     /// Represents a node in the playlist tree (either a folder or a playlist).
     #[br(pre_assert(page_type == PlainPageType::PlaylistTree))]
-    PlaylistTreeNode(PlaylistTreeNode),
+    PlaylistTreeNode(#[bw(pad_after = 0, align_after = 4)] PlaylistTreeNode),
     /// Represents a track entry in a playlist.
     #[br(pre_assert(page_type == PlainPageType::PlaylistEntries))]
-    PlaylistEntry(PlaylistEntry),
+    PlaylistEntry(#[bw(pad_after = 0, align_after = 4)] PlaylistEntry),
     /// Contains the metadata categories by which Tracks can be browsed by.
     #[br(pre_assert(page_type == PlainPageType::Columns))]
-    ColumnEntry(ColumnEntry),
-    /// Contains the album name, along with an ID of the corresponding artist.
+    ColumnEntry(#[bw(pad_after = 0, align_after = 4)] ColumnEntry),
+    /// Contains a track entry.
+    ///
+    /// Fresh track rows typically have a bit of padding, presumably to allow
+    /// edits on DJ gear.
     #[br(pre_assert(page_type == PlainPageType::Tracks))]
-    Track(#[bw(args(row_index))] Track),
-}
-
-impl PlainRow {
-    #[must_use]
-    const fn align_by(&self, offset: u64) -> u64 {
-        use crate::pdb::PlainRow::*;
-        use crate::util::align_by;
-        use std::mem::align_of_val;
-        // unfortunately I couldn't find any less copy-pastey way of doing this
-        // without unnecessarily complex macros.
-        match &self {
-            Album(_) => offset,
-            Artist(_) => offset,
-            Artwork(_) => align_by(4, offset),
-            Color(_) => align_by(4, offset),
-            ColumnEntry(r) => align_by(align_of_val(r) as u64, offset),
-            Genre(_) => align_by(4, offset), // fixed alignment to 4 bytes
-            HistoryPlaylist(r) => align_by(align_of_val(r) as u64, offset),
-            HistoryEntry(r) => align_by(align_of_val(r) as u64, offset),
-            Key(_) => align_by(4, offset),
-            Label(_) => align_by(4, offset),
-            PlaylistTreeNode(_) => align_by(4, offset),
-            PlaylistEntry(r) => align_by(align_of_val(r) as u64, offset),
-            Track(_) => offset, // already handled by track serialization
-        }
-    }
+    Track(#[bw(pad_after = 0x30, align_after = 4, args(row_index))] Track),
 }
 
 /// A table row contains the actual data.
@@ -1428,15 +1368,4 @@ pub enum Row {
     /// The row format (and also its size) is unknown, which means it can't be parsed.
     #[br(pre_assert(matches!(page_type, PageType::Plain(PlainPageType::History) | PageType::Unknown(_))))]
     Unknown,
-}
-
-impl Row {
-    #[must_use]
-    fn align_by(&self, offset: u64) -> u64 {
-        match self {
-            Row::Plain(plain_row) => plain_row.align_by(offset),
-            Row::Ext(ext_row) => ext_row.align_by(offset),
-            Row::Unknown => offset,
-        }
-    }
 }
