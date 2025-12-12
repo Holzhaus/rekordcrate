@@ -752,7 +752,7 @@ pub struct TrailingName {
     #[br(parse_with = offsets.read_offset(1))]
     #[bw(write_with = offsets.write_offset(1))]
     /// The name a the end of the row this is used in
-    name: DeviceSQLString,
+    pub name: DeviceSQLString,
 }
 
 /// Contains the album name, along with an ID of the corresponding artist.
@@ -789,10 +789,10 @@ pub struct Artist {
     /// Appears to always be 0x20 * row index.
     index_shift: u16,
     /// ID of this row.
-    id: ArtistId,
+    pub id: ArtistId,
     /// offsets at the row end
     #[brw(args(8, subtype.get_offset_size(), ()))]
-    offsets: OffsetArrayContainer<TrailingName, 2>,
+    pub offsets: OffsetArrayContainer<TrailingName, 2>,
 }
 
 /// Contains the artwork path and ID.
@@ -915,11 +915,11 @@ impl PlaylistTreeNode {
 #[brw(little)]
 pub struct PlaylistEntry {
     /// Position within the playlist.
-    entry_index: u32,
+    pub entry_index: u32,
     /// ID of the track played at this position in the playlist.
-    track_id: TrackId,
+    pub track_id: TrackId,
     /// ID of the playlist.
-    playlist_id: PlaylistTreeNodeId,
+    pub playlist_id: PlaylistTreeNodeId,
 }
 
 /// Contains the kinds of Metadata Categories tracks can be browsed by
@@ -1042,7 +1042,7 @@ pub struct TrackStrings {
     #[brw(args(base, ()))]
     #[br(parse_with = offsets.read_offset(18))]
     #[bw(write_with = offsets.write_offset(18))]
-    title: DeviceSQLString,
+    pub title: DeviceSQLString,
     /// Unknown string field (usually empty).
     #[brw(args(base, ()))]
     #[br(parse_with = offsets.read_offset(19))]
@@ -1108,9 +1108,9 @@ pub struct Track {
     /// Album row ID for this track (non-zero if set).
     album_id: AlbumId,
     /// Artist row ID for this track (non-zero if set).
-    artist_id: ArtistId,
+    pub artist_id: ArtistId,
     /// Row ID of this track (non-zero if set).
-    id: TrackId,
+    pub id: TrackId,
     /// Disc number of this track (non-zero if set).
     disc_number: u16,
     /// Number of times this track was played.
@@ -1129,8 +1129,9 @@ pub struct Track {
     rating: u8,
     /// Format of the file.
     file_type: FileType,
+    /// offsets (strings) at row end
     #[brw(args(0x5C, subtype.get_offset_size(), ()))]
-    offsets: OffsetArrayContainer<TrackStrings, 22>,
+    pub offsets: OffsetArrayContainer<TrackStrings, 22>,
 }
 
 /// Visibility state for a Menu on the CDJ.
