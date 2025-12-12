@@ -134,14 +134,38 @@ impl DeviceSQLString {
         })
     }
 }
-
 impl fmt::Debug for DeviceSQLString {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let value = self
-            .clone()
-            .into_string()
-            .unwrap_or_else(|_| "<string error>".to_string());
-        fmt.debug_tuple("DeviceSQLString").field(&value).finish()
+        // Implement Debug in terms of Display to avoid extra allocations/conversions.
+        write!(fmt, "DeviceSQLString({})", self)
+    }
+}
+
+impl fmt::Display for DeviceSQLString {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.0 {
+            DeviceSQLStringImpl::ShortASCII { content }
+            | DeviceSQLStringImpl::Long {
+                content: LongBody::Ascii(content),
+                ..
+            } => {
+                f.write_str(std::str::from_utf8(content).expect(
+                    "internal invariant violated: ASCII/UTF-8 content expected to be valid",
+                ))
+            }
+            DeviceSQLStringImpl::Long {
+                content: LongBody::Isrc(null_str),
+            } => {
+                write!(f, "{null_str}")
+            }
+            DeviceSQLStringImpl::Long {
+                content: LongBody::Ucs2le(vec),
+                // NOTE: Display uses from_utf16_lossy, which replaces invalid UTF-16 sequences with the replacement character (�).
+                // This is necessary because fmt::Display cannot return custom errors. In contrast, into_string() is strict
+                // and will return an error if the UTF-16 data is invalid. Be aware of this semantic difference: Display
+                // may show corrupted data instead of failing.
+            } => f.write_str(&String::from_utf16_lossy(vec)),
+        }
     }
 }
 /// support `"somestr".parse()`.
