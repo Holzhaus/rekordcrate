@@ -7,7 +7,7 @@
 // SPDX-License-Identifier: MPL-2.0
 use super::ext::*;
 use super::*;
-use crate::util::testing::{test_roundtrip, test_roundtrip_with_args};
+use crate::util::testing::{test_equivalent, test_identical};
 use std::num::NonZero;
 
 #[test]
@@ -19,11 +19,13 @@ fn empty_header() {
         sequence: 1,
         tables: vec![],
     };
-    test_roundtrip(
+    test_identical(
         &[
             0, 0, 0, 0, 0, 16, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,
         ],
-        header,
+        &header,
+        (DatabaseType::Plain,),
+        (DatabaseType::Plain,),
     );
 }
 
@@ -159,7 +161,7 @@ fn demo_tracks_header() {
         .to_vec(),
     };
 
-    test_roundtrip(
+    test_identical(
         &[
             0, 0, 0, 0, 0, 16, 0, 0, 20, 0, 0, 0, 51, 0, 0, 0, 5, 0, 0, 0, 34, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 47, 0, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 1, 0, 0, 0, 4, 0, 0, 0, 3, 0, 0, 0, 3,
@@ -175,7 +177,9 @@ fn demo_tracks_header() {
             0, 44, 0, 0, 0, 35, 0, 0, 0, 36, 0, 0, 0, 18, 0, 0, 0, 45, 0, 0, 0, 37, 0, 0, 0, 38, 0,
             0, 0, 19, 0, 0, 0, 48, 0, 0, 0, 39, 0, 0, 0, 41, 0, 0, 0,
         ],
-        header,
+        &header,
+        (DatabaseType::Plain,),
+        (DatabaseType::Plain,),
     );
 }
 
@@ -245,9 +249,8 @@ fn track_row() {
                     .unwrap(),
             },
         },
-        padding: 0.into(),
     };
-    test_roundtrip(
+    test_identical(
         &[
             36, 0, 0, 0, 0, 7, 12, 0, 68, 172, 0, 0, 0, 0, 0, 0, 168, 71, 105, 0, 218, 177, 193,
             12, 128, 250, 231, 5, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 64,
@@ -266,7 +269,9 @@ fn track_row() {
             65, 108, 98, 117, 109, 47, 68, 101, 109, 111, 32, 84, 114, 97, 99, 107, 32, 49, 46,
             109, 112, 51,
         ],
-        row,
+        &row,
+        (),
+        (0,),
     );
 }
 
@@ -281,13 +286,14 @@ fn artist_row() {
                 name: "Loopmasters".parse().unwrap(),
             },
         },
-        padding: 0.into(),
     };
-    test_roundtrip(
+    test_identical(
         &[
             96, 0, 0, 0, 1, 0, 0, 0, 3, 10, 25, 76, 111, 111, 112, 109, 97, 115, 116, 101, 114, 115,
         ],
-        row,
+        &row,
+        (),
+        (0,),
     );
 }
 
@@ -305,16 +311,17 @@ fn album_row() {
                 name: "GOOD LUCK".parse().unwrap(),
             },
         },
-        padding: 0.into(),
     };
 
-    test_roundtrip(
+    test_identical(
         &[
             0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x02, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x16, 0x15, 0x47, 0x4f, 0x4f, 0x44, 0x20,
             0x4c, 0x55, 0x43, 0x4b,
         ],
-        row1,
+        &row1,
+        (),
+        (0,),
     );
     let row2 = Album {
         subtype: Subtype(0x80),
@@ -328,16 +335,17 @@ fn album_row() {
                 name: "Techno Rave 2023".parse().unwrap(),
             },
         },
-        padding: 0.into(),
     };
 
-    test_roundtrip(
+    test_identical(
         &[
             0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x16, 0x23, 0x54, 0x65, 0x63, 0x68, 0x6e,
             0x6f, 0x20, 0x52, 0x61, 0x76, 0x65, 0x20, 0x32, 0x30, 0x32, 0x33,
         ],
-        row2,
+        &row2,
+        (),
+        (0,),
     );
 }
 
@@ -347,11 +355,13 @@ fn label_row() {
         id: LabelId(1),
         name: "Loopmasters".parse().unwrap(),
     };
-    test_roundtrip(
+    test_identical(
         &[
             1, 0, 0, 0, 25, 76, 111, 111, 112, 109, 97, 115, 116, 101, 114, 115,
         ],
-        row,
+        &row,
+        (),
+        (),
     );
 }
 
@@ -362,7 +372,7 @@ fn key_row() {
         id2: 1,
         name: "Dm".parse().unwrap(),
     };
-    test_roundtrip(&[1, 0, 0, 0, 1, 0, 0, 0, 7, 68, 109], row);
+    test_identical(&[1, 0, 0, 0, 1, 0, 0, 0, 7, 68, 109], &row, (), ());
 }
 
 #[test]
@@ -374,7 +384,12 @@ fn color_row() {
         unknown3: 0,
         name: "Pink".parse().unwrap(),
     };
-    test_roundtrip(&[0, 0, 0, 0, 1, 1, 0, 0, 11, 80, 105, 110, 107], row);
+    test_identical(
+        &[0, 0, 0, 0, 1, 1, 0, 0, 11, 80, 105, 110, 107],
+        &row,
+        (),
+        (),
+    );
 }
 
 #[test]
@@ -388,13 +403,15 @@ fn playlist_tree_row() {
         name: "current set 2021 reduced".parse().unwrap(),
     };
 
-    test_roundtrip(
+    test_identical(
         &[
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0x33, 0x63, 0x75, 0x72,
             0x72, 0x65, 0x6e, 0x74, 0x20, 0x73, 0x65, 0x74, 0x20, 0x32, 0x30, 0x32, 0x31, 0x20,
             0x72, 0x65, 0x64, 0x75, 0x63, 0x65, 0x64,
         ],
-        row,
+        &row,
+        (),
+        (),
     );
 }
 
@@ -406,7 +423,7 @@ fn playlist_entry_row() {
         playlist_id: PlaylistTreeNodeId(6),
     };
 
-    test_roundtrip(&[1, 0, 0, 0, 1, 0, 0, 0, 6, 0, 0, 0], row);
+    test_identical(&[1, 0, 0, 0, 1, 0, 0, 0, 6, 0, 0, 0], &row, (), ());
 }
 
 #[test]
@@ -420,7 +437,7 @@ fn column_entry() {
         0x01, 0x00, 0x80, 0x00, 0x90, 0x12, 0x00, 0x00, 0xfa, 0xff, 0x47, 0x00, 0x45, 0x00, 0x4e,
         0x00, 0x52, 0x00, 0x45, 0x00, 0xfb, 0xff,
     ];
-    test_roundtrip(bin, row);
+    test_identical(bin, &row, (), ());
 }
 
 #[test]
@@ -494,7 +511,6 @@ fn track_page() {
                         .unwrap(),
                 },
             },
-            padding: 0x32.into(),
         })))
         .unwrap();
     row_groups
@@ -562,7 +578,6 @@ fn track_page() {
                         .unwrap(),
                 },
             },
-            padding: 0x35.into(),
         })))
         .unwrap();
     row_groups
@@ -630,7 +645,6 @@ fn track_page() {
                         .unwrap(),
                 },
             },
-            padding: 0x32.into(),
         })))
         .unwrap();
     row_groups
@@ -698,7 +712,6 @@ fn track_page() {
                         .unwrap(),
                 },
             },
-            padding: 0x35.into(),
         })))
         .unwrap();
     row_groups
@@ -766,7 +779,6 @@ fn track_page() {
                         .unwrap(),
                 },
             },
-            padding: 0.into(), // TODO
         })))
         .unwrap();
 
@@ -792,9 +804,9 @@ fn track_page() {
     };
 
     let page_size: u32 = 4096;
-    test_roundtrip_with_args(
+    test_equivalent(
         include_bytes!("../../data/pdb/unit_tests/track_page.bin"),
-        page,
+        &page,
         (page_size, DatabaseType::Plain),
         (page_size, DatabaseType::Plain),
     );
@@ -944,9 +956,9 @@ fn genres_page() {
     };
 
     let page_size = 4096;
-    test_roundtrip_with_args(
+    test_equivalent(
         include_bytes!("../../data/pdb/unit_tests/genres_page.bin"),
-        page,
+        &page,
         (page_size, DatabaseType::Plain),
         (page_size, DatabaseType::Plain),
     );
@@ -999,7 +1011,6 @@ fn artists_page() {
                     name: "Andreas Gehm".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -1012,7 +1023,6 @@ fn artists_page() {
                     name: "D'marc Cantu".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -1025,7 +1035,6 @@ fn artists_page() {
                     name: "DJ Plant Texture".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -1038,7 +1047,6 @@ fn artists_page() {
                     name: "DVS1".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -1051,7 +1059,6 @@ fn artists_page() {
                     name: "Florian Kupfer".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -1064,7 +1071,6 @@ fn artists_page() {
                     name: "Frak".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -1077,7 +1083,6 @@ fn artists_page() {
                     name: "Frankie Knuckles".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -1090,7 +1095,6 @@ fn artists_page() {
                     name: "House Of Jezebel".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -1103,7 +1107,6 @@ fn artists_page() {
                     name: "Innerspace Halflife".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -1116,7 +1119,6 @@ fn artists_page() {
                     name: "James T. Cotton".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -1129,7 +1131,6 @@ fn artists_page() {
                     name: "jozef k".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -1142,7 +1143,6 @@ fn artists_page() {
                     name: "Juanpablo".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -1155,7 +1155,6 @@ fn artists_page() {
                     name: "Juniper".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -1168,7 +1167,6 @@ fn artists_page() {
                     name: "Kovyazin D".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -1181,7 +1179,6 @@ fn artists_page() {
                     name: "Le Melange Inc. Ft China".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -1194,7 +1191,6 @@ fn artists_page() {
                     name: "Louis Guilliaume".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
 
@@ -1208,7 +1204,6 @@ fn artists_page() {
                     name: "Maxwell Church".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -1221,7 +1216,6 @@ fn artists_page() {
                     name: "Various Artists".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -1234,7 +1228,6 @@ fn artists_page() {
                     name: "Mutant Beat Dance".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -1247,7 +1240,6 @@ fn artists_page() {
                     name: "Mutant beat dance".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -1260,7 +1252,6 @@ fn artists_page() {
                     name: "Ron Trent".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -1273,7 +1264,6 @@ fn artists_page() {
                     name: "Salvation REMIX".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -1286,7 +1276,6 @@ fn artists_page() {
                     name: "Salvation".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -1299,7 +1288,6 @@ fn artists_page() {
                     name: "Simoncino".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -1312,7 +1300,6 @@ fn artists_page() {
                     name: "HOTMIX RECORDS / NICK ANTHONY SIMONCINO".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -1325,7 +1312,6 @@ fn artists_page() {
                     name: "Sneaker REMIX".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -1338,7 +1324,6 @@ fn artists_page() {
                     name: "Tinman REMIX".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -1351,7 +1336,6 @@ fn artists_page() {
                     name: "Alienata".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -1364,7 +1348,6 @@ fn artists_page() {
                     name: "AS1".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -1377,7 +1360,6 @@ fn artists_page() {
                     name: "DJ Hell".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -1390,7 +1372,6 @@ fn artists_page() {
                     name: "Innershades & Robert D".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -1403,7 +1384,6 @@ fn artists_page() {
                     name: "intersterllar funk".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
 
@@ -1417,7 +1397,6 @@ fn artists_page() {
                     name: "Kyle Hall, KMFH".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -1430,7 +1409,6 @@ fn artists_page() {
                     name: "Luke's Anger".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -1443,7 +1421,6 @@ fn artists_page() {
                     name: "Manie Sans Délire".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -1456,7 +1433,6 @@ fn artists_page() {
                     name: "Paul du Lac".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -1469,7 +1445,6 @@ fn artists_page() {
                     name: "Ron Hardy".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -1482,7 +1457,6 @@ fn artists_page() {
                     name: "Saturn V".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -1495,7 +1469,6 @@ fn artists_page() {
                     name: "VA".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -1508,7 +1481,6 @@ fn artists_page() {
                     name: "traxx   ".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -1521,7 +1493,6 @@ fn artists_page() {
                     name: "traxx feat Naughty wood".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -1534,7 +1505,6 @@ fn artists_page() {
                     name: "Truncate ".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -1547,7 +1517,6 @@ fn artists_page() {
                     name: "Ultrastation".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -1560,7 +1529,6 @@ fn artists_page() {
                     name: "2AM/FM".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -1573,7 +1541,6 @@ fn artists_page() {
                     name: "Sepehr".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -1586,7 +1553,6 @@ fn artists_page() {
                     name: "Cfade".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -1599,7 +1565,6 @@ fn artists_page() {
                     name: "Miss Kittin & The Hacker".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -1612,7 +1577,6 @@ fn artists_page() {
                     name: "Paul Du Lac".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
 
@@ -1626,7 +1590,6 @@ fn artists_page() {
                     name: "Tyree Cooper".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -1639,7 +1602,6 @@ fn artists_page() {
                     name: "Elbee Bad".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -1652,7 +1614,6 @@ fn artists_page() {
                     name: "The Prince of Dance".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -1665,7 +1626,6 @@ fn artists_page() {
                     name: "Body Beat Ritual".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -1678,7 +1638,6 @@ fn artists_page() {
                     name: "Nehuen".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -1691,7 +1650,6 @@ fn artists_page() {
                     name: "TRAXX Saturn V & X2".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -1704,7 +1662,6 @@ fn artists_page() {
                     name: "Broken English Club".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -1717,7 +1674,6 @@ fn artists_page() {
                     name: "terrace".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -1730,7 +1686,6 @@ fn artists_page() {
                     name: "Byron The Aquarius".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -1743,7 +1698,6 @@ fn artists_page() {
                     name: "Konstantin Tschechow".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -1756,7 +1710,6 @@ fn artists_page() {
                     name: "Romansoff".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -1769,7 +1722,6 @@ fn artists_page() {
                     name: "D'Marc Cantu".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -1782,7 +1734,6 @@ fn artists_page() {
                     name: "SvengalisGhost".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -1795,7 +1746,6 @@ fn artists_page() {
                     name: "X2".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -1808,7 +1758,6 @@ fn artists_page() {
                     name: "Cardopusher".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -1821,7 +1770,6 @@ fn artists_page() {
                     name: "Steven Julien".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
 
@@ -1835,7 +1783,6 @@ fn artists_page() {
                     name: "Advent".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -1848,7 +1795,6 @@ fn artists_page() {
                     name: "Aleksi Perala".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -1861,7 +1807,6 @@ fn artists_page() {
                     name: "Andre Kronert".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -1874,7 +1819,6 @@ fn artists_page() {
                     name: "Andy Stott".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -1887,7 +1831,6 @@ fn artists_page() {
                     name: "ANOPOLIS".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -1900,7 +1843,6 @@ fn artists_page() {
                     name: "Anthony Rother".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -1913,7 +1855,6 @@ fn artists_page() {
                     name: "Anthony Rother UNRELEASED".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -1926,7 +1867,6 @@ fn artists_page() {
                     name: "Area".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -1939,7 +1879,6 @@ fn artists_page() {
                     name: "Aubrey".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -1952,7 +1891,6 @@ fn artists_page() {
                     name: "Audion".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -1965,7 +1903,6 @@ fn artists_page() {
                     name: "Audion - Black Strobe".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -1978,7 +1915,6 @@ fn artists_page() {
                     name: "Cari Lekebusch & Jesper Dahlback".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -1991,7 +1927,6 @@ fn artists_page() {
                     name: "Claro Intelecto".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -2004,7 +1939,6 @@ fn artists_page() {
                     name: "Conforce".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -2017,7 +1951,6 @@ fn artists_page() {
                     name: "CT Trax".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -2030,7 +1963,6 @@ fn artists_page() {
                     name: "D-56m".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[5]
@@ -2043,7 +1975,6 @@ fn artists_page() {
                     name: "Deniro".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[5]
@@ -2056,7 +1987,6 @@ fn artists_page() {
                     name: "DJ QU".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[5]
@@ -2069,7 +1999,6 @@ fn artists_page() {
                     name: "DJ Qu REMIX".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[5]
@@ -2082,7 +2011,6 @@ fn artists_page() {
                     name: "Don williams remix".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[5]
@@ -2095,7 +2023,6 @@ fn artists_page() {
                     name: "Don Williams".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[5]
@@ -2108,7 +2035,6 @@ fn artists_page() {
                     name: "Dustmite".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[5]
@@ -2121,7 +2047,6 @@ fn artists_page() {
                     name: "DVS1 ".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[5]
@@ -2134,7 +2059,6 @@ fn artists_page() {
                     name: "DVS1 tesT".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[5]
@@ -2147,7 +2071,6 @@ fn artists_page() {
                     name: "Emmanuel Top".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[5]
@@ -2160,7 +2083,6 @@ fn artists_page() {
                     name: "Erika".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[5]
@@ -2173,7 +2095,6 @@ fn artists_page() {
                     name: "Jensen Interceptor REMIX ".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[5]
@@ -2186,7 +2107,6 @@ fn artists_page() {
                     name: "Jeroen Search".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[5]
@@ -2199,7 +2119,6 @@ fn artists_page() {
                     name: "Juho Kahilainen".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[5]
@@ -2212,7 +2131,6 @@ fn artists_page() {
                     name: "Juxta Position".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[5]
@@ -2225,7 +2143,6 @@ fn artists_page() {
                     name: "Kenny Larkin".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[5]
@@ -2238,7 +2155,6 @@ fn artists_page() {
                     name: "Kirill Mamin".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[6]
@@ -2251,7 +2167,6 @@ fn artists_page() {
                     name: "L.B. Dub Corp".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[6]
@@ -2264,7 +2179,6 @@ fn artists_page() {
                     name: "Levon Vincent".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[6]
@@ -2277,7 +2191,6 @@ fn artists_page() {
                     name: "LEVON VINCENT".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[6]
@@ -2290,7 +2203,6 @@ fn artists_page() {
                     name: "Lil Tony".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[6]
@@ -2303,7 +2215,6 @@ fn artists_page() {
                     name: "Malin Genie".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[6]
@@ -2316,7 +2227,6 @@ fn artists_page() {
                     name: "Marcel Dettmann".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[6]
@@ -2329,7 +2239,6 @@ fn artists_page() {
                     name: "Marco Bernardi".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[6]
@@ -2342,7 +2251,6 @@ fn artists_page() {
                     name: "Mary Velo".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[6]
@@ -2355,7 +2263,6 @@ fn artists_page() {
                     name: "Mike Dearborn".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[6]
@@ -2368,7 +2275,6 @@ fn artists_page() {
                     name: "Mike Dunn JU EDIT".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[6]
@@ -2381,7 +2287,6 @@ fn artists_page() {
                     name: "Nina Kraviz".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[6]
@@ -2394,7 +2299,6 @@ fn artists_page() {
                     name: "Obsolete Music Technology".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[6]
@@ -2407,7 +2311,6 @@ fn artists_page() {
                     name: "Oliver Deutschmann REMIX".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[6]
@@ -2420,7 +2323,6 @@ fn artists_page() {
                     name: "Oliver Deutschmann".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[6]
@@ -2433,7 +2335,6 @@ fn artists_page() {
                     name: "Oliver Kapp".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[6]
@@ -2446,7 +2347,6 @@ fn artists_page() {
                     name: "Pacou".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[7]
@@ -2459,7 +2359,6 @@ fn artists_page() {
                     name: "Patrik Carrera".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[7]
@@ -2472,7 +2371,6 @@ fn artists_page() {
                     name: "Patrik Carrera (GER)".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[7]
@@ -2485,7 +2383,6 @@ fn artists_page() {
                     name: "Phil Kieran".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[7]
@@ -2498,7 +2395,6 @@ fn artists_page() {
                     name: "Planetary Assault Systems".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[7]
@@ -2511,7 +2407,6 @@ fn artists_page() {
                     name: "Planetary Assault Systems ".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[7]
@@ -2524,7 +2419,6 @@ fn artists_page() {
                     name: "Plastikman".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[7]
@@ -2537,7 +2431,6 @@ fn artists_page() {
                     name: "QNA".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[7]
@@ -2550,7 +2443,6 @@ fn artists_page() {
                     name: "Radial".parse().unwrap(),
                 },
             },
-            padding: 19.into(),
         })))
         .unwrap();
     let page = Page {
@@ -2575,9 +2467,9 @@ fn artists_page() {
     };
 
     let page_size = 4096;
-    test_roundtrip_with_args(
+    test_equivalent(
         include_bytes!("../../data/pdb/unit_tests/artists_page.bin"),
-        page,
+        &page,
         (page_size, DatabaseType::Plain),
         (page_size, DatabaseType::Plain),
     );
@@ -2600,7 +2492,6 @@ fn artist_page_long() {
                     name: repeat_n('D', 256).collect::<String>().parse().unwrap(),
                 },
             },
-            padding: 4.into(),
         })))
         .unwrap();
     rowgroup
@@ -2613,7 +2504,6 @@ fn artist_page_long() {
                     name: "Insert 2".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     rowgroup
@@ -2626,7 +2516,6 @@ fn artist_page_long() {
                     name: repeat_n('C', 256).collect::<String>().parse().unwrap(),
                 },
             },
-            padding: 4.into(),
         })))
         .unwrap();
     rowgroup
@@ -2639,7 +2528,6 @@ fn artist_page_long() {
                     name: "Insert 1".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     rowgroup
@@ -2652,7 +2540,6 @@ fn artist_page_long() {
                     name: repeat_n('B', 254).collect::<String>().parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     rowgroup
@@ -2665,7 +2552,6 @@ fn artist_page_long() {
                     name: repeat_n('❤', 256).collect::<String>().parse().unwrap(),
                 },
             },
-            padding: 0.into(),
         })))
         .unwrap();
 
@@ -2691,9 +2577,9 @@ fn artist_page_long() {
     };
 
     let page_size = 4096;
-    test_roundtrip_with_args(
+    test_equivalent(
         include_bytes!("../../data/pdb/unit_tests/artist_page_long.bin"),
-        page,
+        &page,
         (page_size, DatabaseType::Plain),
         (page_size, DatabaseType::Plain),
     );
@@ -2722,7 +2608,6 @@ fn albums_page() {
                     name: "The Worst of Gehm".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -2738,7 +2623,6 @@ fn albums_page() {
                     name: "1ØPILLS003 MASTER MP3s".parse().unwrap(),
                 },
             },
-            padding: 4.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -2754,7 +2638,6 @@ fn albums_page() {
                     name: "Love & Happiness".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -2770,7 +2653,6 @@ fn albums_page() {
                     name: "Wind / Phazzled".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -2786,7 +2668,6 @@ fn albums_page() {
                     name: "Spectral Sound Volume 3".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -2802,7 +2683,6 @@ fn albums_page() {
                     name: "The Hideout (Mini-Lp)".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -2818,7 +2698,6 @@ fn albums_page() {
                     name: "Sweet Dreams EP".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -2834,7 +2713,6 @@ fn albums_page() {
                     name: "Lab.our 05".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -2850,7 +2728,6 @@ fn albums_page() {
                     name: "PolyfonikDizko".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -2866,7 +2743,6 @@ fn albums_page() {
                     name: "Altered States EP".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -2882,7 +2758,6 @@ fn albums_page() {
                     name: "My So Called Robot Life EP".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -2898,7 +2773,6 @@ fn albums_page() {
                     name: "Deep Ep".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -2914,7 +2788,6 @@ fn albums_page() {
                     name: "Simoncino \u{200e}– Mystic Adventures".parse().unwrap(),
                 },
             },
-            padding: 4.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -2930,7 +2803,6 @@ fn albums_page() {
                     name: "Smu Is The Key EP".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -2946,7 +2818,6 @@ fn albums_page() {
                     name: "SOM Compilation Volume 2".parse().unwrap(), // codespell:ignore
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[0]
@@ -2962,7 +2833,6 @@ fn albums_page() {
                     name: "NY Muscle".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -2978,7 +2848,6 @@ fn albums_page() {
                     name: "Point of No Return EP".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -2994,7 +2863,6 @@ fn albums_page() {
                     name: "Tapes 08".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -3010,7 +2878,6 @@ fn albums_page() {
                     name: "Like No One".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -3026,7 +2893,6 @@ fn albums_page() {
                     name: "The Boat Party".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -3042,7 +2908,6 @@ fn albums_page() {
                     name: "Raw & Unreleased".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -3058,7 +2923,6 @@ fn albums_page() {
                     name: "Living Low".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -3074,7 +2938,6 @@ fn albums_page() {
                     name: "Muzic Box Classics #7".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -3090,7 +2953,6 @@ fn albums_page() {
                     name: "Stranger In The Strangest Of Lands".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -3106,7 +2968,6 @@ fn albums_page() {
                     name: "Pt. 1".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -3122,7 +2983,6 @@ fn albums_page() {
                     name: "Body Mechanics EP".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -3138,7 +2998,6 @@ fn albums_page() {
                     name: "EAUX1091 ".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -3154,7 +3013,6 @@ fn albums_page() {
                     name: "Lost Tracks, Vol. 2".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -3170,7 +3028,6 @@ fn albums_page() {
                     name: "Dubbelbrein EP".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -3186,7 +3043,6 @@ fn albums_page() {
                     name: "Vx, Vol. 1".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -3204,7 +3060,6 @@ fn albums_page() {
                         .unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[1]
@@ -3220,7 +3075,6 @@ fn albums_page() {
                     name: "AfriOrker".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -3236,7 +3090,6 @@ fn albums_page() {
                     name: "Mortal Sin EP".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -3252,7 +3105,6 @@ fn albums_page() {
                     name: "Psyops part one EP".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -3268,7 +3120,6 @@ fn albums_page() {
                     name: "White Rats III".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -3284,7 +3135,6 @@ fn albums_page() {
                     name: "far from reality".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -3300,7 +3150,6 @@ fn albums_page() {
                     name: "EP1".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -3316,7 +3165,6 @@ fn albums_page() {
                     name: "Alpha Omega".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -3332,7 +3180,6 @@ fn albums_page() {
                     name: "Decay".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -3348,7 +3195,6 @@ fn albums_page() {
                     name: "[LIES 009] Mind Control 320".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -3364,7 +3210,6 @@ fn albums_page() {
                     name: "Nation".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -3380,7 +3225,6 @@ fn albums_page() {
                     name: "Split 02".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -3396,7 +3240,6 @@ fn albums_page() {
                     name: "Another Number".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -3412,7 +3255,6 @@ fn albums_page() {
                     name: "8 Ball".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -3430,7 +3272,6 @@ fn albums_page() {
                         .unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -3446,7 +3287,6 @@ fn albums_page() {
                     name: "CBS024X".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -3462,7 +3302,6 @@ fn albums_page() {
                     name: "Ben Sims pres Tribology".parse().unwrap(), // codespell:ignore
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[2]
@@ -3478,7 +3317,6 @@ fn albums_page() {
                     name: "Night Jewel".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -3494,7 +3332,6 @@ fn albums_page() {
                     name: "AKROPOLEOS".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -3510,7 +3347,6 @@ fn albums_page() {
                     name: "Mistress 12".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -3526,7 +3362,6 @@ fn albums_page() {
                     name: "Mistress 12.5".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -3542,7 +3377,6 @@ fn albums_page() {
                     name: "Remember Each Moment Of Freedom".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -3558,7 +3392,6 @@ fn albums_page() {
                     name: "Mood Sequences".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -3574,7 +3407,6 @@ fn albums_page() {
                     name: "Death Is Nothing To Fear 1".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -3590,7 +3422,6 @@ fn albums_page() {
                     name: "I'm A Man".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -3608,7 +3439,6 @@ fn albums_page() {
                         .unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -3624,7 +3454,6 @@ fn albums_page() {
                     name: "New Life EP".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -3640,7 +3469,6 @@ fn albums_page() {
                     name: "State of Mind EP".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -3656,7 +3484,6 @@ fn albums_page() {
                     name: "DABJ Allstars".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -3672,7 +3499,6 @@ fn albums_page() {
                     name: "Mendoza".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -3688,7 +3514,6 @@ fn albums_page() {
                     name: "CD Thirteen".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -3704,7 +3529,6 @@ fn albums_page() {
                     name: "Raw 7".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -3720,7 +3544,6 @@ fn albums_page() {
                     name: "Endurance - UNDERGROUND QUALITY".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[3]
@@ -3736,7 +3559,6 @@ fn albums_page() {
                     name: "EFDEMIN - DECAY VERSIONS PT.2".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -3752,7 +3574,6 @@ fn albums_page() {
                     name: "HUSH 03".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -3768,7 +3589,6 @@ fn albums_page() {
                     name: "Mistress 20".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -3784,7 +3604,6 @@ fn albums_page() {
                     name: "Love under pressure ".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -3800,7 +3619,6 @@ fn albums_page() {
                     name: "Release".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -3816,7 +3634,6 @@ fn albums_page() {
                     name: "Hexagon Cloud".parse().unwrap(),
                 },
             },
-            padding: 8.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -3832,7 +3649,6 @@ fn albums_page() {
                     name: "NRDR 011".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -3848,7 +3664,6 @@ fn albums_page() {
                     name: "Diptych".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -3864,7 +3679,6 @@ fn albums_page() {
                     name: "Seven Days".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -3880,7 +3694,6 @@ fn albums_page() {
                     name: "Unknown Origin".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -3896,7 +3709,6 @@ fn albums_page() {
                     name: "Arpeggiator".parse().unwrap(),
                 },
             },
-            padding: 6.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -3912,7 +3724,6 @@ fn albums_page() {
                     name: "DECONSTRUCT MUSIC DEC-02".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -3928,7 +3739,6 @@ fn albums_page() {
                     name: "Basement Tracks EP".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -3944,7 +3754,6 @@ fn albums_page() {
                     name: "Corpse Grinder".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -3960,7 +3769,6 @@ fn albums_page() {
                     name: "Kamm / Plain".parse().unwrap(),
                 },
             },
-            padding: 9.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -3976,7 +3784,6 @@ fn albums_page() {
                     name: "Fluxus_Digital_006".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[4]
@@ -3992,7 +3799,6 @@ fn albums_page() {
                     name: "Minutes In Ice".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[5]
@@ -4008,7 +3814,6 @@ fn albums_page() {
                     name: "TRP001".parse().unwrap(),
                 },
             },
-            padding: 7.into(),
         })))
         .unwrap();
     row_groups[5]
@@ -4024,7 +3829,6 @@ fn albums_page() {
                     name: "Mmmmmusic".parse().unwrap(),
                 },
             },
-            padding: 44.into(),
         })))
         .unwrap();
 
@@ -4050,9 +3854,9 @@ fn albums_page() {
     };
 
     let page_size: u32 = 4096;
-    test_roundtrip_with_args(
+    test_equivalent(
         include_bytes!("../../data/pdb/unit_tests/albums_page.bin"),
-        page,
+        &page,
         (page_size, DatabaseType::Plain),
         (page_size, DatabaseType::Plain),
     );
@@ -5164,9 +4968,9 @@ fn labels_page() {
     };
 
     let page_size = 4096;
-    test_roundtrip_with_args(
+    test_equivalent(
         include_bytes!("../../data/pdb/unit_tests/labels_page.bin"),
-        page,
+        &page,
         (page_size, DatabaseType::Plain),
         (page_size, DatabaseType::Plain),
     );
@@ -5574,9 +5378,9 @@ fn keys_page() {
     };
 
     let page_size = 4096;
-    test_roundtrip_with_args(
+    test_equivalent(
         include_bytes!("../../data/pdb/unit_tests/keys_page.bin"),
-        page,
+        &page,
         (page_size, DatabaseType::Plain),
         (page_size, DatabaseType::Plain),
     );
@@ -5684,9 +5488,9 @@ fn colors_page() {
     };
 
     let page_size = 4096;
-    test_roundtrip_with_args(
+    test_equivalent(
         include_bytes!("../../data/pdb/unit_tests/colors_page.bin"),
-        page,
+        &page,
         (page_size, DatabaseType::Plain),
         (page_size, DatabaseType::Plain),
     );
@@ -5998,9 +5802,9 @@ fn playlist_tree_page() {
     };
 
     let page_size = 4096;
-    test_roundtrip_with_args(
+    test_equivalent(
         include_bytes!("../../data/pdb/unit_tests/playlist_tree_page.bin"),
-        page,
+        &page,
         (page_size, DatabaseType::Plain),
         (page_size, DatabaseType::Plain),
     );
@@ -8046,9 +7850,9 @@ fn playlist_entries_page() {
     };
 
     let page_size = 4096;
-    test_roundtrip_with_args(
+    test_equivalent(
         include_bytes!("../../data/pdb/unit_tests/playlist_entries_page.bin"),
-        page,
+        &page,
         (page_size, DatabaseType::Plain),
         (page_size, DatabaseType::Plain),
     );
@@ -8731,9 +8535,9 @@ fn artworks_page() {
     };
 
     let page_size = 4096;
-    test_roundtrip_with_args(
+    test_equivalent(
         include_bytes!("../../data/pdb/unit_tests/artworks_page.bin"),
-        page,
+        &page,
         (page_size, DatabaseType::Plain),
         (page_size, DatabaseType::Plain),
     );
@@ -9213,9 +9017,9 @@ fn tag_page() {
     };
 
     let page_size = 4096;
-    test_roundtrip_with_args(
+    test_equivalent(
         include_bytes!("../../data/pdb/unit_tests/tag_page.bin"),
-        page,
+        &page,
         (page_size, DatabaseType::Ext),
         (page_size, DatabaseType::Ext),
     );
@@ -9623,9 +9427,9 @@ fn track_tag_page() {
     };
 
     let page_size = 4096;
-    test_roundtrip_with_args(
+    test_equivalent(
         include_bytes!("../../data/pdb/unit_tests/track_tag_page.bin"),
-        page,
+        &page,
         (page_size, DatabaseType::Ext),
         (page_size, DatabaseType::Ext),
     );
@@ -9673,9 +9477,9 @@ fn history_playlists_page() {
     };
 
     let page_size = 4096;
-    test_roundtrip_with_args(
+    test_equivalent(
         include_bytes!("../../data/pdb/unit_tests/history_playlists_page.bin"),
-        page,
+        &page,
         (page_size, DatabaseType::Plain),
         (page_size, DatabaseType::Plain),
     );
@@ -9765,9 +9569,9 @@ fn history_entries_page() {
     };
 
     let page_size = 4096;
-    test_roundtrip_with_args(
+    test_equivalent(
         include_bytes!("../../data/pdb/unit_tests/history_entries_page.bin"),
-        page,
+        &page,
         (page_size, DatabaseType::Plain),
         (page_size, DatabaseType::Plain),
     );
@@ -10074,9 +9878,9 @@ fn index_page() {
     };
 
     let page_size = 4096;
-    test_roundtrip_with_args(
+    test_equivalent(
         include_bytes!("../../data/pdb/unit_tests/index_page.bin"),
-        page,
+        &page,
         (page_size, DatabaseType::Plain),
         (page_size, DatabaseType::Plain),
     );
