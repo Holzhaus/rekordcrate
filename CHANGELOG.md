@@ -75,6 +75,7 @@ All notable changes to this project will be documented in this file.
 - pdb: Remove unused methods from `Page` impl
 - pdb: Address NITs from @Holzhaus and make clippy happy
 - pdb: Remove unneeded explicit padding from tag rows
+- Optimize impl fmt::Display for DeviceSQLString
 
 ### Testing
 
