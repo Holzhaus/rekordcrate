@@ -776,15 +776,15 @@ fn track_page() {
         next_page: PageIndex::try_from(46).unwrap(),
         unknown1: 12,
         unknown2: 0,
-        num_rows_small: 5,
-        unknown3: 160,
-        unknown4: 0,
+        packed_row_counts: PackedRowCounts::new()
+            .with_num_rows(5)
+            .with_num_rows_valid(5),
         page_flags: PageFlags(36),
         free_size: 2302,
         used_size: 1740,
         content: PageContent::Data(DataPageContent {
             unknown5: 1,
-            num_rows_large: 4,
+            unknown_not_num_rows_large: 4,
             unknown6: 0,
             unknown7: 0,
             row_groups: vec![row_groups],
@@ -928,15 +928,15 @@ fn genres_page() {
         next_page: PageIndex::try_from(449).unwrap(),
         unknown1: 14405,
         unknown2: 0,
-        num_rows_small: 18,
-        unknown3: 64,
-        unknown4: 2,
+        packed_row_counts: PackedRowCounts::new()
+            .with_num_rows(18)
+            .with_num_rows_valid(18),
         page_flags: PageFlags(36),
         free_size: 3560,
         used_size: 452,
         content: PageContent::Data(DataPageContent {
             unknown5: 1,
-            num_rows_large: 17,
+            unknown_not_num_rows_large: 17,
             unknown6: 0,
             unknown7: 0,
             row_groups,
@@ -2559,15 +2559,15 @@ fn artists_page() {
         next_page: PageIndex::try_from(47).unwrap(),
         unknown1: 855,
         unknown2: 0,
-        num_rows_small: 120,
-        unknown3: 0,
-        unknown4: 15,
+        packed_row_counts: PackedRowCounts::new()
+            .with_num_rows(120)
+            .with_num_rows_valid(120),
         page_flags: PageFlags(36),
         free_size: 12,
         used_size: 3772,
         content: PageContent::Data(DataPageContent {
             unknown5: 1,
-            num_rows_large: 119,
+            unknown_not_num_rows_large: 119,
             unknown6: 0,
             unknown7: 0,
             row_groups,
@@ -2675,15 +2675,15 @@ fn artist_page_long() {
         next_page: PageIndex::try_from(46).unwrap(),
         unknown1: 16,
         unknown2: 0,
-        num_rows_small: 6,
-        unknown3: 192,
-        unknown4: 0,
+        packed_row_counts: PackedRowCounts::new()
+            .with_num_rows(6)
+            .with_num_rows_valid(6),
         page_flags: PageFlags(36),
         free_size: 2624,
         used_size: 1416,
         content: PageContent::Data(DataPageContent {
             unknown5: 1,
-            num_rows_large: 5,
+            unknown_not_num_rows_large: 5,
             unknown6: 0,
             unknown7: 0,
             row_groups: vec![rowgroup],
@@ -4034,15 +4034,15 @@ fn albums_page() {
         next_page: PageIndex::try_from(49).unwrap(),
         unknown1: 772,
         unknown2: 0,
-        num_rows_small: 82,
-        unknown3: 64,
-        unknown4: 10,
+        packed_row_counts: PackedRowCounts::new()
+            .with_num_rows(82)
+            .with_num_rows_valid(82),
         page_flags: PageFlags(36),
         free_size: 36,
         used_size: 3832,
         content: PageContent::Data(DataPageContent {
             unknown5: 1,
-            num_rows_large: 81,
+            unknown_not_num_rows_large: 81,
             unknown6: 0,
             unknown7: 0,
             row_groups,
@@ -5148,15 +5148,15 @@ fn labels_page() {
         next_page: PageIndex::try_from(50).unwrap(),
         unknown1: 4627,
         unknown2: 0,
-        num_rows_small: 177,
-        unknown3: 32,
-        unknown4: 22,
+        packed_row_counts: PackedRowCounts::new()
+            .with_num_rows(177)
+            .with_num_rows_valid(177),
         page_flags: PageFlags(36),
         free_size: 2,
         used_size: 3652,
         content: PageContent::Data(DataPageContent {
             unknown5: 1,
-            num_rows_large: 176,
+            unknown_not_num_rows_large: 176,
             unknown6: 0,
             unknown7: 0,
             row_groups,
@@ -5558,15 +5558,15 @@ fn keys_page() {
         next_page: PageIndex::try_from(51).unwrap(),
         unknown1: 13484,
         unknown2: 0,
-        num_rows_small: 52,
-        unknown3: 128,
-        unknown4: 6,
+        packed_row_counts: PackedRowCounts::new()
+            .with_num_rows(52)
+            .with_num_rows_valid(52),
         page_flags: PageFlags(36),
         free_size: 3188,
         used_size: 748,
         content: PageContent::Data(DataPageContent {
             unknown5: 1,
-            num_rows_large: 51,
+            unknown_not_num_rows_large: 51,
             unknown6: 0,
             unknown7: 0,
             row_groups,
@@ -5668,15 +5668,15 @@ fn colors_page() {
         next_page: PageIndex::try_from(42).unwrap(),
         unknown1: 2,
         unknown2: 0,
-        num_rows_small: 8,
-        unknown3: 0,
-        unknown4: 1,
+        packed_row_counts: PackedRowCounts::new()
+            .with_num_rows(8)
+            .with_num_rows_valid(8),
         page_flags: PageFlags(36),
         free_size: 3912,
         used_size: 124,
         content: PageContent::Data(DataPageContent {
             unknown5: 8,
-            num_rows_large: 0,
+            unknown_not_num_rows_large: 0,
             unknown6: 0,
             unknown7: 0,
             row_groups,
@@ -5982,15 +5982,15 @@ fn playlist_tree_page() {
         next_page: PageIndex::try_from(46).unwrap(),
         unknown1: 36,
         unknown2: 0,
-        num_rows_small: 27,
-        unknown3: 96,
-        unknown4: 3,
+        packed_row_counts: PackedRowCounts::new()
+            .with_num_rows(27)
+            .with_num_rows_valid(27),
         page_flags: PageFlags(36),
         free_size: 3238,
         used_size: 756,
         content: PageContent::Data(DataPageContent {
             unknown5: 1,
-            num_rows_large: 26,
+            unknown_not_num_rows_large: 26,
             unknown6: 0,
             unknown7: 0,
             row_groups,
@@ -8030,15 +8030,15 @@ fn playlist_entries_page() {
         next_page: PageIndex::try_from(54).unwrap(),
         unknown1: 1420,
         unknown2: 0,
-        num_rows_small: 28,
-        unknown3: 129,
-        unknown4: 35,
+        packed_row_counts: PackedRowCounts::new()
+            .with_num_rows(284)
+            .with_num_rows_valid(284),
         page_flags: PageFlags(36),
         free_size: 8,
         used_size: 3408,
         content: PageContent::Data(DataPageContent {
             unknown5: 1,
-            num_rows_large: 283,
+            unknown_not_num_rows_large: 283,
             unknown6: 0,
             unknown7: 0,
             row_groups,
@@ -8715,15 +8715,15 @@ fn artworks_page() {
         next_page: PageIndex::try_from(53).unwrap(),
         unknown1: 1019,
         unknown2: 0,
-        num_rows_small: 106,
-        unknown3: 64,
-        unknown4: 13,
+        packed_row_counts: PackedRowCounts::new()
+            .with_num_rows(106)
+            .with_num_rows_valid(106),
         page_flags: PageFlags(36),
         free_size: 0,
         used_size: 3816,
         content: PageContent::Data(DataPageContent {
             unknown5: 1,
-            num_rows_large: 105,
+            unknown_not_num_rows_large: 105,
             unknown6: 0,
             unknown7: 0,
             row_groups,
@@ -9197,15 +9197,15 @@ fn tag_page() {
         next_page: PageIndex::try_from(20).unwrap(),
         unknown1: 2,
         unknown2: 0,
-        num_rows_small: 23,
-        unknown3: 224,
-        unknown4: 2,
+        packed_row_counts: PackedRowCounts::new()
+            .with_num_rows(23)
+            .with_num_rows_valid(23),
         page_flags: PageFlags(36),
         free_size: 2770,
         used_size: 1232,
         content: PageContent::Data(DataPageContent {
             unknown5: 23,
-            num_rows_large: 0,
+            unknown_not_num_rows_large: 0,
             unknown6: 0,
             unknown7: 0,
             row_groups,
@@ -9607,15 +9607,15 @@ fn track_tag_page() {
         next_page: PageIndex::try_from(21).unwrap(),
         unknown1: 54,
         unknown2: 0,
-        num_rows_small: 52,
-        unknown3: 128,
-        unknown4: 6,
+        packed_row_counts: PackedRowCounts::new()
+            .with_num_rows(52)
+            .with_num_rows_valid(52),
         page_flags: PageFlags(36),
         free_size: 3104,
         used_size: 832,
         content: PageContent::Data(DataPageContent {
             unknown5: 1,
-            num_rows_large: 51,
+            unknown_not_num_rows_large: 51,
             unknown6: 0,
             unknown7: 0,
             row_groups,
@@ -9657,15 +9657,15 @@ fn history_playlists_page() {
         next_page: PageIndex::try_from(59).unwrap(),
         unknown1: 240,
         unknown2: 0,
-        num_rows_small: 1,
-        unknown3: 32,
-        unknown4: 0,
+        packed_row_counts: PackedRowCounts::new()
+            .with_num_rows(1)
+            .with_num_rows_valid(1),
         page_flags: PageFlags(36),
         free_size: 4034,
         used_size: 16,
         content: PageContent::Data(DataPageContent {
             unknown5: 1,
-            num_rows_large: 0,
+            unknown_not_num_rows_large: 0,
             unknown6: 0,
             unknown7: 0,
             row_groups,
@@ -9749,15 +9749,15 @@ fn history_entries_page() {
         next_page: PageIndex::try_from(62).unwrap(),
         unknown1: 254,
         unknown2: 0,
-        num_rows_small: 7,
-        unknown3: 224,
-        unknown4: 0,
+        packed_row_counts: PackedRowCounts::new()
+            .with_num_rows(7)
+            .with_num_rows_valid(7),
         page_flags: PageFlags(36),
         free_size: 3954,
         used_size: 84,
         content: PageContent::Data(DataPageContent {
             unknown5: 1,
-            num_rows_large: 6,
+            unknown_not_num_rows_large: 6,
             unknown6: 0,
             unknown7: 0,
             row_groups,
@@ -10056,9 +10056,9 @@ fn index_page() {
         next_page: PageIndex::try_from(2).unwrap(),
         unknown1: 29871,
         unknown2: 0,
-        num_rows_small: 0,
-        unknown3: 0,
-        unknown4: 0,
+        packed_row_counts: PackedRowCounts::new()
+            .with_num_rows(0)
+            .with_num_rows_valid(0),
         page_flags: PageFlags(100),
         free_size: 0,
         used_size: 0,

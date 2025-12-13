@@ -18,10 +18,12 @@
 //! - <https://github.com/henrybetts/Rekordbox-Decoding>
 //! - <https://github.com/flesniak/python-prodj-link/tree/master/prodj/pdblib>
 
+pub mod bitfields;
 pub mod ext;
 pub mod offset_array;
 pub mod string;
 
+use bitfields::PackedRowCounts;
 use offset_array::OffsetArrayContainer;
 
 #[cfg(test)]
@@ -423,13 +425,13 @@ impl BinWrite for IndexPageContent {
 /// The content of a page, which can be of different types.
 #[binrw]
 #[derive(Debug, PartialEq, Clone)]
-#[br(little, import { page_flags: PageFlags, page_start_pos: u64, page_size: u32, num_rows_small: u8, page_type: PageType })]
-#[bw(little, import { page_flags: PageFlags, page_size: u32, num_rows_small: u8, page_type: PageType })]
+#[br(little, import { page_flags: PageFlags, page_start_pos: u64, page_size: u32, packed_row_counts: PackedRowCounts, page_type: PageType })]
+#[bw(little, import { page_size: u32 })]
 pub enum PageContent {
     /// The page contains data rows.
     #[br(pre_assert(page_flags.page_has_data()))]
     Data(
-        #[br(args { page_start_pos, page_size, num_rows_small, page_type })]
+        #[br(args { page_start_pos, page_size, packed_row_counts, page_type })]
         #[bw(args(page_size,))]
         DataPageContent,
     ),
@@ -456,6 +458,15 @@ impl PageContent {
         match self {
             PageContent::Index(index) => Some(index),
             _ => None,
+        }
+    }
+
+    fn count_rows(&self) -> usize {
+        match self {
+            PageContent::Data(data_content) => {
+                data_content.row_groups.iter().map(|rg| rg.len()).sum()
+            }
+            _ => 0,
         }
     }
 }
@@ -497,25 +508,10 @@ pub struct Page {
     /// Appears to always be zero.
     #[allow(dead_code)]
     unknown2: u32,
-    /// Number of rows in this table (8-bit version).
-    ///
-    /// Used if `num_rows_large` not greater than this value and not equal to `0x1FFF`, which means
-    /// that the number of rows fits into a single byte.
-    pub num_rows_small: u8,
-    /// Unknown field.
-    /// Appears to be a multiple of 0x20; often zero.
-    ///
-    /// According to [@flesniak](https://github.com/flesniak):
-    /// > a bitmask (first track: 32)
-    #[allow(dead_code)]
-    unknown3: u8,
-    /// Unknown field.
-    /// Appears to be between 0 and ~16; often zero.
-    ///
-    /// According to [@flesniak](https://github.com/flesniak):
-    /// > often 0, sometimes larger, esp. for pages with high real_entry_count (e.g. 12 for 101 entries)
-    #[allow(dead_code)]
-    unknown4: u8,
+    /// Packed field containing:
+    /// - number of used row offsets in the page (13 bits).
+    /// - number of valid rows in the page (11 bits).
+    packed_row_counts: PackedRowCounts,
     /// Page flags.
     ///
     /// According to [@flesniak](https://github.com/flesniak):
@@ -526,15 +522,16 @@ pub struct Page {
     /// Used space in bytes in the data section of the page.
     pub used_size: u16,
     /// The content of the page.
-    #[br(args { page_flags, page_start_pos, page_size, num_rows_small, page_type })]
-    #[bw(args { page_flags: *page_flags, page_size, num_rows_small: self.num_rows_small, page_type: self.page_type })]
+    #[br(args { page_flags, page_start_pos, page_size, packed_row_counts, page_type })]
+    #[bw(args { page_size })]
+    #[br(assert(content.count_rows() == packed_row_counts.num_rows_valid() as usize, "parsing page {:?}: num_rows_valid {} does not match parsed row count {}", page_index, packed_row_counts.num_rows_valid(), content.count_rows()))]
     pub content: PageContent,
 }
 
 /// The data-containing part of a page.
 #[binread]
 #[derive(Debug, PartialEq, Clone)]
-#[br(little, import { page_start_pos: u64, page_size: u32, num_rows_small: u8, page_type: PageType })]
+#[br(little, import { page_start_pos: u64, page_size: u32, packed_row_counts: PackedRowCounts, page_type: PageType })]
 pub struct DataPageContent {
     /// Unknown field.
     /// Often 1 or 0x1fff; also observed: 8, 27, 22, 17, 2.
@@ -543,11 +540,9 @@ pub struct DataPageContent {
     /// > (0->1: 2)
     #[allow(dead_code)]
     unknown5: u16,
-    /// Number of rows in this table (16-bit version).
-    ///
-    /// Used when the number of rows does not fit into a single byte. In that case,`num_rows_large`
-    /// is greater than `num_rows_small`, but is not equal to `0x1FFF`.
-    pub num_rows_large: u16,
+    /// Unknown field related to the number of rows in the table,
+    /// but not equal to it.
+    unknown_not_num_rows_large: u16,
     /// Unknown field (usually zero).
     #[allow(dead_code)]
     unknown6: u16,
@@ -558,15 +553,10 @@ pub struct DataPageContent {
     /// @RobinMcCorkell: I don't think this is correct, my DB only has zeros for all pages.
     #[allow(dead_code)]
     unknown7: u16,
-    /// Number of rows in this page.
-    ///
-    /// **Note:** This is a virtual field and not actually read from the file.
-    #[br(temp, calc = Self::calculate_num_rows(num_rows_small, num_rows_large))]
-    num_rows: u16,
     /// Number of rows groups in this page.
     ///
     /// **Note:** This is a virtual field and not actually read from the file.
-    #[br(temp, calc = num_rows.div_ceil(RowGroup::MAX_ROW_COUNT as u16))]
+    #[br(temp, calc = packed_row_counts.num_rows().div_ceil(RowGroup::MAX_ROW_COUNT as u16))]
     num_row_groups: u16,
     /// The offset at which the row data for this page are located.
     ///
@@ -590,7 +580,8 @@ impl BinWrite for DataPageContent {
         (page_size,): Self::Args<'_>,
     ) -> BinResult<()> {
         self.unknown5.write_options(writer, endian, ())?;
-        self.num_rows_large.write_options(writer, endian, ())?;
+        self.unknown_not_num_rows_large
+            .write_options(writer, endian, ())?;
         self.unknown6.write_options(writer, endian, ())?;
         self.unknown7.write_options(writer, endian, ())?;
 
@@ -617,14 +608,6 @@ impl BinWrite for DataPageContent {
 impl DataPageContent {
     /// Size of the page header in bytes.
     pub const HEADER_SIZE: u32 = 0x8;
-
-    fn calculate_num_rows(num_rows_small: u8, num_rows_large: u16) -> u16 {
-        if num_rows_large > num_rows_small.into() && num_rows_large != 0x1fff {
-            num_rows_large
-        } else {
-            num_rows_small.into()
-        }
-    }
 }
 
 impl Page {
