@@ -8,8 +8,10 @@
 
 //! Common types used in multiple modules.
 
+use std::io::{Read, Seek, SeekFrom, Write};
+
 use crate::pdb::string::StringError;
-use binrw::binrw;
+use binrw::{binrw, file_ptr::IntoSeekFrom, BinRead, BinResult, BinWrite, Endian};
 use thiserror::Error;
 
 /// Enumerates errors returned by this library.
@@ -91,6 +93,56 @@ pub enum FileType {
     Other(u16),
 }
 
+/// Parses a sequence of values with `BinRead` from the offsets provided by the iterator.
+pub(crate) fn parse_at_offsets<Offset, Value, T, Args, It, Reader>(
+    it: It,
+) -> impl FnOnce(&mut Reader, Endian, Args) -> BinResult<T>
+where
+    Offset: IntoSeekFrom,
+    Value: for<'a> BinRead<Args<'a> = Args>,
+    T: FromIterator<(Offset, Value)>,
+    Args: Clone,
+    It: IntoIterator<Item = Offset>,
+    Reader: Read + Seek,
+{
+    move |reader, endian, args| {
+        let base = reader.stream_position()?;
+        it.into_iter()
+            .map(|offset| {
+                reader.seek(offset.into_seek_from())?;
+                let v = Value::read_options(reader, endian, args.clone())?;
+                // Restore position after each item.
+                reader.seek(SeekFrom::Start(base))?;
+                Ok((offset, v))
+            })
+            .collect()
+    }
+}
+
+/// Writes a sequence of values with `BinWrite` at the offsets provided by the iterator.
+pub(crate) fn write_at_offsets<Offset, Value, T, Args, Writer>(
+    t: &T,
+    writer: &mut Writer,
+    endian: Endian,
+    args: Args,
+) -> BinResult<()>
+where
+    Offset: IntoSeekFrom,
+    Value: for<'a> BinWrite<Args<'a> = Args>,
+    for<'a> &'a T: IntoIterator<Item = (&'a Offset, &'a Value)>,
+    Args: Clone,
+    Writer: Write + Seek,
+{
+    let base = writer.stream_position()?;
+    t.into_iter().try_for_each(|(offset, v)| {
+        writer.seek(offset.into_seek_from())?;
+        v.write_options(writer, endian, args.clone())?;
+        // Restore position after each item.
+        writer.seek(SeekFrom::Start(base))?;
+        Ok(())
+    })
+}
+
 /// align given value to the alignment requirements by the given type.
 #[must_use]
 pub const fn align_by(alignment: u64, mut offset: u64) -> u64 {
@@ -107,61 +159,6 @@ pub const fn align_by(alignment: u64, mut offset: u64) -> u64 {
         offset += alignment - (offset % alignment);
     }
     offset
-}
-
-#[binrw(little)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
-#[br(import(limit: usize))]
-/// Represents explicit padding bytes in a binary structure.
-pub struct ExplicitPadding(
-    // use offset + a couple bytes as a limit (though this is rather a heuristic)
-    #[br(parse_with = Self::guess_padding, args(limit))]
-    #[bw(ignore)]
-    #[bw(pad_after=self.0)]
-    pub usize,
-);
-
-use binrw::{io::Read, BinResult};
-impl ExplicitPadding {
-    #[binrw::parser(reader)]
-    fn guess_padding(limit: usize) -> BinResult<usize> {
-        let before = reader.stream_position()?;
-        let mut count = 0;
-        // We never expect to read many bytes here, so this is fine
-        #[allow(clippy::unbuffered_bytes)]
-        for byte in reader.bytes() {
-            if byte? != 0 {
-                break;
-            }
-            // to avoid scanning an entire page after the last row,
-            // we limit here
-            // if the limit is reached, assume end of page and no padding
-            // used
-            if limit != 0 && count == limit {
-                count = 0;
-                break;
-            }
-            count += 1;
-        }
-        if reader.stream_position()? != before {
-            // don't consume the non-zero byte we just read if we read anything at all
-            reader.seek_relative(-1)?;
-        }
-        Ok(count)
-    }
-}
-
-impl binrw::meta::ReadEndian for ExplicitPadding {
-    const ENDIAN: binrw::meta::EndianKind = binrw::meta::EndianKind::None;
-}
-impl binrw::meta::WriteEndian for ExplicitPadding {
-    const ENDIAN: binrw::meta::EndianKind = binrw::meta::EndianKind::None;
-}
-
-impl From<usize> for ExplicitPadding {
-    fn from(value: usize) -> Self {
-        Self(value)
-    }
 }
 
 #[cfg(test)]
@@ -230,46 +227,35 @@ pub(crate) mod testing {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::util::testing::{test_roundtrip, test_roundtrip_with_args};
-    mod explicit_padding {
-        use super::*;
+    use std::{collections::BTreeMap, io::Cursor};
 
-        #[test]
-        fn empty() {
-            test_roundtrip(&[], ExplicitPadding::default());
-            test_roundtrip(&[], ExplicitPadding(0));
-            test_roundtrip_with_args(&[], ExplicitPadding(0), (0,), ());
-        }
-        #[test]
-        fn limit() {
-            test_roundtrip_with_args(&[0x00], ExplicitPadding(1), (1,), ());
-        }
+    #[test]
+    fn test_parse_at_offsets() {
+        // Little-endian u16 values at offsets 0, 2, 5, 7 with garbage 4th byte.
+        const DATA: &[u8] = &[0x01, 0x00, 0x02, 0x00, 0xFF, 0x03, 0x00, 0x04, 0x00];
+        const OFFSETS: &[u64] = &[0, 7, 2, 5];
+        let mut cursor = Cursor::new(DATA);
+        let serialized: BTreeMap<u64, u16> =
+            parse_at_offsets(OFFSETS.iter().copied())(&mut cursor, Endian::Little, ()).unwrap();
+        let expected: BTreeMap<u64, u16> =
+            vec![(0, 1), (7, 4), (2, 2), (5, 3)].into_iter().collect();
+        assert_eq!(serialized, expected);
 
-        #[binrw(little)]
-        #[brw(little)]
-        #[derive(Debug, PartialEq, Clone)]
-        #[br(import(limit: usize))]
-        struct Something(u8, #[br(args(limit))] ExplicitPadding);
-        #[test]
-        fn non_empty() {
-            test_roundtrip(&[0x00, 0x00], ExplicitPadding(2));
+        // We also expect the cursor position to be restored.
+        assert_eq!(cursor.stream_position().unwrap(), 0);
+    }
 
-            let smth = Something(1, ExplicitPadding(2));
-            test_roundtrip_with_args(&[0x01, 0x00, 0x00], smth, (0,), ());
-        }
-        #[test]
-        fn multiple() {
-            use binrw::VecArgs;
-            let multiple = vec![Something(1, ExplicitPadding(1)); 2];
-            test_roundtrip_with_args(
-                &[0x01, 0x00, 0x01, 0x00],
-                multiple,
-                VecArgs {
-                    count: 2,
-                    inner: (0,),
-                },
-                (),
-            );
-        }
+    #[test]
+    fn test_write_at_offsets() {
+        // Little-endian u16 values at offsets 0, 2, 5, 7 with skipped 4th byte.
+        const EXPECTED: &[u8] = &[0x01, 0x00, 0x02, 0x00, 0x00, 0x03, 0x00, 0x04, 0x00];
+        let serialized: BTreeMap<u64, u16> =
+            vec![(0, 1), (7, 4), (2, 2), (5, 3)].into_iter().collect();
+        let mut cursor = Cursor::new(Vec::with_capacity(EXPECTED.len()));
+        write_at_offsets(&serialized, &mut cursor, Endian::Little, ()).unwrap();
+        assert_eq!(&cursor.get_ref()[..], EXPECTED);
+
+        // We also expect the cursor position to be restored.
+        assert_eq!(cursor.stream_position().unwrap(), 0);
     }
 }

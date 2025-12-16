@@ -14,6 +14,8 @@
 use binrw::{BinRead, BinWrite};
 use modular_bitfield::prelude::*;
 
+use crate::pdb::RowGroup;
+
 /// Packed field found in the page header containing:
 /// - number of used row offsets in the page (13 bits).
 /// - number of valid rows in the page (11 bits).
@@ -39,5 +41,10 @@ impl PackedRowCounts {
         Self::new()
             .with_num_rows(num_rows as u16)
             .with_num_rows_valid(num_rows as u16)
+    }
+
+    /// Get the number of row groups in the page.
+    pub(crate) fn num_row_groups(&self) -> u16 {
+        self.num_rows().div_ceil(RowGroup::MAX_ROW_COUNT as u16)
     }
 }
