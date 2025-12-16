@@ -14,6 +14,7 @@ use std::num::NonZero;
 fn empty_header() {
     let header = Header {
         page_size: 4096,
+        num_tables: 0,
         next_unused_page: PageIndex::try_from(1).unwrap(),
         unknown: 0,
         sequence: 1,
@@ -31,6 +32,7 @@ fn empty_header() {
 fn demo_tracks_header() {
     let header = Header {
         page_size: 4096,
+        num_tables: 20,
         next_unused_page: PageIndex::try_from(51).unwrap(),
         unknown: 5,
         sequence: 34,
@@ -11834,12 +11836,15 @@ fn index_page() {
             used_size: 0,
         },
         content: PageContent::Index(IndexPageContent {
-            unknown_a: 2,
-            unknown_b: 179,
-            next_offset: 272,
-            page_index: PageIndex::try_from(1).unwrap(),
-            next_page: PageIndex::try_from(2).unwrap(),
-            first_empty: 8191,
+            header: IndexPageHeader {
+                unknown_a: 2,
+                unknown_b: 179,
+                next_offset: 272,
+                page_index: PageIndex::try_from(1).unwrap(),
+                next_page: PageIndex::try_from(2).unwrap(),
+                num_entries: 272,
+                first_empty: 8191,
+            },
             entries,
         }),
     };

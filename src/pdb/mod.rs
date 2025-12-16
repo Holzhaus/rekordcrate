@@ -30,7 +30,6 @@ use offset_array::OffsetArrayContainer;
 mod test;
 
 use std::collections::BTreeMap;
-use std::convert::TryInto;
 use std::fmt;
 
 use crate::pdb::ext::{ExtPageType, ExtRow};
@@ -202,15 +201,11 @@ pub struct Header {
     /// The byte offset of a page can be calculated by multiplying a page index with this value.
     pub page_size: u32,
     /// Number of tables.
-    #[br(temp)]
-    #[bw(calc = tables.len().try_into().expect("too many tables"))]
-    num_tables: u32,
+    pub num_tables: u32,
     /// Unknown field, not used as any `empty_candidate`, points past end of file.
-    #[allow(dead_code)]
-    next_unused_page: PageIndex,
+    pub next_unused_page: PageIndex,
     /// Unknown field.
-    #[allow(dead_code)]
-    unknown: u32,
+    pub unknown: u32,
     /// Always incremented by at least one, sometimes by two or three.
     pub sequence: u32,
     // The gap seems to be always zero.
@@ -330,17 +325,16 @@ impl fmt::Debug for IndexEntry {
     }
 }
 
-/// The content of an index page.
-#[binread]
+/// The header of the index-containing part of a page.
+#[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
-#[br(little)]
-pub struct IndexPageContent {
+pub struct IndexPageHeader {
     /// Unknown field, usually `0x1fff` or `0x0001`.
     pub unknown_a: u16,
     /// Unknown field, usually `0x1fff` or `0x0000`.
     pub unknown_b: u16,
     // Magic value `0x03ec`.
-    #[br(magic = 0x03ecu16)]
+    #[brw(magic = 0x03ecu16)]
     /// Offset where the next index entry will be written from the beginning
     /// of the entries array, i.e. if this is 4 it means the next entry should
     /// be written at byte `entries+4*4`. We still do not know why this value
@@ -351,10 +345,9 @@ pub struct IndexPageContent {
     /// Redundant next page index.
     pub next_page: PageIndex,
     // Magic value `0x0000000003ffffff`.
-    #[br(magic = 0x0000_0000_03ff_ffffu64)]
+    #[brw(magic = 0x0000_0000_03ff_ffffu64)]
     /// Number of index entries in this page.
-    #[br(temp)]
-    num_entries: u16,
+    pub num_entries: u16,
     /// Points to the first empty index entry, or `0x1fff` if none.
     ///
     /// In real databases, this has been found to be one of three things:
@@ -363,8 +356,18 @@ pub struct IndexPageContent {
     /// 3. A number smaller than `num_entries`, indicating the first empty
     /// slot.
     pub first_empty: u16,
+}
+
+/// The content of an index page.
+#[binread]
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[br(little)]
+pub struct IndexPageContent {
+    /// The header of the index page.
+    pub header: IndexPageHeader,
+
     /// The index entries.
-    #[br(count = num_entries)]
+    #[br(count = header.num_entries)]
     pub entries: Vec<IndexEntry>,
 }
 
@@ -379,15 +382,7 @@ impl BinWrite for IndexPageContent {
     ) -> BinResult<()> {
         let page_content_start_pos = writer.stream_position()?;
 
-        self.unknown_a.write_options(writer, endian, ())?;
-        self.unknown_b.write_options(writer, endian, ())?;
-        0x03ecu16.write_options(writer, endian, ())?;
-        self.next_offset.write_options(writer, endian, ())?;
-        self.page_index.write_options(writer, endian, ())?;
-        self.next_page.write_options(writer, endian, ())?;
-        0x0000_0000_03ff_ffffu64.write_options(writer, endian, ())?;
-        (self.entries.len() as u16).write_options(writer, endian, ())?;
-        self.first_empty.write_options(writer, endian, ())?;
+        self.header.write_options(writer, endian, ())?;
 
         for entry in &self.entries {
             entry.write_options(writer, endian, ())?;
