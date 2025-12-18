@@ -135,6 +135,9 @@ pub enum PlainPageType {
     /// Contains the metadata categories by which Tracks can be browsed by.
     #[brw(magic = 16u32)]
     Columns,
+    /// Manages the active menu items on the CDJ.
+    #[brw(magic = 17u32)]
+    MenuItem,
     /// Holds information used by rekordbox to synchronize history playlists (not yet studied).
     #[brw(magic = 19u32)]
     History,
@@ -1297,6 +1300,43 @@ pub struct Track {
     padding: ExplicitPadding,
 }
 
+/// This table defines the active menu items on the CDJ.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[brw(little)]
+pub struct MenuItem {
+    /// Determines the Label (e.g. "ARTIST").
+    /// Matches IDs in the COLUMN table.
+    pub category_id: u16,
+
+    /// Points to the data source, i.e. the list of artists is 0x02.
+    pub content_pointer: u16,
+    /// Unknown field. Swapping values here appears to have no effect on CDJ-350 behavior.
+    ///
+    /// Some observed values:
+    /// - 0x01: Track
+    /// - 0x02: Artist
+    /// - 0x03: Album
+    /// - 0x05: BPM
+    /// - 0x63 (99): Generic List (Playlist, Genre, Key, History)
+    pub unknown: u8,
+
+    /// Visibility Flags (Upper 8 bits).
+    ///
+    /// This field controls whether the menu item is visible or hidden.
+    /// - 0x00: Visible
+    /// - 0x01: Hidden (e.g. Genre, BPM default)
+    /// - 0x02: Unknown
+    ///
+    /// Experiments confirmed that changing this from 0x01 to 0x00 makes hidden menus (like Genre) appear,
+    /// although some menus do not show in the CDJ-350 even when made visible here.
+    pub flags: u8,
+
+    /// Visual position in the menu list.
+    /// 0 is valid and places the item at the very top (if visible).
+    pub sort_order: u16,
+}
+
 /// A table row contains the actual data.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -1345,6 +1385,9 @@ pub enum PlainRow {
     /// Contains the metadata categories by which Tracks can be browsed by.
     #[br(pre_assert(page_type == PlainPageType::Columns))]
     ColumnEntry(ColumnEntry),
+    /// Manages the active menu items on the CDJ.
+    #[br(pre_assert(page_type == PlainPageType::MenuItem))]
+    MenuItem(MenuItem),
     /// Contains a track entry.
     #[br(pre_assert(page_type == PlainPageType::Tracks))]
     Track(#[bw(args(row_index))] Track),
@@ -1369,6 +1412,7 @@ impl PlainRow {
             HistoryEntry(r) => align_by(align_of_val(r) as u64, offset),
             Key(_) => align_by(4, offset),
             Label(_) => align_by(4, offset),
+            MenuItem(r) => align_by(align_of_val(r) as u64, offset),
             PlaylistTreeNode(_) => align_by(4, offset),
             PlaylistEntry(r) => align_by(align_of_val(r) as u64, offset),
             Track(_) => offset, // already handled by track serialization

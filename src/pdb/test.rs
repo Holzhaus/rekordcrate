@@ -138,7 +138,7 @@ fn demo_tracks_header() {
                 last_page: PageIndex::try_from(34).unwrap(),
             },
             Table {
-                page_type: PageType::Unknown(17),
+                page_type: PageType::Plain(PlainPageType::MenuItem),
                 empty_candidate: 44,
                 first_page: PageIndex::try_from(35).unwrap(),
                 last_page: PageIndex::try_from(36).unwrap(),
