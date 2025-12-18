@@ -39,6 +39,7 @@ All notable changes to this project will be documented in this file.
 - pdb: Add doc comments for struct fields in ext.rs
 - Link to upstream Tag row docs in docs
 - pdb: Enhance documentation for some index page fields
+- Fix comment for Track enum variant
 
 ### Features
 
