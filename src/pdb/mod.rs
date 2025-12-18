@@ -1345,7 +1345,7 @@ pub enum PlainRow {
     /// Contains the metadata categories by which Tracks can be browsed by.
     #[br(pre_assert(page_type == PlainPageType::Columns))]
     ColumnEntry(ColumnEntry),
-    /// Contains the album name, along with an ID of the corresponding artist.
+    /// Contains a track entry.
     #[br(pre_assert(page_type == PlainPageType::Tracks))]
     Track(#[bw(args(row_index))] Track),
 }
