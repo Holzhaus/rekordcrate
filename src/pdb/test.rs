@@ -424,6 +424,19 @@ fn column_entry() {
 }
 
 #[test]
+fn menu_row() {
+    let row = Menu {
+        category_id: 2,
+        content_pointer: 2,
+        unknown: 2,
+        visibility: MenuVisibility::Visible,
+        sort_order: 1,
+    };
+    let bin = &[0x02, 0x00, 0x02, 0x00, 0x02, 0x00, 0x01, 0x00];
+    test_roundtrip(bin, row);
+}
+
+#[test]
 fn track_page() {
     let mut row_groups = RowGroup {
         unknown: 16,
@@ -9767,6 +9780,248 @@ fn history_entries_page() {
     let page_size = 4096;
     test_roundtrip_with_args(
         include_bytes!("../../data/pdb/unit_tests/history_entries_page.bin"),
+        page,
+        (page_size, DatabaseType::Plain),
+        (page_size, DatabaseType::Plain),
+    );
+}
+
+#[test]
+fn menu_page() {
+    let mut row_groups = vec![
+        RowGroup {
+            unknown: 0,
+            rows: vec![],
+        };
+        2
+    ];
+    row_groups[0].unknown = 65535;
+    row_groups[1].unknown = 63;
+
+    row_groups[0]
+        .add_row(Row::Plain(PlainRow::Menu(Menu {
+            category_id: 1,
+            content_pointer: 1,
+            unknown: 99,
+            visibility: MenuVisibility::Hidden,
+            sort_order: 0,
+        })))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Plain(PlainRow::Menu(Menu {
+            category_id: 5,
+            content_pointer: 6,
+            unknown: 5,
+            visibility: MenuVisibility::Hidden,
+            sort_order: 0,
+        })))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Plain(PlainRow::Menu(Menu {
+            category_id: 6,
+            content_pointer: 7,
+            unknown: 99,
+            visibility: MenuVisibility::Hidden,
+            sort_order: 0,
+        })))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Plain(PlainRow::Menu(Menu {
+            category_id: 7,
+            content_pointer: 8,
+            unknown: 99,
+            visibility: MenuVisibility::Hidden,
+            sort_order: 0,
+        })))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Plain(PlainRow::Menu(Menu {
+            category_id: 8,
+            content_pointer: 9,
+            unknown: 99,
+            visibility: MenuVisibility::Hidden,
+            sort_order: 0,
+        })))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Plain(PlainRow::Menu(Menu {
+            category_id: 9,
+            content_pointer: 10,
+            unknown: 99,
+            visibility: MenuVisibility::Hidden,
+            sort_order: 0,
+        })))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Plain(PlainRow::Menu(Menu {
+            category_id: 10,
+            content_pointer: 11,
+            unknown: 99,
+            visibility: MenuVisibility::Hidden,
+            sort_order: 0,
+        })))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Plain(PlainRow::Menu(Menu {
+            category_id: 13,
+            content_pointer: 15,
+            unknown: 99,
+            visibility: MenuVisibility::Hidden,
+            sort_order: 0,
+        })))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Plain(PlainRow::Menu(Menu {
+            category_id: 14,
+            content_pointer: 19,
+            unknown: 4,
+            visibility: MenuVisibility::Hidden,
+            sort_order: 0,
+        })))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Plain(PlainRow::Menu(Menu {
+            category_id: 15,
+            content_pointer: 20,
+            unknown: 6,
+            visibility: MenuVisibility::Hidden,
+            sort_order: 0,
+        })))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Plain(PlainRow::Menu(Menu {
+            category_id: 16,
+            content_pointer: 21,
+            unknown: 99,
+            visibility: MenuVisibility::Hidden,
+            sort_order: 0,
+        })))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Plain(PlainRow::Menu(Menu {
+            category_id: 18,
+            content_pointer: 23,
+            unknown: 99,
+            visibility: MenuVisibility::Hidden,
+            sort_order: 0,
+        })))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Plain(PlainRow::Menu(Menu {
+            category_id: 2,
+            content_pointer: 2,
+            unknown: 2,
+            visibility: MenuVisibility::Visible,
+            sort_order: 1,
+        })))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Plain(PlainRow::Menu(Menu {
+            category_id: 3,
+            content_pointer: 3,
+            unknown: 3,
+            visibility: MenuVisibility::Visible,
+            sort_order: 2,
+        })))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Plain(PlainRow::Menu(Menu {
+            category_id: 4,
+            content_pointer: 4,
+            unknown: 1,
+            visibility: MenuVisibility::Visible,
+            sort_order: 3,
+        })))
+        .unwrap();
+    row_groups[0]
+        .add_row(Row::Plain(PlainRow::Menu(Menu {
+            category_id: 11,
+            content_pointer: 12,
+            unknown: 99,
+            visibility: MenuVisibility::Visible,
+            sort_order: 4,
+        })))
+        .unwrap();
+
+    row_groups[1]
+        .add_row(Row::Plain(PlainRow::Menu(Menu {
+            category_id: 17,
+            content_pointer: 5,
+            unknown: 99,
+            visibility: MenuVisibility::Visible,
+            sort_order: 5,
+        })))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Plain(PlainRow::Menu(Menu {
+            category_id: 19,
+            content_pointer: 22,
+            unknown: 99,
+            visibility: MenuVisibility::Visible,
+            sort_order: 6,
+        })))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Plain(PlainRow::Menu(Menu {
+            category_id: 20,
+            content_pointer: 18,
+            unknown: 99,
+            visibility: MenuVisibility::Visible,
+            sort_order: 7,
+        })))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Plain(PlainRow::Menu(Menu {
+            category_id: 27,
+            content_pointer: 26,
+            unknown: 99,
+            visibility: MenuVisibility::Unknown(2),
+            sort_order: 8,
+        })))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Plain(PlainRow::Menu(Menu {
+            category_id: 24,
+            content_pointer: 17,
+            unknown: 99,
+            visibility: MenuVisibility::Visible,
+            sort_order: 9,
+        })))
+        .unwrap();
+    row_groups[1]
+        .add_row(Row::Plain(PlainRow::Menu(Menu {
+            category_id: 22,
+            content_pointer: 27,
+            unknown: 99,
+            visibility: MenuVisibility::Visible,
+            sort_order: 10,
+        })))
+        .unwrap();
+
+    let page = Page {
+        page_index: PageIndex::try_from(36).unwrap(),
+        page_type: PageType::Plain(PlainPageType::Menu),
+        next_page: PageIndex::try_from(44).unwrap(),
+        unknown1: 4,
+        unknown2: 0,
+        packed_row_counts: PackedRowCounts::new()
+            .with_num_rows(22)
+            .with_num_rows_valid(22),
+        page_flags: PageFlags(36),
+        free_size: 3828,
+        used_size: 176,
+        content: PageContent::Data(DataPageContent {
+            unknown5: 22,
+            unknown_not_num_rows_large: 0,
+            unknown6: 0,
+            unknown7: 0,
+            row_groups,
+        }),
+    };
+
+    let page_size = 4096;
+    test_roundtrip_with_args(
+        include_bytes!("../../data/pdb/unit_tests/menu_page.bin"),
         page,
         (page_size, DatabaseType::Plain),
         (page_size, DatabaseType::Plain),
