@@ -52,6 +52,7 @@ All notable changes to this project will be documented in this file.
 - Convert dump-ext-pdb into flag instead with some guessing magic
 - pdb: Initial index page implementation
 - pdb: Add methods to create new and empty `IndexEntry` instances
+- pdb: Parse MenuItem rows (table 17)
 
 ### Refactor
 
@@ -77,6 +78,7 @@ All notable changes to this project will be documented in this file.
 - pdb: Address NITs from @Holzhaus and make clippy happy
 - pdb: Remove unneeded explicit padding from tag rows
 - Optimize impl fmt::Display for DeviceSQLString
+- pdb: Rename MenuItem to Menu and add MenuVisibility enum
 
 ### Testing
 
@@ -95,6 +97,7 @@ All notable changes to this project will be documented in this file.
 - pdb: Add tag and track_tag page tests
 - pdb: Add history playlists and entries page tests
 - pdb: Add `index_page` unit test
+- pdb: Add tests for Menu row and page
 
 ## [0.3.0] - 2025-01-23
 
