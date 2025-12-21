@@ -106,19 +106,13 @@ fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
                 .unwrap()
                 .into_iter()
                 .filter_map(|page| page.content.into_data())
-                .flat_map(|data_content| data_content.row_groups.into_iter())
-                .flat_map(|row_group| {
-                    row_group
-                        .iter()
-                        .map(|row| {
-                            if let Row::Plain(PlainRow::PlaylistTreeNode(playlist_tree)) = row {
-                                playlist_tree.clone()
-                            } else {
-                                unreachable!("encountered non-playlist tree row in playlist table");
-                            }
-                        })
-                        .collect::<Vec<PlaylistTreeNode>>()
-                        .into_iter()
+                .flat_map(|data_content| data_content.rows.into_values())
+                .map(|row| {
+                    if let Row::Plain(PlainRow::PlaylistTreeNode(playlist_tree)) = row {
+                        playlist_tree
+                    } else {
+                        unreachable!("encountered non-playlist tree row in playlist table");
+                    }
                 })
         })
         .for_each(|row| tree.entry(row.parent_id).or_default().push(row));
@@ -156,12 +150,9 @@ fn dump_pdb(path: &PathBuf, typ: DatabaseType) -> rekordcrate::Result<()> {
             println!("  {:?}", page);
             match page.content {
                 PageContent::Data(data_content) => {
-                    data_content.row_groups.iter().for_each(|row_group| {
-                        println!("    {:?}", row_group);
-                        for row in row_group {
-                            println!("      {:?}", row);
-                        }
-                    })
+                    for (_, row) in data_content.rows {
+                        println!("      {:?}", row);
+                    }
                 }
                 PageContent::Index(index_content) => {
                     println!("    {:?}", index_content);

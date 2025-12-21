@@ -29,13 +29,13 @@ use offset_array::OffsetArrayContainer;
 #[cfg(test)]
 mod test;
 
-use std::convert::TryInto;
+use std::collections::BTreeMap;
 use std::fmt;
 
 use crate::pdb::ext::{ExtPageType, ExtRow};
 use crate::pdb::offset_array::{OffsetArray, OffsetSize};
 use crate::pdb::string::DeviceSQLString;
-use crate::util::{ColorIndex, ExplicitPadding, FileType};
+use crate::util::{parse_at_offsets, write_at_offsets, ColorIndex, FileType};
 use binrw::{
     binread, binrw,
     io::{Read, Seek, SeekFrom, Write},
@@ -57,11 +57,6 @@ pub enum PdbError {
     RowGroupFull,
 }
 
-/// Do not read anything, but the return the current stream position of `reader`.
-fn current_offset<R: Read + Seek>(reader: &mut R, _: Endian, _: ()) -> BinResult<u64> {
-    reader.stream_position().map_err(binrw::Error::Io)
-}
-
 /// The type of the database were looking at.
 /// This influences the meaning of the the pagetypes found in tables.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
@@ -77,7 +72,7 @@ pub enum DatabaseType {
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[brw(little)]
-#[brw(import(db_type: DatabaseType))]
+#[br(import(db_type: DatabaseType))]
 pub enum PageType {
     #[br(pre_assert(db_type == DatabaseType::Plain))]
     /// Pagetypes present in `export.pdb` files.
@@ -178,7 +173,7 @@ impl PageIndex {
 #[brw(import(db_type: DatabaseType))]
 pub struct Table {
     /// Identifies the type of rows that this table contains.
-    #[brw(args(db_type))]
+    #[br(args(db_type))]
     pub page_type: PageType,
     /// Unknown field, maybe links to a chain of empty pages if the database is ever garbage
     /// collected (?).
@@ -206,15 +201,11 @@ pub struct Header {
     /// The byte offset of a page can be calculated by multiplying a page index with this value.
     pub page_size: u32,
     /// Number of tables.
-    #[br(temp)]
-    #[bw(calc = tables.len().try_into().expect("too many tables"))]
-    num_tables: u32,
+    pub num_tables: u32,
     /// Unknown field, not used as any `empty_candidate`, points past end of file.
-    #[allow(dead_code)]
-    next_unused_page: PageIndex,
+    pub next_unused_page: PageIndex,
     /// Unknown field.
-    #[allow(dead_code)]
-    unknown: u32,
+    pub unknown: u32,
     /// Always incremented by at least one, sometimes by two or three.
     pub sequence: u32,
     // The gap seems to be always zero.
@@ -242,8 +233,8 @@ impl Header {
             let page_offset = SeekFrom::Start(page_index.offset(self.page_size));
             reader.seek(page_offset).map_err(binrw::Error::Io)?;
             let page = Page::read_options(reader, endian, (self.page_size, db_type))?;
-            let is_last_page = &page.page_index == last_page;
-            page_index = page.next_page.clone();
+            let is_last_page = &page.header.page_index == last_page;
+            page_index = page.header.next_page.clone();
             pages.push(page);
 
             if is_last_page {
@@ -254,16 +245,19 @@ impl Header {
     }
 }
 
+/// Bit flags describing various page properties.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
-struct PageFlags(u8);
+pub struct PageFlags(u8);
 
 impl PageFlags {
+    /// Check whether the page contains data rows.
     #[must_use]
     pub fn page_has_data(&self) -> bool {
         (self.0 & 0x40) == 0
     }
 
+    /// Check whether the page contains "index" rows.
     #[must_use]
     pub fn is_index_page(&self) -> bool {
         self.0 == 0x64
@@ -331,17 +325,16 @@ impl fmt::Debug for IndexEntry {
     }
 }
 
-/// The content of an index page.
-#[binread]
+/// The header of the index-containing part of a page.
+#[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
-#[br(little)]
-pub struct IndexPageContent {
+pub struct IndexPageHeader {
     /// Unknown field, usually `0x1fff` or `0x0001`.
     pub unknown_a: u16,
     /// Unknown field, usually `0x1fff` or `0x0000`.
     pub unknown_b: u16,
     // Magic value `0x03ec`.
-    #[br(magic = 0x03ecu16)]
+    #[brw(magic = 0x03ecu16)]
     /// Offset where the next index entry will be written from the beginning
     /// of the entries array, i.e. if this is 4 it means the next entry should
     /// be written at byte `entries+4*4`. We still do not know why this value
@@ -352,10 +345,9 @@ pub struct IndexPageContent {
     /// Redundant next page index.
     pub next_page: PageIndex,
     // Magic value `0x0000000003ffffff`.
-    #[br(magic = 0x0000_0000_03ff_ffffu64)]
+    #[brw(magic = 0x0000_0000_03ff_ffffu64)]
     /// Number of index entries in this page.
-    #[br(temp)]
-    num_entries: u16,
+    pub num_entries: u16,
     /// Points to the first empty index entry, or `0x1fff` if none.
     ///
     /// In real databases, this has been found to be one of three things:
@@ -364,8 +356,18 @@ pub struct IndexPageContent {
     /// 3. A number smaller than `num_entries`, indicating the first empty
     /// slot.
     pub first_empty: u16,
+}
+
+/// The content of an index page.
+#[binread]
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[br(little)]
+pub struct IndexPageContent {
+    /// The header of the index page.
+    pub header: IndexPageHeader,
+
     /// The index entries.
-    #[br(count = num_entries)]
+    #[br(count = header.num_entries)]
     pub entries: Vec<IndexEntry>,
 }
 
@@ -380,15 +382,7 @@ impl BinWrite for IndexPageContent {
     ) -> BinResult<()> {
         let page_content_start_pos = writer.stream_position()?;
 
-        self.unknown_a.write_options(writer, endian, ())?;
-        self.unknown_b.write_options(writer, endian, ())?;
-        0x03ecu16.write_options(writer, endian, ())?;
-        self.next_offset.write_options(writer, endian, ())?;
-        self.page_index.write_options(writer, endian, ())?;
-        self.next_page.write_options(writer, endian, ())?;
-        0x0000_0000_03ff_ffffu64.write_options(writer, endian, ())?;
-        (self.entries.len() as u16).write_options(writer, endian, ())?;
-        self.first_empty.write_options(writer, endian, ())?;
+        self.header.write_options(writer, endian, ())?;
 
         for entry in &self.entries {
             entry.write_options(writer, endian, ())?;
@@ -397,7 +391,7 @@ impl BinWrite for IndexPageContent {
         let after_entries_pos = writer.stream_position()?;
         let written_bytes = after_entries_pos - page_content_start_pos;
 
-        let content_size = page_size - Page::HEADER_SIZE;
+        let content_size = page_size - PageHeader::BINARY_SIZE;
         let padding_end_offset = content_size - 20;
 
         // Fill with empty entries (0x1ffffff8) until the last 20 bytes, which
@@ -426,20 +420,22 @@ impl BinWrite for IndexPageContent {
 }
 
 /// The content of a page, which can be of different types.
+///
+/// Does not implement `Eq` due to the `Unknown` variant.
 #[binrw]
 #[derive(Debug, PartialEq, Clone)]
-#[br(little, import { page_flags: PageFlags, page_start_pos: u64, page_size: u32, packed_row_counts: PackedRowCounts, page_type: PageType })]
+#[br(little, import { page_size: u32, header: &PageHeader })]
 #[bw(little, import { page_size: u32 })]
 pub enum PageContent {
     /// The page contains data rows.
-    #[br(pre_assert(page_flags.page_has_data()))]
+    #[br(pre_assert(header.page_flags.page_has_data()))]
     Data(
-        #[br(args { page_start_pos, page_size, packed_row_counts, page_type })]
-        #[bw(args(page_size,))]
+        #[br(args { page_size, page_header: header })]
+        #[bw(args { page_size })]
         DataPageContent,
     ),
     /// The page is an index page.
-    #[br(pre_assert(page_flags.is_index_page()))]
+    #[br(pre_assert(header.page_flags.is_index_page()))]
     Index(#[bw(args(page_size,))] IndexPageContent),
     /// The page is of an unknown or unsupported format.
     Unknown,
@@ -463,30 +459,14 @@ impl PageContent {
             _ => None,
         }
     }
-
-    fn count_rows(&self) -> usize {
-        match self {
-            PageContent::Data(data_content) => {
-                data_content.row_groups.iter().map(|rg| rg.len()).sum()
-            }
-            _ => 0,
-        }
-    }
 }
 
-/// A table page.
-///
-/// Each page consists of a header that contains information about the type, number of rows, etc.,
-/// followed by the data section that holds the row data. Each row needs to be located using an
-/// offset found in the page footer at the end of the page.
+/// The header of a page.
 #[binrw]
-#[derive(Debug, PartialEq)]
-#[brw(little, import(page_size: u32, db_type: DatabaseType))]
-pub struct Page {
-    /// Stream position at the beginning of the page; used to compute heap base for standalone buffers.
-    #[br(temp, parse_with = current_offset)]
-    #[bw(ignore)]
-    page_start_pos: u64,
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[brw(little)]
+#[br(import(db_type: DatabaseType))]
+pub struct PageHeader {
     // Magic signature for pages (must be 0).
     #[brw(magic = 0u32)]
     /// Index of the page.
@@ -496,7 +476,7 @@ pub struct Page {
     /// Type of information that the rows of this page contain.
     ///
     /// Should match the page type of the table that this page belongs to.
-    #[brw(args(db_type))]
+    #[br(args(db_type))]
     pub page_type: PageType,
     /// Index of the next page with the same page type.
     ///
@@ -505,141 +485,132 @@ pub struct Page {
     pub next_page: PageIndex,
     /// Unknown field.
     /// Appears to be a number between 1 and ~2500.
-    #[allow(dead_code)]
-    unknown1: u32,
+    pub unknown1: u32,
     /// Unknown field.
     /// Appears to always be zero.
-    #[allow(dead_code)]
-    unknown2: u32,
+    pub unknown2: u32,
     /// Packed field containing:
     /// - number of used row offsets in the page (13 bits).
     /// - number of valid rows in the page (11 bits).
-    packed_row_counts: PackedRowCounts,
+    pub packed_row_counts: PackedRowCounts,
     /// Page flags.
     ///
     /// According to [@flesniak](https://github.com/flesniak):
     /// > strange pages: 0x44, 0x64; otherwise seen: 0x24, 0x34
-    page_flags: PageFlags,
+    pub page_flags: PageFlags,
     /// Free space in bytes in the data section of the page (excluding the row offsets in the page footer).
     pub free_size: u16,
     /// Used space in bytes in the data section of the page.
     pub used_size: u16,
+}
+
+impl PageHeader {
+    /// Size of the page header in bytes.
+    pub const BINARY_SIZE: u32 = 0x20;
+}
+
+/// A table page.
+///
+/// Each page consists of a header that contains information about the type, number of rows, etc.,
+/// followed by the data section that holds the row data. Each row needs to be located using an
+/// offset found in the page footer at the end of the page.
+#[binrw]
+#[derive(Debug, PartialEq)]
+#[brw(little)]
+#[br(import(page_size: u32, db_type: DatabaseType))]
+#[bw(import(page_size: u32))]
+pub struct Page {
+    /// The page header.
+    #[br(args(db_type))]
+    pub header: PageHeader,
+
     /// The content of the page.
-    #[br(args { page_flags, page_start_pos, page_size, packed_row_counts, page_type })]
+    #[br(args { page_size, header: &header })]
     #[bw(args { page_size })]
-    #[br(assert(content.count_rows() == packed_row_counts.num_rows_valid() as usize, "parsing page {:?}: num_rows_valid {} does not match parsed row count {}", page_index, packed_row_counts.num_rows_valid(), content.count_rows()))]
     pub content: PageContent,
 }
 
-/// The data-containing part of a page.
-#[binread]
-#[derive(Debug, PartialEq, Clone)]
-#[br(little, import { page_start_pos: u64, page_size: u32, packed_row_counts: PackedRowCounts, page_type: PageType })]
-pub struct DataPageContent {
+/// The header of the data-containing part of a page.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone)]
+pub struct DataPageHeader {
     /// Unknown field.
     /// Often 1 or 0x1fff; also observed: 8, 27, 22, 17, 2.
     ///
     /// According to [@flesniak](https://github.com/flesniak):
     /// > (0->1: 2)
-    #[allow(dead_code)]
-    unknown5: u16,
+    pub unknown5: u16,
     /// Unknown field related to the number of rows in the table,
     /// but not equal to it.
-    unknown_not_num_rows_large: u16,
+    pub unknown_not_num_rows_large: u16,
     /// Unknown field (usually zero).
-    #[allow(dead_code)]
-    unknown6: u16,
+    pub unknown6: u16,
     /// Unknown field (usually zero).
     ///
     /// According to [@flesniak](https://github.com/flesniak):
     /// > always 0, except 1 for history pages, num entries for strange pages?"
     /// @RobinMcCorkell: I don't think this is correct, my DB only has zeros for all pages.
-    #[allow(dead_code)]
-    unknown7: u16,
-    /// Number of rows groups in this page.
-    ///
-    /// **Note:** This is a virtual field and not actually read from the file.
-    #[br(temp, calc = packed_row_counts.num_rows().div_ceil(RowGroup::MAX_ROW_COUNT as u16))]
-    num_row_groups: u16,
-    /// The offset at which the row data for this page are located.
-    ///
-    /// **Note:** This is a virtual field and not actually read from the file.
-    #[br(temp, calc = page_start_pos + u64::from(Page::HEADER_SIZE) + u64::from(Self::HEADER_SIZE))]
-    page_heap_offset: u64,
-    /// Row groups belonging to this page.
-    #[br(seek_before(SeekFrom::Current(Page::heap_padding_size(page_size, num_row_groups).into())))]
-    #[br(args {count: num_row_groups.into(), inner: (page_type, page_heap_offset)})]
-    #[br(map(|mut vec: Vec<RowGroup>| {vec.reverse(); vec}))]
-    pub row_groups: Vec<RowGroup>,
+    pub unknown7: u16,
 }
 
-impl BinWrite for DataPageContent {
-    type Args<'a> = (u32,);
+impl DataPageHeader {
+    /// Size of the page header in bytes.
+    pub const BINARY_SIZE: u32 = 0x8;
+}
 
-    fn write_options<W: Write + Seek>(
-        &self,
-        writer: &mut W,
-        endian: Endian,
-        (page_size,): Self::Args<'_>,
-    ) -> BinResult<()> {
-        self.unknown5.write_options(writer, endian, ())?;
-        self.unknown_not_num_rows_large
-            .write_options(writer, endian, ())?;
-        self.unknown6.write_options(writer, endian, ())?;
-        self.unknown7.write_options(writer, endian, ())?;
+/// The data-containing part of a page.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[br(little, import { page_size: u32, page_header: &PageHeader })]
+#[bw(little, import { page_size: u32 })]
+pub struct DataPageContent {
+    /// The header of the data page.
+    pub header: DataPageHeader,
 
-        let header_end_pos = writer.stream_position()?;
+    /// Row groups at the end of the page.
+    ///
+    /// Seek to the end of the page as we read/write row groups backwards,
+    /// but restore the position after to read/write the actual rows.
+    #[brw(seek_before(SeekFrom::Current(Self::page_heap_size(page_size) as i64)), restore_position)]
+    #[br(args {count: page_header.packed_row_counts.num_row_groups().into()})]
+    pub row_groups: Vec<RowGroup>,
 
-        let mut relative_row_offset: u64 = 0;
-
-        // Seek to the very end of the page
-        writer.seek(SeekFrom::Current(
-            (page_size - Page::HEADER_SIZE - DataPageContent::HEADER_SIZE).into(),
-        ))?;
-
-        for (i, row_group) in self.row_groups.iter().enumerate() {
-            relative_row_offset = row_group.write_options_and_get_row_offset(
-                writer,
-                endian,
-                (i, header_end_pos, relative_row_offset),
-            )?;
-        }
-        Ok(())
-    }
+    /// Rows belonging to this page by the heap offset at which each is stored.
+    ///
+    /// The offsets here should match those in `row_groups`.
+    #[br(args(page_header.page_type))]
+    #[br(parse_with = parse_at_offsets(row_groups.iter().flat_map(RowGroup::present_rows_offsets)))]
+    #[bw(write_with = write_at_offsets)]
+    #[br(assert(rows.len() == page_header.packed_row_counts.num_rows_valid() as usize, "parsing page {:?}: num_rows_valid {} does not match parsed row count {}", page_header.page_index, page_header.packed_row_counts.num_rows_valid(), rows.len()))]
+    pub rows: BTreeMap<u16, Row>,
 }
 
 impl DataPageContent {
-    /// Size of the page header in bytes.
-    pub const HEADER_SIZE: u32 = 0x8;
-}
-
-impl Page {
-    /// Size of the page header in bytes.
-    pub const HEADER_SIZE: u32 = 0x20;
-
-    /// Calculate the size of the empty space between the header and the footer.
-    fn heap_padding_size(page_size: u32, num_row_groups: u16) -> u32 {
-        // Size of all row offsets
-        let row_groups_footer_size = u32::from(num_row_groups) * RowGroup::BINARY_SIZE;
-        page_size - Self::HEADER_SIZE - DataPageContent::HEADER_SIZE - row_groups_footer_size
+    fn page_heap_size(page_size: u32) -> u32 {
+        page_size - PageHeader::BINARY_SIZE - DataPageHeader::BINARY_SIZE
     }
 }
 
 /// A group of row indices, which are built backwards from the end of the page. Holds up to sixteen
 /// row offsets, along with a bit mask that indicates whether each row is actually present in the
 /// table.
-#[binread]
-#[br(import(page_type: PageType, page_heap_position: u64))]
-#[derive(Debug, Clone)]
+#[binrw]
+#[derive(Debug, Clone, Eq)]
 pub struct RowGroup {
     /// An offset which points to a row in the table, whose actual presence is controlled by one of the
     /// bits in `row_present_flags`. This instance allows the row itself to be lazily loaded, unless it
     /// is not present, in which case there is no content to be loaded.
-    // rustc doesn't seem to recognize that this is used below, ignore for now
-    #[br(temp)]
-    row_offsets: [u16; Self::MAX_ROW_COUNT],
-    #[br(temp)]
-    row_presence_flags: u16,
+    ///
+    /// Row groups are read backwards so first seek backwards.
+    ///
+    /// **Note:** Offsets are filled from the end and may only be partially present, i.e. earlier offsets
+    /// may be "uninitialized" and used as part of the page heap instead. We only start writing offsets
+    /// from the first present row to avoid clobbering page heap data.
+    #[brw(seek_before = SeekFrom::Current(-i64::from(Self::BINARY_SIZE)))]
+    #[bw(write_with = Self::row_offsets_writer(*row_presence_flags))]
+    pub row_offsets: [u16; Self::MAX_ROW_COUNT],
+    /// A bit mask that indicates which rows in this group are actually present.
+    pub row_presence_flags: u16,
     /// Unknown field.
     /// Often zero, sometimes a multiple of 2, rarely something else.
     /// When a multiple of 2, the set bit often aligns with the last present row
@@ -647,138 +618,52 @@ pub struct RowGroup {
     ///
     /// E.g. for a full Artist rowgroup, this is usually zero.
     /// For the last Artist rowgroup in the page with flags 0x003f, this is often 0x0020.
-    unknown: u16,
-    // build rows from offsets collected above
-    #[br(seek_before=SeekFrom::Start(page_heap_position))]
-    #[br(args(page_type))]
-    #[br(parse_with = binrw::file_ptr::parse_from_iter(Self::present_rows_offsets(&row_offsets, row_presence_flags)))]
-    #[br(restore_position)] // ensure the parser points to just after this instance, this is important
-    /// Access rows in this RowGroup
-    rows: Vec<Row>,
+    pub unknown: u16,
+
+    // Seek to the start of the row group to prepare for reading the next one.
+    #[br(temp)]
+    #[bw(calc = ())]
+    #[brw(seek_before = SeekFrom::Current(-i64::from(Self::BINARY_SIZE)))]
+    _dummy: (),
 }
 
 impl RowGroup {
     const MAX_ROW_COUNT: usize = 16;
     const BINARY_SIZE: u32 = (Self::MAX_ROW_COUNT as u32) * 2 + 4; // size the serialized structure
 
-    /// Add a row to this rowgroup
-    pub fn add_row(&mut self, row: Row) -> Result<(), PdbError> {
-        if self.rows.len() >= Self::MAX_ROW_COUNT {
-            return Err(PdbError::RowGroupFull);
-        }
-        self.rows.push(row);
-        Ok(())
-    }
-
-    fn present_rows_offsets(
-        row_offsets: &[u16; Self::MAX_ROW_COUNT],
-        row_presence_flags: u16,
-    ) -> impl Iterator<Item = u16> + '_ {
-        row_offsets
+    fn present_rows_offsets(&self) -> impl Iterator<Item = u16> + '_ {
+        self.row_offsets
             .iter()
             .rev()
             .enumerate()
             .filter_map(move |(i, row_offset)| {
-                (row_presence_flags & (1 << i) != 0).then_some(*row_offset)
+                (self.row_presence_flags & (1 << i) != 0).then_some(*row_offset)
             })
     }
-}
 
-impl std::ops::Deref for RowGroup {
-    type Target = [Row];
-
-    fn deref(&self) -> &Self::Target {
-        &self.rows
-    }
-}
-
-impl std::ops::DerefMut for RowGroup {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.rows
-    }
-}
-
-impl<'a> IntoIterator for &'a RowGroup {
-    type Item = &'a Row;
-    type IntoIter = std::slice::Iter<'a, Row>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter()
-    }
-}
-
-impl<'a> IntoIterator for &'a mut RowGroup {
-    type Item = &'a mut Row;
-    type IntoIter = std::slice::IterMut<'a, Row>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.iter_mut()
+    fn row_offsets_writer<Writer>(
+        row_presence_flags: u16,
+    ) -> impl FnOnce(&[u16; 16], &mut Writer, Endian, ()) -> BinResult<()>
+    where
+        Writer: Write + Seek,
+    {
+        move |row_offsets, writer, endian, ()| {
+            let skip = row_presence_flags.leading_zeros() as usize;
+            writer.seek(SeekFrom::Current(
+                (skip * std::mem::size_of::<u16>()) as i64,
+            ))?;
+            for offset in row_offsets.iter().skip(skip) {
+                offset.write_options(writer, endian, ())?;
+            }
+            Ok(())
+        }
     }
 }
 
 impl PartialEq for RowGroup {
     fn eq(&self, other: &Self) -> bool {
-        self.rows == other.rows
-    }
-}
-
-impl RowGroup {
-    // This helper function now lives in the main impl block for RowGroup
-    // Assumes we point just past the rowgroup we're trying to write.
-    fn write_options_and_get_row_offset<W: Write + Seek>(
-        &self,
-        writer: &mut W,
-        endian: Endian,
-        (group_index, heap_start, relative_row_offset): (usize, u64, u64),
-    ) -> binrw::BinResult<u64> {
-        let rowgroup_start = writer.stream_position()? - u64::from(Self::BINARY_SIZE);
-
-        let free_space_start = heap_start + relative_row_offset;
-        const INVALID_ROW_OFFSET: u16 = u16::MAX;
-        let mut row_offsets = [INVALID_ROW_OFFSET; Self::MAX_ROW_COUNT];
-        let mut row_presence_flags: u16 = 0;
-
-        // Write rows
-        writer.seek(SeekFrom::Start(free_space_start))?;
-        for (i, row) in self.rows.iter().enumerate() {
-            let row_position = writer.stream_position()?;
-            let aligned_position = row.align_by(row_position);
-            writer.seek(SeekFrom::Start(aligned_position))?;
-            row.write_options(writer, endian, (Self::MAX_ROW_COUNT * group_index + i,))?;
-
-            let large_offset = aligned_position.checked_sub(heap_start).ok_or_else(|| {
-                binrw::Error::AssertFail {
-                    pos: aligned_position,
-                    message: "Wraparound while calculating row offset".to_string(),
-                }
-            })?;
-            row_offsets[i] = large_offset
-                .try_into()
-                .map_err(|error| binrw::Error::AssertFail {
-                    pos: aligned_position,
-                    message: format!("Error converting offset: {:?}", error),
-                })?;
-            row_presence_flags |= 1 << i;
-        }
-        let written_space_end = writer.stream_position()?;
-        writer.seek(SeekFrom::Start(rowgroup_start))?;
-
-        // Write the offsets in reverse order, which matches the file format.
-        for offset in row_offsets.into_iter().rev() {
-            if offset == INVALID_ROW_OFFSET {
-                // Just skip the row, don't write zeros to it as
-                // there may be valid content there
-                writer.seek_relative(2)?;
-            } else {
-                offset.write_options(writer, endian, ())?;
-            }
-        }
-        row_presence_flags.write_options(writer, endian, ())?;
-        self.unknown.write_options(writer, endian, ())?;
-        // Seek back to the beginning of this rowgroup (which is the end of the next rowgroup)
-        writer.seek(SeekFrom::Start(rowgroup_start))?;
-
-        Ok(written_space_end - heap_start)
+        self.unknown == other.unknown
+            && self.present_rows_offsets().eq(other.present_rows_offsets())
     }
 }
 
@@ -874,15 +759,12 @@ pub struct TrailingName {
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
-#[bw(import(row_index: usize))]
 pub struct Album {
     /// Unknown field, usually `80 00`.
     subtype: Subtype,
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
     /// Appears to always be 0x20 * row index.
-    #[br(temp)]
-    #[bw(calc = 0x20 * row_index as u16)]
-    _index_shift: u16,
+    index_shift: u16,
     /// Unknown field.
     unknown2: u32,
     /// ID of the artist row associated with this row.
@@ -894,55 +776,24 @@ pub struct Album {
     /// The offsets and its data and the end of this row
     #[brw(args(20, subtype.get_offset_size(), ()))]
     offsets: OffsetArrayContainer<TrailingName, 2>,
-    /// Explicit padding, used to align rows in a page (manually)
-    padding: ExplicitPadding,
 }
 
 /// Contains the artist name and ID.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
-#[bw(import(row_index: usize))]
 pub struct Artist {
     /// Determines if the `name` string is located at the 8-bit offset (0x60) or the 16-bit offset (0x64).
     subtype: Subtype,
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
     /// Appears to always be 0x20 * row index.
-    #[br(temp)]
-    #[bw(calc = 0x20 * row_index as u16)]
-    _index_shift: u16,
+    index_shift: u16,
     /// ID of this row.
     id: ArtistId,
     /// offsets at the row end
     #[brw(args(8, subtype.get_offset_size(), ()))]
     offsets: OffsetArrayContainer<TrailingName, 2>,
-    /// Explicit padding, used to align rows in a page (manually)
-    #[br(args(0x30))]
-    padding: ExplicitPadding,
 }
-
-// impl Artist {
-//
-// This is the auto alignment code for artist rows specifically, it has been retired temporarily
-// by manual padding settings. Its stays here commented so it can be reused later.
-//
-// #[writer(writer: writer, endian: endian)]
-// fn write_string_with_padding(str: &DeviceSQLString, subtype: u16) -> BinResult<()> {
-//     str.write_options(writer, endian, ())?;
-//     let string_end = writer.stream_position()?;
-
-//     let aligned_down = string_end & !0b11;
-//     let next_position = match (subtype, string_end % 4) {
-//         (0x64, _) => align_by(4, string_end) + 4,
-//         (_, 3) => aligned_down + 12,
-//         (_, _) => aligned_down + 8,
-//     };
-//     let total_pad = next_position - string_end;
-//     // TODO(Swiftb0y): https://github.com/jam1garner/binrw/discussions/344
-//     writer.write_all(&vec![0u8; total_pad as usize])?;
-//     Ok(())
-// }
-// }
 
 /// Contains the artwork path and ID.
 #[binrw]
@@ -1213,15 +1064,12 @@ pub struct TrackStrings {
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
-#[bw(import (row_index: usize))]
 pub struct Track {
     /// Unknown field, usually `24 00`.
     subtype: Subtype,
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
     /// Appears to always be 0x20 * row index.
-    #[br(temp)]
-    #[bw(calc = 0x20 * row_index as u16)]
-    _index_shift: u16,
+    index_shift: u16,
     /// Unknown field, called `bitmask` by [@flesniak](https://github.com/flesniak).
     /// Appears to always be 0x000c0700.
     bitmask: u32,
@@ -1283,21 +1131,6 @@ pub struct Track {
     file_type: FileType,
     #[brw(args(0x5C, subtype.get_offset_size(), ()))]
     offsets: OffsetArrayContainer<TrackStrings, 22>,
-    // Track paddings in general seem to follow this odd formula.
-    // A similar oddity is the case with other rows employing an OffsetArray
-    // (though with different padding_base)
-    // let mut padding_base = 0x34;
-    // // This is a heuristic that seems to match the padding behavior of the
-    // // original file for the `track_page` test case. The actual logic
-    // // is unknown.
-    // // We're assigning a different padding base for even and odd tracks
-    // if self.id.0 % 2 == 0 {
-    //     padding_base += 4;
-    // }
-    // padding_base = ((end_of_row + padding_base) & !0b11) - end_of_row;
-    // writer.seek(SeekFrom::Current(padding_base as i64))?;
-    #[br(args(0x40))]
-    padding: ExplicitPadding,
 }
 
 /// Visibility state for a Menu on the CDJ.
@@ -1353,7 +1186,6 @@ pub struct Menu {
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 #[br(import(page_type: PlainPageType))]
-#[bw(import (row_index: usize))]
 // The large enum size is unfortunate, but since users of this library will probably use iterators
 // to consume the results on demand, we can live with this. The alternative of using a `Box` would
 // require a heap allocation per row, which is arguably worse. Hence, the warning is disabled for
@@ -1361,74 +1193,56 @@ pub struct Menu {
 #[allow(clippy::large_enum_variant)]
 pub enum PlainRow {
     /// Contains the album name, along with an ID of the corresponding artist.
+    ///
+    /// Fresh album rows typically have a bit of padding, presumably to allow
+    /// edits on DJ gear.
     #[br(pre_assert(page_type == PlainPageType::Albums))]
-    Album(#[bw(args(row_index))] Album),
+    Album(#[bw(pad_after = 6, align_after = 4)] Album),
     /// Contains the artist name and ID.
+    ///
+    /// Fresh artist rows typically have a bit of padding, presumably to allow
+    /// edits on DJ gear.
     #[br(pre_assert(page_type == PlainPageType::Artists))]
-    Artist(#[bw(args(row_index))] Artist),
+    Artist(#[bw(pad_after = 6, align_after = 4)] Artist),
     /// Contains the artwork path and ID.
     #[br(pre_assert(page_type == PlainPageType::Artwork))]
-    Artwork(Artwork),
+    Artwork(#[bw(pad_after = 0, align_after = 4)] Artwork),
     /// Contains numeric color ID
     #[br(pre_assert(page_type == PlainPageType::Colors))]
-    Color(Color),
+    Color(#[bw(pad_after = 0, align_after = 4)] Color),
     /// Represents a musical genre.
     #[br(pre_assert(page_type == PlainPageType::Genres))]
-    Genre(Genre),
+    Genre(#[bw(pad_after = 0, align_after = 4)] Genre),
     /// Represents a history playlist.
     #[br(pre_assert(page_type == PlainPageType::HistoryPlaylists))]
-    HistoryPlaylist(HistoryPlaylist),
+    HistoryPlaylist(#[bw(pad_after = 0, align_after = 4)] HistoryPlaylist),
     /// Represents a history playlist.
     #[br(pre_assert(page_type == PlainPageType::HistoryEntries))]
-    HistoryEntry(HistoryEntry),
+    HistoryEntry(#[bw(pad_after = 0, align_after = 4)] HistoryEntry),
     /// Represents a musical key.
     #[br(pre_assert(page_type == PlainPageType::Keys))]
-    Key(Key),
+    Key(#[bw(pad_after = 0, align_after = 4)] Key),
     /// Represents a record label.
     #[br(pre_assert(page_type == PlainPageType::Labels))]
-    Label(Label),
+    Label(#[bw(pad_after = 0, align_after = 4)] Label),
     /// Represents a node in the playlist tree (either a folder or a playlist).
     #[br(pre_assert(page_type == PlainPageType::PlaylistTree))]
-    PlaylistTreeNode(PlaylistTreeNode),
+    PlaylistTreeNode(#[bw(pad_after = 0, align_after = 4)] PlaylistTreeNode),
     /// Represents a track entry in a playlist.
     #[br(pre_assert(page_type == PlainPageType::PlaylistEntries))]
-    PlaylistEntry(PlaylistEntry),
+    PlaylistEntry(#[bw(pad_after = 0, align_after = 4)] PlaylistEntry),
     /// Contains the metadata categories by which Tracks can be browsed by.
     #[br(pre_assert(page_type == PlainPageType::Columns))]
-    ColumnEntry(ColumnEntry),
+    ColumnEntry(#[bw(pad_after = 0, align_after = 4)] ColumnEntry),
     /// Manages the active menus on the CDJ.
     #[br(pre_assert(page_type == PlainPageType::Menu))]
-    Menu(Menu),
+    Menu(#[bw(pad_after = 0, align_after = 4)] Menu),
     /// Contains a track entry.
+    ///
+    /// Fresh track rows typically have a bit of padding, presumably to allow
+    /// edits on DJ gear.
     #[br(pre_assert(page_type == PlainPageType::Tracks))]
-    Track(#[bw(args(row_index))] Track),
-}
-
-impl PlainRow {
-    #[must_use]
-    const fn align_by(&self, offset: u64) -> u64 {
-        use crate::pdb::PlainRow::*;
-        use crate::util::align_by;
-        use std::mem::align_of_val;
-        // unfortunately I couldn't find any less copy-pastey way of doing this
-        // without unnecessarily complex macros.
-        match &self {
-            Album(_) => offset,
-            Artist(_) => offset,
-            Artwork(_) => align_by(4, offset),
-            Color(_) => align_by(4, offset),
-            ColumnEntry(r) => align_by(align_of_val(r) as u64, offset),
-            Genre(_) => align_by(4, offset), // fixed alignment to 4 bytes
-            HistoryPlaylist(r) => align_by(align_of_val(r) as u64, offset),
-            HistoryEntry(r) => align_by(align_of_val(r) as u64, offset),
-            Key(_) => align_by(4, offset),
-            Label(_) => align_by(4, offset),
-            Menu(r) => align_by(align_of_val(r) as u64, offset),
-            PlaylistTreeNode(_) => align_by(4, offset),
-            PlaylistEntry(r) => align_by(align_of_val(r) as u64, offset),
-            Track(_) => offset, // already handled by track serialization
-        }
-    }
+    Track(#[bw(pad_after = 0x30, align_after = 4)] Track),
 }
 
 /// A table row contains the actual data.
@@ -1436,7 +1250,6 @@ impl PlainRow {
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
 #[br(import(page_type: PageType))]
-#[bw(import(row_index: usize))]
 // The large enum size is unfortunate, but since users of this library will probably use iterators
 // to consume the results on demand, we can live with this. The alternative of using a `Box` would
 // require a heap allocation per row, which is arguably worse. Hence, the warning is disabled for
@@ -1451,7 +1264,6 @@ pub enum Row {
             PageType::Plain(v) => v,
             _ => unreachable!("by above pre_assert")
         }))]
-        #[bw(args(row_index))]
         PlainRow,
     ),
     #[br(pre_assert(matches!(page_type, PageType::Ext(_))))]
@@ -1466,15 +1278,4 @@ pub enum Row {
     /// The row format (and also its size) is unknown, which means it can't be parsed.
     #[br(pre_assert(matches!(page_type, PageType::Plain(PlainPageType::History) | PageType::Unknown(_))))]
     Unknown,
-}
-
-impl Row {
-    #[must_use]
-    fn align_by(&self, offset: u64) -> u64 {
-        match self {
-            Row::Plain(plain_row) => plain_row.align_by(offset),
-            Row::Ext(ext_row) => ext_row.align_by(offset),
-            Row::Unknown => offset,
-        }
-    }
 }
