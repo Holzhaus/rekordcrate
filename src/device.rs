@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Jan Holthuis <jan.holthuis@rub.de>
+// Copyright (c) 2025 Jan Holthuis <jan.holthuis@rub.de>
 //
 // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy
 // of the MPL was not distributed with this file, You can obtain one at
@@ -142,6 +142,7 @@ impl DeviceExport {
     }
 
     /// Get the entries for a single playlist.
+    #[must_use]
     pub fn get_playlist_entries(
         &self,
         id: PlaylistTreeNodeId,
@@ -466,12 +467,13 @@ impl Pdb {
 
     /// Get tracks.
     pub fn get_tracks(&self) -> impl Iterator<Item = Track> + '_ {
-        self.get_rows_by_page_type(PlainPageType::Tracks).filter_map(|row| {
-            if let Row::Plain(PlainRow::Track(track)) = row {
-                Some(track.clone())
-            } else {
-                None
-            }
-        })
+        self.get_rows_by_page_type(PlainPageType::Tracks)
+            .filter_map(|row| {
+                if let Row::Plain(PlainRow::Track(track)) = row {
+                    Some(track.clone())
+                } else {
+                    None
+                }
+            })
     }
 }

@@ -230,9 +230,8 @@ fn export_playlists(path: &Path, output_dir: &PathBuf) -> rekordcrate::Result<()
                 })?;
             }
             PlaylistNode::Playlist(playlist) => {
-                let mut playlist_entries: Vec<(u32, TrackId)> = export
-                    .get_playlist_entries(playlist.id)
-                    .collect();
+                let mut playlist_entries: Vec<(u32, TrackId)> =
+                    export.get_playlist_entries(playlist.id).collect();
                 playlist_entries.sort_by_key(|entry| entry.0);
 
                 std::fs::create_dir_all(path)?;
