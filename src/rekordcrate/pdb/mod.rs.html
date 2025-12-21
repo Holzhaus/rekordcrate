@@ -752,7 +752,7 @@
 <a href=#752 id=752 data-nosnippet>752</a>    #[br(parse_with = offsets.read_offset(<span class="number">1</span>))]
 <a href=#753 id=753 data-nosnippet>753</a>    #[bw(write_with = offsets.write_offset(<span class="number">1</span>))]
 <a href=#754 id=754 data-nosnippet>754</a>    </span><span class="doccomment">/// The name a the end of the row this is used in
-<a href=#755 id=755 data-nosnippet>755</a>    </span>name: DeviceSQLString,
+<a href=#755 id=755 data-nosnippet>755</a>    </span><span class="kw">pub </span>name: DeviceSQLString,
 <a href=#756 id=756 data-nosnippet>756</a>}
 <a href=#757 id=757 data-nosnippet>757</a>
 <a href=#758 id=758 data-nosnippet>758</a><span class="doccomment">/// Contains the album name, along with an ID of the corresponding artist.
@@ -789,10 +789,10 @@
 <a href=#789 id=789 data-nosnippet>789</a>    /// Appears to always be 0x20 * row index.
 <a href=#790 id=790 data-nosnippet>790</a>    </span>index_shift: u16,
 <a href=#791 id=791 data-nosnippet>791</a>    <span class="doccomment">/// ID of this row.
-<a href=#792 id=792 data-nosnippet>792</a>    </span>id: ArtistId,
+<a href=#792 id=792 data-nosnippet>792</a>    </span><span class="kw">pub </span>id: ArtistId,
 <a href=#793 id=793 data-nosnippet>793</a>    <span class="doccomment">/// offsets at the row end
 <a href=#794 id=794 data-nosnippet>794</a>    </span><span class="attr">#[brw(args(<span class="number">8</span>, subtype.get_offset_size(), ()))]
-<a href=#795 id=795 data-nosnippet>795</a>    </span>offsets: OffsetArrayContainer&lt;TrailingName, <span class="number">2</span>&gt;,
+<a href=#795 id=795 data-nosnippet>795</a>    </span><span class="kw">pub </span>offsets: OffsetArrayContainer&lt;TrailingName, <span class="number">2</span>&gt;,
 <a href=#796 id=796 data-nosnippet>796</a>}
 <a href=#797 id=797 data-nosnippet>797</a>
 <a href=#798 id=798 data-nosnippet>798</a><span class="doccomment">/// Contains the artwork path and ID.
@@ -915,11 +915,11 @@
 <a href=#915 id=915 data-nosnippet>915</a>#[brw(little)]
 <a href=#916 id=916 data-nosnippet>916</a></span><span class="kw">pub struct </span>PlaylistEntry {
 <a href=#917 id=917 data-nosnippet>917</a>    <span class="doccomment">/// Position within the playlist.
-<a href=#918 id=918 data-nosnippet>918</a>    </span>entry_index: u32,
+<a href=#918 id=918 data-nosnippet>918</a>    </span><span class="kw">pub </span>entry_index: u32,
 <a href=#919 id=919 data-nosnippet>919</a>    <span class="doccomment">/// ID of the track played at this position in the playlist.
-<a href=#920 id=920 data-nosnippet>920</a>    </span>track_id: TrackId,
+<a href=#920 id=920 data-nosnippet>920</a>    </span><span class="kw">pub </span>track_id: TrackId,
 <a href=#921 id=921 data-nosnippet>921</a>    <span class="doccomment">/// ID of the playlist.
-<a href=#922 id=922 data-nosnippet>922</a>    </span>playlist_id: PlaylistTreeNodeId,
+<a href=#922 id=922 data-nosnippet>922</a>    </span><span class="kw">pub </span>playlist_id: PlaylistTreeNodeId,
 <a href=#923 id=923 data-nosnippet>923</a>}
 <a href=#924 id=924 data-nosnippet>924</a>
 <a href=#925 id=925 data-nosnippet>925</a><span class="doccomment">/// Contains the kinds of Metadata Categories tracks can be browsed by
@@ -1042,7 +1042,7 @@
 <a href=#1042 id=1042 data-nosnippet>1042</a>    </span><span class="attr">#[brw(args(base, ()))]
 <a href=#1043 id=1043 data-nosnippet>1043</a>    #[br(parse_with = offsets.read_offset(<span class="number">18</span>))]
 <a href=#1044 id=1044 data-nosnippet>1044</a>    #[bw(write_with = offsets.write_offset(<span class="number">18</span>))]
-<a href=#1045 id=1045 data-nosnippet>1045</a>    </span>title: DeviceSQLString,
+<a href=#1045 id=1045 data-nosnippet>1045</a>    </span><span class="kw">pub </span>title: DeviceSQLString,
 <a href=#1046 id=1046 data-nosnippet>1046</a>    <span class="doccomment">/// Unknown string field (usually empty).
 <a href=#1047 id=1047 data-nosnippet>1047</a>    </span><span class="attr">#[brw(args(base, ()))]
 <a href=#1048 id=1048 data-nosnippet>1048</a>    #[br(parse_with = offsets.read_offset(<span class="number">19</span>))]
@@ -1108,9 +1108,9 @@
 <a href=#1108 id=1108 data-nosnippet>1108</a>    <span class="doccomment">/// Album row ID for this track (non-zero if set).
 <a href=#1109 id=1109 data-nosnippet>1109</a>    </span>album_id: AlbumId,
 <a href=#1110 id=1110 data-nosnippet>1110</a>    <span class="doccomment">/// Artist row ID for this track (non-zero if set).
-<a href=#1111 id=1111 data-nosnippet>1111</a>    </span>artist_id: ArtistId,
+<a href=#1111 id=1111 data-nosnippet>1111</a>    </span><span class="kw">pub </span>artist_id: ArtistId,
 <a href=#1112 id=1112 data-nosnippet>1112</a>    <span class="doccomment">/// Row ID of this track (non-zero if set).
-<a href=#1113 id=1113 data-nosnippet>1113</a>    </span>id: TrackId,
+<a href=#1113 id=1113 data-nosnippet>1113</a>    </span><span class="kw">pub </span>id: TrackId,
 <a href=#1114 id=1114 data-nosnippet>1114</a>    <span class="doccomment">/// Disc number of this track (non-zero if set).
 <a href=#1115 id=1115 data-nosnippet>1115</a>    </span>disc_number: u16,
 <a href=#1116 id=1116 data-nosnippet>1116</a>    <span class="doccomment">/// Number of times this track was played.
@@ -1129,153 +1129,154 @@
 <a href=#1129 id=1129 data-nosnippet>1129</a>    </span>rating: u8,
 <a href=#1130 id=1130 data-nosnippet>1130</a>    <span class="doccomment">/// Format of the file.
 <a href=#1131 id=1131 data-nosnippet>1131</a>    </span>file_type: FileType,
-<a href=#1132 id=1132 data-nosnippet>1132</a>    <span class="attr">#[brw(args(<span class="number">0x5C</span>, subtype.get_offset_size(), ()))]
-<a href=#1133 id=1133 data-nosnippet>1133</a>    </span>offsets: OffsetArrayContainer&lt;TrackStrings, <span class="number">22</span>&gt;,
-<a href=#1134 id=1134 data-nosnippet>1134</a>}
-<a href=#1135 id=1135 data-nosnippet>1135</a>
-<a href=#1136 id=1136 data-nosnippet>1136</a><span class="doccomment">/// Visibility state for a Menu on the CDJ.
-<a href=#1137 id=1137 data-nosnippet>1137</a></span><span class="attr">#[binrw]
-<a href=#1138 id=1138 data-nosnippet>1138</a>#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-<a href=#1139 id=1139 data-nosnippet>1139</a>#[brw(little)]
-<a href=#1140 id=1140 data-nosnippet>1140</a></span><span class="kw">pub enum </span>MenuVisibility {
-<a href=#1141 id=1141 data-nosnippet>1141</a>    <span class="doccomment">/// The menu is visible.
-<a href=#1142 id=1142 data-nosnippet>1142</a>    </span><span class="attr">#[brw(magic = <span class="number">0x00u8</span>)]
-<a href=#1143 id=1143 data-nosnippet>1143</a>    </span>Visible,
-<a href=#1144 id=1144 data-nosnippet>1144</a>    <span class="doccomment">/// The menu is hidden.
-<a href=#1145 id=1145 data-nosnippet>1145</a>    </span><span class="attr">#[brw(magic = <span class="number">0x01u8</span>)]
-<a href=#1146 id=1146 data-nosnippet>1146</a>    </span>Hidden,
-<a href=#1147 id=1147 data-nosnippet>1147</a>    <span class="doccomment">/// Unknown visibility flag.
-<a href=#1148 id=1148 data-nosnippet>1148</a>    </span>Unknown(u8),
-<a href=#1149 id=1149 data-nosnippet>1149</a>}
-<a href=#1150 id=1150 data-nosnippet>1150</a>
-<a href=#1151 id=1151 data-nosnippet>1151</a><span class="doccomment">/// This table defines the active menus on the CDJ.
-<a href=#1152 id=1152 data-nosnippet>1152</a></span><span class="attr">#[binrw]
-<a href=#1153 id=1153 data-nosnippet>1153</a>#[derive(Debug, PartialEq, Eq, Clone)]
-<a href=#1154 id=1154 data-nosnippet>1154</a>#[brw(little)]
-<a href=#1155 id=1155 data-nosnippet>1155</a></span><span class="kw">pub struct </span>Menu {
-<a href=#1156 id=1156 data-nosnippet>1156</a>    <span class="doccomment">/// Determines the Label (e.g. "ARTIST").
-<a href=#1157 id=1157 data-nosnippet>1157</a>    /// Matches IDs in the COLUMN table.
-<a href=#1158 id=1158 data-nosnippet>1158</a>    </span><span class="kw">pub </span>category_id: u16,
-<a href=#1159 id=1159 data-nosnippet>1159</a>
-<a href=#1160 id=1160 data-nosnippet>1160</a>    <span class="doccomment">/// Points to the data source, i.e. the list of artists is 0x02.
-<a href=#1161 id=1161 data-nosnippet>1161</a>    </span><span class="kw">pub </span>content_pointer: u16,
-<a href=#1162 id=1162 data-nosnippet>1162</a>    <span class="doccomment">/// Unknown field. Swapping values here appears to have no effect on CDJ-350 behavior.
-<a href=#1163 id=1163 data-nosnippet>1163</a>    ///
-<a href=#1164 id=1164 data-nosnippet>1164</a>    /// Some observed values:
-<a href=#1165 id=1165 data-nosnippet>1165</a>    /// - 0x01: Track
-<a href=#1166 id=1166 data-nosnippet>1166</a>    /// - 0x02: Artist
-<a href=#1167 id=1167 data-nosnippet>1167</a>    /// - 0x03: Album
-<a href=#1168 id=1168 data-nosnippet>1168</a>    /// - 0x05: BPM
-<a href=#1169 id=1169 data-nosnippet>1169</a>    /// - 0x63 (99): Generic List (Playlist, Genre, Key, History)
-<a href=#1170 id=1170 data-nosnippet>1170</a>    </span><span class="kw">pub </span>unknown: u8,
-<a href=#1171 id=1171 data-nosnippet>1171</a>
-<a href=#1172 id=1172 data-nosnippet>1172</a>    <span class="doccomment">/// Visibility state of the menu item.
-<a href=#1173 id=1173 data-nosnippet>1173</a>    ///
-<a href=#1174 id=1174 data-nosnippet>1174</a>    /// Experiments confirmed that changing this from `Hidden` to `Visible` makes hidden menus
-<a href=#1175 id=1175 data-nosnippet>1175</a>    /// (like Genre) appear, although some menus do not show in the CDJ-350 even when made
-<a href=#1176 id=1176 data-nosnippet>1176</a>    /// visible here.
-<a href=#1177 id=1177 data-nosnippet>1177</a>    </span><span class="kw">pub </span>visibility: MenuVisibility,
-<a href=#1178 id=1178 data-nosnippet>1178</a>
-<a href=#1179 id=1179 data-nosnippet>1179</a>    <span class="doccomment">/// Visual position in the menu list.
-<a href=#1180 id=1180 data-nosnippet>1180</a>    /// 0 is valid and places the item at the very top (if visible).
-<a href=#1181 id=1181 data-nosnippet>1181</a>    </span><span class="kw">pub </span>sort_order: u16,
-<a href=#1182 id=1182 data-nosnippet>1182</a>}
-<a href=#1183 id=1183 data-nosnippet>1183</a>
-<a href=#1184 id=1184 data-nosnippet>1184</a><span class="doccomment">/// A table row contains the actual data.
-<a href=#1185 id=1185 data-nosnippet>1185</a></span><span class="attr">#[binrw]
-<a href=#1186 id=1186 data-nosnippet>1186</a>#[derive(Debug, PartialEq, Eq, Clone)]
-<a href=#1187 id=1187 data-nosnippet>1187</a>#[brw(little)]
-<a href=#1188 id=1188 data-nosnippet>1188</a>#[br(import(page_type: PlainPageType))]
-<a href=#1189 id=1189 data-nosnippet>1189</a></span><span class="comment">// The large enum size is unfortunate, but since users of this library will probably use iterators
-<a href=#1190 id=1190 data-nosnippet>1190</a>// to consume the results on demand, we can live with this. The alternative of using a `Box` would
-<a href=#1191 id=1191 data-nosnippet>1191</a>// require a heap allocation per row, which is arguably worse. Hence, the warning is disabled for
-<a href=#1192 id=1192 data-nosnippet>1192</a>// this enum.
-<a href=#1193 id=1193 data-nosnippet>1193</a></span><span class="attr">#[allow(clippy::large_enum_variant)]
-<a href=#1194 id=1194 data-nosnippet>1194</a></span><span class="kw">pub enum </span>PlainRow {
-<a href=#1195 id=1195 data-nosnippet>1195</a>    <span class="doccomment">/// Contains the album name, along with an ID of the corresponding artist.
-<a href=#1196 id=1196 data-nosnippet>1196</a>    ///
-<a href=#1197 id=1197 data-nosnippet>1197</a>    /// Fresh album rows typically have a bit of padding, presumably to allow
-<a href=#1198 id=1198 data-nosnippet>1198</a>    /// edits on DJ gear.
-<a href=#1199 id=1199 data-nosnippet>1199</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Albums))]
-<a href=#1200 id=1200 data-nosnippet>1200</a>    </span>Album(<span class="attr">#[bw(pad_after = <span class="number">6</span>, align_after = <span class="number">4</span>)] </span>Album),
-<a href=#1201 id=1201 data-nosnippet>1201</a>    <span class="doccomment">/// Contains the artist name and ID.
-<a href=#1202 id=1202 data-nosnippet>1202</a>    ///
-<a href=#1203 id=1203 data-nosnippet>1203</a>    /// Fresh artist rows typically have a bit of padding, presumably to allow
-<a href=#1204 id=1204 data-nosnippet>1204</a>    /// edits on DJ gear.
-<a href=#1205 id=1205 data-nosnippet>1205</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Artists))]
-<a href=#1206 id=1206 data-nosnippet>1206</a>    </span>Artist(<span class="attr">#[bw(pad_after = <span class="number">6</span>, align_after = <span class="number">4</span>)] </span>Artist),
-<a href=#1207 id=1207 data-nosnippet>1207</a>    <span class="doccomment">/// Contains the artwork path and ID.
-<a href=#1208 id=1208 data-nosnippet>1208</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Artwork))]
-<a href=#1209 id=1209 data-nosnippet>1209</a>    </span>Artwork(<span class="attr">#[bw(pad_after = <span class="number">0</span>, align_after = <span class="number">4</span>)] </span>Artwork),
-<a href=#1210 id=1210 data-nosnippet>1210</a>    <span class="doccomment">/// Contains numeric color ID
-<a href=#1211 id=1211 data-nosnippet>1211</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Colors))]
-<a href=#1212 id=1212 data-nosnippet>1212</a>    </span>Color(<span class="attr">#[bw(pad_after = <span class="number">0</span>, align_after = <span class="number">4</span>)] </span>Color),
-<a href=#1213 id=1213 data-nosnippet>1213</a>    <span class="doccomment">/// Represents a musical genre.
-<a href=#1214 id=1214 data-nosnippet>1214</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Genres))]
-<a href=#1215 id=1215 data-nosnippet>1215</a>    </span>Genre(<span class="attr">#[bw(pad_after = <span class="number">0</span>, align_after = <span class="number">4</span>)] </span>Genre),
-<a href=#1216 id=1216 data-nosnippet>1216</a>    <span class="doccomment">/// Represents a history playlist.
-<a href=#1217 id=1217 data-nosnippet>1217</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::HistoryPlaylists))]
-<a href=#1218 id=1218 data-nosnippet>1218</a>    </span>HistoryPlaylist(<span class="attr">#[bw(pad_after = <span class="number">0</span>, align_after = <span class="number">4</span>)] </span>HistoryPlaylist),
-<a href=#1219 id=1219 data-nosnippet>1219</a>    <span class="doccomment">/// Represents a history playlist.
-<a href=#1220 id=1220 data-nosnippet>1220</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::HistoryEntries))]
-<a href=#1221 id=1221 data-nosnippet>1221</a>    </span>HistoryEntry(<span class="attr">#[bw(pad_after = <span class="number">0</span>, align_after = <span class="number">4</span>)] </span>HistoryEntry),
-<a href=#1222 id=1222 data-nosnippet>1222</a>    <span class="doccomment">/// Represents a musical key.
-<a href=#1223 id=1223 data-nosnippet>1223</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Keys))]
-<a href=#1224 id=1224 data-nosnippet>1224</a>    </span>Key(<span class="attr">#[bw(pad_after = <span class="number">0</span>, align_after = <span class="number">4</span>)] </span>Key),
-<a href=#1225 id=1225 data-nosnippet>1225</a>    <span class="doccomment">/// Represents a record label.
-<a href=#1226 id=1226 data-nosnippet>1226</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Labels))]
-<a href=#1227 id=1227 data-nosnippet>1227</a>    </span>Label(<span class="attr">#[bw(pad_after = <span class="number">0</span>, align_after = <span class="number">4</span>)] </span>Label),
-<a href=#1228 id=1228 data-nosnippet>1228</a>    <span class="doccomment">/// Represents a node in the playlist tree (either a folder or a playlist).
-<a href=#1229 id=1229 data-nosnippet>1229</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::PlaylistTree))]
-<a href=#1230 id=1230 data-nosnippet>1230</a>    </span>PlaylistTreeNode(<span class="attr">#[bw(pad_after = <span class="number">0</span>, align_after = <span class="number">4</span>)] </span>PlaylistTreeNode),
-<a href=#1231 id=1231 data-nosnippet>1231</a>    <span class="doccomment">/// Represents a track entry in a playlist.
-<a href=#1232 id=1232 data-nosnippet>1232</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::PlaylistEntries))]
-<a href=#1233 id=1233 data-nosnippet>1233</a>    </span>PlaylistEntry(<span class="attr">#[bw(pad_after = <span class="number">0</span>, align_after = <span class="number">4</span>)] </span>PlaylistEntry),
-<a href=#1234 id=1234 data-nosnippet>1234</a>    <span class="doccomment">/// Contains the metadata categories by which Tracks can be browsed by.
-<a href=#1235 id=1235 data-nosnippet>1235</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Columns))]
-<a href=#1236 id=1236 data-nosnippet>1236</a>    </span>ColumnEntry(<span class="attr">#[bw(pad_after = <span class="number">0</span>, align_after = <span class="number">4</span>)] </span>ColumnEntry),
-<a href=#1237 id=1237 data-nosnippet>1237</a>    <span class="doccomment">/// Manages the active menus on the CDJ.
-<a href=#1238 id=1238 data-nosnippet>1238</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Menu))]
-<a href=#1239 id=1239 data-nosnippet>1239</a>    </span>Menu(<span class="attr">#[bw(pad_after = <span class="number">0</span>, align_after = <span class="number">4</span>)] </span>Menu),
-<a href=#1240 id=1240 data-nosnippet>1240</a>    <span class="doccomment">/// Contains a track entry.
-<a href=#1241 id=1241 data-nosnippet>1241</a>    ///
-<a href=#1242 id=1242 data-nosnippet>1242</a>    /// Fresh track rows typically have a bit of padding, presumably to allow
-<a href=#1243 id=1243 data-nosnippet>1243</a>    /// edits on DJ gear.
-<a href=#1244 id=1244 data-nosnippet>1244</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Tracks))]
-<a href=#1245 id=1245 data-nosnippet>1245</a>    </span>Track(<span class="attr">#[bw(pad_after = <span class="number">0x30</span>, align_after = <span class="number">4</span>)] </span>Track),
-<a href=#1246 id=1246 data-nosnippet>1246</a>}
-<a href=#1247 id=1247 data-nosnippet>1247</a>
-<a href=#1248 id=1248 data-nosnippet>1248</a><span class="doccomment">/// A table row contains the actual data.
-<a href=#1249 id=1249 data-nosnippet>1249</a></span><span class="attr">#[binrw]
-<a href=#1250 id=1250 data-nosnippet>1250</a>#[derive(Debug, PartialEq, Eq, Clone)]
-<a href=#1251 id=1251 data-nosnippet>1251</a>#[brw(little)]
-<a href=#1252 id=1252 data-nosnippet>1252</a>#[br(import(page_type: PageType))]
-<a href=#1253 id=1253 data-nosnippet>1253</a></span><span class="comment">// The large enum size is unfortunate, but since users of this library will probably use iterators
-<a href=#1254 id=1254 data-nosnippet>1254</a>// to consume the results on demand, we can live with this. The alternative of using a `Box` would
-<a href=#1255 id=1255 data-nosnippet>1255</a>// require a heap allocation per row, which is arguably worse. Hence, the warning is disabled for
-<a href=#1256 id=1256 data-nosnippet>1256</a>// this enum.
-<a href=#1257 id=1257 data-nosnippet>1257</a></span><span class="attr">#[allow(clippy::large_enum_variant)]
-<a href=#1258 id=1258 data-nosnippet>1258</a></span><span class="kw">pub enum </span>Row {
-<a href=#1259 id=1259 data-nosnippet>1259</a>    <span class="comment">// TODO(Swiftb0y: come up with something prettier than the match hell below)
-<a href=#1260 id=1260 data-nosnippet>1260</a>    </span><span class="attr">#[br(pre_assert(<span class="macro">matches!</span>(page_type, PageType::Plain(<span class="kw">_</span>))))]
-<a href=#1261 id=1261 data-nosnippet>1261</a>    </span><span class="doccomment">/// A row in a "plain" database (export.pdb), which contains one of the known row types.
-<a href=#1262 id=1262 data-nosnippet>1262</a>    </span>Plain(
-<a href=#1263 id=1263 data-nosnippet>1263</a>        <span class="attr">#[br(args(<span class="kw">match </span>page_type {
-<a href=#1264 id=1264 data-nosnippet>1264</a>            PageType::Plain(v) =&gt; v,
-<a href=#1265 id=1265 data-nosnippet>1265</a>            <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(<span class="string">"by above pre_assert"</span>)
-<a href=#1266 id=1266 data-nosnippet>1266</a>        }))]
-<a href=#1267 id=1267 data-nosnippet>1267</a>        </span>PlainRow,
-<a href=#1268 id=1268 data-nosnippet>1268</a>    ),
-<a href=#1269 id=1269 data-nosnippet>1269</a>    <span class="attr">#[br(pre_assert(<span class="macro">matches!</span>(page_type, PageType::Ext(<span class="kw">_</span>))))]
-<a href=#1270 id=1270 data-nosnippet>1270</a>    </span><span class="doccomment">/// A row in an "ext" database (exportExt.pdb), which contains extended track information.
-<a href=#1271 id=1271 data-nosnippet>1271</a>    </span>Ext(
-<a href=#1272 id=1272 data-nosnippet>1272</a>        <span class="attr">#[br(args(<span class="kw">match </span>page_type {
-<a href=#1273 id=1273 data-nosnippet>1273</a>            PageType::Ext(v) =&gt; v,
-<a href=#1274 id=1274 data-nosnippet>1274</a>            <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(<span class="string">"by above pre_assert"</span>)
-<a href=#1275 id=1275 data-nosnippet>1275</a>        }))]
-<a href=#1276 id=1276 data-nosnippet>1276</a>        </span>ExtRow,
-<a href=#1277 id=1277 data-nosnippet>1277</a>    ),
-<a href=#1278 id=1278 data-nosnippet>1278</a>    <span class="doccomment">/// The row format (and also its size) is unknown, which means it can't be parsed.
-<a href=#1279 id=1279 data-nosnippet>1279</a>    </span><span class="attr">#[br(pre_assert(<span class="macro">matches!</span>(page_type, PageType::Plain(PlainPageType::History) | PageType::Unknown(<span class="kw">_</span>))))]
-<a href=#1280 id=1280 data-nosnippet>1280</a>    </span>Unknown,
-<a href=#1281 id=1281 data-nosnippet>1281</a>}</code></pre></div></section></main></body></html>
+<a href=#1132 id=1132 data-nosnippet>1132</a>    <span class="doccomment">/// offsets (strings) at row end
+<a href=#1133 id=1133 data-nosnippet>1133</a>    </span><span class="attr">#[brw(args(<span class="number">0x5C</span>, subtype.get_offset_size(), ()))]
+<a href=#1134 id=1134 data-nosnippet>1134</a>    </span><span class="kw">pub </span>offsets: OffsetArrayContainer&lt;TrackStrings, <span class="number">22</span>&gt;,
+<a href=#1135 id=1135 data-nosnippet>1135</a>}
+<a href=#1136 id=1136 data-nosnippet>1136</a>
+<a href=#1137 id=1137 data-nosnippet>1137</a><span class="doccomment">/// Visibility state for a Menu on the CDJ.
+<a href=#1138 id=1138 data-nosnippet>1138</a></span><span class="attr">#[binrw]
+<a href=#1139 id=1139 data-nosnippet>1139</a>#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+<a href=#1140 id=1140 data-nosnippet>1140</a>#[brw(little)]
+<a href=#1141 id=1141 data-nosnippet>1141</a></span><span class="kw">pub enum </span>MenuVisibility {
+<a href=#1142 id=1142 data-nosnippet>1142</a>    <span class="doccomment">/// The menu is visible.
+<a href=#1143 id=1143 data-nosnippet>1143</a>    </span><span class="attr">#[brw(magic = <span class="number">0x00u8</span>)]
+<a href=#1144 id=1144 data-nosnippet>1144</a>    </span>Visible,
+<a href=#1145 id=1145 data-nosnippet>1145</a>    <span class="doccomment">/// The menu is hidden.
+<a href=#1146 id=1146 data-nosnippet>1146</a>    </span><span class="attr">#[brw(magic = <span class="number">0x01u8</span>)]
+<a href=#1147 id=1147 data-nosnippet>1147</a>    </span>Hidden,
+<a href=#1148 id=1148 data-nosnippet>1148</a>    <span class="doccomment">/// Unknown visibility flag.
+<a href=#1149 id=1149 data-nosnippet>1149</a>    </span>Unknown(u8),
+<a href=#1150 id=1150 data-nosnippet>1150</a>}
+<a href=#1151 id=1151 data-nosnippet>1151</a>
+<a href=#1152 id=1152 data-nosnippet>1152</a><span class="doccomment">/// This table defines the active menus on the CDJ.
+<a href=#1153 id=1153 data-nosnippet>1153</a></span><span class="attr">#[binrw]
+<a href=#1154 id=1154 data-nosnippet>1154</a>#[derive(Debug, PartialEq, Eq, Clone)]
+<a href=#1155 id=1155 data-nosnippet>1155</a>#[brw(little)]
+<a href=#1156 id=1156 data-nosnippet>1156</a></span><span class="kw">pub struct </span>Menu {
+<a href=#1157 id=1157 data-nosnippet>1157</a>    <span class="doccomment">/// Determines the Label (e.g. "ARTIST").
+<a href=#1158 id=1158 data-nosnippet>1158</a>    /// Matches IDs in the COLUMN table.
+<a href=#1159 id=1159 data-nosnippet>1159</a>    </span><span class="kw">pub </span>category_id: u16,
+<a href=#1160 id=1160 data-nosnippet>1160</a>
+<a href=#1161 id=1161 data-nosnippet>1161</a>    <span class="doccomment">/// Points to the data source, i.e. the list of artists is 0x02.
+<a href=#1162 id=1162 data-nosnippet>1162</a>    </span><span class="kw">pub </span>content_pointer: u16,
+<a href=#1163 id=1163 data-nosnippet>1163</a>    <span class="doccomment">/// Unknown field. Swapping values here appears to have no effect on CDJ-350 behavior.
+<a href=#1164 id=1164 data-nosnippet>1164</a>    ///
+<a href=#1165 id=1165 data-nosnippet>1165</a>    /// Some observed values:
+<a href=#1166 id=1166 data-nosnippet>1166</a>    /// - 0x01: Track
+<a href=#1167 id=1167 data-nosnippet>1167</a>    /// - 0x02: Artist
+<a href=#1168 id=1168 data-nosnippet>1168</a>    /// - 0x03: Album
+<a href=#1169 id=1169 data-nosnippet>1169</a>    /// - 0x05: BPM
+<a href=#1170 id=1170 data-nosnippet>1170</a>    /// - 0x63 (99): Generic List (Playlist, Genre, Key, History)
+<a href=#1171 id=1171 data-nosnippet>1171</a>    </span><span class="kw">pub </span>unknown: u8,
+<a href=#1172 id=1172 data-nosnippet>1172</a>
+<a href=#1173 id=1173 data-nosnippet>1173</a>    <span class="doccomment">/// Visibility state of the menu item.
+<a href=#1174 id=1174 data-nosnippet>1174</a>    ///
+<a href=#1175 id=1175 data-nosnippet>1175</a>    /// Experiments confirmed that changing this from `Hidden` to `Visible` makes hidden menus
+<a href=#1176 id=1176 data-nosnippet>1176</a>    /// (like Genre) appear, although some menus do not show in the CDJ-350 even when made
+<a href=#1177 id=1177 data-nosnippet>1177</a>    /// visible here.
+<a href=#1178 id=1178 data-nosnippet>1178</a>    </span><span class="kw">pub </span>visibility: MenuVisibility,
+<a href=#1179 id=1179 data-nosnippet>1179</a>
+<a href=#1180 id=1180 data-nosnippet>1180</a>    <span class="doccomment">/// Visual position in the menu list.
+<a href=#1181 id=1181 data-nosnippet>1181</a>    /// 0 is valid and places the item at the very top (if visible).
+<a href=#1182 id=1182 data-nosnippet>1182</a>    </span><span class="kw">pub </span>sort_order: u16,
+<a href=#1183 id=1183 data-nosnippet>1183</a>}
+<a href=#1184 id=1184 data-nosnippet>1184</a>
+<a href=#1185 id=1185 data-nosnippet>1185</a><span class="doccomment">/// A table row contains the actual data.
+<a href=#1186 id=1186 data-nosnippet>1186</a></span><span class="attr">#[binrw]
+<a href=#1187 id=1187 data-nosnippet>1187</a>#[derive(Debug, PartialEq, Eq, Clone)]
+<a href=#1188 id=1188 data-nosnippet>1188</a>#[brw(little)]
+<a href=#1189 id=1189 data-nosnippet>1189</a>#[br(import(page_type: PlainPageType))]
+<a href=#1190 id=1190 data-nosnippet>1190</a></span><span class="comment">// The large enum size is unfortunate, but since users of this library will probably use iterators
+<a href=#1191 id=1191 data-nosnippet>1191</a>// to consume the results on demand, we can live with this. The alternative of using a `Box` would
+<a href=#1192 id=1192 data-nosnippet>1192</a>// require a heap allocation per row, which is arguably worse. Hence, the warning is disabled for
+<a href=#1193 id=1193 data-nosnippet>1193</a>// this enum.
+<a href=#1194 id=1194 data-nosnippet>1194</a></span><span class="attr">#[allow(clippy::large_enum_variant)]
+<a href=#1195 id=1195 data-nosnippet>1195</a></span><span class="kw">pub enum </span>PlainRow {
+<a href=#1196 id=1196 data-nosnippet>1196</a>    <span class="doccomment">/// Contains the album name, along with an ID of the corresponding artist.
+<a href=#1197 id=1197 data-nosnippet>1197</a>    ///
+<a href=#1198 id=1198 data-nosnippet>1198</a>    /// Fresh album rows typically have a bit of padding, presumably to allow
+<a href=#1199 id=1199 data-nosnippet>1199</a>    /// edits on DJ gear.
+<a href=#1200 id=1200 data-nosnippet>1200</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Albums))]
+<a href=#1201 id=1201 data-nosnippet>1201</a>    </span>Album(<span class="attr">#[bw(pad_after = <span class="number">6</span>, align_after = <span class="number">4</span>)] </span>Album),
+<a href=#1202 id=1202 data-nosnippet>1202</a>    <span class="doccomment">/// Contains the artist name and ID.
+<a href=#1203 id=1203 data-nosnippet>1203</a>    ///
+<a href=#1204 id=1204 data-nosnippet>1204</a>    /// Fresh artist rows typically have a bit of padding, presumably to allow
+<a href=#1205 id=1205 data-nosnippet>1205</a>    /// edits on DJ gear.
+<a href=#1206 id=1206 data-nosnippet>1206</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Artists))]
+<a href=#1207 id=1207 data-nosnippet>1207</a>    </span>Artist(<span class="attr">#[bw(pad_after = <span class="number">6</span>, align_after = <span class="number">4</span>)] </span>Artist),
+<a href=#1208 id=1208 data-nosnippet>1208</a>    <span class="doccomment">/// Contains the artwork path and ID.
+<a href=#1209 id=1209 data-nosnippet>1209</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Artwork))]
+<a href=#1210 id=1210 data-nosnippet>1210</a>    </span>Artwork(<span class="attr">#[bw(pad_after = <span class="number">0</span>, align_after = <span class="number">4</span>)] </span>Artwork),
+<a href=#1211 id=1211 data-nosnippet>1211</a>    <span class="doccomment">/// Contains numeric color ID
+<a href=#1212 id=1212 data-nosnippet>1212</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Colors))]
+<a href=#1213 id=1213 data-nosnippet>1213</a>    </span>Color(<span class="attr">#[bw(pad_after = <span class="number">0</span>, align_after = <span class="number">4</span>)] </span>Color),
+<a href=#1214 id=1214 data-nosnippet>1214</a>    <span class="doccomment">/// Represents a musical genre.
+<a href=#1215 id=1215 data-nosnippet>1215</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Genres))]
+<a href=#1216 id=1216 data-nosnippet>1216</a>    </span>Genre(<span class="attr">#[bw(pad_after = <span class="number">0</span>, align_after = <span class="number">4</span>)] </span>Genre),
+<a href=#1217 id=1217 data-nosnippet>1217</a>    <span class="doccomment">/// Represents a history playlist.
+<a href=#1218 id=1218 data-nosnippet>1218</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::HistoryPlaylists))]
+<a href=#1219 id=1219 data-nosnippet>1219</a>    </span>HistoryPlaylist(<span class="attr">#[bw(pad_after = <span class="number">0</span>, align_after = <span class="number">4</span>)] </span>HistoryPlaylist),
+<a href=#1220 id=1220 data-nosnippet>1220</a>    <span class="doccomment">/// Represents a history playlist.
+<a href=#1221 id=1221 data-nosnippet>1221</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::HistoryEntries))]
+<a href=#1222 id=1222 data-nosnippet>1222</a>    </span>HistoryEntry(<span class="attr">#[bw(pad_after = <span class="number">0</span>, align_after = <span class="number">4</span>)] </span>HistoryEntry),
+<a href=#1223 id=1223 data-nosnippet>1223</a>    <span class="doccomment">/// Represents a musical key.
+<a href=#1224 id=1224 data-nosnippet>1224</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Keys))]
+<a href=#1225 id=1225 data-nosnippet>1225</a>    </span>Key(<span class="attr">#[bw(pad_after = <span class="number">0</span>, align_after = <span class="number">4</span>)] </span>Key),
+<a href=#1226 id=1226 data-nosnippet>1226</a>    <span class="doccomment">/// Represents a record label.
+<a href=#1227 id=1227 data-nosnippet>1227</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Labels))]
+<a href=#1228 id=1228 data-nosnippet>1228</a>    </span>Label(<span class="attr">#[bw(pad_after = <span class="number">0</span>, align_after = <span class="number">4</span>)] </span>Label),
+<a href=#1229 id=1229 data-nosnippet>1229</a>    <span class="doccomment">/// Represents a node in the playlist tree (either a folder or a playlist).
+<a href=#1230 id=1230 data-nosnippet>1230</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::PlaylistTree))]
+<a href=#1231 id=1231 data-nosnippet>1231</a>    </span>PlaylistTreeNode(<span class="attr">#[bw(pad_after = <span class="number">0</span>, align_after = <span class="number">4</span>)] </span>PlaylistTreeNode),
+<a href=#1232 id=1232 data-nosnippet>1232</a>    <span class="doccomment">/// Represents a track entry in a playlist.
+<a href=#1233 id=1233 data-nosnippet>1233</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::PlaylistEntries))]
+<a href=#1234 id=1234 data-nosnippet>1234</a>    </span>PlaylistEntry(<span class="attr">#[bw(pad_after = <span class="number">0</span>, align_after = <span class="number">4</span>)] </span>PlaylistEntry),
+<a href=#1235 id=1235 data-nosnippet>1235</a>    <span class="doccomment">/// Contains the metadata categories by which Tracks can be browsed by.
+<a href=#1236 id=1236 data-nosnippet>1236</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Columns))]
+<a href=#1237 id=1237 data-nosnippet>1237</a>    </span>ColumnEntry(<span class="attr">#[bw(pad_after = <span class="number">0</span>, align_after = <span class="number">4</span>)] </span>ColumnEntry),
+<a href=#1238 id=1238 data-nosnippet>1238</a>    <span class="doccomment">/// Manages the active menus on the CDJ.
+<a href=#1239 id=1239 data-nosnippet>1239</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Menu))]
+<a href=#1240 id=1240 data-nosnippet>1240</a>    </span>Menu(<span class="attr">#[bw(pad_after = <span class="number">0</span>, align_after = <span class="number">4</span>)] </span>Menu),
+<a href=#1241 id=1241 data-nosnippet>1241</a>    <span class="doccomment">/// Contains a track entry.
+<a href=#1242 id=1242 data-nosnippet>1242</a>    ///
+<a href=#1243 id=1243 data-nosnippet>1243</a>    /// Fresh track rows typically have a bit of padding, presumably to allow
+<a href=#1244 id=1244 data-nosnippet>1244</a>    /// edits on DJ gear.
+<a href=#1245 id=1245 data-nosnippet>1245</a>    </span><span class="attr">#[br(pre_assert(page_type == PlainPageType::Tracks))]
+<a href=#1246 id=1246 data-nosnippet>1246</a>    </span>Track(<span class="attr">#[bw(pad_after = <span class="number">0x30</span>, align_after = <span class="number">4</span>)] </span>Track),
+<a href=#1247 id=1247 data-nosnippet>1247</a>}
+<a href=#1248 id=1248 data-nosnippet>1248</a>
+<a href=#1249 id=1249 data-nosnippet>1249</a><span class="doccomment">/// A table row contains the actual data.
+<a href=#1250 id=1250 data-nosnippet>1250</a></span><span class="attr">#[binrw]
+<a href=#1251 id=1251 data-nosnippet>1251</a>#[derive(Debug, PartialEq, Eq, Clone)]
+<a href=#1252 id=1252 data-nosnippet>1252</a>#[brw(little)]
+<a href=#1253 id=1253 data-nosnippet>1253</a>#[br(import(page_type: PageType))]
+<a href=#1254 id=1254 data-nosnippet>1254</a></span><span class="comment">// The large enum size is unfortunate, but since users of this library will probably use iterators
+<a href=#1255 id=1255 data-nosnippet>1255</a>// to consume the results on demand, we can live with this. The alternative of using a `Box` would
+<a href=#1256 id=1256 data-nosnippet>1256</a>// require a heap allocation per row, which is arguably worse. Hence, the warning is disabled for
+<a href=#1257 id=1257 data-nosnippet>1257</a>// this enum.
+<a href=#1258 id=1258 data-nosnippet>1258</a></span><span class="attr">#[allow(clippy::large_enum_variant)]
+<a href=#1259 id=1259 data-nosnippet>1259</a></span><span class="kw">pub enum </span>Row {
+<a href=#1260 id=1260 data-nosnippet>1260</a>    <span class="comment">// TODO(Swiftb0y: come up with something prettier than the match hell below)
+<a href=#1261 id=1261 data-nosnippet>1261</a>    </span><span class="attr">#[br(pre_assert(<span class="macro">matches!</span>(page_type, PageType::Plain(<span class="kw">_</span>))))]
+<a href=#1262 id=1262 data-nosnippet>1262</a>    </span><span class="doccomment">/// A row in a "plain" database (export.pdb), which contains one of the known row types.
+<a href=#1263 id=1263 data-nosnippet>1263</a>    </span>Plain(
+<a href=#1264 id=1264 data-nosnippet>1264</a>        <span class="attr">#[br(args(<span class="kw">match </span>page_type {
+<a href=#1265 id=1265 data-nosnippet>1265</a>            PageType::Plain(v) =&gt; v,
+<a href=#1266 id=1266 data-nosnippet>1266</a>            <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(<span class="string">"by above pre_assert"</span>)
+<a href=#1267 id=1267 data-nosnippet>1267</a>        }))]
+<a href=#1268 id=1268 data-nosnippet>1268</a>        </span>PlainRow,
+<a href=#1269 id=1269 data-nosnippet>1269</a>    ),
+<a href=#1270 id=1270 data-nosnippet>1270</a>    <span class="attr">#[br(pre_assert(<span class="macro">matches!</span>(page_type, PageType::Ext(<span class="kw">_</span>))))]
+<a href=#1271 id=1271 data-nosnippet>1271</a>    </span><span class="doccomment">/// A row in an "ext" database (exportExt.pdb), which contains extended track information.
+<a href=#1272 id=1272 data-nosnippet>1272</a>    </span>Ext(
+<a href=#1273 id=1273 data-nosnippet>1273</a>        <span class="attr">#[br(args(<span class="kw">match </span>page_type {
+<a href=#1274 id=1274 data-nosnippet>1274</a>            PageType::Ext(v) =&gt; v,
+<a href=#1275 id=1275 data-nosnippet>1275</a>            <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(<span class="string">"by above pre_assert"</span>)
+<a href=#1276 id=1276 data-nosnippet>1276</a>        }))]
+<a href=#1277 id=1277 data-nosnippet>1277</a>        </span>ExtRow,
+<a href=#1278 id=1278 data-nosnippet>1278</a>    ),
+<a href=#1279 id=1279 data-nosnippet>1279</a>    <span class="doccomment">/// The row format (and also its size) is unknown, which means it can't be parsed.
+<a href=#1280 id=1280 data-nosnippet>1280</a>    </span><span class="attr">#[br(pre_assert(<span class="macro">matches!</span>(page_type, PageType::Plain(PlainPageType::History) | PageType::Unknown(<span class="kw">_</span>))))]
+<a href=#1281 id=1281 data-nosnippet>1281</a>    </span>Unknown,
+<a href=#1282 id=1282 data-nosnippet>1282</a>}</code></pre></div></section></main></body></html>
