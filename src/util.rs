@@ -237,8 +237,7 @@ mod test {
         let mut cursor = Cursor::new(DATA);
         let serialized: BTreeMap<u64, u16> =
             parse_at_offsets(OFFSETS.iter().copied())(&mut cursor, Endian::Little, ()).unwrap();
-        let expected: BTreeMap<u64, u16> =
-            vec![(0, 1), (7, 4), (2, 2), (5, 3)].into_iter().collect();
+        let expected = BTreeMap::from([(0u64, 1u16), (7, 4), (2, 2), (5, 3)]);
         assert_eq!(serialized, expected);
 
         // We also expect the cursor position to be restored.
