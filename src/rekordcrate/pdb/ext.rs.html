@@ -134,20 +134,8 @@
 <a href=#134 id=134 data-nosnippet>134</a></span><span class="kw">pub enum </span>ExtRow {
 <a href=#135 id=135 data-nosnippet>135</a>    <span class="doccomment">/// Contains the album name, along with an ID of the corresponding artist.
 <a href=#136 id=136 data-nosnippet>136</a>    </span><span class="attr">#[br(pre_assert(page_type == ExtPageType::Tag))]
-<a href=#137 id=137 data-nosnippet>137</a>    </span>Tag(TagOrCategory),
+<a href=#137 id=137 data-nosnippet>137</a>    </span>Tag(<span class="attr">#[bw(pad_after = <span class="number">0</span>, align_after = <span class="number">4</span>)] </span>TagOrCategory),
 <a href=#138 id=138 data-nosnippet>138</a>    <span class="doccomment">/// Contains the artist name and ID.
 <a href=#139 id=139 data-nosnippet>139</a>    </span><span class="attr">#[br(pre_assert(page_type == ExtPageType::TrackTag))]
-<a href=#140 id=140 data-nosnippet>140</a>    </span>TrackTag(TrackTag),
-<a href=#141 id=141 data-nosnippet>141</a>}
-<a href=#142 id=142 data-nosnippet>142</a>
-<a href=#143 id=143 data-nosnippet>143</a><span class="kw">impl </span>ExtRow {
-<a href=#144 id=144 data-nosnippet>144</a>    <span class="attr">#[must_use]
-<a href=#145 id=145 data-nosnippet>145</a>    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">const fn </span>align_by(<span class="kw-2">&amp;</span><span class="self">self</span>, offset: u64) -&gt; u64 {
-<a href=#146 id=146 data-nosnippet>146</a>        <span class="kw">use </span><span class="kw">crate</span>::util::align_by;
-<a href=#147 id=147 data-nosnippet>147</a>        <span class="kw">use </span>std::mem::align_of_val;
-<a href=#148 id=148 data-nosnippet>148</a>        <span class="kw">match </span><span class="self">self </span>{
-<a href=#149 id=149 data-nosnippet>149</a>            ExtRow::Tag(<span class="kw">_</span>) =&gt; align_by(<span class="number">4</span>, offset),
-<a href=#150 id=150 data-nosnippet>150</a>            ExtRow::TrackTag(r) =&gt; align_by(align_of_val(r) <span class="kw">as </span>u64, offset),
-<a href=#151 id=151 data-nosnippet>151</a>        }
-<a href=#152 id=152 data-nosnippet>152</a>    }
-<a href=#153 id=153 data-nosnippet>153</a>}</code></pre></div></section></main></body></html>
+<a href=#140 id=140 data-nosnippet>140</a>    </span>TrackTag(<span class="attr">#[bw(pad_after = <span class="number">0</span>, align_after = <span class="number">4</span>)] </span>TrackTag),
+<a href=#141 id=141 data-nosnippet>141</a>}</code></pre></div></section></main></body></html>
