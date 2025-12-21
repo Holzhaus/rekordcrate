@@ -9,7 +9,10 @@
 use binrw::BinRead;
 use clap::{Parser, Subcommand};
 use rekordcrate::anlz::ANLZ;
-use rekordcrate::pdb::{DatabaseType, Header, PageContent, PageType, PlainPageType, PlainRow, Row};
+use rekordcrate::pdb::{
+    Artist, ArtistId, DatabaseType, Header, PageContent, PageType, PlainPageType, PlainRow, Row,
+    Track, TrackId,
+};
 use rekordcrate::setting::Setting;
 use rekordcrate::xml::Document;
 use std::path::{Path, PathBuf};
@@ -61,31 +64,15 @@ enum Commands {
 
 fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
     use rekordcrate::pdb::{PlaylistTreeNode, PlaylistTreeNodeId};
-    use std::collections::HashMap;
-
-    fn print_children_of(
-        tree: &HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>>,
-        id: PlaylistTreeNodeId,
-        level: usize,
-    ) {
-        tree.get(&id)
-            .iter()
-            .flat_map(|nodes| nodes.iter())
-            .for_each(|node| {
-                println!(
-                    "{}{} {}",
-                    "    ".repeat(level),
-                    if node.is_folder() { "🗀" } else { "🗎" },
-                    node.name.clone().into_string().unwrap(),
-                );
-                print_children_of(tree, node.id, level + 1);
-            });
-    }
+    use std::collections::{BTreeMap, HashMap};
 
     let mut reader = std::fs::File::open(path)?;
     let header = Header::read_args(&mut reader, (DatabaseType::Plain,))?;
 
-    let mut tree: HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>> = HashMap::new();
+    let mut playlist_tree: HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>> = HashMap::new();
+    let mut playlist_entries: HashMap<PlaylistTreeNodeId, BTreeMap<u32, TrackId>> = HashMap::new();
+    let mut artists: HashMap<ArtistId, Artist> = HashMap::new();
+    let mut tracks: HashMap<TrackId, Track> = HashMap::new();
 
     header
         .tables
@@ -93,10 +80,15 @@ fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
         .filter(|table| {
             matches!(
                 table.page_type,
-                PageType::Plain(PlainPageType::PlaylistTree)
+                PageType::Plain(
+                    PlainPageType::PlaylistTree
+                        | PlainPageType::Artists
+                        | PlainPageType::Tracks
+                        | PlainPageType::PlaylistEntries
+                )
             )
         })
-        .flat_map(|table| {
+        .for_each(|table| {
             header
                 .read_pages(
                     &mut reader,
@@ -107,17 +99,90 @@ fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
                 .into_iter()
                 .filter_map(|page| page.content.into_data())
                 .flat_map(|data_content| data_content.rows.into_values())
-                .map(|row| {
-                    if let Row::Plain(PlainRow::PlaylistTreeNode(playlist_tree)) = row {
+                .for_each(|row| match row {
+                    Row::Plain(PlainRow::PlaylistTreeNode(tree_node)) => {
                         playlist_tree
-                    } else {
-                        unreachable!("encountered non-playlist tree row in playlist table");
+                            .entry(tree_node.parent_id)
+                            .or_default()
+                            .push(tree_node.clone());
                     }
+                    Row::Plain(PlainRow::Artist(artist)) => {
+                        artists.insert(artist.id, artist.clone());
+                    }
+                    Row::Plain(PlainRow::Track(track)) => {
+                        tracks.insert(track.id, track.clone());
+                    }
+                    Row::Plain(PlainRow::PlaylistEntry(entry)) => {
+                        playlist_entries
+                            .entry(entry.playlist_id)
+                            .or_default()
+                            .insert(entry.entry_index, entry.track_id);
+                    }
+                    _ => unreachable!("encountered unexpected row type: {row:?}"),
                 })
-        })
-        .for_each(|row| tree.entry(row.parent_id).or_default().push(row));
+        });
 
-    print_children_of(&tree, PlaylistTreeNodeId(0), 0);
+    fn print_track(
+        track_id: &TrackId,
+        artists: &HashMap<ArtistId, Artist>,
+        tracks: &HashMap<TrackId, Track>,
+    ) {
+        let track = match tracks.get(track_id) {
+            Some(track) => track,
+            None => {
+                println!("<Track for {track_id:?} not found>");
+                return;
+            }
+        };
+        let artist = match artists.get(&track.artist_id) {
+            Some(artist) => artist,
+            None => {
+                println!(
+                    "<Artist for {:?} not found> - {}",
+                    &track.artist_id, track.offsets.title
+                );
+                return;
+            }
+        };
+        println!("{} - {}", artist.offsets.name, track.offsets.title)
+    }
+    fn print_children_of(
+        tree: &HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>>,
+        tree_entries: &HashMap<PlaylistTreeNodeId, BTreeMap<u32, TrackId>>,
+        artists: &HashMap<ArtistId, Artist>,
+        tracks: &HashMap<TrackId, Track>,
+        id: PlaylistTreeNodeId,
+        level: usize,
+    ) {
+        tree.get(&id)
+            .iter()
+            .flat_map(|nodes| nodes.iter())
+            .for_each(|node| {
+                let indentation = "    ".repeat(level);
+                println!(
+                    "{}{} {}",
+                    indentation,
+                    if node.is_folder() { "🗀" } else { "🗎" },
+                    node.name,
+                );
+                if let Some(playlist_tracks) = tree_entries.get(&node.id) {
+                    for (index, track_id) in playlist_tracks.iter() {
+                        print!("{}  ♫ {}: ", indentation, index);
+                        print_track(track_id, artists, tracks);
+                    }
+                }
+                print_children_of(tree, tree_entries, artists, tracks, node.id, level + 1);
+            });
+    }
+
+    print_children_of(
+        &playlist_tree,
+        &playlist_entries,
+        &artists,
+        &tracks,
+        PlaylistTreeNodeId(0),
+        0,
+    );
 
     Ok(())
 }
