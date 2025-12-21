@@ -53,6 +53,7 @@ All notable changes to this project will be documented in this file.
 - pdb: Initial index page implementation
 - pdb: Add methods to create new and empty `IndexEntry` instances
 - pdb: Parse MenuItem rows (table 17)
+- Also print playlist content (artist - title) for list-playlists
 
 ### Refactor
 
