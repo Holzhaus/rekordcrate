@@ -1,2 +1,2 @@
-createSrcSidebar('[["rekordcrate",["",[["pdb",[],["bitfields.rs","ext.rs","mod.rs","offset_array.rs","string.rs"]]],["anlz.rs","lib.rs","setting.rs","util.rs","xml.rs","xor.rs"]]]]');
-//{"start":19,"fragment_lengths":[160]}
+createSrcSidebar('[["rekordcrate",["",[["pdb",[],["bitfields.rs","ext.rs","mod.rs","offset_array.rs","string.rs"]]],["anlz.rs","device.rs","lib.rs","setting.rs","util.rs","xml.rs","xor.rs"]]]]');
+//{"start":19,"fragment_lengths":[172]}
