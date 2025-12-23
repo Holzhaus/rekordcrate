@@ -365,7 +365,7 @@ pub struct Playlist {
 
 impl Pdb {
     /// Create a new `Pdb` object by reading the PDB file at the given path.
-    pub fn new_from_path(path: &PathBuf) -> crate::Result<Self> {
+    pub fn open_from_path(path: &PathBuf) -> crate::Result<Self> {
         let mut reader = std::fs::File::open(path)?;
         let header = Header::read_args(&mut reader, (DatabaseType::Plain,))?;
         let pages = header
