@@ -443,11 +443,11 @@ impl Pdb {
     }
 
     /// Get tracks.
-    pub fn get_tracks(&self) -> impl Iterator<Item = Track> + '_ {
+    pub fn get_tracks(&self) -> impl Iterator<Item = &Track> + '_ {
         self.get_rows_by_page_type(PlainPageType::Tracks)
             .filter_map(|row| {
                 if let Row::Plain(PlainRow::Track(track)) = row {
-                    Some(track.clone())
+                    Some(track)
                 } else {
                     None
                 }

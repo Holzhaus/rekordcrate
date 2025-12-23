@@ -220,7 +220,7 @@ fn export_playlists(path: &Path, output_dir: &PathBuf) -> rekordcrate::Result<()
 
     fn walk_tree(
         pdb: &rekordcrate::device::Pdb,
-        tracks: &HashMap<TrackId, Track>,
+        tracks: &HashMap<TrackId, &Track>,
         node: PlaylistNode,
         path: &PathBuf,
         export_path: &Path,
