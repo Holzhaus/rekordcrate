@@ -18,6 +18,7 @@ use crate::{
 };
 use binrw::BinRead;
 use std::collections::HashMap;
+use std::fmt;
 use std::path::{Path, PathBuf};
 
 /// Represents a Rekordbox device export.
@@ -301,6 +302,246 @@ impl Settings {
         self.waveform_color = data.waveform_color.into();
         self.key_display_format = data.key_display_format.into();
         self.waveform_current_position = data.waveform_current_position.into();
+    }
+}
+
+impl fmt::Display for Settings {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fn format_option<T: fmt::Display>(opt: Option<T>) -> String {
+            opt.map(|v| v.to_string())
+                .unwrap_or_else(|| "<missing>".to_string())
+        }
+
+        writeln!(
+            f,
+            "On Air Display:                 {}",
+            format_option(self.on_air_display)
+        )?;
+        writeln!(
+            f,
+            "LCD Brightness:                 {}",
+            format_option(self.lcd_brightness)
+        )?;
+        writeln!(
+            f,
+            "Quantize:                       {}",
+            format_option(self.quantize)
+        )?;
+        writeln!(
+            f,
+            "Auto Cue Level:                 {}",
+            format_option(self.auto_cue_level)
+        )?;
+        writeln!(
+            f,
+            "Language:                       {}",
+            format_option(self.language)
+        )?;
+        writeln!(
+            f,
+            "Jog Ring Brightness:            {}",
+            format_option(self.jog_ring_brightness)
+        )?;
+        writeln!(
+            f,
+            "Jog Ring Indicator:             {}",
+            format_option(self.jog_ring_indicator)
+        )?;
+        writeln!(
+            f,
+            "Slip Flashing:                  {}",
+            format_option(self.slip_flashing)
+        )?;
+        writeln!(
+            f,
+            "Disc Slot Illumination:         {}",
+            format_option(self.disc_slot_illumination)
+        )?;
+        writeln!(
+            f,
+            "Eject Lock:                     {}",
+            format_option(self.eject_lock)
+        )?;
+        writeln!(
+            f,
+            "Sync:                           {}",
+            format_option(self.sync)
+        )?;
+        writeln!(
+            f,
+            "Play Mode:                      {}",
+            format_option(self.play_mode)
+        )?;
+        writeln!(
+            f,
+            "Quantize Beat Value:            {}",
+            format_option(self.quantize_beat_value)
+        )?;
+        writeln!(
+            f,
+            "Hotcue Autoload:                {}",
+            format_option(self.hotcue_autoload)
+        )?;
+        writeln!(
+            f,
+            "Hotcue Color:                   {}",
+            format_option(self.hotcue_color)
+        )?;
+        writeln!(
+            f,
+            "Needle Lock:                    {}",
+            format_option(self.needle_lock)
+        )?;
+        writeln!(
+            f,
+            "Time Mode:                      {}",
+            format_option(self.time_mode)
+        )?;
+        writeln!(
+            f,
+            "Jog Mode:                       {}",
+            format_option(self.jog_mode)
+        )?;
+        writeln!(
+            f,
+            "Auto Cue:                       {}",
+            format_option(self.auto_cue)
+        )?;
+        writeln!(
+            f,
+            "Master Tempo:                   {}",
+            format_option(self.master_tempo)
+        )?;
+        writeln!(
+            f,
+            "Tempo Range:                    {}",
+            format_option(self.tempo_range)
+        )?;
+        writeln!(
+            f,
+            "Phase Meter:                    {}",
+            format_option(self.phase_meter)
+        )?;
+        writeln!(
+            f,
+            "Vinyl Speed Adjust:             {}",
+            format_option(self.vinyl_speed_adjust)
+        )?;
+        writeln!(
+            f,
+            "Jog Display Mode:               {}",
+            format_option(self.jog_display_mode)
+        )?;
+        writeln!(
+            f,
+            "Pad Button Brightness:          {}",
+            format_option(self.pad_button_brightness)
+        )?;
+        writeln!(
+            f,
+            "Jog LCD Brightness:             {}",
+            format_option(self.jog_lcd_brightness)
+        )?;
+        writeln!(
+            f,
+            "Waveform Divisions:             {}",
+            format_option(self.waveform_divisions)
+        )?;
+        writeln!(
+            f,
+            "Waveform:                       {}",
+            format_option(self.waveform)
+        )?;
+        writeln!(
+            f,
+            "Beat Jump Beat Value:           {}",
+            format_option(self.beat_jump_beat_value)
+        )?;
+        writeln!(
+            f,
+            "Channel Fader Curve:            {}",
+            format_option(self.channel_fader_curve)
+        )?;
+        writeln!(
+            f,
+            "Crossfader Curve:               {}",
+            format_option(self.crossfader_curve)
+        )?;
+        writeln!(
+            f,
+            "Headphones Pre Eq:              {}",
+            format_option(self.headphones_pre_eq)
+        )?;
+        writeln!(
+            f,
+            "Headphones Mono Split:          {}",
+            format_option(self.headphones_mono_split)
+        )?;
+        writeln!(
+            f,
+            "Beat FX Quantize:               {}",
+            format_option(self.beat_fx_quantize)
+        )?;
+        writeln!(
+            f,
+            "Mic Low Cut:                    {}",
+            format_option(self.mic_low_cut)
+        )?;
+        writeln!(
+            f,
+            "Talk Over Mode:                 {}",
+            format_option(self.talk_over_mode)
+        )?;
+        writeln!(
+            f,
+            "Talk Over Level:                {}",
+            format_option(self.talk_over_level)
+        )?;
+        writeln!(
+            f,
+            "MIDI Channel:                   {}",
+            format_option(self.midi_channel)
+        )?;
+        writeln!(
+            f,
+            "MIDI Button Type:               {}",
+            format_option(self.midi_button_type)
+        )?;
+        writeln!(
+            f,
+            "Display Brightness:             {}",
+            format_option(self.display_brightness)
+        )?;
+        writeln!(
+            f,
+            "Indicator Brightness:           {}",
+            format_option(self.indicator_brightness)
+        )?;
+        writeln!(
+            f,
+            "Channel Fader Curve Long Fader: {}",
+            format_option(self.channel_fader_curve_long_fader)
+        )?;
+        writeln!(
+            f,
+            "Overview Waveform Type:         {}",
+            format_option(self.overview_waveform_type)
+        )?;
+        writeln!(
+            f,
+            "Waveform Color:                 {}",
+            format_option(self.waveform_color)
+        )?;
+        writeln!(
+            f,
+            "Key Display Format:             {}",
+            format_option(self.key_display_format)
+        )?;
+        write!(
+            f,
+            "Waveform Current Position:      {}",
+            format_option(self.waveform_current_position)
+        )
     }
 }
 
