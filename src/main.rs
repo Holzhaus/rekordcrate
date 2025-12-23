@@ -211,27 +211,29 @@ fn export_playlists(path: &Path, output_dir: &PathBuf) -> rekordcrate::Result<()
 
     let mut export = DeviceExport::new(path.into());
     export.load_pdb()?;
-    let playlists = export.get_playlists()?;
-    let mut tracks: HashMap<TrackId, Track> = HashMap::new();
-    export.get_tracks().for_each(|track| {
-        tracks.insert(track.id, track);
-    });
+    let pdb = export.pdb().ok_or(rekordcrate::Error::NotLoadedError)?;
+    let playlists = pdb.get_playlists()?;
+    let tracks = pdb
+        .get_tracks()
+        .map(|track| (track.id, track))
+        .collect::<HashMap<_, _>>();
 
     fn walk_tree(
-        export: &DeviceExport,
+        pdb: &rekordcrate::device::Pdb,
         tracks: &HashMap<TrackId, Track>,
         node: PlaylistNode,
         path: &PathBuf,
+        export_path: &Path,
     ) -> rekordcrate::Result<()> {
         match node {
             PlaylistNode::Folder(folder) => {
                 folder.children.into_iter().try_for_each(|child| {
-                    walk_tree(export, tracks, child, &path.join(&folder.name))
+                    walk_tree(pdb, tracks, child, &path.join(&folder.name), export_path)
                 })?;
             }
             PlaylistNode::Playlist(playlist) => {
                 let mut playlist_entries: Vec<(u32, TrackId)> =
-                    export.get_playlist_entries(playlist.id).collect();
+                    pdb.get_playlist_entries(playlist.id).collect();
                 playlist_entries.sort_by_key(|entry| entry.0);
 
                 std::fs::create_dir_all(path)?;
@@ -247,8 +249,7 @@ fn export_playlists(path: &Path, output_dir: &PathBuf) -> rekordcrate::Result<()
                         Ok(writeln!(
                             &mut file,
                             "{}",
-                            export
-                                .get_path()
+                            export_path
                                 .canonicalize()?
                                 .join(track_path.strip_prefix('/').unwrap_or(&track_path))
                                 .display(),
@@ -262,7 +263,7 @@ fn export_playlists(path: &Path, output_dir: &PathBuf) -> rekordcrate::Result<()
 
     playlists
         .into_iter()
-        .try_for_each(|node| walk_tree(&export, &tracks, node, output_dir))?;
+        .try_for_each(|node| walk_tree(pdb, &tracks, node, output_dir, export.get_path()))?;
 
     Ok(())
 }

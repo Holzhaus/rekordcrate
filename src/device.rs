@@ -133,33 +133,10 @@ impl DeviceExport {
         settings
     }
 
-    /// Get the playlists tree.
-    pub fn get_playlists(&self) -> crate::Result<Vec<PlaylistNode>> {
-        match &self.pdb {
-            Some(pdb) => pdb.get_playlists(),
-            None => Err(crate::Error::NotLoadedError),
-        }
-    }
-
-    /// Get the entries for a single playlist.
+    /// Get a reference to the PDB if loaded.
     #[must_use]
-    pub fn get_playlist_entries(
-        &self,
-        id: PlaylistTreeNodeId,
-    ) -> Box<dyn Iterator<Item = (u32, TrackId)> + '_> {
-        match &self.pdb {
-            Some(pdb) => Box::new(pdb.get_playlist_entries(id)),
-            None => Box::new(std::iter::empty()),
-        }
-    }
-
-    /// Get the tracks.
-    #[must_use]
-    pub fn get_tracks(&self) -> Box<dyn Iterator<Item = Track> + '_> {
-        match &self.pdb {
-            Some(pdb) => Box::new(pdb.get_tracks()),
-            None => Box::new(std::iter::empty()),
-        }
+    pub fn pdb(&self) -> Option<&Pdb> {
+        self.pdb.as_ref()
     }
 }
 
