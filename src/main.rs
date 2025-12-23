@@ -9,10 +9,7 @@
 use binrw::BinRead;
 use clap::{Parser, Subcommand};
 use rekordcrate::anlz::ANLZ;
-use rekordcrate::pdb::{
-    Artist, ArtistId, DatabaseType, Header, PageContent, PageType, PlainPageType, PlainRow, Row,
-    Track, TrackId,
-};
+use rekordcrate::pdb::{DatabaseType, Header, PageContent, Track, TrackId};
 use rekordcrate::setting::Setting;
 use rekordcrate::xml::Document;
 use std::path::{Path, PathBuf};
@@ -78,126 +75,43 @@ enum Commands {
 }
 
 fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
-    use rekordcrate::pdb::{PlaylistTreeNode, PlaylistTreeNodeId};
-    use std::collections::{BTreeMap, HashMap};
+    use rekordcrate::device::{Pdb, PlaylistNode};
+    use std::collections::HashMap;
 
-    let mut reader = std::fs::File::open(path)?;
-    let header = Header::read_args(&mut reader, (DatabaseType::Plain,))?;
+    let pdb = Pdb::open_from_path(path)?;
+    let playlists = pdb.get_playlists()?;
+    let tracks: HashMap<_, _> = pdb.get_tracks().map(|t| (t.id, t)).collect();
 
-    let mut playlist_tree: HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>> = HashMap::new();
-    let mut playlist_entries: HashMap<PlaylistTreeNodeId, BTreeMap<u32, TrackId>> = HashMap::new();
-    let mut artists: HashMap<ArtistId, Artist> = HashMap::new();
-    let mut tracks: HashMap<TrackId, Track> = HashMap::new();
-
-    header
-        .tables
-        .iter()
-        .filter(|table| {
-            matches!(
-                table.page_type,
-                PageType::Plain(
-                    PlainPageType::PlaylistTree
-                        | PlainPageType::Artists
-                        | PlainPageType::Tracks
-                        | PlainPageType::PlaylistEntries
-                )
-            )
-        })
-        .for_each(|table| {
-            header
-                .read_pages(
-                    &mut reader,
-                    binrw::Endian::NATIVE,
-                    (&table.first_page, &table.last_page, DatabaseType::Plain),
-                )
-                .unwrap()
-                .into_iter()
-                .filter_map(|page| page.content.into_data())
-                .flat_map(|data_content| data_content.rows.into_values())
-                .for_each(|row| match row {
-                    Row::Plain(PlainRow::PlaylistTreeNode(tree_node)) => {
-                        playlist_tree
-                            .entry(tree_node.parent_id)
-                            .or_default()
-                            .push(tree_node.clone());
-                    }
-                    Row::Plain(PlainRow::Artist(artist)) => {
-                        artists.insert(artist.id, artist.clone());
-                    }
-                    Row::Plain(PlainRow::Track(track)) => {
-                        tracks.insert(track.id, track.clone());
-                    }
-                    Row::Plain(PlainRow::PlaylistEntry(entry)) => {
-                        playlist_entries
-                            .entry(entry.playlist_id)
-                            .or_default()
-                            .insert(entry.entry_index, entry.track_id);
-                    }
-                    _ => unreachable!("encountered unexpected row type: {row:?}"),
-                })
-        });
-
-    fn print_track(
-        track_id: &TrackId,
-        artists: &HashMap<ArtistId, Artist>,
-        tracks: &HashMap<TrackId, Track>,
-    ) {
-        let track = match tracks.get(track_id) {
-            Some(track) => track,
-            None => {
-                println!("<Track for {track_id:?} not found>");
-                return;
+    fn print_node(pdb: &Pdb, tracks: &HashMap<TrackId, &Track>, node: &PlaylistNode, level: usize) {
+        let indentation = "    ".repeat(level);
+        match node {
+            PlaylistNode::Folder(folder) => {
+                println!("{}🗀 {}", indentation, folder.name);
+                for child in &folder.children {
+                    print_node(pdb, tracks, child, level + 1);
+                }
             }
-        };
-        let artist = match artists.get(&track.artist_id) {
-            Some(artist) => artist,
-            None => {
-                println!(
-                    "<Artist for {:?} not found> - {}",
-                    &track.artist_id, track.offsets.title
-                );
-                return;
-            }
-        };
-        println!("{} - {}", artist.offsets.name, track.offsets.title)
-    }
-    fn print_children_of(
-        tree: &HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>>,
-        tree_entries: &HashMap<PlaylistTreeNodeId, BTreeMap<u32, TrackId>>,
-        artists: &HashMap<ArtistId, Artist>,
-        tracks: &HashMap<TrackId, Track>,
-        id: PlaylistTreeNodeId,
-        level: usize,
-    ) {
-        tree.get(&id)
-            .iter()
-            .flat_map(|nodes| nodes.iter())
-            .for_each(|node| {
-                let indentation = "    ".repeat(level);
-                println!(
-                    "{}{} {}",
-                    indentation,
-                    if node.is_folder() { "🗀" } else { "🗎" },
-                    node.name,
-                );
-                if let Some(playlist_tracks) = tree_entries.get(&node.id) {
-                    for (index, track_id) in playlist_tracks.iter() {
-                        print!("{}  ♫ {}: ", indentation, index);
-                        print_track(track_id, artists, tracks);
+            PlaylistNode::Playlist(playlist) => {
+                println!("{}🗎 {}", indentation, playlist.name);
+                let mut entries: Vec<_> = pdb.get_playlist_entries(playlist.id).collect();
+                entries.sort_by_key(|(index, _)| *index);
+                for (index, track_id) in entries {
+                    if let Some(track) = tracks.get(&track_id) {
+                        println!("{}  ♫ {}: {}", indentation, index, track.offsets.title);
+                    } else {
+                        println!(
+                            "{}  ♫ {}: <Track for {:?} not found>",
+                            indentation, index, track_id
+                        );
                     }
                 }
-                print_children_of(tree, tree_entries, artists, tracks, node.id, level + 1);
-            });
+            }
+        }
     }
 
-    print_children_of(
-        &playlist_tree,
-        &playlist_entries,
-        &artists,
-        &tracks,
-        PlaylistTreeNodeId(0),
-        0,
-    );
+    for node in &playlists {
+        print_node(&pdb, &tracks, node, 0);
+    }
 
     Ok(())
 }
