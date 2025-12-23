@@ -186,7 +186,7 @@ fn list_settings(path: &Path) -> rekordcrate::Result<()> {
     use rekordcrate::DeviceExport;
 
     let mut export = DeviceExport::new(path.into());
-    export.load_settings()?;
+    export.load_settings();
     let settings = export.get_settings();
 
     print!("{}", settings);

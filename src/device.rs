@@ -60,15 +60,26 @@ impl DeviceExport {
         Ok(setting)
     }
 
-    /// Load setting files.
-    pub fn load_settings(&mut self) -> crate::Result<()> {
+    /// Load setting files. If a file is missing or cannot be read, the
+    /// corresponding setting will be `None` and a warning will be printed.
+    pub fn load_settings(&mut self) {
         let path = self.path.join("PIONEER");
-        self.devsetting = Some(Self::read_setting_file(&path.join("DEVSETTING.DAT"))?);
-        self.djmmysetting = Some(Self::read_setting_file(&path.join("DJMMYSETTING.DAT"))?);
-        self.mysetting = Some(Self::read_setting_file(&path.join("MYSETTING.DAT"))?);
-        self.mysetting2 = Some(Self::read_setting_file(&path.join("MYSETTING2.DAT"))?);
 
-        Ok(())
+        let load_setting = |filename: &str| -> Option<Setting> {
+            let file_path = path.join(filename);
+            match Self::read_setting_file(&file_path) {
+                Ok(setting) => Some(setting),
+                Err(e) => {
+                    eprintln!("Warning: Could not load {}: {}", file_path.display(), e);
+                    None
+                }
+            }
+        };
+
+        self.devsetting = load_setting("DEVSETTING.DAT");
+        self.djmmysetting = load_setting("DJMMYSETTING.DAT");
+        self.mysetting = load_setting("MYSETTING.DAT");
+        self.mysetting2 = load_setting("MYSETTING2.DAT");
     }
 
     fn read_pdb_file(path: &PathBuf) -> crate::Result<Pdb> {
