@@ -37,7 +37,7 @@ use crate::pdb::offset_array::{OffsetArray, OffsetSize};
 use crate::pdb::string::DeviceSQLString;
 use crate::util::{parse_at_offsets, write_at_offsets, ColorIndex, FileType};
 use binrw::{
-    binread, binrw,
+    binrw,
     io::{Read, Seek, SeekFrom, Write},
     BinRead, BinResult, BinWrite, Endian,
 };
@@ -270,6 +270,11 @@ impl PageFlags {
 #[brw(little)]
 pub struct IndexEntry(u32);
 
+impl IndexEntry {
+    /// Size of the index entry in bytes.
+    pub const BINARY_SIZE: u32 = 4;
+}
+
 impl TryFrom<(PageIndex, u8)> for IndexEntry {
     type Error = PdbError;
 
@@ -358,10 +363,16 @@ pub struct IndexPageHeader {
     pub first_empty: u16,
 }
 
+impl IndexPageHeader {
+    /// Size of the index page header in bytes.
+    pub const BINARY_SIZE: u32 = 28;
+}
+
 /// The content of an index page.
-#[binread]
+#[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[br(little)]
+#[bw(little, import { page_size: u32 })]
 pub struct IndexPageContent {
     /// The header of the index page.
     pub header: IndexPageHeader,
@@ -369,52 +380,57 @@ pub struct IndexPageContent {
     /// The index entries.
     #[br(count = header.num_entries)]
     pub entries: Vec<IndexEntry>,
+
+    // Write empty entries to pad out the rest of the page, except the last
+    // 20 bytes which are zeros instead.
+    #[br(temp)]
+    #[bw(calc = EmptyIndexEntries(
+        Self::total_entries(page_size) - usize::from(header.num_entries)
+    ))]
+    #[bw(pad_after = 20)]
+    _empty_entries: EmptyIndexEntries,
 }
 
-impl BinWrite for IndexPageContent {
-    type Args<'a> = (u32,);
+impl IndexPageContent {
+    fn total_entries(page_size: u32) -> usize {
+        // The last 20 bytes in an index page are zeros.
+        let entries_space = page_size - PageHeader::BINARY_SIZE - IndexPageHeader::BINARY_SIZE - 20;
+        (entries_space / IndexEntry::BINARY_SIZE)
+            .try_into()
+            .unwrap()
+    }
+}
 
-    fn write_options<W: Write + Seek>(
+/// Helper struct to write empty index entries while reading nothing.
+struct EmptyIndexEntries(usize);
+
+impl BinRead for EmptyIndexEntries {
+    type Args<'a> = ();
+
+    fn read_options<Reader>(_: &mut Reader, _: Endian, (): Self::Args<'_>) -> BinResult<Self>
+    where
+        Reader: Read + Seek,
+    {
+        Ok(Self(0))
+    }
+}
+
+impl BinWrite for EmptyIndexEntries {
+    type Args<'a> = ();
+
+    fn write_options<Writer>(
         &self,
-        writer: &mut W,
+        writer: &mut Writer,
         endian: Endian,
-        (page_size,): Self::Args<'_>,
-    ) -> BinResult<()> {
-        let page_content_start_pos = writer.stream_position()?;
-
-        self.header.write_options(writer, endian, ())?;
-
-        for entry in &self.entries {
-            entry.write_options(writer, endian, ())?;
+        (): Self::Args<'_>,
+    ) -> BinResult<()>
+    where
+        Writer: Write + Seek,
+    {
+        const EMPTY: IndexEntry = IndexEntry::empty();
+        for _ in 0..self.0 {
+            EMPTY.write_options(writer, endian, ())?;
         }
-
-        let after_entries_pos = writer.stream_position()?;
-        let written_bytes = after_entries_pos - page_content_start_pos;
-
-        let content_size = page_size - PageHeader::BINARY_SIZE;
-        let padding_end_offset = content_size - 20;
-
-        // Fill with empty entries (0x1ffffff8) until the last 20 bytes, which
-        // are zeroes. If https://github.com/jam1garner/binrw/issues/205 was ever
-        // fixed, this entire BinWrite implementation could possibly be removed.
-
-        if written_bytes < u64::from(padding_end_offset) {
-            let empty_entries_to_write = (u64::from(padding_end_offset) - written_bytes) / 4;
-            let empty_entry = IndexEntry::empty();
-            for _ in 0..empty_entries_to_write {
-                empty_entry.write_options(writer, endian, ())?;
-            }
-        }
-
-        let after_padding_pos = writer.stream_position()?;
-        let final_padding_bytes =
-            content_size as u64 - (after_padding_pos - page_content_start_pos);
-
-        if final_padding_bytes > 0 {
-            let zero_padding = vec![0u8; final_padding_bytes as usize];
-            writer.write_all(&zero_padding)?;
-        }
-
         Ok(())
     }
 }
@@ -436,7 +452,7 @@ pub enum PageContent {
     ),
     /// The page is an index page.
     #[br(pre_assert(header.page_flags.is_index_page()))]
-    Index(#[bw(args(page_size,))] IndexPageContent),
+    Index(#[bw(args { page_size })] IndexPageContent),
     /// The page is of an unknown or unsupported format.
     Unknown,
 }
@@ -571,7 +587,7 @@ pub struct DataPageContent {
     ///
     /// Seek to the end of the page as we read/write row groups backwards,
     /// but restore the position after to read/write the actual rows.
-    #[brw(seek_before(SeekFrom::Current(Self::page_heap_size(page_size) as i64)), restore_position)]
+    #[brw(seek_before(SeekFrom::Current(Self::page_heap_size(page_size).into())), restore_position)]
     #[br(args {count: page_header.packed_row_counts.num_row_groups().into()})]
     pub row_groups: Vec<RowGroup>,
 
@@ -581,7 +597,7 @@ pub struct DataPageContent {
     #[br(args(page_header.page_type))]
     #[br(parse_with = parse_at_offsets(row_groups.iter().flat_map(RowGroup::present_rows_offsets)))]
     #[bw(write_with = write_at_offsets)]
-    #[br(assert(rows.len() == page_header.packed_row_counts.num_rows_valid() as usize, "parsing page {:?}: num_rows_valid {} does not match parsed row count {}", page_header.page_index, page_header.packed_row_counts.num_rows_valid(), rows.len()))]
+    #[br(assert(rows.len() == page_header.packed_row_counts.num_rows_valid().into(), "parsing page {:?}: num_rows_valid {} does not match parsed row count {}", page_header.page_index, page_header.packed_row_counts.num_rows_valid(), rows.len()))]
     pub rows: BTreeMap<u16, Row>,
 }
 
@@ -607,7 +623,7 @@ pub struct RowGroup {
     /// may be "uninitialized" and used as part of the page heap instead. We only start writing offsets
     /// from the first present row to avoid clobbering page heap data.
     #[brw(seek_before = SeekFrom::Current(-i64::from(Self::BINARY_SIZE)))]
-    #[bw(write_with = Self::row_offsets_writer(*row_presence_flags))]
+    #[bw(write_with = Self::write_row_offsets, args(*row_presence_flags))]
     pub row_offsets: [u16; Self::MAX_ROW_COUNT],
     /// A bit mask that indicates which rows in this group are actually present.
     pub row_presence_flags: u16,
@@ -641,22 +657,22 @@ impl RowGroup {
             })
     }
 
-    fn row_offsets_writer<Writer>(
-        row_presence_flags: u16,
-    ) -> impl FnOnce(&[u16; 16], &mut Writer, Endian, ()) -> BinResult<()>
+    fn write_row_offsets<Writer>(
+        row_offsets: &[u16; 16],
+        writer: &mut Writer,
+        endian: Endian,
+        (row_presence_flags,): (u16,),
+    ) -> BinResult<()>
     where
         Writer: Write + Seek,
     {
-        move |row_offsets, writer, endian, ()| {
-            let skip = row_presence_flags.leading_zeros() as usize;
-            writer.seek(SeekFrom::Current(
-                (skip * std::mem::size_of::<u16>()) as i64,
-            ))?;
-            for offset in row_offsets.iter().skip(skip) {
-                offset.write_options(writer, endian, ())?;
-            }
-            Ok(())
+        const U16_SIZE: u32 = std::mem::size_of::<u16>() as u32;
+        let skip = row_presence_flags.leading_zeros();
+        writer.seek(SeekFrom::Current((skip * U16_SIZE).into()))?;
+        for offset in row_offsets.iter().skip(skip.try_into().unwrap()) {
+            offset.write_options(writer, endian, ())?;
         }
+        Ok(())
     }
 }
 
