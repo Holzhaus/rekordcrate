@@ -4,7 +4,8 @@ fn setting_{name}() {{
     println!("Parsing file: {filepath}");
     let data = include_bytes!("{filepath}").as_slice();
     let mut reader = Cursor::new(data);
-    let setting = Setting::read(&mut reader).expect("failed to parse setting file");
+    let setting_type = SettingType::from_filename("{filepath}").expect("failed to determine settings file type");
+    let setting = Setting::read_args(&mut reader, (setting_type,)).expect("failed to parse setting file");
     println!("Setting file: {{:#?}}", setting);
 
     let mut new_data = Vec::with_capacity(data.len());
