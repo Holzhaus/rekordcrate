@@ -39,7 +39,7 @@ fn assert_pdb_modify_verify(
 
     if let Some(save_dir) = std::env::var("REKORDCRATE_TEST_DUMP_PATH")
         .ok()
-        .map(|s| PathBuf::from(s))
+        .map(PathBuf::from)
     {
         let save_subdir = save_dir.join("test_pdb_write").join(test_name);
         std::fs::create_dir_all(&save_subdir).expect("failed to create dump directory");
