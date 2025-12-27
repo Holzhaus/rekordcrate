@@ -14,7 +14,8 @@ macro_rules! read_djmmysetting {
         let data = include_bytes!($path);
         println!("Setting file: {}", $path);
         let mut reader = Cursor::new(data);
-        let setting = Setting::read(&mut reader).expect("failed to parse setting file");
+        let setting = Setting::read_args(&mut reader, (SettingType::DJMMySetting,))
+            .expect("failed to parse setting file");
         let result = match setting.data {
             SettingData::DJMMySetting(x) => Some(x),
             _ => None,

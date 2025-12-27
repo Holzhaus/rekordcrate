@@ -28,6 +28,7 @@ use parse_display::Display;
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
+#[br(import(setting_type: SettingType))]
 #[bw(import(no_checksum: bool))]
 /// Represents a setting file.
 pub struct Setting {
@@ -56,9 +57,10 @@ pub struct Setting {
     /// Size of the `data` data in bytes.
     #[br(temp)]
     #[bw(calc = data.size())]
+    #[br(assert(len_data == setting_type.expected_data_size()))]
     len_data: u32,
     /// The actual settings data.
-    #[br(args(len_data))]
+    #[br(args(setting_type))]
     pub data: SettingData,
     /// CRC16 XMODEM checksum. The checksum is calculated over the contents of the `data`
     /// field, except for `DJMSETTING.DAT` files where the checksum is calculated over all
@@ -154,23 +156,60 @@ where
     }
 }
 
+/// Type of a `*SETTING.DAT` file.
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub enum SettingType {
+    /// `DEVSETTING.DAT` file.
+    DevSetting,
+    /// `DJMMYSETTING.DAT` file.
+    DJMMySetting,
+    /// `MYSETTING.DAT` file.
+    MySetting,
+    /// `MYSETTING2.DAT` file.
+    MySetting2,
+}
+
+impl SettingType {
+    /// Get the expected setting type for a device export filename.
+    pub fn from_filename(path: impl AsRef<std::path::Path>) -> Option<Self> {
+        match path.as_ref().file_name()?.to_str()? {
+            "DEVSETTING.DAT" => Some(Self::DevSetting),
+            "DJMMYSETTING.DAT" => Some(Self::DJMMySetting),
+            "MYSETTING.DAT" => Some(Self::MySetting),
+            "MYSETTING2.DAT" => Some(Self::MySetting2),
+            _ => None,
+        }
+    }
+
+    /// Get the expected size of the data section for this setting type.
+    #[must_use]
+    pub fn expected_data_size(&self) -> u32 {
+        match &self {
+            Self::DevSetting => 32,
+            Self::DJMMySetting => 52,
+            Self::MySetting => 40,
+            Self::MySetting2 => 40,
+        }
+    }
+}
+
 /// Data section of a `*SETTING.DAT` file.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[brw(little)]
-#[br(import(len: u32))]
+#[br(import(setting_type: SettingType))]
 pub enum SettingData {
     /// Payload of a `DEVSETTING.DAT` file (32 bytes).
-    #[br(pre_assert(len == 32))]
+    #[br(pre_assert(setting_type == SettingType::DevSetting))]
     DevSetting(DevSetting),
     /// Payload of a `DJMMYSETTING.DAT` file (52 bytes).
-    #[br(pre_assert(len == 52))]
+    #[br(pre_assert(setting_type == SettingType::DJMMySetting))]
     DJMMySetting(DJMMySetting),
     /// Payload of a `MYSETTING.DAT` file (40 bytes).
-    #[br(pre_assert(len == 40))]
+    #[br(pre_assert(setting_type == SettingType::MySetting))]
     MySetting(MySetting),
     /// Payload of a `MYSETTING2.DAT` file (40 bytes).
-    #[br(pre_assert(len == 40))]
+    #[br(pre_assert(setting_type == SettingType::MySetting2))]
     MySetting2(MySetting2),
 }
 
