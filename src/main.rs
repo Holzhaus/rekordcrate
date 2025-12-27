@@ -11,7 +11,7 @@ use clap::{Parser, Subcommand};
 use fallible_iterator::FallibleIterator;
 use rekordcrate::pdb::io::Database;
 use rekordcrate::pdb::*;
-use rekordcrate::setting::Setting;
+use rekordcrate::setting::{Setting, SettingType};
 use rekordcrate::xml::Document;
 use rekordcrate::{anlz::ANLZ, util::TableIndex};
 use std::path::{Path, PathBuf};
@@ -52,6 +52,9 @@ enum Commands {
         /// File to parse.
         #[arg(value_name = "SETTING_FILE")]
         path: PathBuf,
+        /// Setting type.
+        #[arg(long, value_name = "SETTING_TYPE", value_parser = ["devsetting", "djmmysetting", "mysetting", "mysetting2"])]
+        setting_type: Option<String>,
     },
     /// Parse and dump a Pioneer XML (`*.xml`) file.
     DumpXML {
@@ -203,9 +206,9 @@ fn dump_pdb(path: &PathBuf, typ: DatabaseType) -> rekordcrate::Result<()> {
     Ok(())
 }
 
-fn dump_setting(path: &PathBuf) -> rekordcrate::Result<()> {
+fn dump_setting(path: &PathBuf, setting_type: SettingType) -> rekordcrate::Result<()> {
     let mut reader = std::fs::File::open(path)?;
-    let setting = Setting::read(&mut reader)?;
+    let setting = Setting::read_args(&mut reader, (setting_type,))?;
 
     println!("{:#04x?}", setting);
 
@@ -256,6 +259,43 @@ fn guess_db_type(path: &Path, db_type: Option<&str>) -> Option<DatabaseType> {
     Some(db_type)
 }
 
+fn guess_setting_type(path: &Path, setting_type: Option<&str>) -> Option<SettingType> {
+    let setting_type_cli = setting_type.map(|str| match str {
+        "devsetting" => SettingType::DevSetting,
+        "djmmysetting" => SettingType::DJMMySetting,
+        "mysetting" => SettingType::MySetting,
+        "mysetting2" => SettingType::MySetting2,
+        invalid => {
+            unreachable!("invalid flag {invalid}, should have already been checked by clap")
+        }
+    });
+    let file_name = match path.file_name() {
+        None => {
+            eprintln!("{} not a file!", path.display());
+            return None; // TODO: turn into proper error
+        }
+        Some(file_name) => file_name,
+    };
+    let setting_type_file = SettingType::from_filename(file_name);
+    let setting_type = match (setting_type_cli, setting_type_file) {
+        (None, None) => {
+            eprintln!("no SETTING_TYPE supplied nor could it be guessed!");
+            return None; // TODO: turn into proper error
+        }
+        (None, Some(guess)) | (Some(guess), None) => guess,
+        (Some(setting_type_cli), Some(setting_type_file))
+            if setting_type_cli == setting_type_file =>
+        {
+            setting_type_cli
+        }
+        (Some(setting_type_cli), Some(setting_type_file)) => {
+            eprintln!("Warning: passed {setting_type_cli:?}, but found {setting_type_file:?} from file name, using {setting_type_cli:?}!");
+            setting_type_cli
+        }
+    };
+    Some(setting_type)
+}
+
 fn main() -> rekordcrate::Result<()> {
     let cli = Cli::parse();
 
@@ -269,7 +309,13 @@ fn main() -> rekordcrate::Result<()> {
             dump_pdb(path, db_type)
         }
         Commands::DumpANLZ { path } => dump_anlz(path),
-        Commands::DumpSetting { path } => dump_setting(path),
+        Commands::DumpSetting { path, setting_type } => {
+            let setting_type = match guess_setting_type(path, setting_type.as_deref()) {
+                Some(setting_type) => setting_type,
+                None => return Ok(()), // TODO: turn into proper error
+            };
+            dump_setting(path, setting_type)
+        }
         Commands::DumpXML { path } => dump_xml(path),
     }
 }

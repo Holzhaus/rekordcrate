@@ -12,7 +12,7 @@ use crate::{
     pdb::io::Database,
     pdb::{DatabaseType, PlaylistTreeNode, PlaylistTreeNodeId},
     setting,
-    setting::Setting,
+    setting::{Setting, SettingType},
 };
 use binrw::BinRead;
 use fallible_iterator::FallibleIterator;
@@ -40,9 +40,9 @@ impl DeviceExportLoader {
         &self.0
     }
 
-    fn read_setting_file(path: &PathBuf) -> crate::Result<Setting> {
+    fn read_setting_file(path: &PathBuf, setting_type: SettingType) -> crate::Result<Setting> {
         let mut reader = std::fs::File::open(path)?;
-        let setting = Setting::read(&mut reader)?;
+        let setting = Setting::read_args(&mut reader, (setting_type,))?;
         Ok(setting)
     }
 
@@ -52,9 +52,9 @@ impl DeviceExportLoader {
     pub fn load_settings(&self) -> Settings {
         let path = self.0.join("PIONEER");
 
-        let load_setting = |filename: &str| -> Option<Setting> {
+        let load_setting = |filename: &str, setting_type: SettingType| -> Option<Setting> {
             let file_path = path.join(filename);
-            match Self::read_setting_file(&file_path) {
+            match Self::read_setting_file(&file_path, setting_type) {
                 Ok(setting) => Some(setting),
                 Err(e) => {
                     eprintln!("Warning: Could not load {}: {}", file_path.display(), e);
@@ -64,16 +64,16 @@ impl DeviceExportLoader {
         };
 
         let mut settings = Settings::default();
-        if let Some(devsetting) = load_setting("DEVSETTING.DAT") {
+        if let Some(devsetting) = load_setting("DEVSETTING.DAT", SettingType::DevSetting) {
             settings.set_devsetting(devsetting.data.as_dev_setting().unwrap());
         }
-        if let Some(djmmysetting) = load_setting("DJMMYSETTING.DAT") {
+        if let Some(djmmysetting) = load_setting("DJMMYSETTING.DAT", SettingType::DJMMySetting) {
             settings.set_djmmysetting(djmmysetting.data.as_djm_my_setting().unwrap());
         }
-        if let Some(mysetting) = load_setting("MYSETTING.DAT") {
+        if let Some(mysetting) = load_setting("MYSETTING.DAT", SettingType::MySetting) {
             settings.set_mysetting(mysetting.data.as_my_setting().unwrap());
         }
-        if let Some(mysetting2) = load_setting("MYSETTING2.DAT") {
+        if let Some(mysetting2) = load_setting("MYSETTING2.DAT", SettingType::MySetting2) {
             settings.set_mysetting2(mysetting2.data.as_my_setting2().unwrap());
         }
 
