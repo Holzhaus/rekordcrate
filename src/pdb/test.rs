@@ -216,8 +216,8 @@ fn track_row() {
         file_type: FileType::Mp3,
         offsets: OffsetArrayContainer {
             offsets: [
-                3u16, 136, 137, 138, 140, 142, 143, 144, 145, 148, 149, 150, 161, 162, 163, 164,
-                208, 219, 249, 262, 263, 280,
+                136u16, 137, 138, 140, 142, 143, 144, 145, 148, 149, 150, 161, 162, 163, 164, 208,
+                219, 249, 262, 263, 280,
             ]
             .into(),
             inner: TrackStrings {
@@ -279,7 +279,7 @@ fn artist_row() {
         index_shift: 0x0000,
         id: ArtistId(1),
         offsets: OffsetArrayContainer {
-            offsets: [3u8, 10u8].into(),
+            offsets: [10u8].into(),
             inner: TrailingName {
                 name: "Loopmasters".parse().unwrap(),
             },
@@ -303,7 +303,7 @@ fn album_row() {
         id: AlbumId(2),
         unknown3: 0,
         offsets: OffsetArrayContainer {
-            offsets: [3u8, 0x16u8].into(),
+            offsets: [0x16u8].into(),
             inner: TrailingName {
                 name: "GOOD LUCK".parse().unwrap(),
             },
@@ -326,7 +326,7 @@ fn album_row() {
         id: AlbumId(3),
         unknown3: 0,
         offsets: OffsetArrayContainer {
-            offsets: [3u8, 0x16u8].into(),
+            offsets: [0x16u8].into(),
             inner: TrailingName {
                 name: "Techno Rave 2023".parse().unwrap(),
             },
@@ -484,8 +484,8 @@ fn track_page() {
                 file_type: FileType::Wav,
                 offsets: OffsetArrayContainer {
                     offsets: [
-                        0x03u16, 0x88, 0x89, 0x8a, 0x8c, 0x8e, 0x8f, 0x90, 0x93, 0x96, 0x97, 0x98,
-                        0xa3, 0xa4, 0xa5, 0xa6, 0xd2, 0xdd, 0xde, 0xe4, 0xe5, 0xef,
+                        0x88u16, 0x89, 0x8a, 0x8c, 0x8e, 0x8f, 0x90, 0x93, 0x96, 0x97, 0x98, 0xa3,
+                        0xa4, 0xa5, 0xa6, 0xd2, 0xdd, 0xde, 0xe4, 0xe5, 0xef,
                     ]
                     .into(),
                     inner: TrackStrings {
@@ -553,8 +553,8 @@ fn track_page() {
                 file_type: FileType::Wav,
                 offsets: OffsetArrayContainer {
                     offsets: [
-                        0x03u16, 0x88, 0x89, 0x8a, 0x8c, 0x8e, 0x8f, 0x90, 0x93, 0x96, 0x97, 0x98,
-                        0xa3, 0xa4, 0xa5, 0xa6, 0xd2, 0xdd, 0xde, 0xe7, 0xe8, 0xf5,
+                        0x88u16, 0x89, 0x8a, 0x8c, 0x8e, 0x8f, 0x90, 0x93, 0x96, 0x97, 0x98, 0xa3,
+                        0xa4, 0xa5, 0xa6, 0xd2, 0xdd, 0xde, 0xe7, 0xe8, 0xf5,
                     ]
                     .into(),
                     inner: TrackStrings {
@@ -622,8 +622,8 @@ fn track_page() {
                 file_type: FileType::Wav,
                 offsets: OffsetArrayContainer {
                     offsets: [
-                        0x03u16, 0x88, 0x89, 0x8a, 0x8c, 0x8e, 0x8f, 0x90, 0x93, 0x96, 0x97, 0x98,
-                        0xa3, 0xa4, 0xa5, 0xa6, 0xd2, 0xdd, 0xde, 0xe4, 0xe5, 0xef,
+                        0x88u16, 0x89, 0x8a, 0x8c, 0x8e, 0x8f, 0x90, 0x93, 0x96, 0x97, 0x98, 0xa3,
+                        0xa4, 0xa5, 0xa6, 0xd2, 0xdd, 0xde, 0xe4, 0xe5, 0xef,
                     ]
                     .into(),
                     inner: TrackStrings {
@@ -691,8 +691,8 @@ fn track_page() {
                 file_type: FileType::Wav,
                 offsets: OffsetArrayContainer {
                     offsets: [
-                        0x03u16, 0x88, 0x89, 0x8a, 0x8c, 0x8e, 0x8f, 0x90, 0x93, 0x96, 0x97, 0x98,
-                        0xa3, 0xa4, 0xa5, 0xa6, 0xd2, 0xdd, 0xde, 0xe3, 0xe4, 0xed,
+                        0x88u16, 0x89, 0x8a, 0x8c, 0x8e, 0x8f, 0x90, 0x93, 0x96, 0x97, 0x98, 0xa3,
+                        0xa4, 0xa5, 0xa6, 0xd2, 0xdd, 0xde, 0xe3, 0xe4, 0xed,
                     ]
                     .into(),
                     inner: TrackStrings {
@@ -760,8 +760,8 @@ fn track_page() {
                 file_type: FileType::Mp3,
                 offsets: OffsetArrayContainer {
                     offsets: [
-                        0x03u16, 0x88, 0x89, 0x8a, 0x8c, 0x8e, 0x8f, 0x90, 0x93, 0x96, 0x97, 0x98,
-                        0xa3, 0xa4, 0xa5, 0xa6, 0xd2, 0xdd, 0xfb, 0x108, 0x109, 0x11a,
+                        0x88u16, 0x89, 0x8a, 0x8c, 0x8e, 0x8f, 0x90, 0x93, 0x96, 0x97, 0x98, 0xa3,
+                        0xa4, 0xa5, 0xa6, 0xd2, 0xdd, 0xfb, 0x108, 0x109, 0x11a,
                     ]
                     .into(),
                     inner: TrackStrings {
@@ -1094,7 +1094,7 @@ fn artists_page() {
                 index_shift: 0x0000,
                 id: ArtistId(1),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Andreas Gehm".parse().unwrap(),
                     },
@@ -1108,7 +1108,7 @@ fn artists_page() {
                 index_shift: 0x0020,
                 id: ArtistId(2),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "D'marc Cantu".parse().unwrap(),
                     },
@@ -1122,7 +1122,7 @@ fn artists_page() {
                 index_shift: 0x0040,
                 id: ArtistId(3),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "DJ Plant Texture".parse().unwrap(),
                     },
@@ -1136,7 +1136,7 @@ fn artists_page() {
                 index_shift: 0x0060,
                 id: ArtistId(4),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "DVS1".parse().unwrap(),
                     },
@@ -1150,7 +1150,7 @@ fn artists_page() {
                 index_shift: 0x0080,
                 id: ArtistId(5),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Florian Kupfer".parse().unwrap(),
                     },
@@ -1164,7 +1164,7 @@ fn artists_page() {
                 index_shift: 0x00a0,
                 id: ArtistId(6),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Frak".parse().unwrap(),
                     },
@@ -1178,7 +1178,7 @@ fn artists_page() {
                 index_shift: 0x00c0,
                 id: ArtistId(7),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Frankie Knuckles".parse().unwrap(),
                     },
@@ -1192,7 +1192,7 @@ fn artists_page() {
                 index_shift: 0x00e0,
                 id: ArtistId(8),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "House Of Jezebel".parse().unwrap(),
                     },
@@ -1206,7 +1206,7 @@ fn artists_page() {
                 index_shift: 0x0100,
                 id: ArtistId(9),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Innerspace Halflife".parse().unwrap(),
                     },
@@ -1220,7 +1220,7 @@ fn artists_page() {
                 index_shift: 0x0120,
                 id: ArtistId(10),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "James T. Cotton".parse().unwrap(),
                     },
@@ -1234,7 +1234,7 @@ fn artists_page() {
                 index_shift: 0x0140,
                 id: ArtistId(11),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "jozef k".parse().unwrap(),
                     },
@@ -1248,7 +1248,7 @@ fn artists_page() {
                 index_shift: 0x0160,
                 id: ArtistId(12),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Juanpablo".parse().unwrap(),
                     },
@@ -1262,7 +1262,7 @@ fn artists_page() {
                 index_shift: 0x0180,
                 id: ArtistId(13),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Juniper".parse().unwrap(),
                     },
@@ -1276,7 +1276,7 @@ fn artists_page() {
                 index_shift: 0x01a0,
                 id: ArtistId(14),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Kovyazin D".parse().unwrap(),
                     },
@@ -1290,7 +1290,7 @@ fn artists_page() {
                 index_shift: 0x01c0,
                 id: ArtistId(15),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Le Melange Inc. Ft China".parse().unwrap(),
                     },
@@ -1304,7 +1304,7 @@ fn artists_page() {
                 index_shift: 0x01e0,
                 id: ArtistId(16),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Louis Guilliaume".parse().unwrap(),
                     },
@@ -1318,7 +1318,7 @@ fn artists_page() {
                 index_shift: 0x0200,
                 id: ArtistId(17),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Maxwell Church".parse().unwrap(),
                     },
@@ -1332,7 +1332,7 @@ fn artists_page() {
                 index_shift: 0x0220,
                 id: ArtistId(18),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Various Artists".parse().unwrap(),
                     },
@@ -1346,7 +1346,7 @@ fn artists_page() {
                 index_shift: 0x0240,
                 id: ArtistId(19),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Mutant Beat Dance".parse().unwrap(),
                     },
@@ -1360,7 +1360,7 @@ fn artists_page() {
                 index_shift: 0x0260,
                 id: ArtistId(20),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Mutant beat dance".parse().unwrap(),
                     },
@@ -1374,7 +1374,7 @@ fn artists_page() {
                 index_shift: 0x0280,
                 id: ArtistId(21),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Ron Trent".parse().unwrap(),
                     },
@@ -1388,7 +1388,7 @@ fn artists_page() {
                 index_shift: 0x02a0,
                 id: ArtistId(22),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Salvation REMIX".parse().unwrap(),
                     },
@@ -1402,7 +1402,7 @@ fn artists_page() {
                 index_shift: 0x02c0,
                 id: ArtistId(23),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Salvation".parse().unwrap(),
                     },
@@ -1416,7 +1416,7 @@ fn artists_page() {
                 index_shift: 0x02e0,
                 id: ArtistId(24),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Simoncino".parse().unwrap(),
                     },
@@ -1430,7 +1430,7 @@ fn artists_page() {
                 index_shift: 0x0300,
                 id: ArtistId(25),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "HOTMIX RECORDS / NICK ANTHONY SIMONCINO".parse().unwrap(),
                     },
@@ -1444,7 +1444,7 @@ fn artists_page() {
                 index_shift: 0x0320,
                 id: ArtistId(26),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Sneaker REMIX".parse().unwrap(),
                     },
@@ -1458,7 +1458,7 @@ fn artists_page() {
                 index_shift: 0x0340,
                 id: ArtistId(27),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Tinman REMIX".parse().unwrap(),
                     },
@@ -1472,7 +1472,7 @@ fn artists_page() {
                 index_shift: 0x0360,
                 id: ArtistId(28),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Alienata".parse().unwrap(),
                     },
@@ -1486,7 +1486,7 @@ fn artists_page() {
                 index_shift: 0x0380,
                 id: ArtistId(29),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "AS1".parse().unwrap(),
                     },
@@ -1500,7 +1500,7 @@ fn artists_page() {
                 index_shift: 0x03a0,
                 id: ArtistId(30),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "DJ Hell".parse().unwrap(),
                     },
@@ -1514,7 +1514,7 @@ fn artists_page() {
                 index_shift: 0x03c0,
                 id: ArtistId(31),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Innershades & Robert D".parse().unwrap(),
                     },
@@ -1528,7 +1528,7 @@ fn artists_page() {
                 index_shift: 0x03e0,
                 id: ArtistId(32),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "intersterllar funk".parse().unwrap(),
                     },
@@ -1542,7 +1542,7 @@ fn artists_page() {
                 index_shift: 0x0400,
                 id: ArtistId(33),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Kyle Hall, KMFH".parse().unwrap(),
                     },
@@ -1556,7 +1556,7 @@ fn artists_page() {
                 index_shift: 0x0420,
                 id: ArtistId(34),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Luke's Anger".parse().unwrap(),
                     },
@@ -1570,7 +1570,7 @@ fn artists_page() {
                 index_shift: 0x0440,
                 id: ArtistId(35),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 12u8].into(),
+                    offsets: [12u8].into(),
                     inner: TrailingName {
                         name: "Manie Sans Délire".parse().unwrap(),
                     },
@@ -1584,7 +1584,7 @@ fn artists_page() {
                 index_shift: 0x0460,
                 id: ArtistId(36),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Paul du Lac".parse().unwrap(),
                     },
@@ -1598,7 +1598,7 @@ fn artists_page() {
                 index_shift: 0x0480,
                 id: ArtistId(37),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Ron Hardy".parse().unwrap(),
                     },
@@ -1612,7 +1612,7 @@ fn artists_page() {
                 index_shift: 0x04a0,
                 id: ArtistId(38),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Saturn V".parse().unwrap(),
                     },
@@ -1626,7 +1626,7 @@ fn artists_page() {
                 index_shift: 0x04c0,
                 id: ArtistId(39),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "VA".parse().unwrap(),
                     },
@@ -1640,7 +1640,7 @@ fn artists_page() {
                 index_shift: 0x04e0,
                 id: ArtistId(40),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "traxx   ".parse().unwrap(),
                     },
@@ -1654,7 +1654,7 @@ fn artists_page() {
                 index_shift: 0x0500,
                 id: ArtistId(41),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "traxx feat Naughty wood".parse().unwrap(),
                     },
@@ -1668,7 +1668,7 @@ fn artists_page() {
                 index_shift: 0x0520,
                 id: ArtistId(42),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Truncate ".parse().unwrap(),
                     },
@@ -1682,7 +1682,7 @@ fn artists_page() {
                 index_shift: 0x0540,
                 id: ArtistId(43),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Ultrastation".parse().unwrap(),
                     },
@@ -1696,7 +1696,7 @@ fn artists_page() {
                 index_shift: 0x0560,
                 id: ArtistId(44),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "2AM/FM".parse().unwrap(),
                     },
@@ -1710,7 +1710,7 @@ fn artists_page() {
                 index_shift: 0x0580,
                 id: ArtistId(45),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Sepehr".parse().unwrap(),
                     },
@@ -1724,7 +1724,7 @@ fn artists_page() {
                 index_shift: 0x05a0,
                 id: ArtistId(46),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Cfade".parse().unwrap(),
                     },
@@ -1738,7 +1738,7 @@ fn artists_page() {
                 index_shift: 0x05c0,
                 id: ArtistId(47),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Miss Kittin & The Hacker".parse().unwrap(),
                     },
@@ -1752,7 +1752,7 @@ fn artists_page() {
                 index_shift: 0x05e0,
                 id: ArtistId(48),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Paul Du Lac".parse().unwrap(),
                     },
@@ -1766,7 +1766,7 @@ fn artists_page() {
                 index_shift: 0x0600,
                 id: ArtistId(49),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Tyree Cooper".parse().unwrap(),
                     },
@@ -1780,7 +1780,7 @@ fn artists_page() {
                 index_shift: 0x0620,
                 id: ArtistId(50),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Elbee Bad".parse().unwrap(),
                     },
@@ -1794,7 +1794,7 @@ fn artists_page() {
                 index_shift: 0x0640,
                 id: ArtistId(51),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "The Prince of Dance".parse().unwrap(),
                     },
@@ -1808,7 +1808,7 @@ fn artists_page() {
                 index_shift: 0x0660,
                 id: ArtistId(52),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Body Beat Ritual".parse().unwrap(),
                     },
@@ -1822,7 +1822,7 @@ fn artists_page() {
                 index_shift: 0x0680,
                 id: ArtistId(53),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Nehuen".parse().unwrap(),
                     },
@@ -1836,7 +1836,7 @@ fn artists_page() {
                 index_shift: 0x06a0,
                 id: ArtistId(54),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "TRAXX Saturn V & X2".parse().unwrap(),
                     },
@@ -1850,7 +1850,7 @@ fn artists_page() {
                 index_shift: 0x06c0,
                 id: ArtistId(55),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Broken English Club".parse().unwrap(),
                     },
@@ -1864,7 +1864,7 @@ fn artists_page() {
                 index_shift: 0x06e0,
                 id: ArtistId(56),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "terrace".parse().unwrap(),
                     },
@@ -1878,7 +1878,7 @@ fn artists_page() {
                 index_shift: 0x0700,
                 id: ArtistId(57),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Byron The Aquarius".parse().unwrap(),
                     },
@@ -1892,7 +1892,7 @@ fn artists_page() {
                 index_shift: 0x0720,
                 id: ArtistId(58),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Konstantin Tschechow".parse().unwrap(),
                     },
@@ -1906,7 +1906,7 @@ fn artists_page() {
                 index_shift: 0x0740,
                 id: ArtistId(59),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Romansoff".parse().unwrap(),
                     },
@@ -1920,7 +1920,7 @@ fn artists_page() {
                 index_shift: 0x0760,
                 id: ArtistId(60),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "D'Marc Cantu".parse().unwrap(),
                     },
@@ -1934,7 +1934,7 @@ fn artists_page() {
                 index_shift: 0x0780,
                 id: ArtistId(61),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "SvengalisGhost".parse().unwrap(),
                     },
@@ -1948,7 +1948,7 @@ fn artists_page() {
                 index_shift: 0x07a0,
                 id: ArtistId(62),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "X2".parse().unwrap(),
                     },
@@ -1962,7 +1962,7 @@ fn artists_page() {
                 index_shift: 0x07c0,
                 id: ArtistId(63),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Cardopusher".parse().unwrap(),
                     },
@@ -1976,7 +1976,7 @@ fn artists_page() {
                 index_shift: 0x07e0,
                 id: ArtistId(64),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Steven Julien".parse().unwrap(),
                     },
@@ -1990,7 +1990,7 @@ fn artists_page() {
                 index_shift: 0x0800,
                 id: ArtistId(65),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Advent".parse().unwrap(),
                     },
@@ -2004,7 +2004,7 @@ fn artists_page() {
                 index_shift: 0x0820,
                 id: ArtistId(66),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Aleksi Perala".parse().unwrap(),
                     },
@@ -2018,7 +2018,7 @@ fn artists_page() {
                 index_shift: 0x0840,
                 id: ArtistId(67),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Andre Kronert".parse().unwrap(),
                     },
@@ -2032,7 +2032,7 @@ fn artists_page() {
                 index_shift: 0x0860,
                 id: ArtistId(68),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Andy Stott".parse().unwrap(),
                     },
@@ -2046,7 +2046,7 @@ fn artists_page() {
                 index_shift: 0x0880,
                 id: ArtistId(69),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "ANOPOLIS".parse().unwrap(),
                     },
@@ -2060,7 +2060,7 @@ fn artists_page() {
                 index_shift: 0x08a0,
                 id: ArtistId(70),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Anthony Rother".parse().unwrap(),
                     },
@@ -2074,7 +2074,7 @@ fn artists_page() {
                 index_shift: 0x08c0,
                 id: ArtistId(71),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Anthony Rother UNRELEASED".parse().unwrap(),
                     },
@@ -2088,7 +2088,7 @@ fn artists_page() {
                 index_shift: 0x08e0,
                 id: ArtistId(72),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Area".parse().unwrap(),
                     },
@@ -2102,7 +2102,7 @@ fn artists_page() {
                 index_shift: 0x0900,
                 id: ArtistId(73),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Aubrey".parse().unwrap(),
                     },
@@ -2116,7 +2116,7 @@ fn artists_page() {
                 index_shift: 0x0920,
                 id: ArtistId(74),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Audion".parse().unwrap(),
                     },
@@ -2130,7 +2130,7 @@ fn artists_page() {
                 index_shift: 0x0940,
                 id: ArtistId(75),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Audion - Black Strobe".parse().unwrap(),
                     },
@@ -2144,7 +2144,7 @@ fn artists_page() {
                 index_shift: 0x0960,
                 id: ArtistId(76),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Cari Lekebusch & Jesper Dahlback".parse().unwrap(),
                     },
@@ -2158,7 +2158,7 @@ fn artists_page() {
                 index_shift: 0x0980,
                 id: ArtistId(77),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Claro Intelecto".parse().unwrap(),
                     },
@@ -2172,7 +2172,7 @@ fn artists_page() {
                 index_shift: 0x09a0,
                 id: ArtistId(78),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Conforce".parse().unwrap(),
                     },
@@ -2186,7 +2186,7 @@ fn artists_page() {
                 index_shift: 0x09c0,
                 id: ArtistId(79),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "CT Trax".parse().unwrap(),
                     },
@@ -2200,7 +2200,7 @@ fn artists_page() {
                 index_shift: 0x09e0,
                 id: ArtistId(80),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "D-56m".parse().unwrap(),
                     },
@@ -2214,7 +2214,7 @@ fn artists_page() {
                 index_shift: 0x0a00,
                 id: ArtistId(81),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Deniro".parse().unwrap(),
                     },
@@ -2228,7 +2228,7 @@ fn artists_page() {
                 index_shift: 0x0a20,
                 id: ArtistId(82),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "DJ QU".parse().unwrap(),
                     },
@@ -2242,7 +2242,7 @@ fn artists_page() {
                 index_shift: 0x0a40,
                 id: ArtistId(83),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "DJ Qu REMIX".parse().unwrap(),
                     },
@@ -2256,7 +2256,7 @@ fn artists_page() {
                 index_shift: 0x0a60,
                 id: ArtistId(84),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Don williams remix".parse().unwrap(),
                     },
@@ -2270,7 +2270,7 @@ fn artists_page() {
                 index_shift: 0x0a80,
                 id: ArtistId(85),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Don Williams".parse().unwrap(),
                     },
@@ -2284,7 +2284,7 @@ fn artists_page() {
                 index_shift: 0x0aa0,
                 id: ArtistId(86),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Dustmite".parse().unwrap(),
                     },
@@ -2298,7 +2298,7 @@ fn artists_page() {
                 index_shift: 0x0ac0,
                 id: ArtistId(87),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "DVS1 ".parse().unwrap(),
                     },
@@ -2312,7 +2312,7 @@ fn artists_page() {
                 index_shift: 0x0ae0,
                 id: ArtistId(88),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "DVS1 tesT".parse().unwrap(),
                     },
@@ -2326,7 +2326,7 @@ fn artists_page() {
                 index_shift: 0x0b00,
                 id: ArtistId(89),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Emmanuel Top".parse().unwrap(),
                     },
@@ -2340,7 +2340,7 @@ fn artists_page() {
                 index_shift: 0x0b20,
                 id: ArtistId(90),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Erika".parse().unwrap(),
                     },
@@ -2354,7 +2354,7 @@ fn artists_page() {
                 index_shift: 0x0b40,
                 id: ArtistId(91),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Jensen Interceptor REMIX ".parse().unwrap(),
                     },
@@ -2368,7 +2368,7 @@ fn artists_page() {
                 index_shift: 0x0b60,
                 id: ArtistId(92),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Jeroen Search".parse().unwrap(),
                     },
@@ -2382,7 +2382,7 @@ fn artists_page() {
                 index_shift: 0x0b80,
                 id: ArtistId(93),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Juho Kahilainen".parse().unwrap(),
                     },
@@ -2396,7 +2396,7 @@ fn artists_page() {
                 index_shift: 0x0ba0,
                 id: ArtistId(94),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Juxta Position".parse().unwrap(),
                     },
@@ -2410,7 +2410,7 @@ fn artists_page() {
                 index_shift: 0x0bc0,
                 id: ArtistId(95),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Kenny Larkin".parse().unwrap(),
                     },
@@ -2424,7 +2424,7 @@ fn artists_page() {
                 index_shift: 0x0be0,
                 id: ArtistId(96),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Kirill Mamin".parse().unwrap(),
                     },
@@ -2438,7 +2438,7 @@ fn artists_page() {
                 index_shift: 0x0c00,
                 id: ArtistId(97),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "L.B. Dub Corp".parse().unwrap(),
                     },
@@ -2452,7 +2452,7 @@ fn artists_page() {
                 index_shift: 0x0c20,
                 id: ArtistId(98),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Levon Vincent".parse().unwrap(),
                     },
@@ -2466,7 +2466,7 @@ fn artists_page() {
                 index_shift: 0x0c40,
                 id: ArtistId(99),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "LEVON VINCENT".parse().unwrap(),
                     },
@@ -2480,7 +2480,7 @@ fn artists_page() {
                 index_shift: 0x0c60,
                 id: ArtistId(100),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Lil Tony".parse().unwrap(),
                     },
@@ -2494,7 +2494,7 @@ fn artists_page() {
                 index_shift: 0x0c80,
                 id: ArtistId(101),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Malin Genie".parse().unwrap(),
                     },
@@ -2508,7 +2508,7 @@ fn artists_page() {
                 index_shift: 0x0ca0,
                 id: ArtistId(102),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Marcel Dettmann".parse().unwrap(),
                     },
@@ -2522,7 +2522,7 @@ fn artists_page() {
                 index_shift: 0x0cc0,
                 id: ArtistId(103),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Marco Bernardi".parse().unwrap(),
                     },
@@ -2536,7 +2536,7 @@ fn artists_page() {
                 index_shift: 0x0ce0,
                 id: ArtistId(104),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Mary Velo".parse().unwrap(),
                     },
@@ -2550,7 +2550,7 @@ fn artists_page() {
                 index_shift: 0x0d00,
                 id: ArtistId(105),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Mike Dearborn".parse().unwrap(),
                     },
@@ -2564,7 +2564,7 @@ fn artists_page() {
                 index_shift: 0x0d20,
                 id: ArtistId(106),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Mike Dunn JU EDIT".parse().unwrap(),
                     },
@@ -2578,7 +2578,7 @@ fn artists_page() {
                 index_shift: 0x0d40,
                 id: ArtistId(107),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Nina Kraviz".parse().unwrap(),
                     },
@@ -2592,7 +2592,7 @@ fn artists_page() {
                 index_shift: 0x0d60,
                 id: ArtistId(108),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Obsolete Music Technology".parse().unwrap(),
                     },
@@ -2606,7 +2606,7 @@ fn artists_page() {
                 index_shift: 0x0d80,
                 id: ArtistId(109),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Oliver Deutschmann REMIX".parse().unwrap(),
                     },
@@ -2620,7 +2620,7 @@ fn artists_page() {
                 index_shift: 0x0da0,
                 id: ArtistId(110),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Oliver Deutschmann".parse().unwrap(),
                     },
@@ -2634,7 +2634,7 @@ fn artists_page() {
                 index_shift: 0x0dc0,
                 id: ArtistId(111),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Oliver Kapp".parse().unwrap(),
                     },
@@ -2648,7 +2648,7 @@ fn artists_page() {
                 index_shift: 0x0de0,
                 id: ArtistId(112),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Pacou".parse().unwrap(),
                     },
@@ -2662,7 +2662,7 @@ fn artists_page() {
                 index_shift: 0x0e00,
                 id: ArtistId(113),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Patrik Carrera".parse().unwrap(),
                     },
@@ -2676,7 +2676,7 @@ fn artists_page() {
                 index_shift: 0x0e20,
                 id: ArtistId(114),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Patrik Carrera (GER)".parse().unwrap(),
                     },
@@ -2690,7 +2690,7 @@ fn artists_page() {
                 index_shift: 0x0e40,
                 id: ArtistId(115),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Phil Kieran".parse().unwrap(),
                     },
@@ -2704,7 +2704,7 @@ fn artists_page() {
                 index_shift: 0x0e60,
                 id: ArtistId(116),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Planetary Assault Systems".parse().unwrap(),
                     },
@@ -2718,7 +2718,7 @@ fn artists_page() {
                 index_shift: 0x0e80,
                 id: ArtistId(117),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Planetary Assault Systems ".parse().unwrap(),
                     },
@@ -2732,7 +2732,7 @@ fn artists_page() {
                 index_shift: 0x0ea0,
                 id: ArtistId(118),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Plastikman".parse().unwrap(),
                     },
@@ -2746,7 +2746,7 @@ fn artists_page() {
                 index_shift: 0x0ec0,
                 id: ArtistId(119),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "QNA".parse().unwrap(),
                     },
@@ -2760,7 +2760,7 @@ fn artists_page() {
                 index_shift: 0x0ee0,
                 id: ArtistId(120),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Radial".parse().unwrap(),
                     },
@@ -2824,7 +2824,7 @@ fn artist_page_long() {
                 index_shift: 0x0000,
                 id: ArtistId(1),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u16, 12u16].into(),
+                    offsets: [12u16].into(),
                     inner: TrailingName {
                         name: repeat_n('D', 256).collect::<String>().parse().unwrap(),
                     },
@@ -2838,7 +2838,7 @@ fn artist_page_long() {
                 index_shift: 0x0020,
                 id: ArtistId(2),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Insert 2".parse().unwrap(),
                     },
@@ -2852,7 +2852,7 @@ fn artist_page_long() {
                 index_shift: 0x0040,
                 id: ArtistId(3),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u16, 12u16].into(),
+                    offsets: [12u16].into(),
                     inner: TrailingName {
                         name: repeat_n('C', 256).collect::<String>().parse().unwrap(),
                     },
@@ -2866,7 +2866,7 @@ fn artist_page_long() {
                 index_shift: 0x0060,
                 id: ArtistId(4),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 10u8].into(),
+                    offsets: [10u8].into(),
                     inner: TrailingName {
                         name: "Insert 1".parse().unwrap(),
                     },
@@ -2880,7 +2880,7 @@ fn artist_page_long() {
                 index_shift: 0x0080,
                 id: ArtistId(5),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u16, 12u16].into(),
+                    offsets: [12u16].into(),
                     inner: TrailingName {
                         name: repeat_n('B', 254).collect::<String>().parse().unwrap(),
                     },
@@ -2894,7 +2894,7 @@ fn artist_page_long() {
                 index_shift: 0x00a0,
                 id: ArtistId(6),
                 offsets: OffsetArrayContainer {
-                    offsets: [3u16, 12u16].into(),
+                    offsets: [12u16].into(),
                     inner: TrailingName {
                         name: repeat_n('❤', 256).collect::<String>().parse().unwrap(),
                     },
@@ -3000,7 +3000,7 @@ fn albums_page() {
                 id: AlbumId(1),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "The Worst of Gehm".parse().unwrap(),
                     },
@@ -3017,7 +3017,7 @@ fn albums_page() {
                 id: AlbumId(2),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 24u8].into(),
+                    offsets: [24u8].into(),
                     inner: TrailingName {
                         name: "1ØPILLS003 MASTER MP3s".parse().unwrap(),
                     },
@@ -3034,7 +3034,7 @@ fn albums_page() {
                 id: AlbumId(3),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Love & Happiness".parse().unwrap(),
                     },
@@ -3051,7 +3051,7 @@ fn albums_page() {
                 id: AlbumId(4),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Wind / Phazzled".parse().unwrap(),
                     },
@@ -3068,7 +3068,7 @@ fn albums_page() {
                 id: AlbumId(5),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Spectral Sound Volume 3".parse().unwrap(),
                     },
@@ -3085,7 +3085,7 @@ fn albums_page() {
                 id: AlbumId(6),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "The Hideout (Mini-Lp)".parse().unwrap(),
                     },
@@ -3102,7 +3102,7 @@ fn albums_page() {
                 id: AlbumId(7),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Sweet Dreams EP".parse().unwrap(),
                     },
@@ -3119,7 +3119,7 @@ fn albums_page() {
                 id: AlbumId(8),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Lab.our 05".parse().unwrap(),
                     },
@@ -3136,7 +3136,7 @@ fn albums_page() {
                 id: AlbumId(9),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "PolyfonikDizko".parse().unwrap(),
                     },
@@ -3153,7 +3153,7 @@ fn albums_page() {
                 id: AlbumId(10),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Altered States EP".parse().unwrap(),
                     },
@@ -3170,7 +3170,7 @@ fn albums_page() {
                 id: AlbumId(11),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "My So Called Robot Life EP".parse().unwrap(),
                     },
@@ -3187,7 +3187,7 @@ fn albums_page() {
                 id: AlbumId(12),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Deep Ep".parse().unwrap(),
                     },
@@ -3204,7 +3204,7 @@ fn albums_page() {
                 id: AlbumId(13),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 24u8].into(),
+                    offsets: [24u8].into(),
                     inner: TrailingName {
                         name: "Simoncino \u{200e}– Mystic Adventures".parse().unwrap(),
                     },
@@ -3221,7 +3221,7 @@ fn albums_page() {
                 id: AlbumId(14),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Smu Is The Key EP".parse().unwrap(),
                     },
@@ -3238,7 +3238,7 @@ fn albums_page() {
                 id: AlbumId(15),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "SOM Compilation Volume 2".parse().unwrap(), // codespell:ignore
                     },
@@ -3255,7 +3255,7 @@ fn albums_page() {
                 id: AlbumId(16),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "NY Muscle".parse().unwrap(),
                     },
@@ -3272,7 +3272,7 @@ fn albums_page() {
                 id: AlbumId(17),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Point of No Return EP".parse().unwrap(),
                     },
@@ -3289,7 +3289,7 @@ fn albums_page() {
                 id: AlbumId(18),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Tapes 08".parse().unwrap(),
                     },
@@ -3306,7 +3306,7 @@ fn albums_page() {
                 id: AlbumId(19),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Like No One".parse().unwrap(),
                     },
@@ -3323,7 +3323,7 @@ fn albums_page() {
                 id: AlbumId(20),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "The Boat Party".parse().unwrap(),
                     },
@@ -3340,7 +3340,7 @@ fn albums_page() {
                 id: AlbumId(21),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Raw & Unreleased".parse().unwrap(),
                     },
@@ -3357,7 +3357,7 @@ fn albums_page() {
                 id: AlbumId(22),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Living Low".parse().unwrap(),
                     },
@@ -3374,7 +3374,7 @@ fn albums_page() {
                 id: AlbumId(23),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Muzic Box Classics #7".parse().unwrap(),
                     },
@@ -3391,7 +3391,7 @@ fn albums_page() {
                 id: AlbumId(24),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Stranger In The Strangest Of Lands".parse().unwrap(),
                     },
@@ -3408,7 +3408,7 @@ fn albums_page() {
                 id: AlbumId(25),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Pt. 1".parse().unwrap(),
                     },
@@ -3425,7 +3425,7 @@ fn albums_page() {
                 id: AlbumId(26),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Body Mechanics EP".parse().unwrap(),
                     },
@@ -3442,7 +3442,7 @@ fn albums_page() {
                 id: AlbumId(27),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "EAUX1091 ".parse().unwrap(),
                     },
@@ -3459,7 +3459,7 @@ fn albums_page() {
                 id: AlbumId(28),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Lost Tracks, Vol. 2".parse().unwrap(),
                     },
@@ -3476,7 +3476,7 @@ fn albums_page() {
                 id: AlbumId(29),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Dubbelbrein EP".parse().unwrap(),
                     },
@@ -3493,7 +3493,7 @@ fn albums_page() {
                 id: AlbumId(30),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Vx, Vol. 1".parse().unwrap(),
                     },
@@ -3510,7 +3510,7 @@ fn albums_page() {
                 id: AlbumId(31),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "The Trax Records Anthology Compiled By Bill Brewster"
                             .parse()
@@ -3529,7 +3529,7 @@ fn albums_page() {
                 id: AlbumId(32),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "AfriOrker".parse().unwrap(),
                     },
@@ -3546,7 +3546,7 @@ fn albums_page() {
                 id: AlbumId(33),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Mortal Sin EP".parse().unwrap(),
                     },
@@ -3563,7 +3563,7 @@ fn albums_page() {
                 id: AlbumId(34),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Psyops part one EP".parse().unwrap(),
                     },
@@ -3580,7 +3580,7 @@ fn albums_page() {
                 id: AlbumId(35),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "White Rats III".parse().unwrap(),
                     },
@@ -3597,7 +3597,7 @@ fn albums_page() {
                 id: AlbumId(36),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "far from reality".parse().unwrap(),
                     },
@@ -3614,7 +3614,7 @@ fn albums_page() {
                 id: AlbumId(37),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "EP1".parse().unwrap(),
                     },
@@ -3631,7 +3631,7 @@ fn albums_page() {
                 id: AlbumId(38),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Alpha Omega".parse().unwrap(),
                     },
@@ -3648,7 +3648,7 @@ fn albums_page() {
                 id: AlbumId(39),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Decay".parse().unwrap(),
                     },
@@ -3665,7 +3665,7 @@ fn albums_page() {
                 id: AlbumId(40),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "[LIES 009] Mind Control 320".parse().unwrap(),
                     },
@@ -3682,7 +3682,7 @@ fn albums_page() {
                 id: AlbumId(41),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Nation".parse().unwrap(),
                     },
@@ -3699,7 +3699,7 @@ fn albums_page() {
                 id: AlbumId(42),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Split 02".parse().unwrap(),
                     },
@@ -3716,7 +3716,7 @@ fn albums_page() {
                 id: AlbumId(43),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Another Number".parse().unwrap(),
                     },
@@ -3733,7 +3733,7 @@ fn albums_page() {
                 id: AlbumId(44),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "8 Ball".parse().unwrap(),
                     },
@@ -3750,7 +3750,7 @@ fn albums_page() {
                 id: AlbumId(45),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "H-Productions presents_Mutations 101 (HPX60)"
                             .parse()
@@ -3769,7 +3769,7 @@ fn albums_page() {
                 id: AlbumId(46),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "CBS024X".parse().unwrap(),
                     },
@@ -3786,7 +3786,7 @@ fn albums_page() {
                 id: AlbumId(47),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Ben Sims pres Tribology".parse().unwrap(), // codespell:ignore
                     },
@@ -3803,7 +3803,7 @@ fn albums_page() {
                 id: AlbumId(48),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Night Jewel".parse().unwrap(),
                     },
@@ -3820,7 +3820,7 @@ fn albums_page() {
                 id: AlbumId(49),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "AKROPOLEOS".parse().unwrap(),
                     },
@@ -3837,7 +3837,7 @@ fn albums_page() {
                 id: AlbumId(50),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Mistress 12".parse().unwrap(),
                     },
@@ -3854,7 +3854,7 @@ fn albums_page() {
                 id: AlbumId(51),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Mistress 12.5".parse().unwrap(),
                     },
@@ -3871,7 +3871,7 @@ fn albums_page() {
                 id: AlbumId(52),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Remember Each Moment Of Freedom".parse().unwrap(),
                     },
@@ -3888,7 +3888,7 @@ fn albums_page() {
                 id: AlbumId(53),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Mood Sequences".parse().unwrap(),
                     },
@@ -3905,7 +3905,7 @@ fn albums_page() {
                 id: AlbumId(54),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Death Is Nothing To Fear 1".parse().unwrap(),
                     },
@@ -3922,7 +3922,7 @@ fn albums_page() {
                 id: AlbumId(55),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "I'm A Man".parse().unwrap(),
                     },
@@ -3939,7 +3939,7 @@ fn albums_page() {
                 id: AlbumId(56),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Cari Lekebusch & Jesper Dahlback - Hands on experience"
                             .parse()
@@ -3958,7 +3958,7 @@ fn albums_page() {
                 id: AlbumId(57),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "New Life EP".parse().unwrap(),
                     },
@@ -3975,7 +3975,7 @@ fn albums_page() {
                 id: AlbumId(58),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "State of Mind EP".parse().unwrap(),
                     },
@@ -3992,7 +3992,7 @@ fn albums_page() {
                 id: AlbumId(59),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "DABJ Allstars".parse().unwrap(),
                     },
@@ -4009,7 +4009,7 @@ fn albums_page() {
                 id: AlbumId(60),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Mendoza".parse().unwrap(),
                     },
@@ -4026,7 +4026,7 @@ fn albums_page() {
                 id: AlbumId(61),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "CD Thirteen".parse().unwrap(),
                     },
@@ -4043,7 +4043,7 @@ fn albums_page() {
                 id: AlbumId(62),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Raw 7".parse().unwrap(),
                     },
@@ -4060,7 +4060,7 @@ fn albums_page() {
                 id: AlbumId(63),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Endurance - UNDERGROUND QUALITY".parse().unwrap(),
                     },
@@ -4077,7 +4077,7 @@ fn albums_page() {
                 id: AlbumId(64),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "EFDEMIN - DECAY VERSIONS PT.2".parse().unwrap(),
                     },
@@ -4094,7 +4094,7 @@ fn albums_page() {
                 id: AlbumId(65),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "HUSH 03".parse().unwrap(),
                     },
@@ -4111,7 +4111,7 @@ fn albums_page() {
                 id: AlbumId(66),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Mistress 20".parse().unwrap(),
                     },
@@ -4128,7 +4128,7 @@ fn albums_page() {
                 id: AlbumId(67),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Love under pressure ".parse().unwrap(),
                     },
@@ -4145,7 +4145,7 @@ fn albums_page() {
                 id: AlbumId(68),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Release".parse().unwrap(),
                     },
@@ -4162,7 +4162,7 @@ fn albums_page() {
                 id: AlbumId(69),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Hexagon Cloud".parse().unwrap(),
                     },
@@ -4179,7 +4179,7 @@ fn albums_page() {
                 id: AlbumId(70),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "NRDR 011".parse().unwrap(),
                     },
@@ -4196,7 +4196,7 @@ fn albums_page() {
                 id: AlbumId(71),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Diptych".parse().unwrap(),
                     },
@@ -4213,7 +4213,7 @@ fn albums_page() {
                 id: AlbumId(72),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Seven Days".parse().unwrap(),
                     },
@@ -4230,7 +4230,7 @@ fn albums_page() {
                 id: AlbumId(73),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Unknown Origin".parse().unwrap(),
                     },
@@ -4247,7 +4247,7 @@ fn albums_page() {
                 id: AlbumId(74),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Arpeggiator".parse().unwrap(),
                     },
@@ -4264,7 +4264,7 @@ fn albums_page() {
                 id: AlbumId(75),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "DECONSTRUCT MUSIC DEC-02".parse().unwrap(),
                     },
@@ -4281,7 +4281,7 @@ fn albums_page() {
                 id: AlbumId(76),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Basement Tracks EP".parse().unwrap(),
                     },
@@ -4298,7 +4298,7 @@ fn albums_page() {
                 id: AlbumId(77),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Corpse Grinder".parse().unwrap(),
                     },
@@ -4315,7 +4315,7 @@ fn albums_page() {
                 id: AlbumId(78),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Kamm / Plain".parse().unwrap(),
                     },
@@ -4332,7 +4332,7 @@ fn albums_page() {
                 id: AlbumId(79),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Fluxus_Digital_006".parse().unwrap(),
                     },
@@ -4349,7 +4349,7 @@ fn albums_page() {
                 id: AlbumId(80),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Minutes In Ice".parse().unwrap(),
                     },
@@ -4366,7 +4366,7 @@ fn albums_page() {
                 id: AlbumId(81),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "TRP001".parse().unwrap(),
                     },
@@ -4383,7 +4383,7 @@ fn albums_page() {
                 id: AlbumId(82),
                 unknown3: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: [3u8, 22u8].into(),
+                    offsets: [22u8].into(),
                     inner: TrailingName {
                         name: "Mmmmmusic".parse().unwrap(),
                     },
@@ -10123,7 +10123,7 @@ fn tag_page() {
                 id: TagId(1),
                 raw_is_category: 16777216,
                 offsets: OffsetArrayContainer {
-                    offsets: OffsetArray::U8([3, 31, 44]),
+                    offsets: OffsetArray::U8([31, 44]),
                     inner: TagOrCategoryStrings {
                         name: "TagCategory1".parse().unwrap(),
                         unknown: "".parse().unwrap(),
@@ -10143,7 +10143,7 @@ fn tag_page() {
                 id: TagId(3456350885),
                 raw_is_category: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: OffsetArray::U8([3, 31, 40]),
+                    offsets: OffsetArray::U8([31, 40]),
                     inner: TagOrCategoryStrings {
                         name: "Tag1Cat1".parse().unwrap(),
                         unknown: "".parse().unwrap(),
@@ -10163,7 +10163,7 @@ fn tag_page() {
                 id: TagId(246010797),
                 raw_is_category: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: OffsetArray::U8([3, 31, 40]),
+                    offsets: OffsetArray::U8([31, 40]),
                     inner: TagOrCategoryStrings {
                         name: "Tag2Cat1".parse().unwrap(),
                         unknown: "".parse().unwrap(),
@@ -10183,7 +10183,7 @@ fn tag_page() {
                 id: TagId(2),
                 raw_is_category: 16777216,
                 offsets: OffsetArrayContainer {
-                    offsets: OffsetArray::U8([3, 31, 44]),
+                    offsets: OffsetArray::U8([31, 44]),
                     inner: TagOrCategoryStrings {
                         name: "TagCategory2".parse().unwrap(),
                         unknown: "".parse().unwrap(),
@@ -10203,7 +10203,7 @@ fn tag_page() {
                 id: TagId(2923592519),
                 raw_is_category: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: OffsetArray::U8([3, 31, 40]),
+                    offsets: OffsetArray::U8([31, 40]),
                     inner: TagOrCategoryStrings {
                         name: "Tag1Cat2".parse().unwrap(),
                         unknown: "".parse().unwrap(),
@@ -10223,7 +10223,7 @@ fn tag_page() {
                 id: TagId(3518593467),
                 raw_is_category: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: OffsetArray::U8([3, 31, 48]),
+                    offsets: OffsetArray::U8([31, 48]),
                     inner: TagOrCategoryStrings {
                         name: "Tag2Cat2LongName".parse().unwrap(),
                         unknown: "".parse().unwrap(),
@@ -10243,7 +10243,7 @@ fn tag_page() {
                 id: TagId(870902105),
                 raw_is_category: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: OffsetArray::U8([3, 31, 40]),
+                    offsets: OffsetArray::U8([31, 40]),
                     inner: TagOrCategoryStrings {
                         name: "Tag3Cat2".parse().unwrap(),
                         unknown: "".parse().unwrap(),
@@ -10263,7 +10263,7 @@ fn tag_page() {
                 id: TagId(3211624224),
                 raw_is_category: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: OffsetArray::U8([3, 31, 40]),
+                    offsets: OffsetArray::U8([31, 40]),
                     inner: TagOrCategoryStrings {
                         name: "Tag4Cat2".parse().unwrap(),
                         unknown: "".parse().unwrap(),
@@ -10283,7 +10283,7 @@ fn tag_page() {
                 id: TagId(3216792858),
                 raw_is_category: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: OffsetArray::U8([3, 31, 40]),
+                    offsets: OffsetArray::U8([31, 40]),
                     inner: TagOrCategoryStrings {
                         name: "Tag5Cat2".parse().unwrap(),
                         unknown: "".parse().unwrap(),
@@ -10303,7 +10303,7 @@ fn tag_page() {
                 id: TagId(712200756),
                 raw_is_category: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: OffsetArray::U8([3, 31, 40]),
+                    offsets: OffsetArray::U8([31, 40]),
                     inner: TagOrCategoryStrings {
                         name: "Tag6Cat2".parse().unwrap(),
                         unknown: "".parse().unwrap(),
@@ -10323,7 +10323,7 @@ fn tag_page() {
                 id: TagId(4166869272),
                 raw_is_category: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: OffsetArray::U8([3, 31, 40]),
+                    offsets: OffsetArray::U8([31, 40]),
                     inner: TagOrCategoryStrings {
                         name: "Tag7Cat2".parse().unwrap(),
                         unknown: "".parse().unwrap(),
@@ -10343,7 +10343,7 @@ fn tag_page() {
                 id: TagId(4052665282),
                 raw_is_category: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: OffsetArray::U8([3, 31, 40]),
+                    offsets: OffsetArray::U8([31, 40]),
                     inner: TagOrCategoryStrings {
                         name: "Tag8Cat2".parse().unwrap(),
                         unknown: "".parse().unwrap(),
@@ -10363,7 +10363,7 @@ fn tag_page() {
                 id: TagId(3),
                 raw_is_category: 16777216,
                 offsets: OffsetArrayContainer {
-                    offsets: OffsetArray::U8([3, 31, 44]),
+                    offsets: OffsetArray::U8([31, 44]),
                     inner: TagOrCategoryStrings {
                         name: "TagCategory3".parse().unwrap(),
                         unknown: "".parse().unwrap(),
@@ -10383,7 +10383,7 @@ fn tag_page() {
                 id: TagId(2498240426),
                 raw_is_category: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: OffsetArray::U8([3, 31, 40]),
+                    offsets: OffsetArray::U8([31, 40]),
                     inner: TagOrCategoryStrings {
                         name: "Tag1Cat3".parse().unwrap(),
                         unknown: "".parse().unwrap(),
@@ -10403,7 +10403,7 @@ fn tag_page() {
                 id: TagId(598441108),
                 raw_is_category: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: OffsetArray::U8([3, 31, 40]),
+                    offsets: OffsetArray::U8([31, 40]),
                     inner: TagOrCategoryStrings {
                         name: "Tag2Cat3".parse().unwrap(),
                         unknown: "".parse().unwrap(),
@@ -10423,7 +10423,7 @@ fn tag_page() {
                 id: TagId(4263562201),
                 raw_is_category: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: OffsetArray::U8([3, 31, 40]),
+                    offsets: OffsetArray::U8([31, 40]),
                     inner: TagOrCategoryStrings {
                         name: "Tag3Cat3".parse().unwrap(),
                         unknown: "".parse().unwrap(),
@@ -10443,7 +10443,7 @@ fn tag_page() {
                 id: TagId(926017397),
                 raw_is_category: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: OffsetArray::U8([3, 31, 40]),
+                    offsets: OffsetArray::U8([31, 40]),
                     inner: TagOrCategoryStrings {
                         name: "Tag4Cat3".parse().unwrap(),
                         unknown: "".parse().unwrap(),
@@ -10463,7 +10463,7 @@ fn tag_page() {
                 id: TagId(707481115),
                 raw_is_category: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: OffsetArray::U8([3, 31, 40]),
+                    offsets: OffsetArray::U8([31, 40]),
                     inner: TagOrCategoryStrings {
                         name: "Tag5Cat3".parse().unwrap(),
                         unknown: "".parse().unwrap(),
@@ -10483,7 +10483,7 @@ fn tag_page() {
                 id: TagId(3043071597),
                 raw_is_category: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: OffsetArray::U8([3, 31, 40]),
+                    offsets: OffsetArray::U8([31, 40]),
                     inner: TagOrCategoryStrings {
                         name: "Tag6Cat3".parse().unwrap(),
                         unknown: "".parse().unwrap(),
@@ -10503,7 +10503,7 @@ fn tag_page() {
                 id: TagId(4026144338),
                 raw_is_category: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: OffsetArray::U8([3, 31, 40]),
+                    offsets: OffsetArray::U8([31, 40]),
                     inner: TagOrCategoryStrings {
                         name: "Tag7Cat3".parse().unwrap(),
                         unknown: "".parse().unwrap(),
@@ -10523,7 +10523,7 @@ fn tag_page() {
                 id: TagId(218937570),
                 raw_is_category: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: OffsetArray::U8([3, 31, 40]),
+                    offsets: OffsetArray::U8([31, 40]),
                     inner: TagOrCategoryStrings {
                         name: "Tag8Cat3".parse().unwrap(),
                         unknown: "".parse().unwrap(),
@@ -10543,7 +10543,7 @@ fn tag_page() {
                 id: TagId(4),
                 raw_is_category: 16777216,
                 offsets: OffsetArrayContainer {
-                    offsets: OffsetArray::U8([3, 31, 44]),
+                    offsets: OffsetArray::U8([31, 44]),
                     inner: TagOrCategoryStrings {
                         name: "TagCategory4".parse().unwrap(),
                         unknown: "".parse().unwrap(),
@@ -10563,7 +10563,7 @@ fn tag_page() {
                 id: TagId(3074636465),
                 raw_is_category: 0,
                 offsets: OffsetArrayContainer {
-                    offsets: OffsetArray::U8([3, 31, 54]),
+                    offsets: OffsetArray::U8([31, 54]),
                     inner: TagOrCategoryStrings {
                         name: "Tag1Cat4EvenLongerName".parse().unwrap(),
                         unknown: "".parse().unwrap(),
