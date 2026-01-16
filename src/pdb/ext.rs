@@ -41,18 +41,18 @@ pub struct ParentId(
 
 #[binrw]
 #[brw(little)]
-#[brw(import(base: i64, offsets: &OffsetArray<3>, args: ()))]
+#[brw(import(base: i64, offsets: &OffsetArray<2>, args: ()))]
 #[derive(Debug, PartialEq, Clone, Eq)]
 /// The strings associated with a tag or category.
 pub struct TagOrCategoryStrings {
     #[brw(args(base, args))]
-    #[br(parse_with = offsets.read_offset(1))]
-    #[bw(write_with = offsets.write_offset(1))]
+    #[br(parse_with = offsets.read_offset(0))]
+    #[bw(write_with = offsets.write_offset(0))]
     /// The name of the tag or category.
     pub name: DeviceSQLString,
     #[brw(args(base, args))]
-    #[br(parse_with = offsets.read_offset(2))]
-    #[bw(write_with = offsets.write_offset(2))]
+    #[br(parse_with = offsets.read_offset(1))]
+    #[bw(write_with = offsets.write_offset(1))]
     /// String with unknown purpose, often empty.
     pub unknown: DeviceSQLString,
 }
@@ -90,7 +90,7 @@ pub struct TagOrCategory {
     // Padded at the end by 11 bytes as observed
     #[brw(args(0x1C, subtype.get_offset_size(), ()), pad_after = 11)]
     /// The strings associated with this tag or category.
-    pub offsets: OffsetArrayContainer<TagOrCategoryStrings, 3>,
+    pub offsets: OffsetArrayContainer<TagOrCategoryStrings, 2>,
 }
 
 // https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/exports.html#tag-track-rows

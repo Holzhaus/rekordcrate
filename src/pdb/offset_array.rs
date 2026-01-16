@@ -196,6 +196,8 @@ where
 /// This enum is used to read/write the offsets, and to provide the `read_offset` and
 /// `write_offset` methods to read/write the inner type `T` at the specified offsets.
 /// The offsets are stored in little-endian format.
+///
+/// Offsets are always preceded by a magic number 0x03u8/0x0003u16.
 #[binrw]
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[brw(little)]
@@ -203,10 +205,10 @@ where
 pub enum OffsetArray<const N: usize> {
     /// Offsets are stored as u8.
     #[br(pre_assert(size == OffsetSize::U8))]
-    U8([u8; N]),
+    U8(#[brw(magic(0x03u8))] [u8; N]),
     /// Offsets are stored as u16.
     #[br(pre_assert(size == OffsetSize::U16))]
-    U16([u16; N]),
+    U16(#[brw(magic(0x0003u16))] [u16; N]),
 }
 
 impl<const N: usize> OffsetArray<N> {
@@ -328,7 +330,7 @@ mod test {
             inner: IgnoreArgs(()),
         };
         test_roundtrip_with_args(
-            &[],
+            &[0x03],
             empty_offset_tail_u8,
             (0, OffsetSize::U8, ()),
             (0, OffsetSize::U8, ()),
@@ -338,7 +340,7 @@ mod test {
             inner: IgnoreArgs(vec![(); 0]),
         };
         test_roundtrip_with_args(
-            &[],
+            &[0x03, 0x00],
             empty_offset_tail_u16,
             (
                 0,
@@ -354,11 +356,11 @@ mod test {
     #[test]
     fn near_u8() {
         let near_u8_tail = OffsetArrayContainer {
-            offsets: [1u8].into(),
+            offsets: [2u8].into(),
             inner: SingleTarget(42u8),
         };
         test_roundtrip_with_args(
-            &[0x01, 42],
+            &[0x03, 0x02, 42],
             near_u8_tail,
             (0, OffsetSize::U8, ()),
             (0, OffsetSize::U8, ()),
@@ -367,11 +369,11 @@ mod test {
     #[test]
     fn buffer() {
         let buffer = OffsetArrayContainer {
-            offsets: [1u8].into(),
+            offsets: [2u8].into(),
             inner: SingleTarget(0xDEADBEEF_u32.to_be_bytes()),
         };
         test_roundtrip_with_args(
-            &[0x01, 0xDE, 0xAD, 0xBE, 0xEF],
+            &[0x03, 0x02, 0xDE, 0xAD, 0xBE, 0xEF],
             buffer,
             (0, OffsetSize::U8, ()),
             (0, OffsetSize::U8, ()),
@@ -380,11 +382,11 @@ mod test {
     #[test]
     fn near_remote() {
         let near_remote = OffsetArrayContainer {
-            offsets: [4u8].into(),
+            offsets: [5u8].into(),
             inner: SingleTarget(42u8),
         };
         test_roundtrip_with_args(
-            &[0x04, 0x00, 0x00, 0x00, 42],
+            &[0x03, 0x05, 0x00, 0x00, 0x00, 42],
             near_remote,
             (0, OffsetSize::U8, ()),
             (0, OffsetSize::U8, ()),
@@ -393,11 +395,11 @@ mod test {
     #[test]
     fn far_remote() {
         let far_remote = OffsetArrayContainer {
-            offsets: [3u16].into(),
+            offsets: [5u16].into(),
             inner: SingleTarget(42u8),
         };
         test_roundtrip_with_args(
-            &[0x03, 0x00, 0x00, 42],
+            &[0x03, 0x00, 0x05, 0x00, 0x00, 42],
             far_remote,
             (0, OffsetSize::U16, ()),
             (0, OffsetSize::U16, ()),
@@ -406,12 +408,12 @@ mod test {
     #[test]
     fn near_offset() {
         let near_offset = OffsetArrayContainer {
-            offsets: [4u8].into(),
+            offsets: [5u8].into(),
             inner: SingleTarget(42u8),
         };
         let offset = 3;
         test_roundtrip_with_args(
-            &[0x04, 42],
+            &[0x03, 0x05, 42],
             near_offset,
             (offset, OffsetSize::U8, ()),
             (offset, OffsetSize::U8, ()),
@@ -441,14 +443,14 @@ mod test {
     #[test]
     fn multiple() {
         let multiple = OffsetArrayContainer {
-            offsets: [2u8, 3u8].into(),
+            offsets: [3u8, 4u8].into(),
             inner: Multiple {
                 a: 0xC0u8,
                 b: 0xDEu8,
             },
         };
         test_roundtrip_with_args(
-            &[0x02, 0x03, 0xC0, 0xDE],
+            &[0x03, 0x03, 0x04, 0xC0, 0xDE],
             multiple,
             (0, OffsetSize::U8, ()),
             (0, OffsetSize::U8, ()),
@@ -457,14 +459,14 @@ mod test {
     #[test]
     fn switched_ordering() {
         let multiple = OffsetArrayContainer {
-            offsets: [3u8, 2u8].into(),
+            offsets: [4u8, 3u8].into(),
             inner: Multiple {
                 a: 0xC0u8,
                 b: 0xDEu8,
             },
         };
         test_roundtrip_with_args(
-            &[0x03, 0x02, 0xDE, 0xC0],
+            &[0x03, 0x04, 0x03, 0xDE, 0xC0],
             multiple,
             (0, OffsetSize::U8, ()),
             (0, OffsetSize::U8, ()),
