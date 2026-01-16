@@ -34,6 +34,7 @@ All notable changes to this project will be documented in this file.
 - pdb: Only allow PageIndex values less than 0x03FF_FFFF
 - Fix various compiler or clippy warnings with Rust 1.90
 - device: Load_settings, don't fail if settings files are missing
+- Build status badge/shield
 
 ### Documentation
 
