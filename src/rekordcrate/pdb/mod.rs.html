@@ -760,13 +760,13 @@
 <a href=#760 id=760 data-nosnippet>760</a>
 <a href=#761 id=761 data-nosnippet>761</a><span class="attr">#[binrw]
 <a href=#762 id=762 data-nosnippet>762</a>#[brw(little)]
-<a href=#763 id=763 data-nosnippet>763</a>#[brw(import(base: i64, offsets: <span class="kw-2">&amp;</span>OffsetArray&lt;<span class="number">2</span>&gt;, args: ()))]
+<a href=#763 id=763 data-nosnippet>763</a>#[brw(import(base: i64, offsets: <span class="kw-2">&amp;</span>OffsetArray&lt;<span class="number">1</span>&gt;, args: ()))]
 <a href=#764 id=764 data-nosnippet>764</a>#[derive(Debug, PartialEq, Clone, Eq)]
 <a href=#765 id=765 data-nosnippet>765</a></span><span class="doccomment">/// Represents a trailing name field at the end of a row, used for album and artist names.
 <a href=#766 id=766 data-nosnippet>766</a></span><span class="kw">pub struct </span>TrailingName {
 <a href=#767 id=767 data-nosnippet>767</a>    <span class="attr">#[brw(args(base, args))]
-<a href=#768 id=768 data-nosnippet>768</a>    #[br(parse_with = offsets.read_offset(<span class="number">1</span>))]
-<a href=#769 id=769 data-nosnippet>769</a>    #[bw(write_with = offsets.write_offset(<span class="number">1</span>))]
+<a href=#768 id=768 data-nosnippet>768</a>    #[br(parse_with = offsets.read_offset(<span class="number">0</span>))]
+<a href=#769 id=769 data-nosnippet>769</a>    #[bw(write_with = offsets.write_offset(<span class="number">0</span>))]
 <a href=#770 id=770 data-nosnippet>770</a>    </span><span class="doccomment">/// The name a the end of the row this is used in
 <a href=#771 id=771 data-nosnippet>771</a>    </span><span class="kw">pub </span>name: DeviceSQLString,
 <a href=#772 id=772 data-nosnippet>772</a>}
@@ -791,7 +791,7 @@
 <a href=#791 id=791 data-nosnippet>791</a>    </span>unknown3: u32,
 <a href=#792 id=792 data-nosnippet>792</a>    <span class="doccomment">/// The offsets and its data and the end of this row
 <a href=#793 id=793 data-nosnippet>793</a>    </span><span class="attr">#[brw(args(<span class="number">20</span>, subtype.get_offset_size(), ()))]
-<a href=#794 id=794 data-nosnippet>794</a>    </span>offsets: OffsetArrayContainer&lt;TrailingName, <span class="number">2</span>&gt;,
+<a href=#794 id=794 data-nosnippet>794</a>    </span>offsets: OffsetArrayContainer&lt;TrailingName, <span class="number">1</span>&gt;,
 <a href=#795 id=795 data-nosnippet>795</a>}
 <a href=#796 id=796 data-nosnippet>796</a>
 <a href=#797 id=797 data-nosnippet>797</a><span class="doccomment">/// Contains the artist name and ID.
@@ -808,7 +808,7 @@
 <a href=#808 id=808 data-nosnippet>808</a>    </span><span class="kw">pub </span>id: ArtistId,
 <a href=#809 id=809 data-nosnippet>809</a>    <span class="doccomment">/// offsets at the row end
 <a href=#810 id=810 data-nosnippet>810</a>    </span><span class="attr">#[brw(args(<span class="number">8</span>, subtype.get_offset_size(), ()))]
-<a href=#811 id=811 data-nosnippet>811</a>    </span><span class="kw">pub </span>offsets: OffsetArrayContainer&lt;TrailingName, <span class="number">2</span>&gt;,
+<a href=#811 id=811 data-nosnippet>811</a>    </span><span class="kw">pub </span>offsets: OffsetArrayContainer&lt;TrailingName, <span class="number">1</span>&gt;,
 <a href=#812 id=812 data-nosnippet>812</a>}
 <a href=#813 id=813 data-nosnippet>813</a>
 <a href=#814 id=814 data-nosnippet>814</a><span class="doccomment">/// Contains the artwork path and ID.
@@ -963,116 +963,116 @@
 <a href=#963 id=963 data-nosnippet>963</a>
 <a href=#964 id=964 data-nosnippet>964</a><span class="attr">#[binrw]
 <a href=#965 id=965 data-nosnippet>965</a>#[brw(little)]
-<a href=#966 id=966 data-nosnippet>966</a>#[brw(import(base: i64, offsets: <span class="kw-2">&amp;</span>OffsetArray&lt;<span class="number">22</span>&gt;, _args: ()))]
+<a href=#966 id=966 data-nosnippet>966</a>#[brw(import(base: i64, offsets: <span class="kw-2">&amp;</span>OffsetArray&lt;<span class="number">21</span>&gt;, _args: ()))]
 <a href=#967 id=967 data-nosnippet>967</a>#[derive(Debug, PartialEq, Clone, Eq)]
 <a href=#968 id=968 data-nosnippet>968</a></span><span class="doccomment">/// String fields stored via the offset table in Track rows
 <a href=#969 id=969 data-nosnippet>969</a></span><span class="kw">pub struct </span>TrackStrings {
 <a href=#970 id=970 data-nosnippet>970</a>    <span class="doccomment">/// International Standard Recording Code (ISRC), in mangled format.
 <a href=#971 id=971 data-nosnippet>971</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#972 id=972 data-nosnippet>972</a>    #[br(parse_with = offsets.read_offset(<span class="number">1</span>))]
-<a href=#973 id=973 data-nosnippet>973</a>    #[bw(write_with = offsets.write_offset(<span class="number">1</span>))]
+<a href=#972 id=972 data-nosnippet>972</a>    #[br(parse_with = offsets.read_offset(<span class="number">0</span>))]
+<a href=#973 id=973 data-nosnippet>973</a>    #[bw(write_with = offsets.write_offset(<span class="number">0</span>))]
 <a href=#974 id=974 data-nosnippet>974</a>    </span>isrc: DeviceSQLString,
 <a href=#975 id=975 data-nosnippet>975</a>    <span class="doccomment">/// Lyricist of the track.
 <a href=#976 id=976 data-nosnippet>976</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#977 id=977 data-nosnippet>977</a>    #[br(parse_with = offsets.read_offset(<span class="number">2</span>))]
-<a href=#978 id=978 data-nosnippet>978</a>    #[bw(write_with = offsets.write_offset(<span class="number">2</span>))]
+<a href=#977 id=977 data-nosnippet>977</a>    #[br(parse_with = offsets.read_offset(<span class="number">1</span>))]
+<a href=#978 id=978 data-nosnippet>978</a>    #[bw(write_with = offsets.write_offset(<span class="number">1</span>))]
 <a href=#979 id=979 data-nosnippet>979</a>    </span>lyricist: DeviceSQLString,
 <a href=#980 id=980 data-nosnippet>980</a>    <span class="doccomment">/// Unknown string field containing a number.
 <a href=#981 id=981 data-nosnippet>981</a>    /// Appears to increment when the track is exported or modified in Rekordbox.
 <a href=#982 id=982 data-nosnippet>982</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#983 id=983 data-nosnippet>983</a>    #[br(parse_with = offsets.read_offset(<span class="number">3</span>))]
-<a href=#984 id=984 data-nosnippet>984</a>    #[bw(write_with = offsets.write_offset(<span class="number">3</span>))]
+<a href=#983 id=983 data-nosnippet>983</a>    #[br(parse_with = offsets.read_offset(<span class="number">2</span>))]
+<a href=#984 id=984 data-nosnippet>984</a>    #[bw(write_with = offsets.write_offset(<span class="number">2</span>))]
 <a href=#985 id=985 data-nosnippet>985</a>    </span>unknown_string2: DeviceSQLString,
 <a href=#986 id=986 data-nosnippet>986</a>    <span class="doccomment">/// Unknown string field containing a number.
 <a href=#987 id=987 data-nosnippet>987</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#988 id=988 data-nosnippet>988</a>    #[br(parse_with = offsets.read_offset(<span class="number">4</span>))]
-<a href=#989 id=989 data-nosnippet>989</a>    #[bw(write_with = offsets.write_offset(<span class="number">4</span>))]
+<a href=#988 id=988 data-nosnippet>988</a>    #[br(parse_with = offsets.read_offset(<span class="number">3</span>))]
+<a href=#989 id=989 data-nosnippet>989</a>    #[bw(write_with = offsets.write_offset(<span class="number">3</span>))]
 <a href=#990 id=990 data-nosnippet>990</a>    </span>unknown_string3: DeviceSQLString,
 <a href=#991 id=991 data-nosnippet>991</a>    <span class="doccomment">/// Unknown string field.
 <a href=#992 id=992 data-nosnippet>992</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#993 id=993 data-nosnippet>993</a>    #[br(parse_with = offsets.read_offset(<span class="number">5</span>))]
-<a href=#994 id=994 data-nosnippet>994</a>    #[bw(write_with = offsets.write_offset(<span class="number">5</span>))]
+<a href=#993 id=993 data-nosnippet>993</a>    #[br(parse_with = offsets.read_offset(<span class="number">4</span>))]
+<a href=#994 id=994 data-nosnippet>994</a>    #[bw(write_with = offsets.write_offset(<span class="number">4</span>))]
 <a href=#995 id=995 data-nosnippet>995</a>    </span>unknown_string4: DeviceSQLString,
 <a href=#996 id=996 data-nosnippet>996</a>    <span class="doccomment">/// Track "message", a field in the Rekordbox UI.
 <a href=#997 id=997 data-nosnippet>997</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#998 id=998 data-nosnippet>998</a>    #[br(parse_with = offsets.read_offset(<span class="number">6</span>))]
-<a href=#999 id=999 data-nosnippet>999</a>    #[bw(write_with = offsets.write_offset(<span class="number">6</span>))]
+<a href=#998 id=998 data-nosnippet>998</a>    #[br(parse_with = offsets.read_offset(<span class="number">5</span>))]
+<a href=#999 id=999 data-nosnippet>999</a>    #[bw(write_with = offsets.write_offset(<span class="number">5</span>))]
 <a href=#1000 id=1000 data-nosnippet>1000</a>    </span>message: DeviceSQLString,
 <a href=#1001 id=1001 data-nosnippet>1001</a>    <span class="doccomment">/// "Publish track information" in Rekordbox, value is either "ON" or empty string.
 <a href=#1002 id=1002 data-nosnippet>1002</a>    /// Appears related to the Stagehand product to control DJ equipment remotely.
 <a href=#1003 id=1003 data-nosnippet>1003</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1004 id=1004 data-nosnippet>1004</a>    #[br(parse_with = offsets.read_offset(<span class="number">7</span>))]
-<a href=#1005 id=1005 data-nosnippet>1005</a>    #[bw(write_with = offsets.write_offset(<span class="number">7</span>))]
+<a href=#1004 id=1004 data-nosnippet>1004</a>    #[br(parse_with = offsets.read_offset(<span class="number">6</span>))]
+<a href=#1005 id=1005 data-nosnippet>1005</a>    #[bw(write_with = offsets.write_offset(<span class="number">6</span>))]
 <a href=#1006 id=1006 data-nosnippet>1006</a>    </span>publish_track_information: DeviceSQLString,
 <a href=#1007 id=1007 data-nosnippet>1007</a>    <span class="doccomment">/// Determines if hotcues should be autoloaded. Value is either "ON" or empty string.
 <a href=#1008 id=1008 data-nosnippet>1008</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1009 id=1009 data-nosnippet>1009</a>    #[br(parse_with = offsets.read_offset(<span class="number">8</span>))]
-<a href=#1010 id=1010 data-nosnippet>1010</a>    #[bw(write_with = offsets.write_offset(<span class="number">8</span>))]
+<a href=#1009 id=1009 data-nosnippet>1009</a>    #[br(parse_with = offsets.read_offset(<span class="number">7</span>))]
+<a href=#1010 id=1010 data-nosnippet>1010</a>    #[bw(write_with = offsets.write_offset(<span class="number">7</span>))]
 <a href=#1011 id=1011 data-nosnippet>1011</a>    </span>autoload_hotcues: DeviceSQLString,
 <a href=#1012 id=1012 data-nosnippet>1012</a>    <span class="doccomment">/// Unknown string field (usually empty).
 <a href=#1013 id=1013 data-nosnippet>1013</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1014 id=1014 data-nosnippet>1014</a>    #[br(parse_with = offsets.read_offset(<span class="number">9</span>))]
-<a href=#1015 id=1015 data-nosnippet>1015</a>    #[bw(write_with = offsets.write_offset(<span class="number">9</span>))]
+<a href=#1014 id=1014 data-nosnippet>1014</a>    #[br(parse_with = offsets.read_offset(<span class="number">8</span>))]
+<a href=#1015 id=1015 data-nosnippet>1015</a>    #[bw(write_with = offsets.write_offset(<span class="number">8</span>))]
 <a href=#1016 id=1016 data-nosnippet>1016</a>    </span>unknown_string5: DeviceSQLString,
 <a href=#1017 id=1017 data-nosnippet>1017</a>    <span class="doccomment">/// Unknown string field (usually empty).
 <a href=#1018 id=1018 data-nosnippet>1018</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1019 id=1019 data-nosnippet>1019</a>    #[br(parse_with = offsets.read_offset(<span class="number">10</span>))]
-<a href=#1020 id=1020 data-nosnippet>1020</a>    #[bw(write_with = offsets.write_offset(<span class="number">10</span>))]
+<a href=#1019 id=1019 data-nosnippet>1019</a>    #[br(parse_with = offsets.read_offset(<span class="number">9</span>))]
+<a href=#1020 id=1020 data-nosnippet>1020</a>    #[bw(write_with = offsets.write_offset(<span class="number">9</span>))]
 <a href=#1021 id=1021 data-nosnippet>1021</a>    </span>unknown_string6: DeviceSQLString,
 <a href=#1022 id=1022 data-nosnippet>1022</a>    <span class="doccomment">/// Date when the track was added to the Rekordbox collection (YYYY-MM-DD).
 <a href=#1023 id=1023 data-nosnippet>1023</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1024 id=1024 data-nosnippet>1024</a>    #[br(parse_with = offsets.read_offset(<span class="number">11</span>))]
-<a href=#1025 id=1025 data-nosnippet>1025</a>    #[bw(write_with = offsets.write_offset(<span class="number">11</span>))]
+<a href=#1024 id=1024 data-nosnippet>1024</a>    #[br(parse_with = offsets.read_offset(<span class="number">10</span>))]
+<a href=#1025 id=1025 data-nosnippet>1025</a>    #[bw(write_with = offsets.write_offset(<span class="number">10</span>))]
 <a href=#1026 id=1026 data-nosnippet>1026</a>    </span>date_added: DeviceSQLString,
 <a href=#1027 id=1027 data-nosnippet>1027</a>    <span class="doccomment">/// Date when the track was released (YYYY-MM-DD).
 <a href=#1028 id=1028 data-nosnippet>1028</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1029 id=1029 data-nosnippet>1029</a>    #[br(parse_with = offsets.read_offset(<span class="number">12</span>))]
-<a href=#1030 id=1030 data-nosnippet>1030</a>    #[bw(write_with = offsets.write_offset(<span class="number">12</span>))]
+<a href=#1029 id=1029 data-nosnippet>1029</a>    #[br(parse_with = offsets.read_offset(<span class="number">11</span>))]
+<a href=#1030 id=1030 data-nosnippet>1030</a>    #[bw(write_with = offsets.write_offset(<span class="number">11</span>))]
 <a href=#1031 id=1031 data-nosnippet>1031</a>    </span>release_date: DeviceSQLString,
 <a href=#1032 id=1032 data-nosnippet>1032</a>    <span class="doccomment">/// Name of the remix (if any).
 <a href=#1033 id=1033 data-nosnippet>1033</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1034 id=1034 data-nosnippet>1034</a>    #[br(parse_with = offsets.read_offset(<span class="number">13</span>))]
-<a href=#1035 id=1035 data-nosnippet>1035</a>    #[bw(write_with = offsets.write_offset(<span class="number">13</span>))]
+<a href=#1034 id=1034 data-nosnippet>1034</a>    #[br(parse_with = offsets.read_offset(<span class="number">12</span>))]
+<a href=#1035 id=1035 data-nosnippet>1035</a>    #[bw(write_with = offsets.write_offset(<span class="number">12</span>))]
 <a href=#1036 id=1036 data-nosnippet>1036</a>    </span>mix_name: DeviceSQLString,
 <a href=#1037 id=1037 data-nosnippet>1037</a>    <span class="doccomment">/// Unknown string field (usually empty).
 <a href=#1038 id=1038 data-nosnippet>1038</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1039 id=1039 data-nosnippet>1039</a>    #[br(parse_with = offsets.read_offset(<span class="number">14</span>))]
-<a href=#1040 id=1040 data-nosnippet>1040</a>    #[bw(write_with = offsets.write_offset(<span class="number">14</span>))]
+<a href=#1039 id=1039 data-nosnippet>1039</a>    #[br(parse_with = offsets.read_offset(<span class="number">13</span>))]
+<a href=#1040 id=1040 data-nosnippet>1040</a>    #[bw(write_with = offsets.write_offset(<span class="number">13</span>))]
 <a href=#1041 id=1041 data-nosnippet>1041</a>    </span>unknown_string7: DeviceSQLString,
 <a href=#1042 id=1042 data-nosnippet>1042</a>    <span class="doccomment">/// File path of the track analysis file.
 <a href=#1043 id=1043 data-nosnippet>1043</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1044 id=1044 data-nosnippet>1044</a>    #[br(parse_with = offsets.read_offset(<span class="number">15</span>))]
-<a href=#1045 id=1045 data-nosnippet>1045</a>    #[bw(write_with = offsets.write_offset(<span class="number">15</span>))]
+<a href=#1044 id=1044 data-nosnippet>1044</a>    #[br(parse_with = offsets.read_offset(<span class="number">14</span>))]
+<a href=#1045 id=1045 data-nosnippet>1045</a>    #[bw(write_with = offsets.write_offset(<span class="number">14</span>))]
 <a href=#1046 id=1046 data-nosnippet>1046</a>    </span>analyze_path: DeviceSQLString,
 <a href=#1047 id=1047 data-nosnippet>1047</a>    <span class="doccomment">/// Date when the track analysis was performed (YYYY-MM-DD).
 <a href=#1048 id=1048 data-nosnippet>1048</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1049 id=1049 data-nosnippet>1049</a>    #[br(parse_with = offsets.read_offset(<span class="number">16</span>))]
-<a href=#1050 id=1050 data-nosnippet>1050</a>    #[bw(write_with = offsets.write_offset(<span class="number">16</span>))]
+<a href=#1049 id=1049 data-nosnippet>1049</a>    #[br(parse_with = offsets.read_offset(<span class="number">15</span>))]
+<a href=#1050 id=1050 data-nosnippet>1050</a>    #[bw(write_with = offsets.write_offset(<span class="number">15</span>))]
 <a href=#1051 id=1051 data-nosnippet>1051</a>    </span>analyze_date: DeviceSQLString,
 <a href=#1052 id=1052 data-nosnippet>1052</a>    <span class="doccomment">/// Track comment.
 <a href=#1053 id=1053 data-nosnippet>1053</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1054 id=1054 data-nosnippet>1054</a>    #[br(parse_with = offsets.read_offset(<span class="number">17</span>))]
-<a href=#1055 id=1055 data-nosnippet>1055</a>    #[bw(write_with = offsets.write_offset(<span class="number">17</span>))]
+<a href=#1054 id=1054 data-nosnippet>1054</a>    #[br(parse_with = offsets.read_offset(<span class="number">16</span>))]
+<a href=#1055 id=1055 data-nosnippet>1055</a>    #[bw(write_with = offsets.write_offset(<span class="number">16</span>))]
 <a href=#1056 id=1056 data-nosnippet>1056</a>    </span>comment: DeviceSQLString,
 <a href=#1057 id=1057 data-nosnippet>1057</a>    <span class="doccomment">/// Track title.
 <a href=#1058 id=1058 data-nosnippet>1058</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1059 id=1059 data-nosnippet>1059</a>    #[br(parse_with = offsets.read_offset(<span class="number">18</span>))]
-<a href=#1060 id=1060 data-nosnippet>1060</a>    #[bw(write_with = offsets.write_offset(<span class="number">18</span>))]
+<a href=#1059 id=1059 data-nosnippet>1059</a>    #[br(parse_with = offsets.read_offset(<span class="number">17</span>))]
+<a href=#1060 id=1060 data-nosnippet>1060</a>    #[bw(write_with = offsets.write_offset(<span class="number">17</span>))]
 <a href=#1061 id=1061 data-nosnippet>1061</a>    </span><span class="kw">pub </span>title: DeviceSQLString,
 <a href=#1062 id=1062 data-nosnippet>1062</a>    <span class="doccomment">/// Unknown string field (usually empty).
 <a href=#1063 id=1063 data-nosnippet>1063</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1064 id=1064 data-nosnippet>1064</a>    #[br(parse_with = offsets.read_offset(<span class="number">19</span>))]
-<a href=#1065 id=1065 data-nosnippet>1065</a>    #[bw(write_with = offsets.write_offset(<span class="number">19</span>))]
+<a href=#1064 id=1064 data-nosnippet>1064</a>    #[br(parse_with = offsets.read_offset(<span class="number">18</span>))]
+<a href=#1065 id=1065 data-nosnippet>1065</a>    #[bw(write_with = offsets.write_offset(<span class="number">18</span>))]
 <a href=#1066 id=1066 data-nosnippet>1066</a>    </span>unknown_string8: DeviceSQLString,
 <a href=#1067 id=1067 data-nosnippet>1067</a>    <span class="doccomment">/// Name of the file.
 <a href=#1068 id=1068 data-nosnippet>1068</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1069 id=1069 data-nosnippet>1069</a>    #[br(parse_with = offsets.read_offset(<span class="number">20</span>))]
-<a href=#1070 id=1070 data-nosnippet>1070</a>    #[bw(write_with = offsets.write_offset(<span class="number">20</span>))]
+<a href=#1069 id=1069 data-nosnippet>1069</a>    #[br(parse_with = offsets.read_offset(<span class="number">19</span>))]
+<a href=#1070 id=1070 data-nosnippet>1070</a>    #[bw(write_with = offsets.write_offset(<span class="number">19</span>))]
 <a href=#1071 id=1071 data-nosnippet>1071</a>    </span>filename: DeviceSQLString,
 <a href=#1072 id=1072 data-nosnippet>1072</a>    <span class="doccomment">/// Path of the file.
 <a href=#1073 id=1073 data-nosnippet>1073</a>    </span><span class="attr">#[brw(args(base, ()))]
-<a href=#1074 id=1074 data-nosnippet>1074</a>    #[br(parse_with = offsets.read_offset(<span class="number">21</span>))]
-<a href=#1075 id=1075 data-nosnippet>1075</a>    #[bw(write_with = offsets.write_offset(<span class="number">21</span>))]
+<a href=#1074 id=1074 data-nosnippet>1074</a>    #[br(parse_with = offsets.read_offset(<span class="number">20</span>))]
+<a href=#1075 id=1075 data-nosnippet>1075</a>    #[bw(write_with = offsets.write_offset(<span class="number">20</span>))]
 <a href=#1076 id=1076 data-nosnippet>1076</a>    </span><span class="kw">pub </span>file_path: DeviceSQLString,
 <a href=#1077 id=1077 data-nosnippet>1077</a>}
 <a href=#1078 id=1078 data-nosnippet>1078</a>
@@ -1147,7 +1147,7 @@
 <a href=#1147 id=1147 data-nosnippet>1147</a>    </span>file_type: FileType,
 <a href=#1148 id=1148 data-nosnippet>1148</a>    <span class="doccomment">/// offsets (strings) at row end
 <a href=#1149 id=1149 data-nosnippet>1149</a>    </span><span class="attr">#[brw(args(<span class="number">0x5C</span>, subtype.get_offset_size(), ()))]
-<a href=#1150 id=1150 data-nosnippet>1150</a>    </span><span class="kw">pub </span>offsets: OffsetArrayContainer&lt;TrackStrings, <span class="number">22</span>&gt;,
+<a href=#1150 id=1150 data-nosnippet>1150</a>    </span><span class="kw">pub </span>offsets: OffsetArrayContainer&lt;TrackStrings, <span class="number">21</span>&gt;,
 <a href=#1151 id=1151 data-nosnippet>1151</a>}
 <a href=#1152 id=1152 data-nosnippet>1152</a>
 <a href=#1153 id=1153 data-nosnippet>1153</a><span class="doccomment">/// Visibility state for a Menu on the CDJ.
