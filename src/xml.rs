@@ -17,7 +17,6 @@
 //! - <https://pyrekordbox.readthedocs.io/en/stable/formats/xml.html>
 type NaiveDate = String; //Replace with "use chrono::naive::NaiveDate;"
 use serde::{de::Error, ser::Serializer, Deserialize, Serialize};
-use std::borrow::Cow;
 
 /// The XML root element of a rekordbox XML file.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -252,110 +251,47 @@ impl<'de> Deserialize<'de> for PlaylistGenericNode {
     where
         D: serde::Deserializer<'de>,
     {
-        struct PlaylistGenericNodeVisitor;
-
-        impl<'de> serde::de::Visitor<'de> for PlaylistGenericNodeVisitor {
-            type Value = PlaylistGenericNode;
-
-            fn expecting(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                formatter.write_str("struct PlaylistGenericNode")
-            }
-
-            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
-            where
-                A: serde::de::MapAccess<'de>,
-            {
-                let mut node_type = None;
-                let mut name = None;
-                let mut count = None;
-                let mut key_type = None;
-                let mut entries = None;
-
-                while let Some(key) = map.next_key::<Cow<'_, str>>()? {
-                    match key.as_ref() {
-                        "@Name" => name = map.next_value::<Cow<'_, str>>()?.into(),
-                        "@Type" => node_type = map.next_value::<Cow<'_, str>>()?.into(),
-                        "@Count" => count = map.next_value::<usize>()?.into(),
-                        "@KeyType" => key_type = map.next_value::<Cow<'_, str>>()?.into(),
-                        "@Entries" => entries = map.next_value::<usize>()?.into(),
-                        unknown => {
-                            return Err(A::Error::unknown_field(
-                                unknown,
-                                &["@Name", "@Type", "@Count", "@KeyType", "@Entries"],
-                            ));
-                        }
-                    }
-
-                    match node_type.as_deref() {
-                        Some("0") => {
-                            if let (Some(n), Some(_c)) = (&name, count) {
-                                let nodes = {
-                                    // Create anonymous type
-                                    #[derive(serde::Deserialize)]
-                                    struct Nodes {
-                                        #[serde(rename = "NODE")]
-                                        content: Vec<PlaylistGenericNode>,
-                                    }
-                                    let de = serde::de::value::MapAccessDeserializer::new(map);
-                                    Nodes::deserialize(de)?.content
-                                };
-                                // FIXME: Should we check if nodes.len() == count here?
-                                return Ok(PlaylistGenericNode::Folder(PlaylistFolderNode {
-                                    name: n.to_string(),
-                                    nodes,
-                                }));
-                            }
-                        }
-                        Some("1") => {
-                            if let (Some(n), Some(_c), Some(t)) = (&name, entries, &key_type) {
-                                let tracks = {
-                                    // Create anonymous type
-                                    #[derive(serde::Deserialize)]
-                                    struct Tracks {
-                                        #[serde(rename = "TRACK")]
-                                        content: Vec<PlaylistTrack>,
-                                    }
-                                    let de = serde::de::value::MapAccessDeserializer::new(map);
-                                    Tracks::deserialize(de)?.content
-                                };
-                                // FIXME: Should we check if nodes.len() == count here?
-                                return Ok(PlaylistGenericNode::Playlist(PlaylistPlaylistNode {
-                                    name: n.to_string(),
-                                    keytype: t.to_string(),
-                                    tracks,
-                                }));
-                            }
-                        }
-                        Some(unknown) => {
-                            return Err(A::Error::unknown_variant(unknown, &["0", "1"]))
-                        }
-                        None => (),
-                    }
-                }
-
-                match node_type.as_deref() {
-                    Some("0") => {
-                        if name.is_none() {
-                            Err(A::Error::missing_field("@Name"))
-                        } else {
-                            Err(A::Error::missing_field("@Count"))
-                        }
-                    }
-                    Some("1") => {
-                        if name.is_none() {
-                            Err(A::Error::missing_field("@Name"))
-                        } else if entries.is_none() {
-                            Err(A::Error::missing_field("@Entries"))
-                        } else {
-                            Err(A::Error::missing_field("@KeyType"))
-                        }
-                    }
-                    _ => Err(A::Error::missing_field("@Type")),
-                }
-            }
+        // stores a node with fields for a playlist or folder
+        #[derive(Deserialize)]
+        struct Node {
+            #[serde(rename = "@Name")]
+            name: String,
+            // indicates playlist or folder
+            #[serde(rename = "@Type")]
+            node_type: String,
+            // appears on playlists only
+            #[serde(rename = "@KeyType", default)]
+            key_type: Option<String>,
+            // child nodes in a folder
+            #[serde(rename = "NODE", default)]
+            nodes: Vec<PlaylistGenericNode>,
+            // tracks in a playlist
+            #[serde(rename = "TRACK", default)]
+            tracks: Vec<PlaylistTrack>,
         }
 
-        deserializer.deserialize_map(PlaylistGenericNodeVisitor)
+        let node = Node::deserialize(deserializer)?;
+
+        match node.node_type.as_str() {
+            // Folder node
+            "0" => Ok(PlaylistGenericNode::Folder(PlaylistFolderNode {
+                name: node.name,
+                nodes: node.nodes,
+            })),
+            // Playlist node
+            "1" => {
+                if let Some(key_type) = node.key_type {
+                    Ok(PlaylistGenericNode::Playlist(PlaylistPlaylistNode {
+                        name: node.name,
+                        keytype: key_type,
+                        tracks: node.tracks,
+                    }))
+                } else {
+                    Err(D::Error::missing_field("@KeyType"))
+                }
+            }
+            t => Err(D::Error::unknown_variant(t, &["0", "1"])),
+        }
     }
 }
 
