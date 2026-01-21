@@ -24,7 +24,7 @@ pub mod offset_array;
 pub mod string;
 
 use bitfields::{PackedRowCounts, PageFlags};
-use offset_array::OffsetArrayContainer;
+use offset_array::{OffsetArrayContainer, OffsetArrayItems};
 
 #[cfg(test)]
 mod test;
@@ -33,7 +33,7 @@ use std::collections::BTreeMap;
 use std::fmt;
 
 use crate::pdb::ext::{ExtPageType, ExtRow};
-use crate::pdb::offset_array::{OffsetArray, OffsetSize};
+use crate::pdb::offset_array::OffsetSize;
 use crate::pdb::string::DeviceSQLString;
 use crate::util::{parse_at_offsets, write_at_offsets, ColorIndex, FileType};
 use binrw::{
@@ -739,17 +739,24 @@ pub struct PlaylistTreeNodeId(pub u32);
 #[brw(little)]
 pub struct HistoryPlaylistId(pub u32);
 
-#[binrw]
-#[brw(little)]
-#[brw(import(base: i64, offsets: &OffsetArray<1>, args: ()))]
 #[derive(Debug, PartialEq, Clone, Eq)]
 /// Represents a trailing name field at the end of a row, used for album and artist names.
 pub struct TrailingName {
-    #[brw(args(base, args))]
-    #[br(parse_with = offsets.read_offset(0))]
-    #[bw(write_with = offsets.write_offset(0))]
     /// The name a the end of the row this is used in
     pub name: DeviceSQLString,
+}
+
+impl OffsetArrayItems<1> for TrailingName {
+    type Item = DeviceSQLString;
+
+    fn as_items(&self) -> [&Self::Item; 1] {
+        [&self.name]
+    }
+
+    fn from_items(items: [Self::Item; 1]) -> Self {
+        let [name] = items;
+        Self { name }
+    }
 }
 
 /// Contains the album name, along with an ID of the corresponding artist.
@@ -942,119 +949,111 @@ pub struct ColumnEntry {
     pub column_name: DeviceSQLString,
 }
 
-#[binrw]
-#[brw(little)]
-#[brw(import(base: i64, offsets: &OffsetArray<21>, _args: ()))]
 #[derive(Debug, PartialEq, Clone, Eq)]
 /// String fields stored via the offset table in Track rows
 pub struct TrackStrings {
     /// International Standard Recording Code (ISRC), in mangled format.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(0))]
-    #[bw(write_with = offsets.write_offset(0))]
     isrc: DeviceSQLString,
     /// Lyricist of the track.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(1))]
-    #[bw(write_with = offsets.write_offset(1))]
     lyricist: DeviceSQLString,
     /// Unknown string field containing a number.
     /// Appears to increment when the track is exported or modified in Rekordbox.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(2))]
-    #[bw(write_with = offsets.write_offset(2))]
     unknown_string2: DeviceSQLString,
     /// Unknown string field containing a number.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(3))]
-    #[bw(write_with = offsets.write_offset(3))]
     unknown_string3: DeviceSQLString,
     /// Unknown string field.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(4))]
-    #[bw(write_with = offsets.write_offset(4))]
     unknown_string4: DeviceSQLString,
     /// Track "message", a field in the Rekordbox UI.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(5))]
-    #[bw(write_with = offsets.write_offset(5))]
     message: DeviceSQLString,
     /// "Publish track information" in Rekordbox, value is either "ON" or empty string.
     /// Appears related to the Stagehand product to control DJ equipment remotely.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(6))]
-    #[bw(write_with = offsets.write_offset(6))]
     publish_track_information: DeviceSQLString,
     /// Determines if hotcues should be autoloaded. Value is either "ON" or empty string.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(7))]
-    #[bw(write_with = offsets.write_offset(7))]
     autoload_hotcues: DeviceSQLString,
     /// Unknown string field (usually empty).
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(8))]
-    #[bw(write_with = offsets.write_offset(8))]
     unknown_string5: DeviceSQLString,
     /// Unknown string field (usually empty).
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(9))]
-    #[bw(write_with = offsets.write_offset(9))]
     unknown_string6: DeviceSQLString,
     /// Date when the track was added to the Rekordbox collection (YYYY-MM-DD).
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(10))]
-    #[bw(write_with = offsets.write_offset(10))]
     date_added: DeviceSQLString,
     /// Date when the track was released (YYYY-MM-DD).
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(11))]
-    #[bw(write_with = offsets.write_offset(11))]
     release_date: DeviceSQLString,
     /// Name of the remix (if any).
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(12))]
-    #[bw(write_with = offsets.write_offset(12))]
     mix_name: DeviceSQLString,
     /// Unknown string field (usually empty).
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(13))]
-    #[bw(write_with = offsets.write_offset(13))]
     unknown_string7: DeviceSQLString,
     /// File path of the track analysis file.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(14))]
-    #[bw(write_with = offsets.write_offset(14))]
     analyze_path: DeviceSQLString,
     /// Date when the track analysis was performed (YYYY-MM-DD).
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(15))]
-    #[bw(write_with = offsets.write_offset(15))]
     analyze_date: DeviceSQLString,
     /// Track comment.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(16))]
-    #[bw(write_with = offsets.write_offset(16))]
     comment: DeviceSQLString,
     /// Track title.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(17))]
-    #[bw(write_with = offsets.write_offset(17))]
     pub title: DeviceSQLString,
     /// Unknown string field (usually empty).
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(18))]
-    #[bw(write_with = offsets.write_offset(18))]
     unknown_string8: DeviceSQLString,
     /// Name of the file.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(19))]
-    #[bw(write_with = offsets.write_offset(19))]
     filename: DeviceSQLString,
     /// Path of the file.
-    #[brw(args(base, ()))]
-    #[br(parse_with = offsets.read_offset(20))]
-    #[bw(write_with = offsets.write_offset(20))]
     pub file_path: DeviceSQLString,
+}
+
+impl OffsetArrayItems<21> for TrackStrings {
+    type Item = DeviceSQLString;
+
+    fn as_items(&self) -> [&Self::Item; 21] {
+        [
+            &self.isrc,
+            &self.lyricist,
+            &self.unknown_string2,
+            &self.unknown_string3,
+            &self.unknown_string4,
+            &self.message,
+            &self.publish_track_information,
+            &self.autoload_hotcues,
+            &self.unknown_string5,
+            &self.unknown_string6,
+            &self.date_added,
+            &self.release_date,
+            &self.mix_name,
+            &self.unknown_string7,
+            &self.analyze_path,
+            &self.analyze_date,
+            &self.comment,
+            &self.title,
+            &self.unknown_string8,
+            &self.filename,
+            &self.file_path,
+        ]
+    }
+
+    fn from_items(items: [Self::Item; 21]) -> Self {
+        let [isrc, lyricist, unknown_string2, unknown_string3, unknown_string4, message, publish_track_information, autoload_hotcues, unknown_string5, unknown_string6, date_added, release_date, mix_name, unknown_string7, analyze_path, analyze_date, comment, title, unknown_string8, filename, file_path] =
+            items;
+        Self {
+            isrc,
+            lyricist,
+            unknown_string2,
+            unknown_string3,
+            unknown_string4,
+            message,
+            publish_track_information,
+            autoload_hotcues,
+            unknown_string5,
+            unknown_string6,
+            date_added,
+            release_date,
+            mix_name,
+            unknown_string7,
+            analyze_path,
+            analyze_date,
+            comment,
+            title,
+            unknown_string8,
+            filename,
+            file_path,
+        }
+    }
 }
 
 /// Contains the album name, along with an ID of the corresponding artist.

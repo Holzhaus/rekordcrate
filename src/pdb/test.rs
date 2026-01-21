@@ -6,6 +6,7 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 use super::ext::*;
+use super::offset_array::OffsetArray;
 use super::*;
 use crate::util::testing::{test_roundtrip, test_roundtrip_with_args};
 use std::num::NonZero;

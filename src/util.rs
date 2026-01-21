@@ -169,6 +169,40 @@ pub const fn align_by(alignment: u64, mut offset: u64) -> u64 {
     offset
 }
 
+pub(crate) trait ArrayPolyfills<T, const N: usize> {
+    fn try_map_polyfill<U, E>(self, f: impl FnMut(T) -> Result<U, E>) -> Result<[U; N], E>;
+    fn zip_polyfill<U>(self, other: [U; N]) -> [(T, U); N];
+}
+
+impl<T, const N: usize> ArrayPolyfills<T, N> for [T; N] {
+    fn try_map_polyfill<U, E>(self, f: impl FnMut(T) -> Result<U, E>) -> Result<[U; N], E> {
+        let results = self.map(f);
+        let has_error = results.iter().any(|r| r.is_err());
+        if has_error {
+            return Err(results.into_iter().find_map(|r| r.err()).unwrap());
+        }
+        Ok(results.map(|r| match r {
+            Ok(v) => v,
+            Err(_) => unreachable!(),
+        }))
+    }
+
+    fn zip_polyfill<U>(self, other: [U; N]) -> [(T, U); N] {
+        // With a bit of luck the compiler will optimize all of this to avoid
+        // all of the Option packing and unpacking.
+        let mut a = self.map(Some);
+        let mut b = other.map(Some);
+        let mut result: [Option<(T, U)>; N] = [const { None }; _];
+        for i in 0..N {
+            result[i] = Some((a[i].take().unwrap(), b[i].take().unwrap()));
+        }
+        result.map(|opt| match opt {
+            Some(v) => v,
+            None => unreachable!(),
+        })
+    }
+}
+
 #[cfg(test)]
 pub(crate) mod testing {
     use binrw::{

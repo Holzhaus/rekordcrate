@@ -19,7 +19,9 @@
 //! - <https://github.com/henrybetts/Rekordbox-Decoding>
 //! - <https://github.com/flesniak/python-prodj-link/tree/master/prodj/pdblib>
 
-use crate::pdb::{DeviceSQLString, OffsetArray, OffsetArrayContainer, Subtype, TrackId};
+use crate::pdb::{
+    offset_array::OffsetArrayItems, DeviceSQLString, OffsetArrayContainer, Subtype, TrackId,
+};
 use binrw::binrw;
 use std::num::NonZero;
 
@@ -39,22 +41,26 @@ pub struct ParentId(
     pub Option<NonZero<u32>>,
 );
 
-#[binrw]
-#[brw(little)]
-#[brw(import(base: i64, offsets: &OffsetArray<2>, args: ()))]
 #[derive(Debug, PartialEq, Clone, Eq)]
 /// The strings associated with a tag or category.
 pub struct TagOrCategoryStrings {
-    #[brw(args(base, args))]
-    #[br(parse_with = offsets.read_offset(0))]
-    #[bw(write_with = offsets.write_offset(0))]
     /// The name of the tag or category.
     pub name: DeviceSQLString,
-    #[brw(args(base, args))]
-    #[br(parse_with = offsets.read_offset(1))]
-    #[bw(write_with = offsets.write_offset(1))]
     /// String with unknown purpose, often empty.
     pub unknown: DeviceSQLString,
+}
+
+impl OffsetArrayItems<2> for TagOrCategoryStrings {
+    type Item = DeviceSQLString;
+
+    fn as_items(&self) -> [&Self::Item; 2] {
+        [&self.name, &self.unknown]
+    }
+
+    fn from_items(items: [Self::Item; 2]) -> Self {
+        let [name, unknown] = items;
+        Self { name, unknown }
+    }
 }
 
 /// A tag or category that can be assigned to tracks for the purpose of categorization.
