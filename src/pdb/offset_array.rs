@@ -36,13 +36,14 @@
 //!     }
 //! }
 //!
-//!
+//! use rekordcrate::util::MaybeCalculated::*;
 //! let near_u8_tail = OffsetArrayContainer {
-//!     offsets: [1u8].into(),
+//!     offsets: Provided([1u8].into()),
 //!     inner: SingleTarget(42u8),
 //! };
 //! ```
 
+use crate::util::{ArrayPolyfills, MaybeCalculated};
 use binrw::{binrw, io::SeekFrom, BinRead, BinResult, BinWrite};
 
 /// Specifies whether the offsets are stored as u8 or u16.
@@ -59,7 +60,8 @@ pub enum OffsetSize {
 #[derive(Debug, PartialEq, Clone, Eq)]
 pub struct OffsetArrayContainer<T, const N: usize> {
     /// The offsets, either u8 or u16.
-    pub offsets: OffsetArray<N>,
+    /// May be calculated from the inner data during serialization.
+    pub offsets: MaybeCalculated<OffsetArray<N>>,
 
     /// The inner value, read/written with the offsets.
     pub inner: T,
@@ -126,7 +128,6 @@ where
         let base = Self::calculate_base(start, offset)?;
         reader.seek(SeekFrom::Start(base))?;
         let seeks = offsets.as_seeks();
-        use crate::util::ArrayPolyfills;
         let parsed = seeks.try_map_polyfill(|seek| {
             reader.seek(seek)?;
             let v = U::read_options(reader, endian, args.clone())?;
@@ -135,7 +136,7 @@ where
             Ok::<U, binrw::Error>(v)
         })?;
         Ok(Self {
-            offsets,
+            offsets: MaybeCalculated::Provided(offsets),
             inner: T::from_items(parsed),
         })
     }
@@ -156,26 +157,47 @@ where
         (offset, offset_size, args): Self::Args<'_>,
     ) -> BinResult<()> {
         let start = writer.stream_position()?;
-        if !self.offsets.assert_offset_size_matches(offset_size) {
-            return Err(binrw::Error::AssertFail {
-                pos: start,
-                message: format!("offsetsize mismatch! {offset_size:?}"),
-            });
-        }
-        self.offsets.write_options(writer, endian, ())?;
-
         let base = Self::calculate_base(start, offset)?;
-        writer.seek(SeekFrom::Start(base))?;
-        let seeks = self.offsets.as_seeks();
         let items = self.inner.as_items();
-        use crate::util::ArrayPolyfills;
-        items.zip_polyfill(seeks).try_map_polyfill(|(v, seek)| {
-            writer.seek(seek)?;
-            v.write_options(writer, endian, args.clone())?;
-            // Restore position after each item.
-            writer.seek(SeekFrom::Start(base))?;
-            Ok::<(), binrw::Error>(())
-        })?;
+        match &self.offsets {
+            MaybeCalculated::Calculated => {
+                writer.seek(SeekFrom::Current(
+                    OffsetArray::<{ N }>::predict_byte_count(offset_size).into(),
+                ))?;
+                let offsets_raw = items.try_map_polyfill(|v| {
+                    let offset = writer.stream_position()? - base;
+                    v.write_options(writer, endian, args.clone())?;
+                    Ok::<_, binrw::Error>(offset)
+                })?;
+                let offsets = OffsetArray::new(offsets_raw, offset_size).map_err(|err| {
+                    binrw::Error::AssertFail {
+                        pos: start,
+                        message: format!("{err}"),
+                    }
+                })?;
+                writer.seek(SeekFrom::Start(start))?;
+                offsets.write_options(writer, endian, ())?;
+            }
+            MaybeCalculated::Provided(offsets) => {
+                if !offsets.assert_offset_size_matches(offset_size) {
+                    return Err(binrw::Error::AssertFail {
+                        pos: start,
+                        message: format!("offsetsize mismatch! {offset_size:?}"),
+                    });
+                }
+                offsets.write_options(writer, endian, ())?;
+
+                writer.seek(SeekFrom::Start(base))?;
+                let seeks = offsets.as_seeks();
+                items.zip_polyfill(seeks).try_map_polyfill(|(v, seek)| {
+                    writer.seek(seek)?;
+                    v.write_options(writer, endian, args.clone())?;
+                    // Restore position after each item.
+                    writer.seek(SeekFrom::Start(base))?;
+                    Ok::<(), binrw::Error>(())
+                })?;
+            }
+        }
         Ok(())
     }
 }
@@ -236,6 +258,21 @@ impl<const N: usize> OffsetArray<N> {
             OffsetArray::U16(offsets) => offsets.map(|offset| SeekFrom::Current(offset.into())),
         }
     }
+
+    fn new(offsets: [u64; N], offset_size: OffsetSize) -> Result<Self, std::num::TryFromIntError> {
+        Ok(match offset_size {
+            OffsetSize::U8 => OffsetArray::U8(offsets.try_map_polyfill(|o| o.try_into())?),
+            OffsetSize::U16 => OffsetArray::U16(offsets.try_map_polyfill(|o| o.try_into())?),
+        })
+    }
+
+    fn predict_byte_count(offset_size: OffsetSize) -> u32 {
+        (N + 1) as u32
+            * match offset_size {
+                OffsetSize::U8 => 1,
+                OffsetSize::U16 => 2,
+            }
+    }
 }
 
 impl<const N: usize> From<[u8; N]> for OffsetArray<N> {
@@ -254,7 +291,8 @@ impl<const N: usize> From<[u16; N]> for OffsetArray<N> {
 mod test {
 
     use super::*;
-    use crate::util::testing::test_roundtrip_with_args;
+    use crate::util::testing::{test_roundtrip_with_args, test_write};
+    use crate::util::MaybeCalculated::*;
 
     #[derive(Debug, PartialEq)]
     // This could also be used outside of tests, it just isn't yet (though a version is, called "TrailingName")
@@ -283,7 +321,7 @@ mod test {
     #[test]
     fn empty() {
         let empty_offset_tail_u8 = OffsetArrayContainer {
-            offsets: OffsetArray::U8([]),
+            offsets: Provided(OffsetArray::U8([])),
             inner: (),
         };
         test_roundtrip_with_args(
@@ -293,7 +331,7 @@ mod test {
             (0, OffsetSize::U8, ()),
         );
         let empty_offset_tail_u16 = OffsetArrayContainer {
-            offsets: OffsetArray::U16([]),
+            offsets: Provided(OffsetArray::U16([])),
             inner: (),
         };
         test_roundtrip_with_args(
@@ -306,7 +344,7 @@ mod test {
     #[test]
     fn near_u8() {
         let near_u8_tail = OffsetArrayContainer {
-            offsets: [2u8].into(),
+            offsets: Provided([2u8].into()),
             inner: SingleTarget(42u8),
         };
         test_roundtrip_with_args(
@@ -319,7 +357,7 @@ mod test {
     #[test]
     fn buffer() {
         let buffer = OffsetArrayContainer {
-            offsets: [2u8].into(),
+            offsets: Provided([2u8].into()),
             inner: SingleTarget(0xDEADBEEF_u32.to_be_bytes()),
         };
         test_roundtrip_with_args(
@@ -332,7 +370,7 @@ mod test {
     #[test]
     fn near_remote() {
         let near_remote = OffsetArrayContainer {
-            offsets: [5u8].into(),
+            offsets: Provided([5u8].into()),
             inner: SingleTarget(42u8),
         };
         test_roundtrip_with_args(
@@ -345,7 +383,7 @@ mod test {
     #[test]
     fn far_remote() {
         let far_remote = OffsetArrayContainer {
-            offsets: [5u16].into(),
+            offsets: Provided([5u16].into()),
             inner: SingleTarget(42u8),
         };
         test_roundtrip_with_args(
@@ -368,7 +406,7 @@ mod test {
         let data = Data {
             padding: [0u8; 3],
             offsets: OffsetArrayContainer {
-                offsets: [5u8].into(),
+                offsets: Provided([5u8].into()),
                 inner: SingleTarget(42u8),
             },
         };
@@ -405,7 +443,7 @@ mod test {
     #[test]
     fn multiple() {
         let multiple = OffsetArrayContainer {
-            offsets: [3u8, 4u8].into(),
+            offsets: Provided([3u8, 4u8].into()),
             inner: Multiple {
                 a: 0xC0u8,
                 b: 0xDEu8,
@@ -421,7 +459,7 @@ mod test {
     #[test]
     fn switched_ordering() {
         let multiple = OffsetArrayContainer {
-            offsets: [4u8, 3u8].into(),
+            offsets: Provided([4u8, 3u8].into()),
             inner: Multiple {
                 a: 0xC0u8,
                 b: 0xDEu8,
@@ -431,6 +469,21 @@ mod test {
             &[0x03, 0x04, 0x03, 0xDE, 0xC0],
             multiple,
             (0, OffsetSize::U8, ()),
+            (0, OffsetSize::U8, ()),
+        );
+    }
+    #[test]
+    fn calculated() {
+        let multiple = OffsetArrayContainer {
+            offsets: Calculated,
+            inner: Multiple {
+                a: 0xC0u8,
+                b: 0xDEu8,
+            },
+        };
+        test_write(
+            &[0x03, 0x03, 0x04, 0xC0, 0xDE],
+            &multiple,
             (0, OffsetSize::U8, ()),
         );
     }
