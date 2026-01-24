@@ -1194,52 +1194,52 @@ pub enum PlainRow {
     /// Fresh album rows typically have a bit of padding, presumably to allow
     /// edits on DJ gear.
     #[br(pre_assert(page_type == PlainPageType::Albums))]
-    Album(#[bw(pad_after = 6, align_after = 4)] Album),
+    Album(#[bw(align_after = 4)] Album),
     /// Contains the artist name and ID.
     ///
     /// Fresh artist rows typically have a bit of padding, presumably to allow
     /// edits on DJ gear.
     #[br(pre_assert(page_type == PlainPageType::Artists))]
-    Artist(#[bw(pad_after = 6, align_after = 4)] Artist),
+    Artist(#[bw(align_after = 4)] Artist),
     /// Contains the artwork path and ID.
     #[br(pre_assert(page_type == PlainPageType::Artwork))]
-    Artwork(#[bw(pad_after = 0, align_after = 4)] Artwork),
+    Artwork(#[bw(align_after = 4)] Artwork),
     /// Contains numeric color ID
     #[br(pre_assert(page_type == PlainPageType::Colors))]
-    Color(#[bw(pad_after = 0, align_after = 4)] Color),
+    Color(#[bw(align_after = 4)] Color),
     /// Represents a musical genre.
     #[br(pre_assert(page_type == PlainPageType::Genres))]
-    Genre(#[bw(pad_after = 0, align_after = 4)] Genre),
+    Genre(#[bw(align_after = 4)] Genre),
     /// Represents a history playlist.
     #[br(pre_assert(page_type == PlainPageType::HistoryPlaylists))]
-    HistoryPlaylist(#[bw(pad_after = 0, align_after = 4)] HistoryPlaylist),
+    HistoryPlaylist(#[bw(align_after = 4)] HistoryPlaylist),
     /// Represents a history playlist.
     #[br(pre_assert(page_type == PlainPageType::HistoryEntries))]
-    HistoryEntry(#[bw(pad_after = 0, align_after = 4)] HistoryEntry),
+    HistoryEntry(#[bw(align_after = 4)] HistoryEntry),
     /// Represents a musical key.
     #[br(pre_assert(page_type == PlainPageType::Keys))]
-    Key(#[bw(pad_after = 0, align_after = 4)] Key),
+    Key(#[bw(align_after = 4)] Key),
     /// Represents a record label.
     #[br(pre_assert(page_type == PlainPageType::Labels))]
-    Label(#[bw(pad_after = 0, align_after = 4)] Label),
+    Label(#[bw(align_after = 4)] Label),
     /// Represents a node in the playlist tree (either a folder or a playlist).
     #[br(pre_assert(page_type == PlainPageType::PlaylistTree))]
-    PlaylistTreeNode(#[bw(pad_after = 0, align_after = 4)] PlaylistTreeNode),
+    PlaylistTreeNode(#[bw(align_after = 4)] PlaylistTreeNode),
     /// Represents a track entry in a playlist.
     #[br(pre_assert(page_type == PlainPageType::PlaylistEntries))]
-    PlaylistEntry(#[bw(pad_after = 0, align_after = 4)] PlaylistEntry),
+    PlaylistEntry(#[bw(align_after = 4)] PlaylistEntry),
     /// Contains the metadata categories by which Tracks can be browsed by.
     #[br(pre_assert(page_type == PlainPageType::Columns))]
-    ColumnEntry(#[bw(pad_after = 0, align_after = 4)] ColumnEntry),
+    ColumnEntry(#[bw(align_after = 4)] ColumnEntry),
     /// Manages the active menus on the CDJ.
     #[br(pre_assert(page_type == PlainPageType::Menu))]
-    Menu(#[bw(pad_after = 0, align_after = 4)] Menu),
+    Menu(#[bw(align_after = 4)] Menu),
     /// Contains a track entry.
     ///
     /// Fresh track rows typically have a bit of padding, presumably to allow
     /// edits on DJ gear.
     #[br(pre_assert(page_type == PlainPageType::Tracks))]
-    Track(#[bw(pad_after = 0x30, align_after = 4)] Track),
+    Track(#[bw(align_after = 4)] Track),
 }
 
 /// A table row contains the actual data.

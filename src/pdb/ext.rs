@@ -93,9 +93,8 @@ pub struct TagOrCategory {
     pub id: TagId,
     /// Non-zero if this row represents a category rather than a tag.
     pub raw_is_category: u32,
-    // Padded at the end by 11 bytes as observed
-    #[brw(args(0x1C, subtype.get_offset_size(), ()), pad_after = 11)]
     /// The strings associated with this tag or category.
+    #[brw(args(0x1C, subtype.get_offset_size(), ()))]
     pub offsets: OffsetArrayContainer<TagOrCategoryStrings, 2>,
 }
 
@@ -140,8 +139,8 @@ pub enum ExtPageType {
 pub enum ExtRow {
     /// Contains the album name, along with an ID of the corresponding artist.
     #[br(pre_assert(page_type == ExtPageType::Tag))]
-    Tag(#[bw(pad_after = 0, align_after = 4)] TagOrCategory),
+    Tag(#[bw(align_after = 4)] TagOrCategory),
     /// Contains the artist name and ID.
     #[br(pre_assert(page_type == ExtPageType::TrackTag))]
-    TrackTag(#[bw(pad_after = 0, align_after = 4)] TrackTag),
+    TrackTag(#[bw(align_after = 4)] TrackTag),
 }
