@@ -13,6 +13,8 @@
 
 use binrw::{BinRead, BinWrite};
 use modular_bitfield::prelude::*;
+#[cfg(feature = "json")]
+use serde::{Serialize, Serializer};
 
 use crate::pdb::RowGroup;
 
@@ -26,6 +28,20 @@ use crate::pdb::RowGroup;
 pub struct PackedRowCounts {
     pub num_rows: B13,
     pub num_rows_valid: B11,
+}
+
+#[cfg(feature = "json")]
+impl Serialize for PackedRowCounts {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut state = serializer.serialize_struct("PackedRowCounts", 2)?;
+        state.serialize_field("num_rows", &self.num_rows())?;
+        state.serialize_field("num_rows_valid", &self.num_rows_valid())?;
+        state.end()
+    }
 }
 
 impl Default for PackedRowCounts {
@@ -76,6 +92,7 @@ impl PackedRowCounts {
 /// bitfield definition is reversed compared to typical notation.
 #[bitfield(bits = 8)]
 #[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[br(little, map = Self::from_bytes)]
 #[bw(little, map = |x: &Self| x.into_bytes())]
 pub struct PageFlags {

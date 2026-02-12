@@ -24,11 +24,14 @@ use crate::pdb::{
     TrackId,
 };
 use binrw::binrw;
+#[cfg(feature = "json")]
+use serde::Serialize;
 use std::num::NonZero;
 
 /// A unique identifier for a tag or category.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct TagId(pub u32);
 
@@ -41,6 +44,7 @@ impl PageHeapObject for TagId {
 
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 /// A possibly absent parent ID. If the ID is zero (None), then there is no parent.
 pub struct ParentId(
@@ -58,6 +62,7 @@ impl PageHeapObject for ParentId {
 }
 
 #[derive(Debug, PartialEq, Clone, Eq)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 /// The strings associated with a tag or category.
 pub struct TagOrCategoryStrings {
     /// The name of the tag or category.
@@ -86,6 +91,7 @@ impl OffsetArrayItems<2> for TagOrCategoryStrings {
 /// - <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/exports.html#tag-rows>
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct TagOrCategory {
     /// Determines if an 8-bit offset (0x0680) or a 16-bit offset (0x0684) is used for the strings.
@@ -138,6 +144,7 @@ impl PageHeapObject for TagOrCategory {
 /// M*N junction table between tags and tracks.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct TrackTag {
     #[brw(magic(0u32))]
@@ -167,6 +174,7 @@ impl PageHeapObject for TrackTag {
 #[binrw]
 #[brw(little)]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 pub enum ExtPageType {
     /// can be assigned to tracks for the purpose of categorization.
     #[brw(magic = 3u32)]
@@ -179,6 +187,7 @@ pub enum ExtPageType {
 /// A table row contains the actual data.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 // #[br(import(page_type: PageType))]
 // The large enum size is unfortunate, but since users of this library will probably use iterators

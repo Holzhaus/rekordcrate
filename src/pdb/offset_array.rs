@@ -46,6 +46,8 @@
 use super::PageHeapObject;
 use crate::util::{ArrayPolyfills, MaybeCalculated};
 use binrw::{binrw, io::SeekFrom, BinRead, BinResult, BinWrite};
+#[cfg(feature = "json")]
+use serde::Serialize;
 
 /// Per-item alignment requirement when writing `OffsetArrayContainer` items with calculated offsets.
 pub trait OffsetArrayItemAlignment {
@@ -63,13 +65,13 @@ impl<const N: usize> OffsetArrayItemAlignment for [u8; N] {}
 
 /// Specifies whether the offsets are stored as u8 or u16.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 pub enum OffsetSize {
     /// Offsets are stored as u8.
     U8,
     /// Offsets are stored as u16.
     U16,
 }
-
 impl OffsetSize {
     fn bytes(&self) -> usize {
         match self {
@@ -82,6 +84,7 @@ impl OffsetSize {
 /// A container for an array of offsets and the indirectly-addressed data at those offsets.
 /// See the module documentation for an example.
 #[derive(Debug, PartialEq, Clone, Eq)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 pub struct OffsetArrayContainer<T, const N: usize> {
     /// The offsets, either u8 or u16.
     /// May be calculated from the inner data during serialization.
@@ -303,6 +306,19 @@ impl<const N: usize> PageHeapObject for OffsetArray<N> {
     type Args<'a> = OffsetSize;
     fn heap_bytes_required(&self, offset_size: OffsetSize) -> u16 {
         ((N + 1) * offset_size.bytes()) as u16
+    }
+}
+
+#[cfg(feature = "json")]
+impl<const N: usize> Serialize for OffsetArray<N> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            OffsetArray::U8(arr) => arr.as_slice().serialize(serializer),
+            OffsetArray::U16(arr) => arr.as_slice().serialize(serializer),
+        }
     }
 }
 
