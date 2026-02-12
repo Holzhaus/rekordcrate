@@ -7,11 +7,12 @@
 // SPDX-License-Identifier: MPL-2.0
 
 use binrw::BinRead;
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use rekordcrate::anlz::ANLZ;
-use rekordcrate::pdb::{DatabaseType, Header, PageContent, Track, TrackId};
+use rekordcrate::pdb::{DatabaseType, Header, Page, PageContent, PageType, Track, TrackId};
 use rekordcrate::setting::Setting;
 use rekordcrate::xml::Document;
+use serde::Serialize;
 use std::path::{Path, PathBuf};
 
 #[derive(Parser)]
@@ -50,6 +51,9 @@ enum Commands {
         /// File to parse.
         #[arg(value_name = "ANLZ_FILE")]
         path: PathBuf,
+        /// Output format.
+        #[arg(long, short = 'f', value_enum, default_value_t = DumpFormat::Debug)]
+        format: DumpFormat,
     },
     /// Parse and dump a Pioneer Database (`.PDB`) file.
     DumpPDB {
@@ -59,12 +63,18 @@ enum Commands {
         /// Database type: "plain" (export.pdb) or "ext" (exportExt.pdb). Tries to guess based on file name of not specified.
         #[arg(long, value_name = "DB_TYPE", value_parser = ["plain", "ext"])]
         db_type: Option<String>,
+        /// Output format.
+        #[arg(long, short = 'f', value_enum, default_value_t = DumpFormat::Debug)]
+        format: DumpFormat,
     },
     /// Parse and dump a Pioneer Settings (`*SETTING.DAT`) file.
     DumpSetting {
         /// File to parse.
         #[arg(value_name = "SETTING_FILE")]
         path: PathBuf,
+        /// Output format.
+        #[arg(long, short = 'f', value_enum, default_value_t = DumpFormat::Debug)]
+        format: DumpFormat,
     },
     /// Parse and dump a Pioneer XML (`*.xml`) file.
     DumpXML {
@@ -72,6 +82,25 @@ enum Commands {
         #[arg(value_name = "XML_FILE")]
         path: PathBuf,
     },
+}
+
+#[derive(Clone, Copy, Debug, Default, ValueEnum, PartialEq, Eq)]
+enum DumpFormat {
+    #[default]
+    Debug,
+    Json,
+}
+
+#[derive(Serialize)]
+struct TableDump {
+    page_type: PageType,
+    pages: Vec<Page>,
+}
+
+#[derive(Serialize)]
+struct PdbDump {
+    header: Header,
+    tables: Vec<TableDump>,
 }
 
 fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
@@ -194,45 +223,81 @@ fn list_settings(path: &Path) -> rekordcrate::Result<()> {
     Ok(())
 }
 
-fn dump_anlz(path: &PathBuf) -> rekordcrate::Result<()> {
+fn dump_anlz(path: &PathBuf, format: DumpFormat) -> rekordcrate::Result<()> {
     let mut reader = std::fs::File::open(path)?;
     let anlz = ANLZ::read(&mut reader)?;
-    println!("{:#?}", anlz);
+    match format {
+        DumpFormat::Json => println!(
+            "{}",
+            serde_json::to_string_pretty(&anlz).expect("failed to serialize ANLZ")
+        ),
+        DumpFormat::Debug => println!("{:#?}", anlz),
+    }
 
     Ok(())
 }
 
-fn dump_pdb(path: &PathBuf, typ: DatabaseType) -> rekordcrate::Result<()> {
+fn dump_pdb(path: &PathBuf, typ: DatabaseType, format: DumpFormat) -> rekordcrate::Result<()> {
     let mut reader = std::fs::File::open(path)?;
     let header = Header::read_args(&mut reader, (typ,))?;
 
-    println!("{:#?}", header);
+    match format {
+        DumpFormat::Json => {
+            let mut tables = Vec::new();
+            for table in &header.tables {
+                let mut pages = Vec::new();
+                for page in header
+                    .read_pages(
+                        &mut reader,
+                        binrw::Endian::NATIVE,
+                        (&table.first_page, &table.last_page, typ),
+                    )
+                    .unwrap()
+                    .into_iter()
+                {
+                    pages.push(page);
+                }
+                tables.push(TableDump {
+                    page_type: table.page_type,
+                    pages,
+                });
+            }
+            let dump = PdbDump { header, tables };
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&dump).expect("failed to serialize PDB output")
+            );
+        }
+        DumpFormat::Debug => {
+            println!("{:#?}", header);
 
-    for (i, table) in header.tables.iter().enumerate() {
-        println!("Table {}: {:?}", i, table.page_type);
-        for page in header
-            .read_pages(
-                &mut reader,
-                binrw::Endian::NATIVE,
-                (&table.first_page, &table.last_page, typ),
-            )
-            .unwrap()
-            .into_iter()
-        {
-            println!("  {:?}", page);
-            match page.content {
-                PageContent::Data(data_content) => {
-                    for (_, row) in data_content.rows {
-                        println!("      {:?}", row);
+            for (i, table) in header.tables.iter().enumerate() {
+                println!("Table {}: {:?}", i, table.page_type);
+                for page in header
+                    .read_pages(
+                        &mut reader,
+                        binrw::Endian::NATIVE,
+                        (&table.first_page, &table.last_page, typ),
+                    )
+                    .unwrap()
+                    .into_iter()
+                {
+                    println!("  {:?}", page);
+                    match page.content {
+                        PageContent::Data(data_content) => {
+                            for (_, row) in data_content.rows {
+                                println!("      {:?}", row);
+                            }
+                        }
+                        PageContent::Index(index_content) => {
+                            println!("    {:?}", index_content);
+                            for entry in index_content.entries {
+                                println!("      {:?}", entry);
+                            }
+                        }
+                        PageContent::Unknown => (),
                     }
                 }
-                PageContent::Index(index_content) => {
-                    println!("    {:?}", index_content);
-                    for entry in index_content.entries {
-                        println!("      {:?}", entry);
-                    }
-                }
-                PageContent::Unknown => (),
             }
         }
     }
@@ -240,11 +305,17 @@ fn dump_pdb(path: &PathBuf, typ: DatabaseType) -> rekordcrate::Result<()> {
     Ok(())
 }
 
-fn dump_setting(path: &PathBuf) -> rekordcrate::Result<()> {
+fn dump_setting(path: &PathBuf, format: DumpFormat) -> rekordcrate::Result<()> {
     let mut reader = std::fs::File::open(path)?;
     let setting = Setting::read(&mut reader)?;
 
-    println!("{:#04x?}", setting);
+    match format {
+        DumpFormat::Json => println!(
+            "{}",
+            serde_json::to_string_pretty(&setting).expect("failed to serialize Setting")
+        ),
+        DumpFormat::Debug => println!("{:#04x?}", setting),
+    }
 
     Ok(())
 }
@@ -300,15 +371,19 @@ fn main() -> rekordcrate::Result<()> {
         Commands::ListPlaylists { path } => list_playlists(path),
         Commands::ListSettings { path } => list_settings(path),
         Commands::ExportPlaylists { path, output_dir } => export_playlists(path, output_dir),
-        Commands::DumpPDB { path, db_type } => {
+        Commands::DumpPDB {
+            path,
+            db_type,
+            format,
+        } => {
             let db_type = match guess_db_type(path, db_type.as_deref()) {
                 Some(db_type) => db_type,
                 None => return Ok(()), // TODO(Swiftb0y): turn into proper error;
             };
-            dump_pdb(path, db_type)
+            dump_pdb(path, db_type, *format)
         }
-        Commands::DumpANLZ { path } => dump_anlz(path),
-        Commands::DumpSetting { path } => dump_setting(path),
+        Commands::DumpANLZ { path, format } => dump_anlz(path, *format),
+        Commands::DumpSetting { path, format } => dump_setting(path, *format),
         Commands::DumpXML { path } => dump_xml(path),
     }
 }

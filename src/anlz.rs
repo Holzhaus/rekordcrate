@@ -26,17 +26,29 @@
 
 #![allow(clippy::must_use_candidate)]
 
-use crate::{util::ColorIndex, xor::XorStream};
+use crate::{
+    util::{serialize_as_hex, ColorIndex},
+    xor::XorStream,
+};
 use binrw::{
     binrw,
     io::{Read, Seek, Write},
     BinRead, BinResult, BinWrite, Endian, NullWideString,
 };
 use modular_bitfield::prelude::*;
+use serde::{Serialize, Serializer};
+
+fn serialize_null_wide_string<S>(nws: &NullWideString, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_str(&nws.to_string())
+}
+
 
 /// The kind of section.
 #[binrw]
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize)]
 #[brw(big)]
 pub enum ContentKind {
     /// File section that contains all other sections.
@@ -102,7 +114,7 @@ pub enum ContentKind {
 
 /// Header of a section that contains type and size information.
 #[binrw]
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize)]
 #[brw(big)]
 pub struct Header {
     /// Kind of content in this item.
@@ -125,7 +137,7 @@ impl Header {
 
 /// A single beat inside the beat grid.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 #[brw(big)]
 pub struct Beat {
     /// Beat number inside the bar (1-4).
@@ -138,7 +150,7 @@ pub struct Beat {
 
 /// Describes the types of entries found in a Cue List section.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 #[brw(big, repr = u32)]
 pub enum CueListType {
     /// Memory cues or loops.
@@ -149,7 +161,7 @@ pub enum CueListType {
 
 /// Indicates if the cue is point or a loop.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 #[brw(repr = u8)]
 pub enum CueType {
     /// Cue is a single point.
@@ -160,7 +172,7 @@ pub enum CueType {
 
 /// A memory or hot cue (or loop).
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 #[brw(big)]
 pub struct Cue {
     /// Cue entry header.
@@ -226,7 +238,7 @@ pub struct Cue {
 
 /// A memory or hot cue (or loop).
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 #[brw(big)]
 pub struct ExtendedCue {
     /// Cue entry header.
@@ -267,9 +279,11 @@ pub struct ExtendedCue {
     /// Length of the comment string in bytes.
     #[br(temp)]
     #[bw(calc = (comment.len() as u32 + 1) * 2)]
+    #[serde(skip)]
     len_comment: u32,
     /// An UTF-16BE encoded string, followed by a trailing  `0x0000`.
     #[br(assert((comment.len() as u32 + 1) * 2 == len_comment))]
+    #[serde(serialize_with = "serialize_null_wide_string")]
     pub comment: NullWideString,
     /// Rekordbox hotcue color index.
     ///
@@ -375,6 +389,19 @@ pub struct WaveformPreviewColumn {
     pub whiteness: B3,
 }
 
+impl Serialize for WaveformPreviewColumn {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut state = serializer.serialize_struct("WaveformPreviewColumn", 2)?;
+        state.serialize_field("height", &self.height())?;
+        state.serialize_field("whiteness", &self.whiteness())?;
+        state.end()
+    }
+}
+
 impl Default for TinyWaveformPreviewColumn {
     fn default() -> Self {
         Self::new()
@@ -393,12 +420,25 @@ pub struct TinyWaveformPreviewColumn {
     pub height: B4,
 }
 
+impl Serialize for TinyWaveformPreviewColumn {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut state = serializer.serialize_struct("TinyWaveformPreviewColumn", 2)?;
+        state.serialize_field("unused", &self.unused())?;
+        state.serialize_field("height", &self.height())?;
+        state.end()
+    }
+}
+
 /// Single Column value in a Waveform Color Preview.
 ///
 /// See these the documentation for details:
 /// <https://djl-analysis.deepsymmetry.org/djl-analysis/track_metadata.html#color-preview-analysis>
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 #[brw(big)]
 pub struct WaveformColorPreviewColumn {
     /// Unknown field (somehow encodes the "whiteness").
@@ -423,7 +463,7 @@ impl Default for WaveformColorDetailColumn {
 
 /// Single Column value in a Waveform Color Detail section.
 #[bitfield]
-#[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy, Serialize)]
 #[br(map = Self::from_bytes)]
 #[bw(big, map = |x: &WaveformColorDetailColumn| x.into_bytes())]
 pub struct WaveformColorDetailColumn {
@@ -443,7 +483,7 @@ pub struct WaveformColorDetailColumn {
 /// Music classification that is used for Lightnight mode and based on rhythm, tempo kick drum and
 /// sound density.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 #[brw(big, repr = u16)]
 pub enum Mood {
     /// Phrase types consist of "Intro", "Up", "Down", "Chorus", and "Outro". Other values in each
@@ -462,7 +502,7 @@ pub enum Mood {
 
 /// Stylistic track bank for Lightning mode.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 #[brw(repr = u8)]
 pub enum Bank {
     /// Default bank variant, treated as `Cool`.
@@ -487,7 +527,7 @@ pub enum Bank {
 
 /// A song structure entry that represents a phrase in the track.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 #[brw(big)]
 pub struct Phrase {
     /// Phrase number (starting at 1).
@@ -543,7 +583,7 @@ pub struct Phrase {
 
 /// Section content which differs depending on the section type.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 #[br(import(header: Header))]
 pub enum Content {
     /// All beats in the track.
@@ -600,7 +640,7 @@ pub enum Content {
 
 /// All beats in the track.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 pub struct BeatGrid {
     /// Unknown field.
     unknown1: u32,
@@ -611,6 +651,7 @@ pub struct BeatGrid {
     /// Number of beats in this beatgrid.
     #[br(temp)]
     #[bw(calc = beats.len() as u32)]
+    #[serde(skip)]
     len_beats: u32,
     /// Beats in this beatgrid.
     #[br(count = len_beats)]
@@ -619,7 +660,7 @@ pub struct BeatGrid {
 
 /// List of cue points or loops (either hot cues or memory cues).
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 pub struct CueList {
     /// The types of cues (memory or hot) that this list contains.
     pub list_type: CueListType,
@@ -628,6 +669,7 @@ pub struct CueList {
     /// Number of cues.
     #[br(temp)]
     #[bw(calc = cues.len() as u16)]
+    #[serde(skip)]
     len_cues: u16,
     /// Unknown field.
     memory_count: u32,
@@ -641,13 +683,14 @@ pub struct CueList {
 /// Variation of the original `CueList` that also adds support for more metadata such as
 /// comments and colors. Introduces with the Nexus 2 series players.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 pub struct ExtendedCueList {
     /// The types of cues (memory or hot) that this list contains.
     pub list_type: CueListType,
     /// Number of cues.
     #[br(temp)]
     #[bw(calc = cues.len() as u16)]
+    #[serde(skip)]
     len_cues: u16,
     /// Unknown field
     #[br(assert(unknown == 0))]
@@ -659,41 +702,45 @@ pub struct ExtendedCueList {
 
 /// Path of the audio file that this analysis belongs to.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 #[br(import(header: Header))]
 pub struct Path {
     /// Length of the path field in bytes.
     #[br(temp)]
     #[br(assert(len_path == header.content_size()))]
     #[bw(calc = ((path.len() as u32) + 1) * 2)]
+    #[serde(skip)]
     len_path: u32,
     /// Path of the audio file.
     #[br(assert(len_path == header.content_size()))]
     #[br(assert((path.len() as u32 + 1) * 2 == len_path))]
+    #[serde(serialize_with = "serialize_null_wide_string")]
     pub path: NullWideString,
 }
 
 /// Seek information for variable bitrate files (probably).
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 #[br(import(header: Header))]
 pub struct VBR {
     /// Unknown field.
     unknown1: u32,
     /// Unknown data.
     #[br(count = header.content_size())]
+    #[serde(serialize_with = "serialize_as_hex")]
     unknown2: Vec<u8>,
 }
 
 /// Fixed-width monochrome preview of the track waveform.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 #[br(import(header: Header))]
 pub struct WaveformPreview {
     /// Unknown field.
     #[br(temp)]
     #[br(assert(len_preview == header.content_size()))]
     #[bw(calc = data.len() as u32)]
+    #[serde(skip)]
     len_preview: u32,
     /// Unknown field (apparently always `0x00100000`)
     unknown: u32,
@@ -704,13 +751,14 @@ pub struct WaveformPreview {
 
 /// Smaller version of the fixed-width monochrome preview of the track waveform.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 #[br(import(header: Header))]
 pub struct TinyWaveformPreview {
     /// Unknown field.
     #[br(temp)]
     #[br(assert(len_preview == header.content_size()))]
     #[bw(calc = data.len() as u32)]
+    #[serde(skip)]
     len_preview: u32,
     /// Unknown field (apparently always `0x00100000`)
     unknown: u32,
@@ -723,18 +771,20 @@ pub struct TinyWaveformPreview {
 ///
 /// Used in `.EXT` files.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 #[br(import(header: Header))]
 pub struct WaveformDetail {
     /// Size of a single entry, always 1.
     #[br(temp)]
     #[br(assert(len_entry_bytes == 1))]
     #[bw(calc = 1u32)]
+    #[serde(skip)]
     len_entry_bytes: u32,
     /// Number of entries in this section.
     #[br(temp)]
     #[bw(calc = data.len() as u32)]
     #[br(assert((len_entry_bytes * len_entries)== header.content_size()))]
+    #[serde(skip)]
     len_entries: u32,
     /// Unknown field (apparently always `0x00960000`)
     #[br(assert(unknown == 0x00960000))]
@@ -751,18 +801,20 @@ pub struct WaveformDetail {
 ///
 /// Used in `.EXT` files.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 #[br(import(header: Header))]
 pub struct WaveformColorPreview {
     /// Size of a single entry, always 6.
     #[br(temp)]
     #[br(assert(len_entry_bytes == 6))]
     #[bw(calc = 6u32)]
+    #[serde(skip)]
     len_entry_bytes: u32,
     /// Number of entries in this section.
     #[br(temp)]
     #[bw(calc = data.len() as u32)]
     #[br(assert((len_entry_bytes * len_entries) == header.content_size()))]
+    #[serde(skip)]
     len_entries: u32,
     /// Unknown field.
     unknown: u32,
@@ -778,18 +830,20 @@ pub struct WaveformColorPreview {
 ///
 /// Used in `.EXT` files.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 #[br(import(header: Header))]
 pub struct WaveformColorDetail {
     /// Size of a single entry, always 2.
     #[br(temp)]
     #[br(assert(len_entry_bytes == 2))]
     #[bw(calc = 2u32)]
+    #[serde(skip)]
     len_entry_bytes: u32,
     /// Number of entries in this section.
     #[br(temp)]
     #[bw(calc = data.len() as u32)]
     #[br(assert((len_entry_bytes * len_entries) == header.content_size()))]
+    #[serde(skip)]
     len_entries: u32,
     /// Unknown field.
     unknown: u32,
@@ -802,24 +856,27 @@ pub struct WaveformColorDetail {
 ///
 /// Used in `.EXT` files.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 #[br(import(header: Header))]
 pub struct SongStructure {
     /// Size of a single entry, always 24.
     #[br(temp)]
     #[br(assert(len_entry_bytes == 24))]
     #[bw(calc = 24u32)]
+    #[serde(skip)]
     len_entry_bytes: u32,
     /// Number of entries in this section.
     #[br(temp)]
     #[br(assert((len_entry_bytes * (len_entries as u32)) == header.content_size()))]
     #[bw(calc = data.phrases.len() as u16)]
+    #[serde(skip)]
     len_entries: u16,
     /// Indicates if the remaining parts of the song structure section are encrypted.
     ///
     /// This is a virtual field and not actually present in the file.
     #[br(restore_position, map = |raw_mood: [u8; 2]| SongStructureData::check_if_encrypted(raw_mood, len_entries))]
     #[bw(ignore)]
+    #[serde(skip)]
     is_encrypted: bool,
     /// Song structure data.
     #[br(args(is_encrypted, len_entries), parse_with = SongStructureData::read_encrypted)]
@@ -832,7 +889,7 @@ pub struct SongStructure {
 /// See the documentation for details:
 /// - <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#song-structure-tag>
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 #[br(import(len_entries: u16))]
 pub struct SongStructureData {
     /// Overall type of phrase structure.
@@ -917,7 +974,7 @@ impl SongStructureData {
 
 /// Unknown content.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 #[br(import(header: Header))]
 pub struct Unknown {
     /// Unknown header data.
@@ -930,7 +987,7 @@ pub struct Unknown {
 
 /// ANLZ Section.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 pub struct Section {
     /// The header.
     pub header: Header,
@@ -944,7 +1001,7 @@ pub struct Section {
 /// The actual contents are not part of this struct and can parsed on-the-fly by iterating over the
 /// `ANLZ::sections()` method.
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 #[brw(big)]
 pub struct ANLZ {
     /// The file header.
@@ -952,6 +1009,7 @@ pub struct ANLZ {
     pub header: Header,
     /// The header data.
     #[br(count = header.remaining_size())]
+    #[serde(serialize_with = "serialize_as_hex")]
     pub header_data: Vec<u8>,
     /// The content sections.
     #[br(parse_with = Self::parse_sections, args(header.content_size()))]
@@ -959,6 +1017,7 @@ pub struct ANLZ {
 }
 
 impl ANLZ {
+    // TODO - this doesn't seem to work or be used ?
     fn parse_sections<R: Read + Seek>(
         reader: &mut R,
         endian: Endian,
