@@ -13,6 +13,7 @@
 
 use binrw::{BinRead, BinWrite};
 use modular_bitfield::prelude::*;
+use serde::{Serialize, Serializer};
 
 use crate::pdb::RowGroup;
 
@@ -26,6 +27,19 @@ use crate::pdb::RowGroup;
 pub struct PackedRowCounts {
     pub num_rows: B13,
     pub num_rows_valid: B11,
+}
+
+impl Serialize for PackedRowCounts {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        use serde::ser::SerializeStruct;
+        let mut state = serializer.serialize_struct("PackedRowCounts", 2)?;
+        state.serialize_field("num_rows", &self.num_rows())?;
+        state.serialize_field("num_rows_valid", &self.num_rows_valid())?;
+        state.end()
+    }
 }
 
 impl Default for PackedRowCounts {

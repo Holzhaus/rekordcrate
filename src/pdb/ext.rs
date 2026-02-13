@@ -21,16 +21,17 @@
 
 use crate::pdb::{DeviceSQLString, OffsetArray, OffsetArrayContainer, Subtype, TrackId};
 use binrw::binrw;
+use serde::Serialize;
 use std::num::NonZero;
 
 /// A unique identifier for a tag or category.
 #[binrw]
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Serialize)]
 #[brw(little)]
 pub struct TagId(pub u32);
 
 #[binrw]
-#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Hash, Serialize)]
 #[brw(little)]
 /// A possibly absent parent ID. If the ID is zero (None), then there is no parent.
 pub struct ParentId(
@@ -42,7 +43,7 @@ pub struct ParentId(
 #[binrw]
 #[brw(little)]
 #[brw(import(base: i64, offsets: &OffsetArray<2>, args: ()))]
-#[derive(Debug, PartialEq, Clone, Eq)]
+#[derive(Debug, PartialEq, Clone, Eq, Serialize)]
 /// The strings associated with a tag or category.
 pub struct TagOrCategoryStrings {
     #[brw(args(base, args))]
@@ -63,7 +64,7 @@ pub struct TagOrCategoryStrings {
 ///
 /// - <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/exports.html#tag-rows>
 #[binrw]
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize)]
 #[brw(little)]
 pub struct TagOrCategory {
     /// Determines if an 8-bit offset (0x0680) or a 16-bit offset (0x0684) is used for the strings.
@@ -96,7 +97,7 @@ pub struct TagOrCategory {
 // https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/exports.html#tag-track-rows
 /// M*N junction table between tags and tracks.
 #[binrw]
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize)]
 #[brw(little)]
 pub struct TrackTag {
     #[brw(magic(0u32))]
@@ -111,7 +112,7 @@ pub struct TrackTag {
 /// The type of ext pages found inside a `Table`.
 #[binrw]
 #[brw(little)]
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy, Serialize)]
 pub enum ExtPageType {
     /// can be assigned to tracks for the purpose of categorization.
     #[brw(magic = 3u32)]
@@ -123,7 +124,7 @@ pub enum ExtPageType {
 
 /// A table row contains the actual data.
 #[binrw]
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize)]
 #[brw(little)]
 // #[br(import(page_type: PageType))]
 // The large enum size is unfortunate, but since users of this library will probably use iterators

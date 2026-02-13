@@ -12,15 +12,18 @@ have breaking API changes in the future.
 
 ## Command Line Usage
 
-This library includes a command line tool named `rekordcrate` to inspect
-database exports (i.e. `PIONEER/rekordbox/export.pdb` files):
+The included command line tool `rekordcrate` can be used to inspect various files.
+
+By default, it will output `Debug` trait output. pass `--format json` (or `-f json`) to any `dump-*` command to get JSON output instead.
+
+To inspect database exports (i.e. `PIONEER/rekordbox/export.pdb` files):
 
     $ cargo run -- dump-pdb data/complete_export/demo-tracks/PIONEER/rekordbox/export.pdb
 
 Analysis files (`.DAT`, `.EXT` and `.2EX` files in the `PIONEER/USBANLZ`
 directory) can also be viewed:
 
-    $ cargo run -- dump-anlz -- data/complete_export/demo_tracks/PIONEER/USBANLZ/P016/0000875E/ANLZ0000.DAT
+    $ cargo run -- dump-anlz data/complete_export/demo_tracks/PIONEER/USBANLZ/P016/0000875E/ANLZ0000.DAT
 
 The tool is also able to display the contents of `*SETTING.DAT` files
 (`DEVSETTING.DAT`, `DJMMYSETTING.DAT`, `MYSETTING.DAT` and `MYSETTING2.DAT`

@@ -12,7 +12,19 @@ use std::io::{Read, Seek, SeekFrom, Write};
 
 use crate::pdb::string::StringError;
 use binrw::{binrw, file_ptr::IntoSeekFrom, BinRead, BinResult, BinWrite, Endian};
+use serde::{Serialize, Serializer};
 use thiserror::Error;
+
+/// Helper function to serialize a slice of bytes as a hex string.
+pub fn serialize_as_hex<S>(data: &[u8], serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let mut hex = String::with_capacity(2 + data.len() * 2);
+    hex.push_str("0x");
+    hex.push_str(&faster_hex::hex_string(data));
+    serializer.serialize_str(&hex)
+}
 
 /// Enumerates errors returned by this library.
 #[derive(Error, Debug)]
@@ -44,7 +56,7 @@ pub type RekordcrateResult<T> = std::result::Result<T, RekordcrateError>;
 
 /// Indexed Color identifiers used for memory cues and tracks.
 #[binrw]
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize)]
 pub enum ColorIndex {
     /// No color.
     #[brw(magic = 0u8)]
@@ -77,7 +89,7 @@ pub enum ColorIndex {
 
 /// Track file type.
 #[binrw]
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize)]
 pub enum FileType {
     /// Unknown file type.
     #[brw(magic = 0x0u16)]

@@ -44,9 +44,10 @@
 //! ```
 
 use binrw::{binrw, io::SeekFrom, BinRead, BinResult, BinWrite};
+use serde::Serialize;
 
 /// Specifies whether the offsets are stored as u8 or u16.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub enum OffsetSize {
     /// Offsets are stored as u8.
     U8,
@@ -91,7 +92,7 @@ pub enum OffsetSize {
 ///     inner: SingleTarget(42u8),
 /// };
 /// ```
-#[derive(Debug, PartialEq, Clone, Eq)]
+#[derive(Debug, PartialEq, Clone, Eq, Serialize)]
 pub struct OffsetArrayContainer<T, const N: usize> {
     /// The offsets, either u8 or u16.
     pub offsets: OffsetArray<N>,
@@ -209,6 +210,18 @@ pub enum OffsetArray<const N: usize> {
     /// Offsets are stored as u16.
     #[br(pre_assert(size == OffsetSize::U16))]
     U16(#[brw(magic(0x0003u16))] [u16; N]),
+}
+
+impl<const N: usize> Serialize for OffsetArray<N> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            OffsetArray::U8(arr) => arr.as_slice().serialize(serializer),
+            OffsetArray::U16(arr) => arr.as_slice().serialize(serializer),
+        }
+    }
 }
 
 impl<const N: usize> OffsetArray<N> {
