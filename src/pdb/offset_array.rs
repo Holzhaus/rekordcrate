@@ -43,6 +43,7 @@
 //! };
 //! ```
 
+use super::PageHeapObject;
 use crate::util::{ArrayPolyfills, MaybeCalculated};
 use binrw::{binrw, io::SeekFrom, BinRead, BinResult, BinWrite};
 
@@ -161,9 +162,14 @@ where
         let items = self.inner.as_items();
         match &self.offsets {
             MaybeCalculated::Calculated => {
-                writer.seek(SeekFrom::Current(
-                    OffsetArray::<{ N }>::predict_byte_count(offset_size).into(),
-                ))?;
+                let offsets_bytes = u64::from(
+                    (N as u16 + 1)
+                        * match offset_size {
+                            OffsetSize::U8 => (0u8).heap_bytes_required(()),
+                            OffsetSize::U16 => (0u16).heap_bytes_required(()),
+                        },
+                );
+                writer.seek(SeekFrom::Current(offsets_bytes as i64))?;
                 let offsets_raw = items.try_map_polyfill(|v| {
                     let offset = writer.stream_position()? - base;
                     v.write_options(writer, endian, args.clone())?;
@@ -199,6 +205,28 @@ where
             }
         }
         Ok(())
+    }
+}
+
+impl<T, U, const N: usize> PageHeapObject for OffsetArrayContainer<T, N>
+where
+    T: OffsetArrayItems<N, Item = U> + 'static,
+    U: for<'a> PageHeapObject<Args<'a> = ()>,
+{
+    type Args<'a> = OffsetSize;
+    fn heap_bytes_required(&self, offset_size: OffsetSize) -> u16 {
+        let offsets_bytes = (N as u16 + 1)
+            * match offset_size {
+                OffsetSize::U8 => (0u8).heap_bytes_required(()),
+                OffsetSize::U16 => (0u16).heap_bytes_required(()),
+            };
+        offsets_bytes
+            + self
+                .inner
+                .as_items()
+                .into_iter()
+                .map(|item| item.heap_bytes_required(()))
+                .sum::<u16>()
     }
 }
 
@@ -244,6 +272,17 @@ pub enum OffsetArray<const N: usize> {
     U16(#[brw(magic(0x0003u16))] [u16; N]),
 }
 
+impl<const N: usize> PageHeapObject for OffsetArray<N> {
+    type Args<'a> = OffsetSize;
+    fn heap_bytes_required(&self, offset_size: OffsetSize) -> u16 {
+        (N as u16 + 1)
+            * match offset_size {
+                OffsetSize::U8 => (0u8).heap_bytes_required(()),
+                OffsetSize::U16 => (0u16).heap_bytes_required(()),
+            }
+    }
+}
+
 impl<const N: usize> OffsetArray<N> {
     fn assert_offset_size_matches(&self, offset_size: OffsetSize) -> bool {
         matches!(
@@ -264,14 +303,6 @@ impl<const N: usize> OffsetArray<N> {
             OffsetSize::U8 => OffsetArray::U8(offsets.try_map_polyfill(|o| o.try_into())?),
             OffsetSize::U16 => OffsetArray::U16(offsets.try_map_polyfill(|o| o.try_into())?),
         })
-    }
-
-    fn predict_byte_count(offset_size: OffsetSize) -> u32 {
-        (N + 1) as u32
-            * match offset_size {
-                OffsetSize::U8 => 1,
-                OffsetSize::U16 => 2,
-            }
     }
 }
 
