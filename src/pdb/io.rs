@@ -69,6 +69,19 @@ impl BinWrite for LazyPage {
     }
 }
 
+fn read_page<IO: Read + Seek>(
+    io: &mut IO,
+    page_index: PageIndex,
+    page_size: u32,
+    db_type: DatabaseType,
+) -> RekordcrateResult<Page> {
+    let endian = Endian::Little;
+    let page_offset = SeekFrom::Start(page_index.offset(page_size));
+    io.seek(page_offset).map_err(binrw::Error::Io)?;
+    let page = Page::read_options(io, endian, (page_size, db_type))?;
+    Ok(page)
+}
+
 /// A PDB database opened for reading or writing.
 #[derive(Debug)]
 pub struct Database<IO> {
@@ -92,20 +105,17 @@ impl<R: Read + Seek> Database<R> {
 
     /// Loads a page into memory.
     pub fn load_page(&mut self, index: PageIndex) -> RekordcrateResult<&mut Page> {
-        let endian = Endian::Little;
         let page_entry = self
             .content
             .pages
             .get_mut(index.0 as usize - 1)
             .ok_or_else(|| RekordcrateError::PageNotPresent(index))?;
         if let LazyPage::NotLoaded = page_entry {
-            // Load the page from the file
-            let page_offset = SeekFrom::Start(index.offset(self.content.header.page_size));
-            self.io.seek(page_offset).map_err(binrw::Error::Io)?;
-            let page = Page::read_options(
+            let page = read_page(
                 &mut self.io,
-                endian,
-                (self.content.header.page_size, self.db_type),
+                index,
+                self.content.header.page_size,
+                self.db_type,
             )?;
             *page_entry = LazyPage::Loaded(page);
         }
@@ -128,7 +138,11 @@ impl<R: Read + Seek> Database<R> {
         let (first_page, last_page) = (table.first_page, table.last_page);
 
         Ok(PageIterator {
-            db: self,
+            db_pages: self.content.pages.as_mut_ptr(),
+            db_pages_len: self.content.pages.len(),
+            db_io: &mut self.io,
+            db_page_size: self.content.header.page_size,
+            db_type: self.db_type,
             next_page: Some(first_page),
             last_page,
             seen_pages: HashSet::new(),
@@ -144,7 +158,11 @@ impl<R: Read + Seek> Database<R> {
         let (first_page, last_page) = (table.first_page, table.last_page);
 
         Ok(PageIterator {
-            db: self,
+            db_pages: self.content.pages.as_mut_ptr(),
+            db_pages_len: self.content.pages.len(),
+            db_io: &mut self.io,
+            db_page_size: self.content.header.page_size,
+            db_type: self.db_type,
             next_page: Some(first_page),
             last_page,
             seen_pages: HashSet::new(),
@@ -252,7 +270,19 @@ impl<RW: Read + Write + Seek> Database<RW> {
 /// usability and soundness issues.
 #[derive(Debug)]
 pub struct PageIterator<'db, IO> {
-    db: &'db mut Database<IO>,
+    // Ideally we would hold a reference to `Database` and just call
+    // `Database::load_page` in `next()`, but this would use the `pages`
+    // reference repeatedly which is UB in the Rust semantics.
+    // See these related discussions:
+    // https://github.com/rust-lang/unsafe-code-guidelines/issues/133
+    // https://github.com/rust-lang/rust/issues/80682
+    // https://users.rust-lang.org/t/get-mutable-references-to-two-elements-of-a-slice-by-transmuting-them/71941
+    db_pages: *mut LazyPage,
+    db_pages_len: usize,
+    db_io: &'db mut IO,
+    db_page_size: u32,
+    db_type: DatabaseType,
+
     next_page: Option<PageIndex>,
     last_page: PageIndex,
     seen_pages: HashSet<PageIndex>,
@@ -270,20 +300,43 @@ impl<'db, R: Read + Seek> FallibleIterator for PageIterator<'db, R> {
                 if !self.seen_pages.insert(page_index) {
                     return Err(RekordcrateError::PageCycle(page_index));
                 }
-                let page: &'call mut Page = self.db.load_page(page_index)?;
-                // SAFETY: extending the lifetime of `page` to `'db` is safe while
-                // the following conditions are met:
+                let ptr_index = page_index.0 as usize - 1;
+                if ptr_index >= self.db_pages_len {
+                    return Err(RekordcrateError::PageNotPresent(page_index));
+                }
+
+                // SAFETY: manipulating the `db_pages` pointer is safe while:
+                //
+                // 1. The index is in bounds. This is ensured by the bounds check above.
+                // 2. We never create two mutable references to the same page at the same time.
+                //    This is ensured by `seen_pages` which tracks which pages we have already
+                //    touched.
+                #[allow(unsafe_code)]
+                let page_entry: &'call mut LazyPage =
+                    unsafe { self.db_pages.add(ptr_index).as_mut().unwrap() };
+
+                if let LazyPage::NotLoaded = page_entry {
+                    let page = read_page(self.db_io, page_index, self.db_page_size, self.db_type)?;
+                    *page_entry = LazyPage::Loaded(page);
+                }
+                let page: &'call mut Page = match page_entry {
+                    LazyPage::Loaded(page) => page,
+                    _ => unreachable!(),
+                };
+
+                // SAFETY: extending the lifetime of `page` to `'db` is safe while:
                 //
                 // 1. We never attempt to load or create a reference to a page after
                 //    we have already handed out a `&'db mut Page` to that page.
                 //    This is ensured by `seen_pages` which ensures
                 //    that we only touch unique pages.
-                // 2. The `&'db mut Database` reference cannot be extracted from the iterator
-                //    so that it cannot be used to create conflicting references with
-                //    the `&'db mut Page` references that we hand out. This is ensured by
-                //    the private field `db` and the lack of any methods returning it.
+                // 2. Any reference to the `Database` or its internals cannot be extracted
+                //    during the `'db' lifetime to create conflicting references with the
+                //    `&'db mut Page` references that we hand out. This is ensured by
+                //    our private and inaccessible fields.
                 #[allow(unsafe_code)]
                 let page: &'db mut Page = unsafe { std::mem::transmute(page) };
+
                 if page_index == self.last_page {
                     self.next_page = None;
                 } else {
@@ -292,5 +345,43 @@ impl<'db, R: Read + Seek> FallibleIterator for PageIterator<'db, R> {
                 Ok(Some(page))
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::fs::File;
+
+    #[test]
+    fn test_pageiterator_safety() {
+        // Run with `MIRIFLAGS="-Zmiri-disable-isolation" cargo +nightly miri test test_pageiterator_safety`.
+        let file = File::open("data/pdb/num_rows/export.pdb").unwrap();
+        let mut db = Database::open_non_persistent(file, DatabaseType::Plain).unwrap();
+        let mut iter = db
+            .iter_pages(PageType::Plain(PlainPageType::Tracks))
+            .unwrap();
+
+        let first = iter.next().unwrap().unwrap();
+        let second = iter.next().unwrap().unwrap();
+
+        // Should be disallowed since `db` is still borrowed by `iter` until all pages go out of scope.
+        // let _iter2 = db
+        //     .iter_pages(PageType::Plain(PlainPageType::Tracks))
+        //     .unwrap();
+
+        assert_eq!(
+            first.header.page_type,
+            PageType::Plain(PlainPageType::Tracks)
+        );
+        assert_eq!(
+            second.header.page_type,
+            PageType::Plain(PlainPageType::Tracks)
+        );
+
+        // Should be allowed since the `db` borrow can now be released.
+        let _iter3 = db
+            .iter_pages(PageType::Plain(PlainPageType::Tracks))
+            .unwrap();
     }
 }
