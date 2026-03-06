@@ -57,7 +57,7 @@ pub enum RekordcrateError {
 
     /// Represents a breach of the expectation that the pages do not form a cycle.
     #[error("Page list contains a cycle at page: {0:?}")]
-    PageCycle(PageIndex),
+    PageOrderViolation(PageIndex),
 }
 
 /// Type alias for results where the error is a `RekordcrateError`.
