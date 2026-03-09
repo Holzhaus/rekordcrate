@@ -1464,6 +1464,23 @@ pub struct Menu {
     pub sort_order: u16,
 }
 
+impl RowVariant for Menu {
+    const PAGE_TYPE: PageType = PageType::Plain(PlainPageType::Menu);
+
+    fn from_row(row: &Row) -> Option<&Self> {
+        match row {
+            Row::Plain(PlainRow::Menu(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn from_row_mut(row: &mut Row) -> Option<&mut Self> {
+        match row {
+            Row::Plain(PlainRow::Menu(row)) => Some(row),
+            _ => None,
+        }
+    }
+}
+
 /// A table row contains the actual data.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
