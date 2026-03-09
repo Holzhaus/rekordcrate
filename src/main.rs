@@ -284,6 +284,7 @@ fn dump_pdb(path: &Path, typ: DatabaseType, parse_unknown_tables: bool) -> rekor
     fn dump_table(db: &mut Database<File>, id: TableIndex) -> rekordcrate::Result<()> {
         let mut page_iter = db.iter_pages_for_table(id)?;
         while let Some(page) = page_iter.next()? {
+            println!("  {:?}", page);
             match &page.content {
                 PageContent::Data(data_content) => {
                     for row in data_content.rows.values() {
