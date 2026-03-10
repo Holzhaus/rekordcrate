@@ -19,6 +19,7 @@
 //! - <https://github.com/flesniak/python-prodj-link/tree/master/prodj/pdblib>
 
 pub mod bitfields;
+pub mod defaults;
 pub mod ext;
 pub mod io;
 pub mod offset_array;
