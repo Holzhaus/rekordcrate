@@ -48,3 +48,76 @@ impl PackedRowCounts {
         self.num_rows().div_ceil(RowGroup::MAX_ROW_COUNT as u16)
     }
 }
+
+/// Page flags stored in the page header.
+///
+/// Note that `modular-bitfield` stores the bits in LSB-first order so the
+/// bitfield definition is reversed compared to typical notation.
+#[bitfield(bits = 8)]
+#[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy)]
+#[br(little, map = Self::from_bytes)]
+#[bw(little, map = |x: &Self| x.into_bytes())]
+pub struct PageFlags {
+    /// Unknown flag that appears to never be set.
+    pub unknown0: bool,
+    /// Unknown flag that appears to never be set.
+    pub unknown1: bool,
+    /// Unknown flag that appears to always be set.
+    pub unknown2: bool,
+    /// Unknown flag that appears to never be set.
+    pub unknown3: bool,
+    /// Flag set when the page contains a deleted row.
+    pub contains_deleted: bool,
+    /// Unknown flag that appears to always be set.
+    pub unknown5: bool,
+    /// Determines if the page is an index page.
+    pub is_index_page: bool,
+    /// Unknown flag that appears to never be set.
+    pub unknown7: bool,
+}
+
+impl Default for PageFlags {
+    fn default() -> Self {
+        Self::new()
+            .with_unknown0(false)
+            .with_unknown1(false)
+            .with_unknown2(true)
+            .with_unknown3(false)
+            .with_contains_deleted(false)
+            .with_unknown5(true)
+            .with_is_index_page(false)
+            .with_unknown7(false)
+    }
+}
+
+impl PageFlags {
+    /// Create a `PageFlags` for a typical data page.
+    pub fn new_data_page() -> Self {
+        Self::default().with_is_index_page(false)
+    }
+
+    /// Create a `PageFlags` for a typical index page.
+    pub fn new_index_page() -> Self {
+        Self::default().with_is_index_page(true)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_page_flags_index() {
+        let flags = PageFlags::new_index_page();
+        assert_eq!(flags.into_bytes(), [0x64]);
+    }
+
+    #[test]
+    fn test_page_flags_data() {
+        let mut flags = PageFlags::new_data_page();
+        assert_eq!(flags.into_bytes(), [0x24]);
+
+        flags.set_contains_deleted(true);
+        assert_eq!(flags.into_bytes(), [0x34]);
+    }
+}

@@ -23,7 +23,7 @@ pub mod ext;
 pub mod offset_array;
 pub mod string;
 
-use bitfields::PackedRowCounts;
+use bitfields::{PackedRowCounts, PageFlags};
 use offset_array::OffsetArrayContainer;
 
 #[cfg(test)]
@@ -245,25 +245,6 @@ impl Header {
     }
 }
 
-/// Bit flags describing various page properties.
-#[binrw]
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct PageFlags(u8);
-
-impl PageFlags {
-    /// Check whether the page contains data rows.
-    #[must_use]
-    pub fn page_has_data(&self) -> bool {
-        (self.0 & 0x40) == 0
-    }
-
-    /// Check whether the page contains "index" rows.
-    #[must_use]
-    pub fn is_index_page(&self) -> bool {
-        self.0 == 0x64
-    }
-}
-
 /// An entry in an index page.
 #[binrw]
 #[derive(PartialEq, Eq, Clone, Copy)]
@@ -444,7 +425,7 @@ impl BinWrite for EmptyIndexEntries {
 #[bw(little, import { page_size: u32 })]
 pub enum PageContent {
     /// The page contains data rows.
-    #[br(pre_assert(header.page_flags.page_has_data()))]
+    #[br(pre_assert(!header.page_flags.is_index_page()))]
     Data(
         #[br(args { page_size, page_header: header })]
         #[bw(args { page_size })]

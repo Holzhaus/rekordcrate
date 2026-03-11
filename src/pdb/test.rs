@@ -808,7 +808,7 @@ fn track_page() {
             packed_row_counts: PackedRowCounts::new()
                 .with_num_rows(5)
                 .with_num_rows_valid(5),
-            page_flags: PageFlags(36),
+            page_flags: PageFlags::new_data_page(),
             free_size: 2302,
             used_size: 1740,
         },
@@ -992,7 +992,7 @@ fn genres_page() {
             packed_row_counts: PackedRowCounts::new()
                 .with_num_rows(18)
                 .with_num_rows_valid(18),
-            page_flags: PageFlags(36),
+            page_flags: PageFlags::new_data_page(),
             free_size: 3560,
             used_size: 452,
         },
@@ -2781,7 +2781,7 @@ fn artists_page() {
             packed_row_counts: PackedRowCounts::new()
                 .with_num_rows(120)
                 .with_num_rows_valid(120),
-            page_flags: PageFlags(36),
+            page_flags: PageFlags::new_data_page(),
             free_size: 12,
             used_size: 3772,
         },
@@ -2915,7 +2915,7 @@ fn artist_page_long() {
             packed_row_counts: PackedRowCounts::new()
                 .with_num_rows(6)
                 .with_num_rows_valid(6),
-            page_flags: PageFlags(36),
+            page_flags: PageFlags::new_data_page(),
             free_size: 2624,
             used_size: 1416,
         },
@@ -4404,7 +4404,7 @@ fn albums_page() {
             packed_row_counts: PackedRowCounts::new()
                 .with_num_rows(82)
                 .with_num_rows_valid(82),
-            page_flags: PageFlags(36),
+            page_flags: PageFlags::new_data_page(),
             free_size: 36,
             used_size: 3832,
         },
@@ -5781,7 +5781,7 @@ fn labels_page() {
             packed_row_counts: PackedRowCounts::new()
                 .with_num_rows(177)
                 .with_num_rows_valid(177),
-            page_flags: PageFlags(36),
+            page_flags: PageFlags::new_data_page(),
             free_size: 2,
             used_size: 3652,
         },
@@ -6273,7 +6273,7 @@ fn keys_page() {
             packed_row_counts: PackedRowCounts::new()
                 .with_num_rows(52)
                 .with_num_rows_valid(52),
-            page_flags: PageFlags(36),
+            page_flags: PageFlags::new_data_page(),
             free_size: 3188,
             used_size: 748,
         },
@@ -6403,7 +6403,7 @@ fn colors_page() {
             packed_row_counts: PackedRowCounts::new()
                 .with_num_rows(8)
                 .with_num_rows_valid(8),
-            page_flags: PageFlags(36),
+            page_flags: PageFlags::new_data_page(),
             free_size: 3912,
             used_size: 124,
         },
@@ -6761,7 +6761,7 @@ fn playlist_tree_page() {
             packed_row_counts: PackedRowCounts::new()
                 .with_num_rows(27)
                 .with_num_rows_valid(27),
-            page_flags: PageFlags(36),
+            page_flags: PageFlags::new_data_page(),
             free_size: 3238,
             used_size: 756,
         },
@@ -9222,7 +9222,7 @@ fn playlist_entries_page() {
             packed_row_counts: PackedRowCounts::new()
                 .with_num_rows(284)
                 .with_num_rows_valid(284),
-            page_flags: PageFlags(36),
+            page_flags: PageFlags::new_data_page(),
             free_size: 8,
             used_size: 3408,
         },
@@ -10065,7 +10065,7 @@ fn artworks_page() {
             packed_row_counts: PackedRowCounts::new()
                 .with_num_rows(106)
                 .with_num_rows_valid(106),
-            page_flags: PageFlags(36),
+            page_flags: PageFlags::new_data_page(),
             free_size: 0,
             used_size: 3816,
         },
@@ -10585,7 +10585,7 @@ fn tag_page() {
             packed_row_counts: PackedRowCounts::new()
                 .with_num_rows(23)
                 .with_num_rows_valid(23),
-            page_flags: PageFlags(36),
+            page_flags: PageFlags::new_data_page(),
             free_size: 2770,
             used_size: 1232,
         },
@@ -11077,7 +11077,7 @@ fn track_tag_page() {
             packed_row_counts: PackedRowCounts::new()
                 .with_num_rows(52)
                 .with_num_rows_valid(52),
-            page_flags: PageFlags(36),
+            page_flags: PageFlags::new_data_page(),
             free_size: 3104,
             used_size: 832,
         },
@@ -11132,7 +11132,7 @@ fn history_playlists_page() {
             packed_row_counts: PackedRowCounts::new()
                 .with_num_rows(1)
                 .with_num_rows_valid(1),
-            page_flags: PageFlags(36),
+            page_flags: PageFlags::new_data_page(),
             free_size: 4034,
             used_size: 16,
         },
@@ -11239,7 +11239,7 @@ fn history_entries_page() {
             packed_row_counts: PackedRowCounts::new()
                 .with_num_rows(7)
                 .with_num_rows_valid(7),
-            page_flags: PageFlags(36),
+            page_flags: PageFlags::new_data_page(),
             free_size: 3954,
             used_size: 84,
         },
@@ -11519,7 +11519,7 @@ fn menu_page() {
             packed_row_counts: PackedRowCounts::new()
                 .with_num_rows(22)
                 .with_num_rows_valid(22),
-            page_flags: PageFlags(36),
+            page_flags: PageFlags::new_data_page(),
             free_size: 3828,
             used_size: 176,
         },
@@ -11831,7 +11831,7 @@ fn index_page() {
             packed_row_counts: PackedRowCounts::new()
                 .with_num_rows(0)
                 .with_num_rows_valid(0),
-            page_flags: PageFlags(100),
+            page_flags: PageFlags::new_index_page(),
             free_size: 0,
             used_size: 0,
         },
