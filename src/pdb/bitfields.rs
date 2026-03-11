@@ -76,9 +76,8 @@ pub struct PageFlags {
     pub unknown7: bool,
 }
 
-impl PageFlags {
-    /// Create a `PageFlags` for a typical data page.
-    pub fn new_data_page() -> Self {
+impl Default for PageFlags {
+    fn default() -> Self {
         Self::new()
             .with_unknown0(false)
             .with_unknown1(false)
@@ -89,18 +88,17 @@ impl PageFlags {
             .with_is_index_page(false)
             .with_unknown7(false)
     }
+}
+
+impl PageFlags {
+    /// Create a `PageFlags` for a typical data page.
+    pub fn new_data_page() -> Self {
+        Self::default().with_is_index_page(false)
+    }
 
     /// Create a `PageFlags` for a typical index page.
     pub fn new_index_page() -> Self {
-        Self::new()
-            .with_unknown0(false)
-            .with_unknown1(false)
-            .with_unknown2(true)
-            .with_unknown3(false)
-            .with_contains_deleted(false)
-            .with_unknown5(true)
-            .with_is_index_page(true)
-            .with_unknown7(false)
+        Self::default().with_is_index_page(true)
     }
 }
 
