@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["PackedRowCounts"]};
+window.SIDEBAR_ITEMS = {"struct":["PackedRowCounts","PageFlags"]};
