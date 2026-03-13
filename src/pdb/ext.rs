@@ -19,7 +19,10 @@
 //! - <https://github.com/henrybetts/Rekordbox-Decoding>
 //! - <https://github.com/flesniak/python-prodj-link/tree/master/prodj/pdblib>
 
-use crate::pdb::{DeviceSQLString, OffsetArray, OffsetArrayContainer, Subtype, TrackId};
+use crate::pdb::{
+    offset_array::OffsetArrayItems, DeviceSQLString, OffsetArrayContainer, PageHeapObject, Subtype,
+    TrackId,
+};
 use binrw::binrw;
 use std::num::NonZero;
 
@@ -28,6 +31,13 @@ use std::num::NonZero;
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 #[brw(little)]
 pub struct TagId(pub u32);
+
+impl PageHeapObject for TagId {
+    type Args<'a> = ();
+    fn heap_bytes_required(&self, _: ()) -> u16 {
+        self.0.heap_bytes_required(())
+    }
+}
 
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
@@ -39,22 +49,34 @@ pub struct ParentId(
     pub Option<NonZero<u32>>,
 );
 
-#[binrw]
-#[brw(little)]
-#[brw(import(base: i64, offsets: &OffsetArray<2>, args: ()))]
+impl PageHeapObject for ParentId {
+    type Args<'a> = ();
+    fn heap_bytes_required(&self, _: ()) -> u16 {
+        let inner: u32 = self.0.map_or(0u32, |v| v.get());
+        inner.heap_bytes_required(())
+    }
+}
+
 #[derive(Debug, PartialEq, Clone, Eq)]
 /// The strings associated with a tag or category.
 pub struct TagOrCategoryStrings {
-    #[brw(args(base, args))]
-    #[br(parse_with = offsets.read_offset(0))]
-    #[bw(write_with = offsets.write_offset(0))]
     /// The name of the tag or category.
     pub name: DeviceSQLString,
-    #[brw(args(base, args))]
-    #[br(parse_with = offsets.read_offset(1))]
-    #[bw(write_with = offsets.write_offset(1))]
     /// String with unknown purpose, often empty.
     pub unknown: DeviceSQLString,
+}
+
+impl OffsetArrayItems<2> for TagOrCategoryStrings {
+    type Item = DeviceSQLString;
+
+    fn as_items(&self) -> [&Self::Item; 2] {
+        [&self.name, &self.unknown]
+    }
+
+    fn from_items(items: [Self::Item; 2]) -> Self {
+        let [name, unknown] = items;
+        Self { name, unknown }
+    }
 }
 
 /// A tag or category that can be assigned to tracks for the purpose of categorization.
@@ -87,10 +109,29 @@ pub struct TagOrCategory {
     pub id: TagId,
     /// Non-zero if this row represents a category rather than a tag.
     pub raw_is_category: u32,
-    // Padded at the end by 11 bytes as observed
-    #[brw(args(0x1C, subtype.get_offset_size(), ()), pad_after = 11)]
     /// The strings associated with this tag or category.
+    #[brw(args(0x1C, subtype.get_offset_size(), ()))]
     pub offsets: OffsetArrayContainer<TagOrCategoryStrings, 2>,
+}
+
+impl PageHeapObject for TagOrCategory {
+    type Args<'a> = ();
+    fn heap_bytes_required(&self, _: ()) -> u16 {
+        [
+            self.subtype.heap_bytes_required(()),
+            self.index_shift.heap_bytes_required(()),
+            self.unknown1.heap_bytes_required(()),
+            self.unknown2.heap_bytes_required(()),
+            self.parent_id.heap_bytes_required(()),
+            self.position.heap_bytes_required(()),
+            self.id.heap_bytes_required(()),
+            self.raw_is_category.heap_bytes_required(()),
+            self.offsets
+                .heap_bytes_required(self.subtype.get_offset_size()),
+        ]
+        .iter()
+        .sum()
+    }
 }
 
 // https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/exports.html#tag-track-rows
@@ -106,6 +147,20 @@ pub struct TrackTag {
     pub tag_id: TagId,
     /// Unknown purpose, seems to be always 3.
     pub unknown_const: u32, // always 3?
+}
+
+impl PageHeapObject for TrackTag {
+    type Args<'a> = ();
+    fn heap_bytes_required(&self, _: ()) -> u16 {
+        [
+            (0u32).heap_bytes_required(()),
+            self.track_id.heap_bytes_required(()),
+            self.tag_id.heap_bytes_required(()),
+            self.unknown_const.heap_bytes_required(()),
+        ]
+        .iter()
+        .sum()
+    }
 }
 
 /// The type of ext pages found inside a `Table`.
@@ -134,8 +189,18 @@ pub enum ExtPageType {
 pub enum ExtRow {
     /// Contains the album name, along with an ID of the corresponding artist.
     #[br(pre_assert(page_type == ExtPageType::Tag))]
-    Tag(#[bw(pad_after = 0, align_after = 4)] TagOrCategory),
+    Tag(#[bw(align_after = 4)] TagOrCategory),
     /// Contains the artist name and ID.
     #[br(pre_assert(page_type == ExtPageType::TrackTag))]
-    TrackTag(#[bw(pad_after = 0, align_after = 4)] TrackTag),
+    TrackTag(#[bw(align_after = 4)] TrackTag),
+}
+
+impl PageHeapObject for ExtRow {
+    type Args<'a> = ();
+    fn heap_bytes_required(&self, _: ()) -> u16 {
+        match self {
+            ExtRow::Tag(tag_or_category) => tag_or_category.heap_bytes_required(()),
+            ExtRow::TrackTag(track_tag) => track_tag.heap_bytes_required(()),
+        }
+    }
 }
