@@ -56,6 +56,15 @@ pub enum OffsetSize {
     U16,
 }
 
+impl OffsetSize {
+    fn bytes(&self) -> usize {
+        match self {
+            OffsetSize::U8 => std::mem::size_of::<u8>(),
+            OffsetSize::U16 => std::mem::size_of::<u16>(),
+        }
+    }
+}
+
 /// A container for an array of offsets and the indirectly-addressed data at those offsets.
 /// See the module documentation for an example.
 #[derive(Debug, PartialEq, Clone, Eq)]
@@ -162,13 +171,7 @@ where
         let items = self.inner.as_items();
         match &self.offsets {
             MaybeCalculated::Calculated => {
-                let offsets_bytes = u64::from(
-                    (N as u16 + 1)
-                        * match offset_size {
-                            OffsetSize::U8 => (0u8).heap_bytes_required(()),
-                            OffsetSize::U16 => (0u16).heap_bytes_required(()),
-                        },
-                );
+                let offsets_bytes = (N + 1) * offset_size.bytes();
                 writer.seek(SeekFrom::Current(offsets_bytes as i64))?;
                 let offsets_raw = items.try_map_polyfill(|v| {
                     let offset = writer.stream_position()? - base;
@@ -215,12 +218,8 @@ where
 {
     type Args<'a> = OffsetSize;
     fn heap_bytes_required(&self, offset_size: OffsetSize) -> u16 {
-        let offsets_bytes = (N as u16 + 1)
-            * match offset_size {
-                OffsetSize::U8 => (0u8).heap_bytes_required(()),
-                OffsetSize::U16 => (0u16).heap_bytes_required(()),
-            };
-        offsets_bytes
+        let offsets_bytes = (N + 1) * offset_size.bytes();
+        offsets_bytes as u16
             + self
                 .inner
                 .as_items()
@@ -275,11 +274,7 @@ pub enum OffsetArray<const N: usize> {
 impl<const N: usize> PageHeapObject for OffsetArray<N> {
     type Args<'a> = OffsetSize;
     fn heap_bytes_required(&self, offset_size: OffsetSize) -> u16 {
-        (N as u16 + 1)
-            * match offset_size {
-                OffsetSize::U8 => (0u8).heap_bytes_required(()),
-                OffsetSize::U16 => (0u16).heap_bytes_required(()),
-            }
+        ((N + 1) * offset_size.bytes()) as u16
     }
 }
 
