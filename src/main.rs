@@ -72,6 +72,15 @@ enum Commands {
         #[arg(value_name = "XML_FILE")]
         path: PathBuf,
     },
+    /// Export track data from a Pioneer Database (`.PDB`) file to XML.
+    ExportXML {
+        /// File to parse.
+        #[arg(value_name = "PDB_FILE")]
+        path: PathBuf,
+        /// Output file to write XML to (default: stdout).
+        #[arg(value_name = "OUTPUT_FILE")]
+        output: Option<PathBuf>,
+    },
 }
 
 fn list_playlists(path: &PathBuf) -> rekordcrate::Result<()> {
@@ -258,6 +267,154 @@ fn dump_xml(path: &PathBuf) -> rekordcrate::Result<()> {
     Ok(())
 }
 
+fn export_xml(path: &Path, output: Option<&Path>) -> rekordcrate::Result<()> {
+    use rekordcrate::pdb::{DatabaseType, Header, PageContent};
+    use rekordcrate::xml::{Collection, Document, Playlists, PlaylistFolderNode, Product, Tempo, Track};
+    use serde::Serialize;
+
+    // Open and parse the PDB file
+    let mut reader = std::fs::File::open(path)?;
+    let db_type = DatabaseType::Plain;
+    let header = Header::read_args(&mut reader, (db_type,))?;
+    
+    // Collect tracks from the PDB
+    let mut tracks: Vec<Track> = Vec::new();
+    
+    for table in &header.tables {
+        if matches!(table.page_type, rekordcrate::pdb::PageType::Plain(rekordcrate::pdb::PlainPageType::Tracks)) {
+            let pages = header.read_pages(
+                &mut reader,
+                binrw::Endian::NATIVE,
+                (&table.first_page, &table.last_page, db_type),
+            )?;
+            
+            for page in pages {
+                if let PageContent::Data(data_content) = page.content {
+                    for (_, row) in data_content.rows {
+                        if let rekordcrate::pdb::Row::Plain(rekordcrate::pdb::PlainRow::Track(track)) = row {
+                            // Convert PDB track to XML track
+                            let track_id = track.id.0 as i32;
+                            let title = track.offsets.title.clone().into_string().ok();
+                            let location = track.offsets.file_path.clone().into_string().ok().unwrap_or_default();
+                            
+                            // BPM is stored in centi-BPM, convert to actual BPM
+                            let bpm = if track.tempo > 0 {
+                                Some(track.tempo as f64 / 100.0)
+                            } else {
+                                None
+                            };
+                            
+                            // Duration is in seconds
+                            let duration = if track.duration > 0 {
+                                Some(track.duration as f64)
+                            } else {
+                                None
+                            };
+                            
+                            // File size
+                            let file_size = if track.file_size > 0 {
+                                Some(track.file_size as i64)
+                            } else {
+                                None
+                            };
+                            
+                            // Create tempo element if BPM is available
+                            let tempos: Vec<Tempo> = if let Some(bpm_val) = bpm {
+                                vec![Tempo {
+                                    inizio: 0.025,
+                                    bpm: bpm_val,
+                                    metro: "4/4".to_string(),
+                                    battito: 1,
+                                }]
+                            } else {
+                                vec![]
+                            };
+                            
+                            let xml_track = Track {
+                                trackid: track_id,
+                                name: title,
+                                artist: None,  // Would need to look up artist from artist ID
+                                composer: None,
+                                album: None,
+                                grouping: None,
+                                genre: None,
+                                kind: Some("MP3 File".to_string()),
+                                size: file_size,
+                                totaltime: duration,
+                                discnumber: if track.disc_number > 0 { Some(track.disc_number as i32) } else { None },
+                                tracknumber: if track.track_number > 0 { Some(track.track_number as i32) } else { None },
+                                year: if track.year > 0 { Some(track.year as i32) } else { None },
+                                averagebpm: bpm,
+                                datemodified: None,
+                                dateadded: None,
+                                bitrate: if track.bitrate > 0 { Some(track.bitrate as i32) } else { None },
+                                samplerate: if track.sample_rate > 0 { Some(track.sample_rate as f64) } else { None },
+                                comments: None,
+                                playcount: if track.play_count > 0 { Some(track.play_count as i32) } else { None },
+                                lastplayed: None,
+                                rating: if track.rating > 0 { Some(track.rating as i32) } else { None },
+                                location,
+                                remixer: None,
+                                tonality: None,
+                                label: None,
+                                mix: None,
+                                colour: None,
+                                tempos,
+                                position_marks: vec![],  // Would need to load ANLZ files for hot cues
+                            };
+                            
+                            tracks.push(xml_track);
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    // Create the XML document
+    let document = Document {
+        version: "1.0.0".to_string(),
+        product: Product {
+            name: "rekordcrate".to_string(),
+            version: env!("CARGO_PKG_VERSION").to_string(),
+            company: "rekordcrate".to_string(),
+        },
+        collection: Collection {
+            entries: tracks.len() as i32,
+            track: tracks,
+        },
+        playlists: Playlists {
+            node: PlaylistFolderNode {
+                name: "ROOT".to_string(),
+                nodes: vec![],
+            },
+        },
+    };
+    
+    // Serialize to XML using quick_xml with a writer
+    let mut xml_output = String::new();
+    {
+        let mut serializer = quick_xml::se::Serializer::new(&mut xml_output);
+        serializer.indent(' ', 2);
+        document.serialize(serializer).map_err(|e| {
+            rekordcrate::Error::XmlError(format!("Failed to serialize XML: {}", e))
+        })?;
+    }
+    
+    // Add XML declaration
+    let xml_string = format!("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n{}", xml_output);
+    
+    // Write output
+    if let Some(output_path) = output {
+        std::fs::write(output_path, &xml_string)?;
+        println!("Exported XML to: {}", output_path.display());
+    } else {
+        println!("{}", xml_string);
+    }
+    
+    Ok(())
+}
+
 fn guess_db_type(path: &Path, db_type: Option<&str>) -> Option<DatabaseType> {
     let db_type_cli = db_type.map(|str| match str {
         "plain" => DatabaseType::Plain,
@@ -310,5 +467,6 @@ fn main() -> rekordcrate::Result<()> {
         Commands::DumpANLZ { path } => dump_anlz(path),
         Commands::DumpSetting { path } => dump_setting(path),
         Commands::DumpXML { path } => dump_xml(path),
+        Commands::ExportXML { path, output } => export_xml(&path, output.as_ref().map(|p| p.as_path())),
     }
 }

@@ -37,6 +37,10 @@ pub enum RekordcrateError {
     /// Represents an `std::io::Error`.
     #[error("component not loaded")]
     NotLoadedError,
+
+    /// Represents an XML error.
+    #[error("XML error: {0}")]
+    XmlError(String),
 }
 
 /// Type alias for results where the error is a `RekordcrateError`.
