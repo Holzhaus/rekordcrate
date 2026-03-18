@@ -267,6 +267,185 @@ fn dump_xml(path: &PathBuf) -> rekordcrate::Result<()> {
     Ok(())
 }
 
+/// Load hot cues from ANLZ files for a track
+/// 
+/// Searches for ANLZ files in the following locations:
+/// 1. Same directory as the PDB file
+/// 2. Parent directories (for typical rekordbox export structure)
+/// 
+/// ANLZ files are named ANLZ0001.DAT, ANLZ0002.DAT, etc.
+fn load_hot_cues(pdb_dir: &Path, track_id: u32) -> rekordcrate::Result<Vec<rekordcrate::xml::PositionMark>> {
+    use rekordcrate::anlz::{ANLZ, CueListType, CueType, Content};
+    use rekordcrate::xml::PositionMark;
+    use walkdir::WalkDir;
+    
+    let mut position_marks = Vec::new();
+    
+    // Format the ANLZ filename (e.g., ANLZ0001.DAT)
+    let anlz_filename = format!("ANLZ{:04}.DAT", track_id);
+    
+    // Search for ANLZ files in PDB directory and parent directories
+    let search_paths: Vec<PathBuf> = vec![
+        pdb_dir.to_path_buf(),
+        pdb_dir.parent().map(|p| p.to_path_buf()).unwrap_or_default(),
+        pdb_dir.parent().and_then(|p| p.parent()).map(|p| p.to_path_buf()).unwrap_or_default(),
+    ];
+    
+    for search_dir in &search_paths {
+        if search_dir.as_os_str().is_empty() {
+            continue;
+        }
+        
+        // Check if ANLZ file exists in this directory
+        let anlz_path = search_dir.join(&anlz_filename);
+        if anlz_path.exists() {
+            // Found the ANLZ file, parse it
+            if let Ok(mut reader) = std::fs::File::open(&anlz_path) {
+                if let Ok(anlz) = ANLZ::read(&mut reader) {
+                    // Find CueList sections and extract hot cues
+                    for section in &anlz.sections {
+                        if let Content::CueList(cue_list) = &section.content {
+                            // Only process hot cues (not memory cues)
+                            if cue_list.list_type == CueListType::HotCues {
+                                for cue in &cue_list.cues {
+                                    // Skip cues that are not hot cues (hot_cue == 0 means not a hot cue)
+                                    if cue.hot_cue == 0 {
+                                        continue;
+                                    }
+                                    
+                                    // Convert cue time from milliseconds to seconds
+                                    let start = cue.time as f64 / 1000.0;
+                                    
+                                    // Determine if this is a loop
+                                    let (mark_type, end) = match cue.cue_type {
+                                        CueType::Loop => (4, Some(start + 0.0)), // Loop type
+                                        CueType::Point => (0, None), // Hot Cue type
+                                    };
+                                    
+                                    let position_mark = PositionMark {
+                                        name: format!("Hot Cue {}", (cue.hot_cue as i8).abs()),
+                                        mark_type,
+                                        start,
+                                        end,
+                                        num: cue.hot_cue as i32 - 1, // Convert to 0-based index
+                                    };
+                                    
+                                    position_marks.push(position_mark);
+                                }
+                            }
+                        } else if let Content::ExtendedCueList(extended_cue_list) = &section.content {
+                            // Handle extended cue list (Nexus 2 series)
+                            if extended_cue_list.list_type == CueListType::HotCues {
+                                for cue in &extended_cue_list.cues {
+                                    // Skip cues that are not hot cues
+                                    if cue.hot_cue == 0 {
+                                        continue;
+                                    }
+                                    
+                                    // Convert cue time from milliseconds to seconds
+                                    let start = cue.time as f64 / 1000.0;
+                                    
+                                    // Determine if this is a loop
+                                    let (mark_type, end) = match cue.cue_type {
+                                        CueType::Loop => (4, Some(start + 0.0)),
+                                        CueType::Point => (0, None),
+                                    };
+                                    
+                                    let position_mark = PositionMark {
+                                        name: format!("Hot Cue {}", (cue.hot_cue as i8).abs()),
+                                        mark_type,
+                                        start,
+                                        end,
+                                        num: cue.hot_cue as i32 - 1,
+                                    };
+                                    
+                                    position_marks.push(position_mark);
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Found and processed the ANLZ file, no need to search further
+                    break;
+                }
+            }
+        }
+        
+        // Also search recursively in subdirectories (like PIONEER/USBANLZ)
+        for entry in WalkDir::new(search_dir)
+            .max_depth(3)
+            .into_iter()
+            .filter_map(|e| e.ok())
+        {
+            let path = entry.path();
+            if path.file_name().map(|n| n.to_string_lossy() == anlz_filename).unwrap_or(false) {
+                // Found the ANLZ file, parse it
+                if let Ok(mut reader) = std::fs::File::open(path) {
+                    if let Ok(anlz) = ANLZ::read(&mut reader) {
+                        // Find CueList sections and extract hot cues
+                        for section in &anlz.sections {
+                            if let Content::CueList(cue_list) = &section.content {
+                                if cue_list.list_type == CueListType::HotCues {
+                                    for cue in &cue_list.cues {
+                                        if cue.hot_cue == 0 {
+                                            continue;
+                                        }
+                                        
+                                        let start = cue.time as f64 / 1000.0;
+                                        
+                                        let (mark_type, end) = match cue.cue_type {
+                                            CueType::Loop => (4, Some(start + 0.0)),
+                                            CueType::Point => (0, None),
+                                        };
+                                        
+                                        let position_mark = PositionMark {
+                                            name: format!("Hot Cue {}", (cue.hot_cue as i8).abs()),
+                                            mark_type,
+                                            start,
+                                            end,
+                                            num: cue.hot_cue as i32 - 1,
+                                        };
+                                        
+                                        position_marks.push(position_mark);
+                                    }
+                                }
+                            } else if let Content::ExtendedCueList(extended_cue_list) = &section.content {
+                                if extended_cue_list.list_type == CueListType::HotCues {
+                                    for cue in &extended_cue_list.cues {
+                                        if cue.hot_cue == 0 {
+                                            continue;
+                                        }
+                                        
+                                        let start = cue.time as f64 / 1000.0;
+                                        
+                                        let (mark_type, end) = match cue.cue_type {
+                                            CueType::Loop => (4, Some(start + 0.0)),
+                                            CueType::Point => (0, None),
+                                        };
+                                        
+                                        let position_mark = PositionMark {
+                                            name: format!("Hot Cue {}", (cue.hot_cue as i8).abs()),
+                                            mark_type,
+                                            start,
+                                            end,
+                                            num: cue.hot_cue as i32 - 1,
+                                        };
+                                        
+                                        position_marks.push(position_mark);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+        }
+    }
+    
+    Ok(position_marks)
+}
+
 fn export_xml(path: &Path, output: Option<&Path>) -> rekordcrate::Result<()> {
     use rekordcrate::pdb::{DatabaseType, Header, PageContent};
     use rekordcrate::xml::{Collection, Document, Playlists, PlaylistFolderNode, Product, Tempo, Track};
@@ -276,6 +455,9 @@ fn export_xml(path: &Path, output: Option<&Path>) -> rekordcrate::Result<()> {
     let mut reader = std::fs::File::open(path)?;
     let db_type = DatabaseType::Plain;
     let header = Header::read_args(&mut reader, (db_type,))?;
+    
+    // Get the PDB file directory for finding ANLZ files
+    let pdb_dir = path.parent().unwrap_or(Path::new("."));
     
     // Collect tracks from the PDB
     let mut tracks: Vec<Track> = Vec::new();
@@ -317,6 +499,9 @@ fn export_xml(path: &Path, output: Option<&Path>) -> rekordcrate::Result<()> {
                             } else {
                                 None
                             };
+                            
+                            // Load hot cues from ANLZ files
+                            let position_marks = load_hot_cues(pdb_dir, track.id.0)?;
                             
                             // Create tempo element if BPM is available
                             let tempos: Vec<Tempo> = if let Some(bpm_val) = bpm {
@@ -360,7 +545,7 @@ fn export_xml(path: &Path, output: Option<&Path>) -> rekordcrate::Result<()> {
                                 mix: None,
                                 colour: None,
                                 tempos,
-                                position_marks: vec![],  // Would need to load ANLZ files for hot cues
+                                position_marks,
                             };
                             
                             tracks.push(xml_track);
