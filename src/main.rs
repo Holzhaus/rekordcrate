@@ -9,7 +9,7 @@
 use binrw::BinRead;
 use clap::{Parser, Subcommand};
 use rekordcrate::anlz::ANLZ;
-use rekordcrate::pdb::{DatabaseType, Header, PageContent, Track, TrackId};
+use rekordcrate::pdb::{DatabaseType, Header, PageContent, PlainPageType, PlainRow, Row, Track, TrackId};
 use rekordcrate::setting::Setting;
 use rekordcrate::xml::Document;
 use std::path::{Path, PathBuf};
@@ -71,6 +71,15 @@ enum Commands {
         /// File to parse.
         #[arg(value_name = "XML_FILE")]
         path: PathBuf,
+    },
+    /// Export device export to Rekordbox XML format.
+    ExportXML {
+        /// Path to the device export directory.
+        #[arg(value_name = "EXPORT_PATH")]
+        path: PathBuf,
+        /// Output XML file path.
+        #[arg(value_name = "OUTPUT_FILE")]
+        output: Option<PathBuf>,
     },
 }
 
@@ -258,6 +267,142 @@ fn dump_xml(path: &PathBuf) -> rekordcrate::Result<()> {
     Ok(())
 }
 
+fn export_xml(path: &Path, output_path: Option<&PathBuf>) -> rekordcrate::Result<()> {
+    use rekordcrate::pdb::PlainRow;
+    use rekordcrate::xml::{PositionMark, Tempo};
+
+    // Load the device export
+    let mut export = rekordcrate::DeviceExport::new(path.into());
+    export.load_pdb()?;
+    export.load_anlz()?;
+
+    let pdb = export.pdb().ok_or(rekordcrate::Error::NotLoadedError)?;
+
+    // Create XML document
+    let mut doc = Document::new();
+
+    for track in pdb.get_tracks() {
+        let track_id = track.id.0 as i32;
+        let title = track.offsets.title.clone().into_string().ok();
+        let artist = track.artist_id.0;
+        let album_id = track.album_id.0;
+        let genre_id = track.genre_id.0;
+        let duration = track.duration;
+        let year = track.year;
+        let tempo = track.tempo;
+        let file_path = track.offsets.file_path.clone().into_string().unwrap_or_default();
+        let analyze_path = track.offsets.analyze_path.clone().into_string().ok().unwrap_or_default();
+
+        // Look up artist name
+        let artist_name = if artist > 0 {
+            pdb.get_rows_by_page_type(PlainPageType::Artists)
+                .filter_map(|row| {
+                    if let Row::Plain(PlainRow::Artist(a)) = row {
+                        Some(a)
+                    } else {
+                        None
+                    }
+                })
+                .find(|a| a.id.0 == artist)
+                .and_then(|a| a.offsets.name.clone().into_string().ok())
+        } else {
+            None
+        };
+
+        // Look up album name
+        let album_name = if album_id > 0 {
+            pdb.get_rows_by_page_type(PlainPageType::Albums)
+                .filter_map(|row| {
+                    if let Row::Plain(PlainRow::Album(a)) = row {
+                        Some(a)
+                    } else {
+                        None
+                    }
+                })
+                .find(|a| a.id.0 == album_id)
+                .and_then(|a| a.offsets.name.clone().into_string().ok())
+        } else {
+            None
+        };
+
+        // Look up genre name
+        let genre_name = if genre_id > 0 {
+            pdb.get_rows_by_page_type(PlainPageType::Genres)
+                .filter_map(|row| {
+                    if let Row::Plain(PlainRow::Genre(g)) = row {
+                        Some(g)
+                    } else {
+                        None
+                    }
+                })
+                .find(|g| g.id.0 == genre_id)
+                .and_then(|g| g.name.clone().into_string().ok())
+        } else {
+            None
+        };
+
+        // Get track analysis (hot cues, BPM)
+        let analysis = export.get_track_analysis(&analyze_path);
+
+        // Create track
+        let mut xml_track = rekordcrate::xml::Track::from_pdb_track(
+            track_id,
+            title,
+            artist_name,
+            album_name,
+            genre_name,
+            duration,
+            year,
+            tempo,
+            file_path,
+        );
+
+        // Add tempos from analysis
+        if let Some(analysis) = analysis {
+            for tempo_entry in &analysis.tempos {
+                xml_track.add_tempo(Tempo {
+                    inizio: tempo_entry.start,
+                    bpm: tempo_entry.bpm,
+                    metro: "4/4".to_string(),
+                    battito: 1,
+                });
+            }
+
+            // Add hot cues as position marks
+            for hot_cue in &analysis.hot_cues {
+                let mark_type = if hot_cue.is_loop { 4 } else { 0 };
+                xml_track.add_position_mark(PositionMark {
+                    name: hot_cue.name.clone(),
+                    mark_type,
+                    start: hot_cue.start,
+                    end: hot_cue.end,
+                    num: (hot_cue.number as i32) - 1, // Convert to 0-indexed
+                });
+            }
+        }
+
+        doc.collection.track.push(xml_track);
+    }
+
+    doc.collection.entries = doc.collection.track.len() as i32;
+
+    // Serialize to XML
+    let xml_output = quick_xml::se::to_string(&doc).expect("failed to serialize XML");
+
+    // Write to file or stdout
+    match output_path {
+        Some(output) => {
+            std::fs::write(output, &xml_output)?;
+            println!("Exported XML to: {}", output.display());
+        }
+        None => {
+            println!("{}", xml_output);
+        }
+    }
+
+    Ok(())
+}
+
 fn guess_db_type(path: &Path, db_type: Option<&str>) -> Option<DatabaseType> {
     let db_type_cli = db_type.map(|str| match str {
         "plain" => DatabaseType::Plain,
@@ -310,5 +455,6 @@ fn main() -> rekordcrate::Result<()> {
         Commands::DumpANLZ { path } => dump_anlz(path),
         Commands::DumpSetting { path } => dump_setting(path),
         Commands::DumpXML { path } => dump_xml(path),
+        Commands::ExportXML { path, output } => export_xml(path, output.as_ref()),
     }
 }
