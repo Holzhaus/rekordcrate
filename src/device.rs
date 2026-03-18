@@ -9,6 +9,7 @@
 //! High-level API for working with Rekordbox device exports.
 
 use crate::{
+    anlz::{ANLZ, Content, CueListType},
     pdb::{
         DatabaseType, Header, Page, PageContent, PageType, PlainPageType, PlainRow,
         PlaylistTreeNode, PlaylistTreeNodeId, Row, Track, TrackId,
@@ -21,6 +22,41 @@ use std::collections::HashMap;
 use std::fmt;
 use std::path::{Path, PathBuf};
 
+/// Represents analysis data for a track (hot cues, BPM, etc.)
+#[derive(Debug, Clone, PartialEq)]
+pub struct TrackAnalysis {
+    /// Hot cues (if any)
+    pub hot_cues: Vec<HotCue>,
+    /// Beat grid entries (BPM changes)
+    pub tempos: Vec<Tempo>,
+}
+
+/// Represents a hot cue
+#[derive(Debug, Clone, PartialEq)]
+pub struct HotCue {
+    /// Hot cue number (0-9)
+    pub number: u32,
+    /// Name of the hot cue
+    pub name: String,
+    /// Start position in seconds
+    pub start: f64,
+    /// End position (for loops) in seconds
+    pub end: Option<f64>,
+    /// Color index
+    pub color: Option<String>,
+    /// Is this a loop?
+    pub is_loop: bool,
+}
+
+/// Represents a tempo/BPM entry
+#[derive(Debug, Clone, PartialEq)]
+pub struct Tempo {
+    /// Start position in seconds
+    pub start: f64,
+    /// BPM value
+    pub bpm: f64,
+}
+
 /// Represents a Rekordbox device export.
 #[derive(Debug, PartialEq)]
 pub struct DeviceExport {
@@ -30,6 +66,8 @@ pub struct DeviceExport {
     djmmysetting: Option<Setting>,
     mysetting: Option<Setting>,
     mysetting2: Option<Setting>,
+    /// ANLZ analysis files, keyed by the analyze path
+    anlz_files: HashMap<String, ANLZ>,
 }
 
 impl DeviceExport {
@@ -45,6 +83,7 @@ impl DeviceExport {
             djmmysetting: None,
             mysetting: None,
             mysetting2: None,
+            anlz_files: HashMap::new(),
         }
     }
 
@@ -113,6 +152,128 @@ impl DeviceExport {
             .join("export.pdb");
         self.pdb = Some(Self::read_pdb_file(&path)?);
         Ok(())
+    }
+
+    /// Load ANLZ analysis files from the USBANLZ directory.
+    /// This loads all analysis files found in the export.
+    pub fn load_anlz(&mut self) -> crate::Result<()> {
+        let usbanlz_path = self.path.join("PIONEER").join("USBANLZ");
+        if !usbanlz_path.exists() {
+            return Ok(()); // No analysis files, that's fine
+        }
+
+        // Walk through all .DAT, .EXT, and .2EX files
+        for entry in walkdir::WalkDir::new(&usbanlz_path)
+            .into_iter()
+            .filter_map(|e| e.ok())
+        {
+            let path = entry.path();
+            if let Some(ext) = path.extension() {
+                let ext_lower = ext.to_string_lossy().to_lowercase();
+                if ext_lower == "dat" || ext_lower == "ext" || ext_lower == "2ex" {
+                    if let Ok(anlz) = Self::read_anlz_file(&path.into()) {
+                        // Store with a simple key based on the file path
+                        let key = path.file_stem()
+                            .map(|s| s.to_string_lossy().to_string())
+                            .unwrap_or_default();
+                        self.anlz_files.insert(key, anlz);
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    fn read_anlz_file(path: &PathBuf) -> crate::Result<ANLZ> {
+        let mut reader = std::fs::File::open(path)?;
+        let anlz = ANLZ::read(&mut reader)?;
+        Ok(anlz)
+    }
+
+    /// Get analysis data for a specific track by its analyze path.
+    pub fn get_track_analysis(&self, analyze_path: &str) -> Option<TrackAnalysis> {
+        // Try to find the ANLZ file based on the analyze path
+        // The analyze_path typically looks like /PIONEER/USBANLZ/P016/0000875E/ANLZ0000
+        // We need to extract the relevant part to find the file
+
+        // Try to find a matching ANLZ file
+        for (key, anlz) in &self.anlz_files {
+            if analyze_path.contains(key) || key.contains("ANLZ") {
+                return Some(self.parse_anlz(anlz));
+            }
+        }
+
+        // If no match found, try to get the first ANLZ file as a fallback
+        if let Some(anlz) = self.anlz_files.values().next() {
+            return Some(self.parse_anlz(anlz));
+        }
+
+        None
+    }
+
+    /// Parse ANLZ data into TrackAnalysis
+    fn parse_anlz(&self, anlz: &ANLZ) -> TrackAnalysis {
+        let mut hot_cues = Vec::new();
+        let mut tempos = Vec::new();
+
+        for section in &anlz.sections {
+            match &section.content {
+                Content::CueList(cue_list) => {
+                    if cue_list.list_type == CueListType::HotCues {
+                        for cue in &cue_list.cues {
+                            if cue.hot_cue > 0 {
+                                hot_cues.push(HotCue {
+                                    number: cue.hot_cue,
+                                    name: format!("Hot Cue {}", char::from(b'A' + (cue.hot_cue - 1) as u8)),
+                                    start: cue.time as f64 / 1000.0,
+                                    end: if cue.cue_type == crate::anlz::CueType::Loop {
+                                        Some(cue.loop_time as f64 / 1000.0)
+                                    } else {
+                                        None
+                                    },
+                                    color: None,
+                                    is_loop: cue.cue_type == crate::anlz::CueType::Loop,
+                                });
+                            }
+                        }
+                    }
+                }
+                Content::ExtendedCueList(ext_cue_list) => {
+                    if ext_cue_list.list_type == CueListType::HotCues {
+                        for cue in &ext_cue_list.cues {
+                            if cue.hot_cue > 0 {
+                                hot_cues.push(HotCue {
+                                    number: cue.hot_cue,
+                                    name: cue.comment.to_string(),
+                                    start: cue.time as f64 / 1000.0,
+                                    end: if cue.cue_type == crate::anlz::CueType::Loop {
+                                        Some(cue.loop_time as f64 / 1000.0)
+                                    } else {
+                                        None
+                                    },
+                                    color: Some(format!("{:?}", cue.hot_cue_color_index)),
+                                    is_loop: cue.cue_type == crate::anlz::CueType::Loop,
+                                });
+                            }
+                        }
+                    }
+                }
+                Content::BeatGrid(beatgrid) => {
+                    for beat in &beatgrid.beats {
+                        // Only add tempo entries at beat 1 of each bar (where beat_number == 1)
+                        if beat.beat_number == 1 {
+                            tempos.push(Tempo {
+                                start: beat.time as f64 / 1000.0,
+                                bpm: beat.tempo as f64 / 100.0,
+                            });
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        TrackAnalysis { hot_cues, tempos }
     }
 
     /// Get the settings from this export.
@@ -617,7 +778,7 @@ impl Pdb {
         Ok(pdb)
     }
 
-    fn get_rows_by_page_type(&self, page_type: PlainPageType) -> impl Iterator<Item = &Row> + '_ {
+    pub fn get_rows_by_page_type(&self, page_type: PlainPageType) -> impl Iterator<Item = &Row> + '_ {
         self.pages
             .iter()
             .filter(move |page| page.header.page_type == PageType::Plain(page_type))

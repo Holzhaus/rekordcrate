@@ -27,17 +27,17 @@ pub struct Document {
     ///
     /// The latest version is 1,0,0.
     #[serde(rename = "@Version")]
-    version: String,
+    pub version: String,
     #[serde(rename = "PRODUCT")]
-    product: Product,
+    pub product: Product,
     #[serde(rename = "COLLECTION")]
-    collection: Collection,
+    pub collection: Collection,
     #[serde(rename = "PLAYLISTS")]
-    playlists: Playlists,
+    pub playlists: Playlists,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-struct Product {
+pub struct Product {
     /// Name of product
     ///
     /// This name will be displayed in each application software.
@@ -53,17 +53,17 @@ struct Product {
 
 /// The information of the tracks who are not included in any playlist are unnecessary.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-struct Collection {
+pub struct Collection {
     /// Number of TRACK in COLLECTION
     #[serde(rename = "@Entries")]
-    entries: i32,
+    pub entries: i32,
     #[serde(rename = "TRACK")]
-    track: Vec<Track>,
+    pub track: Vec<Track>,
 }
 
 /// "Location" is essential for each track ;
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-struct Track {
+pub struct Track {
     /// Identification of track
     #[serde(rename = "@TrackID")]
     trackid: i32,
@@ -188,52 +188,52 @@ enum StarRating {
 
 /// For BeatGrid; More than two "TEMPO" can exist for each track
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-struct Tempo {
+pub struct Tempo {
     /// Start position of BeatGrid
     /// Unit : Second (with decimal numbers)
     #[serde(rename = "@Inizio")]
-    inizio: f64,
+    pub inizio: f64,
     /// Value of BPM
     /// Unit : Second (with decimal numbers)
     #[serde(rename = "@Bpm")]
-    bpm: f64,
+    pub bpm: f64,
     /// Kind of musical meter (formatted)
     /// ex. 3/ 4, 4/ 4, 7/ 8…
     #[serde(rename = "@Metro")]
-    metro: String,
+    pub metro: String,
     /// Beat number in the bar
     /// If the value of "Metro" is 4/ 4, the value should be 1, 2, 3 or 4.
     #[serde(rename = "@Battito")]
-    battito: i32,
+    pub battito: i32,
 }
 
 /// More than two "POSITION MARK" can exist for each track
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-struct PositionMark {
+pub struct PositionMark {
     /// Name of position mark
     #[serde(rename = "@Name")]
-    name: String,
+    pub name: String,
     /// Type of position mark
     /// Cue = "@0", Fade- In = "1", Fade- Out = "2", Load = "3",  Loop = " 4"
     #[serde(rename = "@Type")]
-    mark_type: i32,
+    pub mark_type: i32,
     /// Start position of position mark
     /// Unit : Second (with decimal numbers)
     #[serde(rename = "@Start")]
-    start: f64,
+    pub start: f64,
     /// End position of position mark
     /// Unit : Second (with decimal numbers)
     #[serde(rename = "@End")]
     #[serde(skip_serializing_if = "Option::is_none")]
-    end: Option<f64>,
+    pub end: Option<f64>,
     /// Number for identification of the position mark
     /// rekordbox : Hot Cue A,  B,  C : "0", "1", "2"; Memory Cue : "- 1"
     #[serde(rename = "@Num")]
-    num: i32,
+    pub num: i32,
 }
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-struct Playlists {
+pub struct Playlists {
     #[serde(rename = "NODE")]
     node: PlaylistFolderNode,
 }
@@ -452,4 +452,94 @@ struct PlaylistTrack {
     /// "Track ID" or "Location" in "COLLECTION"
     #[serde(rename = "@Key")]
     key: i32,
+}
+
+impl Document {
+    /// Create a new empty Document
+    #[must_use]
+    pub fn new() -> Self {
+        Self {
+            version: "1.0.0".to_string(),
+            product: Product {
+                name: "rekordbox".to_string(),
+                version: "6.0.0".to_string(),
+                company: "Pioneer".to_string(),
+            },
+            collection: Collection {
+                entries: 0,
+                track: Vec::new(),
+            },
+            playlists: Playlists {
+                node: PlaylistFolderNode {
+                    name: "Root".to_string(),
+                    nodes: Vec::new(),
+                },
+            },
+        }
+    }
+}
+
+impl Default for Document {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl Track {
+    /// Create a new Track from PDB track data
+    #[must_use]
+    pub fn from_pdb_track(
+        track_id: i32,
+        title: Option<String>,
+        artist: Option<String>,
+        album: Option<String>,
+        genre: Option<String>,
+        duration: u16,
+        year: u16,
+        bpm: u32,
+        file_path: String,
+    ) -> Self {
+        Self {
+            trackid: track_id,
+            name: title,
+            artist,
+            composer: None,
+            album,
+            grouping: None,
+            genre,
+            kind: Some("MP3".to_string()),
+            size: None,
+            totaltime: Some(duration as f64),
+            discnumber: None,
+            tracknumber: None,
+            year: Some(year as i32),
+            averagebpm: Some(bpm as f64 / 100.0), // Convert centi-BPM to BPM
+            datemodified: None,
+            dateadded: None,
+            bitrate: None,
+            samplerate: None,
+            comments: None,
+            playcount: None,
+            lastplayed: None,
+            rating: None,
+            location: file_path,
+            remixer: None,
+            tonality: None,
+            label: None,
+            mix: None,
+            colour: None,
+            tempos: Vec::new(),
+            position_marks: Vec::new(),
+        }
+    }
+
+    /// Add a tempo/BPM entry to this track
+    pub fn add_tempo(&mut self, tempo: Tempo) {
+        self.tempos.push(tempo);
+    }
+
+    /// Add a position mark (hot cue) to this track
+    pub fn add_position_mark(&mut self, mark: PositionMark) {
+        self.position_marks.push(mark);
+    }
 }
