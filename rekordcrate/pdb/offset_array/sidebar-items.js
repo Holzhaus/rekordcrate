@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["OffsetArray","OffsetSize"],"struct":["OffsetArrayContainer"]};
+window.SIDEBAR_ITEMS = {"enum":["OffsetArray","OffsetSize"],"struct":["OffsetArrayContainer"],"trait":["OffsetArrayItems"]};

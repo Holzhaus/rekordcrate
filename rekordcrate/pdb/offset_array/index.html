@@ -1,53 +1,36 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Module for reading and writing offset arrays. An offset array consists of an array of offsets, followed by data at those offsets. The offsets can be either u8 or u16, specified by the `OffsetSize` enum. The inner type `T` is read/written with the offsets and a base offset passed as arguments. The inner type `T` must implement `BinRead` and `BinWrite`, and its `Args` must be a tuple of `(i64, &#38;OffsetArray&#60;N&#62;, IA)`, where the first argument is the base offset, the second argument is a reference to the `OffsetArray&#60;N&#62;`, and the third argument is any additional arguments required by `T`. The `OffsetArray` itself takes as arguments a tuple of `(usize, OffsetSize, IA)`, where the first argument is the offset to subtract from the start of the offset array to get the base offset, the second argument is the `OffsetSize`, and the third argument is any additional arguments required by `T`. The number of offsets is determined by the const generic parameter `N`. For example, an `OffsetArray&#60;T, 3&#62;` will read/write 3 offsets, followed by the data for `T`. The offsets are read/written in little-endian format. The inner type `T` is also read/written in little-endian format. This struct implements `Deref` to `T`, so the inner value can be accessed directly. ! Example:"><title>rekordcrate::pdb::offset_array - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-77263533.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="rekordcrate" data-themes="" data-resource-suffix="" data-rustdoc-version="1.94.0 (4a4ef493e 2026-03-02)" data-channel="1.94.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-b897f86f.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-7bab91a1.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-ffcac47a.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module offset_array</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../rekordcrate/index.html">rekordcrate</a><span class="version">0.3.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module offset_<wbr>array</a></h2><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In rekordcrate::<wbr>pdb</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">rekordcrate</a>::<wbr><a href="../index.html">pdb</a></div><h1>Module <span>offset_<wbr>array</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/rekordcrate/pdb/offset_array.rs.html#9-475">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Module for reading and writing offset arrays.
-An offset array consists of an array of offsets, followed by data at those offsets.
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Module for reading and writing offset arrays."><title>rekordcrate::pdb::offset_array - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-77263533.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="rekordcrate" data-themes="" data-resource-suffix="" data-rustdoc-version="1.94.0 (4a4ef493e 2026-03-02)" data-channel="1.94.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-b897f86f.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-7bab91a1.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-ffcac47a.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module offset_array</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../rekordcrate/index.html">rekordcrate</a><span class="version">0.3.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module offset_<wbr>array</a></h2><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#traits" title="Traits">Traits</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In rekordcrate::<wbr>pdb</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">rekordcrate</a>::<wbr><a href="../index.html">pdb</a></div><h1>Module <span>offset_<wbr>array</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/rekordcrate/pdb/offset_array.rs.html#9-516">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Module for reading and writing offset arrays.</p>
+<p>An offset array consists of an array of offsets, followed by data at those offsets.
 The offsets can be either u8 or u16, specified by the <code>OffsetSize</code> enum.
-The inner type <code>T</code> is read/written with the offsets and a base offset passed as arguments.
-The inner type <code>T</code> must implement <code>BinRead</code> and <code>BinWrite</code>, and its <code>Args</code> must be a tuple of
-<code>(i64, &amp;OffsetArray&lt;N&gt;, IA)</code>, where the first argument is the base offset,
-the second argument is a reference to the <code>OffsetArray&lt;N&gt;</code>, and the third argument is any additional
-arguments required by <code>T</code>.
-The <code>OffsetArray</code> itself takes as arguments a tuple of <code>(usize, OffsetSize, IA)</code>, where the first argument is the
-offset to subtract from the start of the offset array to get the base offset, the second argument is the
-<code>OffsetSize</code>, and the third argument is any additional arguments required by <code>T</code>.
-The number of offsets is determined by the const generic parameter <code>N</code>.
-For example, an <code>OffsetArray&lt;T, 3&gt;</code> will read/write 3 offsets, followed by the data for <code>T</code>.
-The offsets are read/written in little-endian format.
-The inner type <code>T</code> is also read/written in little-endian format.
-This struct implements <code>Deref</code> to <code>T</code>, so the inner value can be accessed directly.
-! Example:</p>
+The inner type <code>T</code> is constructed from an N-array of <code>U</code>, read from the positions at
+N offsets. The offsets are read/written in little-endian format.
+For example, an <code>OffsetArrayContainer&lt;T, 3&gt;</code> where <code>T</code> implements <code>OffsetArrayItems</code>
+will read/write 3 offsets, followed by 3 instances of <code>T::Item</code> at the offsets which
+are used to construct an inner <code>T</code>.</p>
+<p>Example:</p>
 
-<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[binrw]
-#[brw(little)]
-#[br(import(base: i64, offsets: <span class="kw-2">&amp;</span>OffsetArray&lt;<span class="number">1</span>&gt;, args: &lt;T <span class="kw">as </span>BinRead&gt;::Args&lt;<span class="lifetime">'_</span>&gt;))]
-#[bw(import(base: i64, offsets: <span class="kw-2">&amp;</span>OffsetArray&lt;<span class="number">1</span>&gt;, args: &lt;T <span class="kw">as </span>BinWrite&gt;::Args&lt;<span class="lifetime">'_</span>&gt;))]
-#[derive(Debug, PartialEq)]
-</span><span class="kw">struct </span>SingleTarget&lt;T: BinRead + BinWrite&gt;(
-    <span class="attr">#[brw(args(base, args))]
-    #[br(parse_with = offsets.read_offset(<span class="number">0</span>))]
-    #[bw(write_with = offsets.write_offset(<span class="number">0</span>))]
-    </span>T,
-);
+<div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="attr">#[derive(Debug, PartialEq)]
+</span><span class="kw">struct </span>SingleTarget&lt;T: BinRead + BinWrite&gt;(T);
+
+<span class="kw">impl</span>&lt;T: BinRead + BinWrite&gt; OffsetArrayItems&lt;<span class="number">1</span>&gt; <span class="kw">for </span>SingleTarget&lt;T&gt; {
+    <span class="kw">type </span>Item = T;
+
+    <span class="kw">fn </span>as_items(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; [<span class="kw-2">&amp;</span><span class="self">Self</span>::Item; <span class="number">1</span>] {
+        [<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>]
+    }
+
+    <span class="kw">fn </span>from_items(items: [<span class="self">Self</span>::Item; <span class="number">1</span>]) -&gt; <span class="self">Self </span>{
+     <span class="kw">let </span>[v] = items;
+        <span class="self">Self</span>(v)
+    }
+}
+
+<span class="kw">use </span>rekordcrate::util::MaybeCalculated::<span class="kw-2">*</span>;
 <span class="kw">let </span>near_u8_tail = OffsetArrayContainer {
-    offsets: [<span class="number">1u8</span>].into(),
+    offsets: Provided([<span class="number">1u8</span>].into()),
     inner: SingleTarget(<span class="number">42u8</span>),
-};</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.OffsetArrayContainer.html" title="struct rekordcrate::pdb::offset_array::OffsetArrayContainer">Offset<wbr>Array<wbr>Container</a></dt><dd>An array of offsets, followed by data at those offsets.
-The offsets are relative to the start of the offset array, minus an optional offset.
-The offsets can be either u8 or u16, specified by the <code>OffsetSize</code>
-The inner type <code>T</code> is read/written with the offsets and a base offset passed as arguments.
-The inner type <code>T</code> must implement <code>BinRead</code> and <code>BinWrite</code>, and its <code>Args</code> must be a tuple of
-<code>(i64, &amp;OffsetArray&lt;N&gt;, IA)</code>, where the first argument is the base offset,
-the second argument is a reference to the <code>OffsetArray&lt;N&gt;</code>, and the third argument is any additional
-arguments required by <code>T</code>.
-The <code>OffsetArray</code> itself takes as arguments a tuple of <code>(usize, OffsetSize, IA)</code>, where the first argument is the
-offset to subtract from the start of the offset array to get the base offset, the second argument is the
-<code>OffsetSize</code>, and the third argument is any additional arguments required by <code>T</code>.
-The number of offsets is determined by the const generic parameter <code>N</code>.
-For example, an <code>OffsetArray&lt;T, 3&gt;</code> will read/write 3 offsets, followed by the data for <code>T</code>.
-The offsets are read/written in little-endian format.
-The inner type <code>T</code> is also read/written in little-endian format.
-This struct implements <code>Deref</code> to <code>T</code>, so the inner value can be accessed directly.
-Example:</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.OffsetArray.html" title="enum rekordcrate::pdb::offset_array::OffsetArray">Offset<wbr>Array</a></dt><dd>The implementation of the offset array, which can be either u8 or u16.
+};</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.OffsetArrayContainer.html" title="struct rekordcrate::pdb::offset_array::OffsetArrayContainer">Offset<wbr>Array<wbr>Container</a></dt><dd>A container for an array of offsets and the indirectly-addressed data at those offsets.
+See the module documentation for an example.</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.OffsetArray.html" title="enum rekordcrate::pdb::offset_array::OffsetArray">Offset<wbr>Array</a></dt><dd>The implementation of the offset array, which can be either u8 or u16.
 This is a private implementation detail, use <code>OffsetArrayContainer</code> instead.
 This enum is used to read/write the offsets, and to provide the <code>read_offset</code> and
 <code>write_offset</code> methods to read/write the inner type <code>T</code> at the specified offsets.
-The offsets are stored in little-endian format.</dd><dt><a class="enum" href="enum.OffsetSize.html" title="enum rekordcrate::pdb::offset_array::OffsetSize">Offset<wbr>Size</a></dt><dd>Specifies whether the offsets are stored as u8 or u16.</dd></dl></section></div></main></body></html>
+The offsets are stored in little-endian format.</dd><dt><a class="enum" href="enum.OffsetSize.html" title="enum rekordcrate::pdb::offset_array::OffsetSize">Offset<wbr>Size</a></dt><dd>Specifies whether the offsets are stored as u8 or u16.</dd></dl><h2 id="traits" class="section-header">Traits<a href="#traits" class="anchor">§</a></h2><dl class="item-table"><dt><a class="trait" href="trait.OffsetArrayItems.html" title="trait rekordcrate::pdb::offset_array::OffsetArrayItems">Offset<wbr>Array<wbr>Items</a></dt><dd>Inner type that can be stored in an OffsetArrayContainer.</dd></dl></section></div></main></body></html>
