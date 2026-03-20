@@ -53,6 +53,9 @@ pub enum PdbError {
     /// Invalid flags were passed when creating an `IndexEntry`.
     #[error("Invalid index flags (expected max 3 bits): {0:#b}")]
     InvalidIndexFlags(u8),
+    /// A `Row::Unknown` has no associated page type.
+    #[error("Cannot determine page type of unknown row")]
+    UnknownRowType,
 }
 
 /// The type of the database were looking at.
@@ -2155,6 +2158,34 @@ pub enum Row {
 }
 
 impl Row {
+    /// Returns the page type this row belongs to.
+    pub fn page_type(&self) -> Result<PageType, PdbError> {
+        match self {
+            Row::Plain(plain_row) => Ok(PageType::Plain(match plain_row {
+                PlainRow::Album(_) => PlainPageType::Albums,
+                PlainRow::Artist(_) => PlainPageType::Artists,
+                PlainRow::Artwork(_) => PlainPageType::Artwork,
+                PlainRow::Color(_) => PlainPageType::Colors,
+                PlainRow::Genre(_) => PlainPageType::Genres,
+                PlainRow::HistoryPlaylist(_) => PlainPageType::HistoryPlaylists,
+                PlainRow::HistoryEntry(_) => PlainPageType::HistoryEntries,
+                PlainRow::Key(_) => PlainPageType::Keys,
+                PlainRow::Label(_) => PlainPageType::Labels,
+                PlainRow::PlaylistTreeNode(_) => PlainPageType::PlaylistTree,
+                PlainRow::PlaylistEntry(_) => PlainPageType::PlaylistEntries,
+                PlainRow::ColumnEntry(_) => PlainPageType::Columns,
+                PlainRow::Menu(_) => PlainPageType::Menu,
+                PlainRow::Track(_) => PlainPageType::Tracks,
+                PlainRow::History(_) => PlainPageType::History,
+            })),
+            Row::Ext(ext_row) => Ok(PageType::Ext(match ext_row {
+                ExtRow::Tag(_) => ExtPageType::Tag,
+                ExtRow::TrackTag(_) => ExtPageType::TrackTag,
+            })),
+            Row::Unknown => Err(PdbError::UnknownRowType),
+        }
+    }
+
     /// Attempt to convert this row into a reference to the given variant type.
     #[must_use]
     pub fn as_variant<T: RowVariant>(&self) -> Option<&T> {
