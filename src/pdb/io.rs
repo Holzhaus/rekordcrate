@@ -87,6 +87,15 @@ pub struct Database<IO> {
     content: LazyDatabase,
 }
 
+/// Reference to a row stored in a page.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RowRef {
+    /// Index of the page that contains the row.
+    pub page_index: PageIndex,
+    /// Byte offset of the row inside the page data section.
+    pub row_offset: u16,
+}
+
 impl<R: Read + Seek> Database<R> {
     /// Opens a PDB database without writing back to disk.
     /// Still allows modifying data in memory.
@@ -198,6 +207,8 @@ impl<R: Read + Seek> Database<R> {
 }
 
 impl<RW: Read + Write + Seek> Database<RW> {
+    const PAGE_CHAIN_END: PageIndex = PageIndex(0x03FF_FFFF);
+
     /// Opens a PDB database for reading and writing.
     pub fn open(mut io: RW, db_type: DatabaseType) -> RekordcrateResult<Self> {
         let endian = Endian::Little;
@@ -221,6 +232,81 @@ impl<RW: Read + Write + Seek> Database<RW> {
     pub fn close(mut self) -> RekordcrateResult<()> {
         self.flush()?;
         Ok(())
+    }
+
+    /// Allocates a new empty data page and returns its page index.
+    fn alloc_data_page(&mut self, page_type: PageType) -> RekordcrateResult<PageIndex> {
+        let page_index = self.content.header.next_unused_page;
+        self.content.header.next_unused_page = PageIndex::try_from(page_index.0 + 1)?;
+
+        let page = Page::new_data(
+            self.content.header.page_size,
+            page_index,
+            page_type,
+            Self::PAGE_CHAIN_END,
+        );
+        self.content.pages.push(LazyPage::Loaded(page));
+
+        Ok(page_index)
+    }
+
+    /// Adds a row to the corresponding table, allocating a new page when needed.
+    pub fn add_row(&mut self, row: Row) -> RekordcrateResult<RowRef> {
+        let page_type = row.page_type()?;
+        let row_size = row.heap_bytes_required(());
+
+        let (_, table) = self
+            .content
+            .header
+            .find_table(page_type)
+            .ok_or_else(|| RekordcrateError::TableTypeNotPresent(page_type))?;
+        let old_last_page = table.last_page;
+
+        {
+            let page = self.load_page(old_last_page)?;
+            let row_offset = page.header.used_size;
+            if let Some(insert) = page.allocate_row(row_size) {
+                insert(row);
+                return Ok(RowRef {
+                    page_index: old_last_page,
+                    row_offset,
+                });
+            }
+        }
+
+        let new_page_index = self.alloc_data_page(page_type)?;
+
+        match &mut self.content.pages[old_last_page.0 as usize - 1] {
+            LazyPage::Loaded(page) => {
+                page.header.next_page = new_page_index;
+                // Keep both copies of `next_page` in index pages in sync.
+                if let PageContent::Index(ref mut index_content) = page.content {
+                    index_content.header.next_page = new_page_index;
+                }
+            }
+            _ => unreachable!(),
+        }
+
+        let (_, table) = self
+            .content
+            .header
+            .find_table_mut(page_type)
+            .ok_or_else(|| RekordcrateError::TableTypeNotPresent(page_type))?;
+        table.last_page = new_page_index;
+
+        let page = self.load_page(new_page_index)?;
+        let row_offset = page.header.used_size;
+        let insert = page
+            .allocate_row(row_size)
+            .ok_or(RekordcrateError::IntegrityError(
+                "newly allocated page has no room for row",
+            ))?;
+        insert(row);
+
+        Ok(RowRef {
+            page_index: new_page_index,
+            row_offset,
+        })
     }
 }
 
@@ -314,6 +400,12 @@ impl<'db, R: Read + Seek> FallibleIterator for PageIterator<'db, R> {
 mod test {
     use super::*;
     use std::fs::File;
+    use std::io::Cursor;
+
+    fn open_test_db_rw() -> Database<Cursor<Vec<u8>>> {
+        let bytes = include_bytes!("../../data/pdb/num_rows/export.pdb");
+        Database::open(Cursor::new(bytes.to_vec()), DatabaseType::Plain).unwrap()
+    }
 
     #[test]
     fn test_pageiterator_safety() {
@@ -347,5 +439,77 @@ mod test {
         let _iter3 = db
             .iter_pages(PageType::Plain(PlainPageType::Tracks))
             .unwrap();
+    }
+
+    #[test]
+    fn test_allocate_page_updates_header_and_storage() {
+        let mut db = open_test_db_rw();
+        let next_unused_before = db.content.header.next_unused_page;
+        let page_count_before = db.content.pages.len();
+
+        let new_page_index = db
+            .alloc_data_page(PageType::Plain(PlainPageType::Keys))
+            .unwrap();
+
+        assert_eq!(new_page_index, next_unused_before);
+        assert_eq!(db.content.pages.len(), page_count_before + 1);
+        assert_eq!(
+            db.content.header.next_unused_page,
+            PageIndex::try_from(next_unused_before.0 + 1).unwrap()
+        );
+
+        let expected_next_page = Database::<Cursor<Vec<u8>>>::PAGE_CHAIN_END;
+        let new_page = db.load_page(new_page_index).unwrap();
+        assert_eq!(new_page.header.page_index, new_page_index);
+        assert_eq!(
+            new_page.header.page_type,
+            PageType::Plain(PlainPageType::Keys)
+        );
+        assert_eq!(new_page.header.next_page, expected_next_page);
+        assert!(matches!(new_page.content, PageContent::Data(_)));
+    }
+
+    #[test]
+    fn test_add_row_updates_index_inner_next_page_when_linking_new_page() {
+        let mut db = open_test_db_rw();
+        let tracks_page_type = PageType::Plain(PlainPageType::Tracks);
+
+        let (_, tracks_table) = db.content.header.find_table(tracks_page_type).unwrap();
+        let tracks_first_page = tracks_table.first_page;
+        let original_last_page = tracks_table.last_page;
+
+        let row = {
+            let page = db.load_page(original_last_page).unwrap();
+            let data_content = page.content.as_data().expect("expected data page");
+            data_content
+                .rows
+                .values()
+                .next()
+                .expect("expected existing row")
+                .clone()
+        };
+
+        {
+            let first_page = db.load_page(tracks_first_page).unwrap();
+            assert!(matches!(first_page.content, PageContent::Index(_)));
+        }
+
+        let (_, tracks_table_mut) = db.content.header.find_table_mut(tracks_page_type).unwrap();
+        tracks_table_mut.last_page = tracks_first_page;
+
+        let row_ref = db.add_row(row).unwrap();
+        assert_eq!(row_ref.row_offset, 0);
+
+        let first_page = db.load_page(tracks_first_page).unwrap();
+        assert_eq!(first_page.header.next_page, row_ref.page_index);
+        match &first_page.content {
+            PageContent::Index(index_content) => {
+                assert_eq!(index_content.header.next_page, row_ref.page_index);
+            }
+            _ => panic!("expected index page"),
+        }
+
+        let (_, tracks_table_after) = db.content.header.find_table(tracks_page_type).unwrap();
+        assert_eq!(tracks_table_after.last_page, row_ref.page_index);
     }
 }
