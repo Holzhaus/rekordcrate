@@ -383,13 +383,13 @@ impl IndexPageContent {
     pub fn empty(page_index: PageIndex, next_page: PageIndex) -> Self {
         Self {
             header: IndexPageHeader {
-                unknown_a: 0,
-                unknown_b: 0,
+                unknown_a: 8191,
+                unknown_b: 8191,
                 next_offset: 0,
                 page_index,
                 next_page,
                 num_entries: 0,
-                first_empty: 0,
+                first_empty: 8191,
             },
             entries: vec![],
         }
