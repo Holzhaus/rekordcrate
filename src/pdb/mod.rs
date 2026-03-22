@@ -1101,7 +1101,7 @@ pub struct Album {
     unknown3: u32,
     /// The offsets and its data and the end of this row
     #[brw(args(20, subtype.get_offset_size(), ()))]
-    offsets: OffsetArrayContainer<TrailingName, 1>,
+    pub offsets: OffsetArrayContainer<TrailingName, 1>,
 }
 
 impl RowVariant for Album {
