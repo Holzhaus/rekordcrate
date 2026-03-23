@@ -31,6 +31,19 @@ pub enum RekordcrateError {
     #[error("failed integrity constraint: {0}")]
     IntegrityError(&'static str),
 
+    /// Track row allocation is too small for robust CDJ compatibility.
+    #[error(
+        "track row id={track_id} allocates {allocated} bytes, minimum supported is {minimum} bytes"
+    )]
+    TrackRowTooSmall {
+        /// Track ID of the invalid row.
+        track_id: u32,
+        /// Allocated row size in bytes (4-byte aligned).
+        allocated: u16,
+        /// Minimum supported row size in bytes.
+        minimum: u16,
+    },
+
     /// Represents an `std::io::Error`.
     #[error(transparent)]
     IOError(#[from] std::io::Error),

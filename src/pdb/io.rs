@@ -209,6 +209,45 @@ impl<R: Read + Seek> Database<R> {
 impl<RW: Read + Write + Seek> Database<RW> {
     const DEFAULT_PAGE_SIZE: u32 = 4096;
     const PAGE_CHAIN_END: PageIndex = PageIndex(0x03FF_FFFF);
+    const MIN_TRACK_ALLOCATED_SIZE: u16 = 221;
+
+    fn allocated_row_size(row_size: u16) -> u16 {
+        row_size.next_multiple_of(4)
+    }
+
+    fn validate_track_row_size(track: &Track) -> RekordcrateResult<()> {
+        let allocated = Self::allocated_row_size(track.heap_bytes_required(()));
+        if allocated < Self::MIN_TRACK_ALLOCATED_SIZE {
+            return Err(RekordcrateError::TrackRowTooSmall {
+                track_id: track.id.0,
+                allocated,
+                minimum: Self::MIN_TRACK_ALLOCATED_SIZE,
+            });
+        }
+        Ok(())
+    }
+
+    fn validate_all_track_rows(&mut self) -> RekordcrateResult<()> {
+        if self.db_type != DatabaseType::Plain {
+            return Ok(());
+        }
+
+        let mut pages = self.iter_pages(PageType::Plain(PlainPageType::Tracks))?;
+        while let Some(page) = pages.next()? {
+            let data = match &page.content {
+                PageContent::Data(data) => data,
+                PageContent::Index(_) => continue,
+            };
+
+            for row in data.rows.values() {
+                if let Row::Plain(PlainRow::Track(track)) = row {
+                    Self::validate_track_row_size(track)?;
+                }
+            }
+        }
+
+        Ok(())
+    }
 
     /// Points the previous page's `next_page` field at `current_page_index`.
     ///
@@ -301,6 +340,7 @@ impl<RW: Read + Write + Seek> Database<RW> {
 
     /// Flushes all changes to the underlying IO.
     pub fn flush(&mut self) -> RekordcrateResult<()> {
+        self.validate_all_track_rows()?;
         let endian = Endian::Little;
         self.io.seek(SeekFrom::Start(0))?;
         self.content.write_options(&mut self.io, endian, ())?;
@@ -352,6 +392,10 @@ impl<RW: Read + Write + Seek> Database<RW> {
 
     /// Adds a row to the corresponding table, allocating a new page when needed.
     pub fn add_row(&mut self, row: Row) -> RekordcrateResult<RowRef> {
+        if let Row::Plain(PlainRow::Track(track)) = &row {
+            Self::validate_track_row_size(track)?;
+        }
+
         let page_type = row.page_type()?;
         let row_size = row.heap_bytes_required(());
         let mut pending_row = Some(row);
@@ -497,6 +541,8 @@ impl<'db, R: Read + Seek> FallibleIterator for PageIterator<'db, R> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::pdb::string::DeviceSQLString;
+    use crate::util::MaybeCalculated;
     use std::fs::File;
     use std::io::Cursor;
 
@@ -785,6 +831,93 @@ mod test {
                     Database::<Cursor<Vec<u8>>>::PAGE_CHAIN_END
                 );
             }
+        }
+    }
+
+    #[test]
+    fn test_add_row_rejects_undersized_track_row() {
+        let table_page_types = [PageType::Plain(PlainPageType::Tracks)];
+        let mut db = Database::create(
+            Cursor::new(Vec::new()),
+            DatabaseType::Plain,
+            &table_page_types,
+        )
+        .unwrap();
+
+        let track = Track {
+            subtype: Subtype(0x24),
+            index_shift: 0x0000,
+            bitmask: 0,
+            sample_rate: 0,
+            composer_id: ArtistId(0),
+            file_size: 0,
+            unknown2: 0,
+            unknown3: 0,
+            unknown4: 0,
+            unknown5: 0,
+            artwork_id: ArtworkId(0),
+            key_id: KeyId(0),
+            bitrate: 0,
+            color: ColorIndex::None,
+            orig_artist_id: ArtistId(0),
+            disc_number: 0,
+            duration: 0,
+            file_type: FileType::Unknown,
+            label_id: LabelId(0),
+            genre_id: GenreId(0),
+            play_count: 0,
+            rating: 0,
+            remixer_id: ArtistId(0),
+            track_number: 0,
+            tempo: 0,
+            year: 0,
+            sample_depth: 0,
+            id: TrackId(1),
+            artist_id: ArtistId(1),
+            album_id: AlbumId(1),
+            offsets: OffsetArrayContainer {
+                offsets: MaybeCalculated::Calculated,
+                inner: TrackStrings {
+                    title: DeviceSQLString::new("Music").unwrap(),
+                    filename: DeviceSQLString::new("02 - Music.mp3").unwrap(),
+                    file_path: DeviceSQLString::new("/Contents/02 - Music.mp3").unwrap(),
+                    isrc: DeviceSQLString::empty(),
+                    lyricist: DeviceSQLString::empty(),
+                    unknown_string2: DeviceSQLString::empty(),
+                    unknown_string3: DeviceSQLString::empty(),
+                    unknown_string4: DeviceSQLString::empty(),
+                    unknown_string5: DeviceSQLString::empty(),
+                    unknown_string6: DeviceSQLString::empty(),
+                    unknown_string7: DeviceSQLString::empty(),
+                    unknown_string8: DeviceSQLString::empty(),
+                    message: DeviceSQLString::empty(),
+                    publish_track_information: DeviceSQLString::empty(),
+                    autoload_hotcues: DeviceSQLString::empty(),
+                    date_added: DeviceSQLString::empty(),
+                    release_date: DeviceSQLString::empty(),
+                    mix_name: DeviceSQLString::empty(),
+                    analyze_date: DeviceSQLString::empty(),
+                    analyze_path: DeviceSQLString::empty(),
+                    comment: DeviceSQLString::empty(),
+                },
+            },
+        };
+
+        let err = db
+            .add_row(Row::Plain(PlainRow::Track(track)))
+            .expect_err("expected undersized track row to be rejected");
+
+        match err {
+            RekordcrateError::TrackRowTooSmall {
+                track_id,
+                allocated,
+                minimum,
+            } => {
+                assert_eq!(track_id, 1);
+                assert!(allocated < minimum);
+                assert_eq!(minimum, 221);
+            }
+            other => panic!("unexpected error: {other:?}"),
         }
     }
 }
