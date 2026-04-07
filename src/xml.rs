@@ -36,8 +36,9 @@ pub struct Document {
     playlists: Playlists,
 }
 
+/// Information about the current rekordbox release.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-struct Product {
+pub struct Product {
     /// Name of product
     ///
     /// This name will be displayed in each application software.
@@ -51,9 +52,9 @@ struct Product {
     company: String,
 }
 
-/// The information of the tracks who are not included in any playlist are unnecessary.
+/// The collection of all imported tracks in rekordbox.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-struct Collection {
+pub struct Collection {
     /// Number of TRACK in COLLECTION
     #[serde(rename = "@Entries")]
     entries: i32,
@@ -61,9 +62,10 @@ struct Collection {
     track: Vec<Track>,
 }
 
+/// A track imported to rekordbox.
 /// "Location" is essential for each track ;
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-struct Track {
+pub struct Track {
     /// Identification of track
     #[serde(rename = "@TrackID")]
     trackid: i32,
@@ -173,22 +175,36 @@ struct Track {
     position_marks: Vec<PositionMark>,
 }
 
+/// User rating of a track.
 /// 0 star = "@0", 1 star = "51", 2 stars = "102", 3 stars = "153", 4 stars = "204", 5 stars = "255"
-#[expect(dead_code)]
 #[derive(Debug, PartialEq, Clone, Copy, Serialize, Deserialize)]
-enum StarRating {
+pub enum StarRating {
+    /// Zero stars.
     Zero,
+
+    /// One star.
     One,
+
+    /// Two stars.
     Two,
+
+    /// Three stars.
     Three,
+
+    /// Four stars.
     Four,
+
+    /// Five stars.
     Five,
+
+    /// An unknown rating with its value.
     Unknown(i32),
 }
 
+/// Tempo analysis result of a track.
 /// For BeatGrid; More than two "TEMPO" can exist for each track
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-struct Tempo {
+pub struct Tempo {
     /// Start position of BeatGrid
     /// Unit : Second (with decimal numbers)
     #[serde(rename = "@Inizio")]
@@ -207,9 +223,10 @@ struct Tempo {
     battito: i32,
 }
 
+/// Position marker in a track.
 /// More than two "POSITION MARK" can exist for each track
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-struct PositionMark {
+pub struct PositionMark {
     /// Name of position mark
     #[serde(rename = "@Name")]
     name: String,
@@ -232,17 +249,23 @@ struct PositionMark {
     num: i32,
 }
 
+/// Playlist collection.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-struct Playlists {
+pub struct Playlists {
+    /// The root node of all playlists.
     #[serde(rename = "NODE")]
     node: PlaylistFolderNode,
 }
 
+/// The type of a playlist node.
 #[derive(Debug, PartialEq, Clone, Serialize)]
 #[serde(tag = "@Type")]
-enum PlaylistGenericNode {
+pub enum PlaylistGenericNode {
+    /// A folder containing more playlists.
     #[serde(rename = "0")]
     Folder(PlaylistFolderNode),
+
+    /// A playlist.
     #[serde(rename = "1")]
     Playlist(PlaylistPlaylistNode),
 }
@@ -359,8 +382,9 @@ impl<'de> Deserialize<'de> for PlaylistGenericNode {
     }
 }
 
+/// A folder containing more playlists.
 #[derive(Debug, PartialEq, Clone, Deserialize)]
-struct PlaylistFolderNode {
+pub struct PlaylistFolderNode {
     /// Name of NODE
     #[serde(rename = "@Name")]
     name: String,
@@ -399,8 +423,9 @@ impl Serialize for PlaylistFolderNode {
     }
 }
 
+/// A playlist.
 #[derive(Debug, PartialEq, Clone, Deserialize)]
-struct PlaylistPlaylistNode {
+pub struct PlaylistPlaylistNode {
     /// Name of NODE
     #[serde(rename = "@Name")]
     name: String,
@@ -410,7 +435,10 @@ struct PlaylistPlaylistNode {
     /// "0" (Track ID) or "1"(Location)
     #[serde(rename = "@KeyType")]
     keytype: String,
+
+    /// The tracks contained in the playlist.
     #[serde(rename = "TRACK")]
+    #[serde(default = "Vec::new")]
     tracks: Vec<PlaylistTrack>,
 }
 
@@ -446,8 +474,9 @@ impl Serialize for PlaylistPlaylistNode {
     }
 }
 
+/// A playlist entry.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-struct PlaylistTrack {
+pub struct PlaylistTrack {
     /// Identification of track
     /// "Track ID" or "Location" in "COLLECTION"
     #[serde(rename = "@Key")]
