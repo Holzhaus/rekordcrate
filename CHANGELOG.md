@@ -60,6 +60,7 @@ All notable changes to this project will be documented in this file.
 - cli: Add command to list settings from device export
 - device: Add methods to read playlist entries and tracks
 - cli: Add command to export playlists as M3U
+- pdb: Add History row type
 
 ### Refactor
 
@@ -110,6 +111,7 @@ All notable changes to this project will be documented in this file.
 - pdb: Add history playlists and entries page tests
 - pdb: Add `index_page` unit test
 - pdb: Add tests for Menu row and page
+- pdb: Add tests for History row
 
 ## [0.3.0] - 2025-01-23
 
