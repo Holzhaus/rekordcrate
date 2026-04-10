@@ -136,7 +136,7 @@ pub enum PlainPageType {
     /// Manages the active menus on the CDJ.
     #[brw(magic = 17u32)]
     Menu,
-    /// Holds information used by rekordbox to synchronize history playlists (not yet studied).
+    /// Holds information about synchronization of the USB with Rekordbox or a device.
     #[brw(magic = 19u32)]
     History,
 }
@@ -570,11 +570,10 @@ impl Page {
 
                 Some(move |row: Row| {
                     let prev_entry = rows.insert(offset, row);
-                    if prev_entry.is_some() {
+                    if let Some(prev_entry) = prev_entry {
                         panic!(
                             "Offset {} was already occupied by row {:?}",
-                            offset,
-                            prev_entry.unwrap()
+                            offset, prev_entry
                         );
                     }
                     row_group.mark_offset_present(row_subindex);
@@ -1158,6 +1157,52 @@ impl PageHeapObject for HistoryEntry {
     }
 }
 
+/// Represents a sync log row, used to track synchronization events.
+///
+/// At least one entry is written every time a synchronization event (e.g. a track is added
+/// or removed) occurs. Previous rows are marked as deleted, but rekordbox doesn't write over
+/// them, so they can be used to track the history of changes to the database.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[brw(little)]
+pub struct History {
+    /// Subtype field, in this case usually `80 02` (hex) or `640` (decimal).
+    subtype: Subtype,
+    /// Unknown field. I'm assuming this is the `index_shift` found in other row types.
+    index_shift: u16,
+    /// Tracks present in the database after this sync event.
+    num_tracks: u32,
+    // Magic value, always zero.
+    #[brw(magic = 0u32)]
+    /// Sync date, e.g. "2022-02-02".
+    date: DeviceSQLString,
+    // Magic value, always `7705` -> `0x1E19`.
+    #[brw(magic = 0x1E19u16)]
+    /// Format/protocol version string. In all known exports this is the string "1000".
+    // We could make this magic, but for now this seems fine.
+    version: DeviceSQLString,
+    /// Device or backup label. Can be empty.
+    label: DeviceSQLString,
+}
+
+impl PageHeapObject for History {
+    type Args<'a> = ();
+    fn heap_bytes_required(&self, _: ()) -> u16 {
+        [
+            self.subtype.heap_bytes_required(()),
+            self.index_shift.heap_bytes_required(()),
+            self.num_tracks.heap_bytes_required(()),
+            (0u32).heap_bytes_required(()),
+            self.date.heap_bytes_required(()),
+            (0u16).heap_bytes_required(()),
+            self.version.heap_bytes_required(()),
+            self.label.heap_bytes_required(()),
+        ]
+        .iter()
+        .sum()
+    }
+}
+
 /// Represents a musical key.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -1643,6 +1688,9 @@ pub enum PlainRow {
     /// Represents a history playlist.
     #[br(pre_assert(page_type == PlainPageType::HistoryEntries))]
     HistoryEntry(#[bw(align_after = 4)] HistoryEntry),
+    /// Represents a history sync row.
+    #[br(pre_assert(page_type == PlainPageType::History))]
+    History(#[bw(align_after = 4)] History),
     /// Represents a musical key.
     #[br(pre_assert(page_type == PlainPageType::Keys))]
     Key(#[bw(align_after = 4)] Key),
@@ -1680,6 +1728,7 @@ impl PageHeapObject for PlainRow {
             PlainRow::Genre(genre) => genre.heap_bytes_required(()),
             PlainRow::HistoryPlaylist(history_playlist) => history_playlist.heap_bytes_required(()),
             PlainRow::HistoryEntry(history_entry) => history_entry.heap_bytes_required(()),
+            PlainRow::History(history) => history.heap_bytes_required(()),
             PlainRow::Key(key) => key.heap_bytes_required(()),
             PlainRow::Label(label) => label.heap_bytes_required(()),
             PlainRow::PlaylistTreeNode(playlist_tree_node) => {
@@ -1724,7 +1773,7 @@ pub enum Row {
         ExtRow,
     ),
     /// The row format (and also its size) is unknown, which means it can't be parsed.
-    #[br(pre_assert(matches!(page_type, PageType::Plain(PlainPageType::History) | PageType::Unknown(_))))]
+    #[br(pre_assert(matches!(page_type, PageType::Unknown(_))))]
     Unknown,
 }
 
