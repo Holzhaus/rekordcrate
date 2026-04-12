@@ -1478,11 +1478,11 @@ pub struct Track {
     /// Appears to always be 0x000c0700.
     bitmask: u32,
     /// Sample Rate in Hz.
-    sample_rate: u32,
+    pub sample_rate: u32,
     /// Composer of this track as artist row ID (non-zero if set).
     composer_id: ArtistId,
     /// File size in bytes.
-    file_size: u32,
+    pub file_size: u32,
     /// Unknown field; observed values are effectively random.
     unknown2: u32,
     /// Unknown field; observed values: 19048, 64128, 31844.
@@ -1502,11 +1502,11 @@ pub struct Track {
     /// Artist row ID of the remixer (non-zero if set).
     remixer_id: ArtistId,
     /// Bitrate of the track.
-    bitrate: u32,
+    pub bitrate: u32,
     /// Track number of the track.
-    track_number: u32,
+    pub track_number: u32,
     /// Track tempo in centi-BPM (= 1/100 BPM).
-    tempo: u32,
+    pub tempo: u32,
     /// Genre row ID for this track (non-zero if set).
     genre_id: GenreId,
     /// Album row ID for this track (non-zero if set).
@@ -1516,21 +1516,21 @@ pub struct Track {
     /// Row ID of this track (non-zero if set).
     pub id: TrackId,
     /// Disc number of this track (non-zero if set).
-    disc_number: u16,
+    pub disc_number: u16,
     /// Number of times this track was played.
-    play_count: u16,
+    pub play_count: u16,
     /// Year this track was released.
-    year: u16,
+    pub year: u16,
     /// Bits per sample of the track aduio file.
     sample_depth: u16,
     /// Playback duration of this track in seconds (at normal speed).
-    duration: u16,
+    pub duration: u16,
     /// Unknown field, apparently always "0x29".
     unknown5: u16,
     /// Color row ID for this track (non-zero if set).
     color: ColorIndex,
     /// User rating of this track (0 to 5 starts).
-    rating: u8,
+    pub rating: u8,
     /// Format of the file.
     file_type: FileType,
     /// offsets (strings) at row end
