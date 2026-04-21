@@ -61,6 +61,8 @@ All notable changes to this project will be documented in this file.
 - device: Add methods to read playlist entries and tracks
 - cli: Add command to export playlists as M3U
 - pdb: Add History row type
+- xml: Publicise xml structs
+- xml: Publicise members
 
 ### Refactor
 
