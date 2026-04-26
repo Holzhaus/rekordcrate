@@ -998,6 +998,26 @@ impl PageHeapObject for Album {
     }
 }
 
+impl Album {
+    /// Returns this album row's ID.
+    #[must_use]
+    pub fn id(&self) -> AlbumId {
+        self.id
+    }
+
+    /// Returns the artist row ID associated with this album.
+    #[must_use]
+    pub fn artist_id(&self) -> ArtistId {
+        self.artist_id
+    }
+
+    /// Returns this album's display name.
+    #[must_use]
+    pub fn name(&self) -> &DeviceSQLString {
+        &self.offsets.name
+    }
+}
+
 /// Contains the artist name and ID.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -1030,6 +1050,20 @@ impl PageHeapObject for Artist {
     }
 }
 
+impl Artist {
+    /// Returns this artist row's ID.
+    #[must_use]
+    pub fn id(&self) -> ArtistId {
+        self.id
+    }
+
+    /// Returns this artist's display name.
+    #[must_use]
+    pub fn name(&self) -> &DeviceSQLString {
+        &self.offsets.name
+    }
+}
+
 /// Contains the artwork path and ID.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -1050,6 +1084,20 @@ impl PageHeapObject for Artwork {
         ]
         .iter()
         .sum()
+    }
+}
+
+impl Artwork {
+    /// Returns this artwork row's ID.
+    #[must_use]
+    pub fn id(&self) -> ArtworkId {
+        self.id
+    }
+
+    /// Returns this artwork's relative path.
+    #[must_use]
+    pub fn path(&self) -> &DeviceSQLString {
+        &self.path
     }
 }
 
@@ -1105,6 +1153,20 @@ impl PageHeapObject for Genre {
         ]
         .iter()
         .sum()
+    }
+}
+
+impl Genre {
+    /// Returns this genre row's ID.
+    #[must_use]
+    pub fn id(&self) -> GenreId {
+        self.id
+    }
+
+    /// Returns this genre's display name.
+    #[must_use]
+    pub fn name(&self) -> &DeviceSQLString {
+        &self.name
     }
 }
 
@@ -1229,6 +1291,20 @@ impl PageHeapObject for Key {
     }
 }
 
+impl Key {
+    /// Returns this key row's ID.
+    #[must_use]
+    pub fn id(&self) -> KeyId {
+        self.id
+    }
+
+    /// Returns this key's display name.
+    #[must_use]
+    pub fn name(&self) -> &DeviceSQLString {
+        &self.name
+    }
+}
+
 /// Represents a record label.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -1249,6 +1325,20 @@ impl PageHeapObject for Label {
         ]
         .iter()
         .sum()
+    }
+}
+
+impl Label {
+    /// Returns this label row's ID.
+    #[must_use]
+    pub fn id(&self) -> LabelId {
+        self.id
+    }
+
+    /// Returns this label's display name.
+    #[must_use]
+    pub fn name(&self) -> &DeviceSQLString {
+        &self.name
     }
 }
 
@@ -1577,6 +1667,116 @@ impl PageHeapObject for Track {
         ]
         .iter()
         .sum()
+    }
+}
+
+impl Track {
+    /// Returns this track row's ID.
+    #[must_use]
+    pub fn id(&self) -> TrackId {
+        self.id
+    }
+
+    /// Returns the artist row ID associated with this track.
+    #[must_use]
+    pub fn artist_id(&self) -> ArtistId {
+        self.artist_id
+    }
+
+    /// Returns the album row ID associated with this track.
+    #[must_use]
+    pub fn album_id(&self) -> AlbumId {
+        self.album_id
+    }
+
+    /// Returns the genre row ID associated with this track.
+    #[must_use]
+    pub fn genre_id(&self) -> GenreId {
+        self.genre_id
+    }
+
+    /// Returns the key row ID associated with this track.
+    #[must_use]
+    pub fn key_id(&self) -> KeyId {
+        self.key_id
+    }
+
+    /// Returns the artwork row ID associated with this track.
+    #[must_use]
+    pub fn artwork_id(&self) -> ArtworkId {
+        self.artwork_id
+    }
+
+    /// Returns this track's sample rate in Hz.
+    #[must_use]
+    pub fn sample_rate(&self) -> u32 {
+        self.sample_rate
+    }
+
+    /// Returns this track's bitrate.
+    #[must_use]
+    pub fn bitrate(&self) -> u32 {
+        self.bitrate
+    }
+
+    /// Returns this track's tempo in centi-BPM (1/100 BPM).
+    #[must_use]
+    pub fn tempo_centi_bpm(&self) -> u32 {
+        self.tempo
+    }
+
+    /// Returns this track's play count.
+    #[must_use]
+    pub fn play_count(&self) -> u16 {
+        self.play_count
+    }
+
+    /// Returns this track's release year.
+    #[must_use]
+    pub fn year(&self) -> u16 {
+        self.year
+    }
+
+    /// Returns this track's duration in seconds.
+    #[must_use]
+    pub fn duration_seconds(&self) -> u16 {
+        self.duration
+    }
+
+    /// Returns this track's user rating.
+    #[must_use]
+    pub fn rating(&self) -> u8 {
+        self.rating
+    }
+
+    /// Returns this track's title.
+    #[must_use]
+    pub fn title(&self) -> &DeviceSQLString {
+        &self.offsets.title
+    }
+
+    /// Returns this track's filename.
+    #[must_use]
+    pub fn filename(&self) -> &DeviceSQLString {
+        &self.offsets.filename
+    }
+
+    /// Returns this track's file path.
+    #[must_use]
+    pub fn file_path(&self) -> &DeviceSQLString {
+        &self.offsets.file_path
+    }
+
+    /// Returns this track's comment.
+    #[must_use]
+    pub fn comment(&self) -> &DeviceSQLString {
+        &self.offsets.comment
+    }
+
+    /// Returns this track's analysis path.
+    #[must_use]
+    pub fn analyze_path(&self) -> &DeviceSQLString {
+        &self.offsets.analyze_path
     }
 }
 
