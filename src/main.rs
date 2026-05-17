@@ -8,10 +8,16 @@
 
 use binrw::BinRead;
 use clap::{Parser, Subcommand};
-use rekordcrate::anlz::ANLZ;
-use rekordcrate::pdb::{DatabaseType, Header, PageContent, Track, TrackId};
+use rekordcrate::anlz::{Content, CueListType, CueType, ANLZ};
+use rekordcrate::device::{Pdb, PlaylistNode};
+use rekordcrate::pdb::{ArtistId, DatabaseType, Header, PageContent, Track, TrackId};
 use rekordcrate::setting::Setting;
-use rekordcrate::xml::Document;
+use rekordcrate::util::FileType;
+use rekordcrate::xml::{
+    Collection, Document, PlaylistFolderNode, PlaylistGenericNode, PlaylistPlaylistNode,
+    PlaylistTrack, Playlists, PositionMark, Product, Tempo,
+};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 #[derive(Parser)]
@@ -44,6 +50,15 @@ enum Commands {
         /// Output directory to write M3U files to.
         #[arg(value_name = "OUTPUT_DIR")]
         output_dir: PathBuf,
+    },
+    /// Export a Rekordbox device export to Rekordbox XML.
+    ExportXML {
+        /// Path to a Rekordbox device export containing a PIONEER directory.
+        #[arg(value_name = "EXPORT_PATH")]
+        path: PathBuf,
+        /// XML file to write.
+        #[arg(value_name = "XML_FILE")]
+        output_file: PathBuf,
     },
     /// Parse and dump a Rekordbox Analysis (`ANLZXXXX.DAT`) file.
     DumpANLZ {
@@ -182,6 +197,319 @@ fn export_playlists(path: &Path, output_dir: &PathBuf) -> rekordcrate::Result<()
     Ok(())
 }
 
+fn export_xml(path: &Path, output_file: &Path) -> rekordcrate::Result<()> {
+    use rekordcrate::DeviceExport;
+
+    let mut export = DeviceExport::new(path.into());
+    export.load_pdb()?;
+    let pdb = export.pdb().ok_or(rekordcrate::Error::NotLoadedError)?;
+    let document = build_xml_document(pdb, export.get_path())?;
+    let xml = quick_xml::se::to_string(&document)?;
+    std::fs::write(
+        output_file,
+        format!("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n{xml}\n"),
+    )?;
+
+    Ok(())
+}
+
+fn build_xml_document(pdb: &Pdb, export_path: &Path) -> rekordcrate::Result<Document> {
+    let artists = pdb
+        .get_artists()
+        .map(|artist| Ok((artist.id, artist.offsets.name.clone().into_string()?)))
+        .collect::<rekordcrate::Result<HashMap<ArtistId, String>>>()?;
+    let tracks = pdb
+        .get_tracks()
+        .map(|track| track_to_xml_track(track, &artists, export_path))
+        .collect::<rekordcrate::Result<Vec<_>>>()?;
+    let playlists = pdb
+        .get_playlists()?
+        .into_iter()
+        .map(|node| playlist_node_to_xml(pdb, node))
+        .collect::<rekordcrate::Result<Vec<_>>>()?;
+
+    Ok(Document {
+        version: "1.0.0".to_string(),
+        product: Product {
+            name: "rekordcrate".to_string(),
+            version: env!("CARGO_PKG_VERSION").to_string(),
+            company: "rekordcrate".to_string(),
+        },
+        collection: Collection {
+            entries: tracks.len() as i32,
+            track: tracks,
+        },
+        playlists: Playlists {
+            node: PlaylistFolderNode {
+                name: "ROOT".to_string(),
+                nodes: playlists,
+            },
+        },
+    })
+}
+
+fn track_to_xml_track(
+    track: &Track,
+    artists: &HashMap<ArtistId, String>,
+    export_path: &Path,
+) -> rekordcrate::Result<rekordcrate::xml::Track> {
+    let title = non_empty(track.offsets.title.clone().into_string()?);
+    let file_path = track.offsets.file_path.clone().into_string()?;
+    let comment = non_empty(track.offsets.comment().clone().into_string()?);
+    let analyses = load_analyses(export_path, track.offsets.analyze_path())?;
+    let tempos = xml_tempos(&analyses, track.average_bpm());
+    let position_marks = xml_position_marks(&analyses);
+
+    Ok(rekordcrate::xml::Track {
+        trackid: track.id.0 as i32,
+        name: title,
+        artist: artists.get(&track.artist_id).cloned().and_then(non_empty),
+        composer: None,
+        album: None,
+        grouping: None,
+        genre: None,
+        kind: file_type_name(track.file_type()).map(String::from),
+        size: (track.file_size() > 0).then_some(i64::from(track.file_size())),
+        totaltime: (track.duration() > 0).then_some(f64::from(track.duration())),
+        discnumber: (track.disc_number() > 0).then_some(i32::from(track.disc_number())),
+        tracknumber: (track.track_number() > 0).then_some(track.track_number() as i32),
+        year: (track.year() > 0).then_some(i32::from(track.year())),
+        averagebpm: track.average_bpm(),
+        datemodified: None,
+        dateadded: None,
+        bitrate: (track.bitrate() > 0).then_some(track.bitrate() as i32),
+        samplerate: (track.sample_rate() > 0).then_some(f64::from(track.sample_rate())),
+        comments: comment,
+        playcount: (track.play_count() > 0).then_some(i32::from(track.play_count())),
+        lastplayed: None,
+        rating: None,
+        location: location_uri(&file_path),
+        remixer: None,
+        tonality: None,
+        label: None,
+        mix: None,
+        colour: None,
+        tempos,
+        position_marks,
+    })
+}
+
+fn load_analyses(
+    export_path: &Path,
+    analyze_path: &rekordcrate::pdb::string::DeviceSQLString,
+) -> rekordcrate::Result<Vec<ANLZ>> {
+    let analyze_path = analyze_path.clone().into_string()?;
+    if analyze_path.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    analysis_paths(&export_path.join(analyze_path.trim_start_matches('/')))
+        .into_iter()
+        .map(|path| match std::fs::File::open(path) {
+            Ok(mut reader) => Ok(Some(ANLZ::read(&mut reader)?)),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(error) => Err(error.into()),
+        })
+        .filter_map(Result::transpose)
+        .collect()
+}
+
+fn analysis_paths(dat_path: &Path) -> Vec<PathBuf> {
+    ["DAT", "EXT", "2EX"]
+        .into_iter()
+        .map(|extension| dat_path.with_extension(extension))
+        .collect()
+}
+
+fn xml_tempos(analyses: &[ANLZ], average_bpm: Option<f64>) -> Vec<Tempo> {
+    let tempos = analyses
+        .iter()
+        .flat_map(|analysis| {
+            analysis
+                .sections
+                .iter()
+                .filter_map(|section| {
+                    if let Content::BeatGrid(beatgrid) = &section.content {
+                        Some(
+                            beatgrid
+                                .beats
+                                .iter()
+                                .map(|beat| Tempo {
+                                    inizio: f64::from(beat.time) / 1000.0,
+                                    bpm: f64::from(beat.tempo) / 100.0,
+                                    metro: "4/4".to_string(),
+                                    battito: i32::from(beat.beat_number),
+                                })
+                                .collect::<Vec<_>>(),
+                        )
+                    } else {
+                        None
+                    }
+                })
+                .flatten()
+        })
+        .collect::<Vec<_>>();
+    if !tempos.is_empty() {
+        return tempos;
+    }
+
+    average_bpm
+        .map(|bpm| {
+            vec![Tempo {
+                inizio: 0.0,
+                bpm,
+                metro: "4/4".to_string(),
+                battito: 1,
+            }]
+        })
+        .unwrap_or_default()
+}
+
+fn xml_position_marks(analyses: &[ANLZ]) -> Vec<PositionMark> {
+    let mut position_marks = analyses
+        .iter()
+        .flat_map(|analysis| {
+            analysis
+                .sections
+                .iter()
+                .flat_map(|section| match &section.content {
+                    Content::CueList(cue_list) if cue_list.list_type == CueListType::HotCues => {
+                        cue_list
+                            .cues
+                            .iter()
+                            .filter_map(|cue| {
+                                hot_cue_position_mark(
+                                    cue.hot_cue,
+                                    &cue.cue_type,
+                                    cue.time,
+                                    cue.loop_time,
+                                )
+                            })
+                            .collect::<Vec<_>>()
+                    }
+                    Content::ExtendedCueList(cue_list)
+                        if cue_list.list_type == CueListType::HotCues =>
+                    {
+                        cue_list
+                            .cues
+                            .iter()
+                            .filter_map(|cue| {
+                                hot_cue_position_mark(
+                                    cue.hot_cue,
+                                    &cue.cue_type,
+                                    cue.time,
+                                    cue.loop_time,
+                                )
+                            })
+                            .collect::<Vec<_>>()
+                    }
+                    _ => Vec::new(),
+                })
+        })
+        .collect::<Vec<_>>();
+    position_marks.sort_by(|a, b| {
+        a.num
+            .cmp(&b.num)
+            .then_with(|| a.start.total_cmp(&b.start))
+            .then_with(|| a.mark_type.cmp(&b.mark_type))
+    });
+    position_marks.dedup_by(|a, b| {
+        a.num == b.num && a.mark_type == b.mark_type && a.start == b.start && a.end == b.end
+    });
+    position_marks
+}
+
+fn hot_cue_position_mark(
+    hot_cue: u32,
+    cue_type: &CueType,
+    time: u32,
+    loop_time: u32,
+) -> Option<PositionMark> {
+    if hot_cue == 0 {
+        return None;
+    }
+
+    let is_loop = *cue_type == CueType::Loop;
+    Some(PositionMark {
+        name: hot_cue_name(hot_cue),
+        mark_type: if is_loop { 4 } else { 0 },
+        start: f64::from(time) / 1000.0,
+        end: (is_loop && loop_time > time).then_some(f64::from(loop_time) / 1000.0),
+        num: hot_cue.saturating_sub(1) as i32,
+    })
+}
+
+fn playlist_node_to_xml(pdb: &Pdb, node: PlaylistNode) -> rekordcrate::Result<PlaylistGenericNode> {
+    match node {
+        PlaylistNode::Folder(folder) => Ok(PlaylistGenericNode::Folder(PlaylistFolderNode {
+            name: folder.name,
+            nodes: folder
+                .children
+                .into_iter()
+                .map(|child| playlist_node_to_xml(pdb, child))
+                .collect::<rekordcrate::Result<Vec<_>>>()?,
+        })),
+        PlaylistNode::Playlist(playlist) => {
+            let mut entries = pdb.get_playlist_entries(playlist.id).collect::<Vec<_>>();
+            entries.sort_by_key(|(index, _)| *index);
+            Ok(PlaylistGenericNode::Playlist(PlaylistPlaylistNode {
+                name: playlist.name,
+                keytype: "0".to_string(),
+                tracks: entries
+                    .into_iter()
+                    .map(|(_index, track_id)| PlaylistTrack {
+                        key: track_id.0 as i32,
+                    })
+                    .collect(),
+            }))
+        }
+    }
+}
+
+fn location_uri(file_path: &str) -> String {
+    let path = percent_encode_path(file_path);
+    if path.starts_with('/') {
+        format!("file://localhost{path}")
+    } else {
+        format!("file://localhost/{path}")
+    }
+}
+
+fn percent_encode_path(path: &str) -> String {
+    path.bytes()
+        .flat_map(|byte| match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'/' | b'.' | b'-' | b'_' | b'~' => {
+                vec![char::from(byte)]
+            }
+            other => format!("%{other:02X}").chars().collect(),
+        })
+        .collect()
+}
+
+fn non_empty(value: String) -> Option<String> {
+    (!value.is_empty()).then_some(value)
+}
+
+fn file_type_name(file_type: &FileType) -> Option<&'static str> {
+    match file_type {
+        FileType::Unknown => None,
+        FileType::Mp3 => Some("MP3 File"),
+        FileType::M4a => Some("M4A File"),
+        FileType::Flac => Some("FLAC File"),
+        FileType::Wav => Some("WAV File"),
+        FileType::Aiff => Some("AIFF File"),
+        FileType::Other(_) => None,
+    }
+}
+
+fn hot_cue_name(hot_cue: u32) -> String {
+    if (1..=26).contains(&hot_cue) {
+        char::from(b'A' + (hot_cue as u8) - 1).to_string()
+    } else {
+        hot_cue.to_string()
+    }
+}
+
 fn list_settings(path: &Path) -> rekordcrate::Result<()> {
     use rekordcrate::DeviceExport;
 
@@ -300,6 +628,7 @@ fn main() -> rekordcrate::Result<()> {
         Commands::ListPlaylists { path } => list_playlists(path),
         Commands::ListSettings { path } => list_settings(path),
         Commands::ExportPlaylists { path, output_dir } => export_playlists(path, output_dir),
+        Commands::ExportXML { path, output_file } => export_xml(path, output_file),
         Commands::DumpPDB { path, db_type } => {
             let db_type = match guess_db_type(path, db_type.as_deref()) {
                 Some(db_type) => db_type,
@@ -310,5 +639,30 @@ fn main() -> rekordcrate::Result<()> {
         Commands::DumpANLZ { path } => dump_anlz(path),
         Commands::DumpSetting { path } => dump_setting(path),
         Commands::DumpXML { path } => dump_xml(path),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn location_uri_percent_encodes_spaces() {
+        assert_eq!(
+            location_uri("/Contents/My Tracks/demo track.mp3"),
+            "file://localhost/Contents/My%20Tracks/demo%20track.mp3"
+        );
+    }
+
+    #[test]
+    fn hot_cue_position_mark_converts_loop_metadata() {
+        let mark = hot_cue_position_mark(2, &CueType::Loop, 1_000, 2_500)
+            .expect("hot cue should become position mark");
+
+        assert_eq!(mark.name, "B");
+        assert_eq!(mark.mark_type, 4);
+        assert_eq!(mark.start, 1.0);
+        assert_eq!(mark.end, Some(2.5));
+        assert_eq!(mark.num, 1);
     }
 }
