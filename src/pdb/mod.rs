@@ -570,11 +570,10 @@ impl Page {
 
                 Some(move |row: Row| {
                     let prev_entry = rows.insert(offset, row);
-                    if prev_entry.is_some() {
+                    if let Some(prev_entry) = prev_entry {
                         panic!(
                             "Offset {} was already occupied by row {:?}",
-                            offset,
-                            prev_entry.unwrap()
+                            offset, prev_entry
                         );
                     }
                     row_group.mark_offset_present(row_subindex);

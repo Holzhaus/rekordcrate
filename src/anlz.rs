@@ -78,7 +78,7 @@ pub enum ContentKind {
     /// Used in `.EXT` files.
     #[brw(magic = b"PWV3")]
     WaveformDetail,
-    /// Fixed-width colored version of the track waveform.
+    /// Fixed-width colored preview of the track waveform.
     ///
     /// Used in `.EXT` files.
     #[brw(magic = b"PWV4")]
@@ -88,6 +88,16 @@ pub enum ContentKind {
     /// Used in `.EXT` files.
     #[brw(magic = b"PWV5")]
     WaveformColorDetail,
+    /// Fixed-width 3-band preview of the track waveform.
+    ///
+    /// Used in `.2EX` files.
+    #[brw(magic = b"PWV6")]
+    Waveform3BandPreview,
+    /// Variable-width large 3-band version of the track waveform.
+    ///
+    /// Used in `.2EX` files.
+    #[brw(magic = b"PWV7")]
+    Waveform3BandDetail,
     /// Describes the structure of a sond (Intro, Chrous, Verse, etc.).
     ///
     /// Used in `.EXT` files.
@@ -364,6 +374,9 @@ impl Default for WaveformPreviewColumn {
 }
 
 /// Single Column value in a Waveform Preview.
+///
+/// See these the documentation for details:
+/// <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#waveform-preview-tag>
 #[bitfield]
 #[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy)]
 #[br(big, map = Self::from_bytes)]
@@ -382,6 +395,9 @@ impl Default for TinyWaveformPreviewColumn {
 }
 
 /// Single Column value in a Tiny Waveform Preview.
+///
+/// See these the documentation for details:
+/// <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#tiny-preview>
 #[bitfield]
 #[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy)]
 #[br(big, map = Self::from_bytes)]
@@ -396,7 +412,7 @@ pub struct TinyWaveformPreviewColumn {
 /// Single Column value in a Waveform Color Preview.
 ///
 /// See these the documentation for details:
-/// <https://djl-analysis.deepsymmetry.org/djl-analysis/track_metadata.html#color-preview-analysis>
+/// <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#color-preview>
 #[binrw]
 #[derive(Debug, PartialEq, Eq)]
 #[brw(big)]
@@ -422,6 +438,9 @@ impl Default for WaveformColorDetailColumn {
 }
 
 /// Single Column value in a Waveform Color Detail section.
+///
+/// See these the documentation for details:
+/// <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#color-detail>
 #[bitfield]
 #[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy)]
 #[br(map = Self::from_bytes)]
@@ -438,6 +457,38 @@ pub struct WaveformColorDetailColumn {
     /// Unknown field
     #[allow(dead_code)]
     unknown: B2,
+}
+
+/// Single Column value in a Waveform 3-Band Preview.
+///
+/// See these the documentation for details:
+/// <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#three-band-preview>
+#[binrw]
+#[derive(Debug, PartialEq, Eq)]
+#[brw(big)]
+pub struct Waveform3BandPreviewColumn {
+    /// Sound energy in the mid of the frequency range.
+    pub energy_mid_third_freq: u8,
+    /// Sound energy in the top of the frequency range.
+    pub energy_top_third_freq: u8,
+    /// Sound energy in the bottom third of the frequency range.
+    pub energy_bottom_third_freq: u8,
+}
+
+/// Single Column value in a Waveform 3-Band Detail section.
+///
+/// See these the documentation for details:
+/// <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#three-band-detail>
+#[binrw]
+#[derive(Debug, PartialEq, Eq)]
+#[brw(big)]
+pub struct Waveform3BandDetailColumn {
+    /// Sound energy in the mid of the frequency range.
+    pub energy_mid_third_freq: u8,
+    /// Sound energy in the top of the frequency range.
+    pub energy_top_third_freq: u8,
+    /// Sound energy in the bottom third of the frequency range.
+    pub energy_bottom_third_freq: u8,
 }
 
 /// Music classification that is used for Lightnight mode and based on rhythm, tempo kick drum and
@@ -575,7 +626,7 @@ pub enum Content {
     /// Used in `.EXT` files.
     #[br(pre_assert(header.kind == ContentKind::WaveformDetail))]
     WaveformDetail(#[br(args(header.clone()))] WaveformDetail),
-    /// Variable-width large monochrome version of the track waveform.
+    /// Smaller version of the fixed-width colored preview of the track waveform.
     ///
     /// Used in `.EXT` files.
     #[br(pre_assert(header.kind == ContentKind::WaveformColorPreview))]
@@ -585,6 +636,16 @@ pub enum Content {
     /// Used in `.EXT` files.
     #[br(pre_assert(header.kind == ContentKind::WaveformColorDetail))]
     WaveformColorDetail(#[br(args(header.clone()))] WaveformColorDetail),
+    /// Variable-width large monochrome version of the track waveform.
+    ///
+    /// Used in `.2EX` files.
+    #[br(pre_assert(header.kind == ContentKind::Waveform3BandPreview))]
+    Waveform3BandPreview(#[br(args(header.clone()))] Waveform3BandPreview),
+    /// Variable-width large 3-band version of the track waveform.
+    ///
+    /// Used in `.2EX` files.
+    #[br(pre_assert(header.kind == ContentKind::Waveform3BandDetail))]
+    Waveform3BandDetail(#[br(args(header.clone()))] Waveform3BandDetail),
     /// Describes the structure of a sond (Intro, Chrous, Verse, etc.).
     ///
     /// Used in `.EXT` files.
@@ -747,7 +808,7 @@ pub struct WaveformDetail {
     pub data: Vec<WaveformPreviewColumn>,
 }
 
-/// Variable-width large monochrome version of the track waveform.
+/// Smaller version of the fixed-width colored preview of the track waveform.
 ///
 /// Used in `.EXT` files.
 #[binrw]
@@ -767,9 +828,6 @@ pub struct WaveformColorPreview {
     /// Unknown field.
     unknown: u32,
     /// Waveform preview column data.
-    ///
-    /// Each entry represents one half-frame of audio data, and there are 75 frames per second,
-    /// so for each second of track audio there are 150 waveform detail entries.
     #[br(count = len_entries)]
     pub data: Vec<WaveformColorPreviewColumn>,
 }
@@ -794,8 +852,61 @@ pub struct WaveformColorDetail {
     /// Unknown field.
     unknown: u32,
     /// Waveform detail column data.
+    ///
+    /// Each entry represents one half-frame of audio data, and there are 75 frames per second,
+    /// so for each second of track audio there are 150 waveform detail entries.
     #[br(count = len_entries)]
     pub data: Vec<WaveformColorDetailColumn>,
+}
+
+/// Smaller version of the fixed-width 3-band preview of the track waveform.
+///
+/// Used in `.2EX` files.
+#[binrw]
+#[derive(Debug, PartialEq, Eq)]
+#[br(import(header: Header))]
+pub struct Waveform3BandPreview {
+    /// Size of a single entry, always 3.
+    #[br(temp)]
+    #[br(assert(len_entry_bytes == 3))]
+    #[bw(calc = 3u32)]
+    len_entry_bytes: u32,
+    /// Number of entries in this section.
+    #[br(temp)]
+    #[bw(calc = data.len() as u32)]
+    #[br(assert((len_entry_bytes * len_entries) == header.content_size()))]
+    len_entries: u32,
+    /// Waveform preview column data.
+    #[br(count = len_entries)]
+    pub data: Vec<Waveform3BandPreviewColumn>,
+}
+
+/// Variable-width large 3-band version of the track waveform.
+///
+/// Used in `.2EX` files.
+#[binrw]
+#[derive(Debug, PartialEq, Eq)]
+#[br(import(header: Header))]
+pub struct Waveform3BandDetail {
+    /// Size of a single entry, always 3.
+    #[br(temp)]
+    #[br(assert(len_entry_bytes == 3))]
+    #[bw(calc = 3u32)]
+    len_entry_bytes: u32,
+    /// Number of entries in this section.
+    #[br(temp)]
+    #[bw(calc = data.len() as u32)]
+    #[br(assert((len_entry_bytes * len_entries) == header.content_size()))]
+    len_entries: u32,
+    /// Unknown field (apparently always `0x00960000`)
+    #[br(assert(unknown == 0x00960000))]
+    unknown: u32,
+    /// Waveform detail column data.
+    ///
+    /// Each entry represents one half-frame of audio data, and there are 75 frames per second,
+    /// so for each second of track audio there are 150 waveform detail entries.
+    #[br(count = len_entries)]
+    pub data: Vec<Waveform3BandDetailColumn>,
 }
 
 /// Describes the structure of a song (Intro, Chrous, Verse, etc.).
