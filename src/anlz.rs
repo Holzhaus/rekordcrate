@@ -224,6 +224,91 @@ pub struct Cue {
     unknown7: u32,
 }
 
+/// A fixed-length UTF-16BE string read from a specified number of bytes.
+/// Used for the `comment` field in the `ExtendedCue` section.
+///
+/// Unlike [`NullWideString`], this does not scan for a NUL terminator; it reads
+/// exactly `len_comment` bytes and decodes them. This matches the Kaitai spec's
+/// `size: len_comment` approach.
+#[derive(Debug, Default, PartialEq, Eq, Clone)]
+pub struct FixedUtf16String(pub String);
+
+impl FixedUtf16String {
+    /// Returns the number of bytes required to encode this string as UTF-16BE
+    /// with a trailing NUL terminator.
+    #[must_use]
+    pub fn byte_len(&self) -> u32 {
+        (self.0.encode_utf16().count() as u32 + 1) * 2
+    }
+}
+
+impl From<String> for FixedUtf16String {
+    fn from(s: String) -> Self {
+        Self(s)
+    }
+}
+
+impl From<&str> for FixedUtf16String {
+    fn from(s: &str) -> Self {
+        Self(s.to_string())
+    }
+}
+
+impl std::ops::Deref for FixedUtf16String {
+    type Target = str;
+
+    fn deref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl BinRead for FixedUtf16String {
+    type Args<'a> = (u32,);
+
+    fn read_options<R: Read + Seek>(
+        reader: &mut R,
+        _endian: Endian,
+        (len_comment,): Self::Args<'_>,
+    ) -> BinResult<Self> {
+        let len = len_comment as usize;
+        if len == 0 {
+            return Ok(Self(String::new()));
+        }
+        let mut bytes = vec![0u8; len];
+        reader.read_exact(&mut bytes)?;
+        let code_units: Vec<u16> = bytes
+            .chunks_exact(2)
+            .map(|c| u16::from_be_bytes([c[0], c[1]]))
+            .collect();
+        let s = String::from_utf16(&code_units)
+            .map(|s| s.trim_end_matches('\0').to_string())
+            .map_err(|e| binrw::Error::Custom {
+                pos: reader.stream_position().unwrap_or(0),
+                err: Box::new(e),
+            })?;
+        Ok(Self(s))
+    }
+}
+
+impl BinWrite for FixedUtf16String {
+    type Args<'a> = ();
+
+    fn write_options<W: Write + Seek>(
+        &self,
+        writer: &mut W,
+        _endian: Endian,
+        _args: Self::Args<'_>,
+    ) -> BinResult<()> {
+        let mut bytes: Vec<u8> = Vec::new();
+        for cu in self.0.encode_utf16() {
+            bytes.extend_from_slice(&cu.to_be_bytes());
+        }
+        bytes.extend_from_slice(&[0, 0]);
+        writer.write_all(&bytes)?;
+        Ok(())
+    }
+}
+
 /// A memory or hot cue (or loop).
 #[binrw]
 #[derive(Debug, PartialEq, Eq)]
@@ -264,13 +349,15 @@ pub struct ExtendedCue {
     pub loop_numerator: u16,
     /// Represents the loop size denominator (if this is a quantized loop).
     pub loop_denominator: u16,
-    /// Length of the comment string in bytes.
+    /// Length of the comment string in bytes (including trailing NUL).
     #[br(temp)]
-    #[bw(calc = (comment.len() as u32 + 1) * 2)]
+    #[bw(calc = comment.byte_len())]
     len_comment: u32,
-    /// An UTF-16BE encoded string, followed by a trailing  `0x0000`.
-    #[br(assert((comment.len() as u32 + 1) * 2 == len_comment))]
-    pub comment: NullWideString,
+    /// An UTF-16BE encoded string, with a trailing NUL (`0x0000`).
+    ///
+    /// Parsed as a fixed-length field of `len_comment` bytes (per the Kaitai spec).
+    #[br(args(len_comment))]
+    pub comment: FixedUtf16String,
     /// Rekordbox hotcue color index.
     ///
     /// | Value  | Color                       |
@@ -339,7 +426,7 @@ pub struct ExtendedCue {
     /// | `0x3d` | `#8272ff`                   |
     /// | `0x3e` | `#6473ff`                   |
     pub hot_cue_color_index: u8,
-    /// Rekordbot hot cue color RGB value.
+    /// Rekordbox hot cue color RGB value.
     ///
     /// This color is similar but not identical to the color that Rekordbox displays, and possibly
     /// used to illuminate the RGB LEDs in a player that has loaded the cue. If not color is
@@ -355,6 +442,12 @@ pub struct ExtendedCue {
     unknown9: u32,
     /// Unknown field.
     unknown10: u32,
+    /// Trailing unknown bytes after `unknown10` to the end of the entry.
+    ///
+    /// Per the Kaitai spec, the entry may contain extra data beyond the known fields;
+    /// any remaining bytes are captured here.
+    #[br(count = header.total_size.saturating_sub(68 + len_comment) as usize)]
+    pub trailing: Vec<u8>,
 }
 
 impl Default for WaveformPreviewColumn {
