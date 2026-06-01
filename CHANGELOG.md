@@ -63,6 +63,7 @@ All notable changes to this project will be documented in this file.
 - pdb: Add History row type
 - xml: Publicise xml structs
 - xml: Publicise members
+- anlz: Add support for 3-band waveforms in 2EX files
 
 ### Refactor
 
