@@ -234,857 +234,950 @@
 <a href=#234 id=234 data-nosnippet>234</a>    </span>unknown7: u32,
 <a href=#235 id=235 data-nosnippet>235</a>}
 <a href=#236 id=236 data-nosnippet>236</a>
-<a href=#237 id=237 data-nosnippet>237</a><span class="doccomment">/// A memory or hot cue (or loop).
-<a href=#238 id=238 data-nosnippet>238</a></span><span class="attr">#[binrw]
-<a href=#239 id=239 data-nosnippet>239</a>#[derive(Debug, PartialEq, Eq)]
-<a href=#240 id=240 data-nosnippet>240</a>#[brw(big)]
-<a href=#241 id=241 data-nosnippet>241</a></span><span class="kw">pub struct </span>ExtendedCue {
-<a href=#242 id=242 data-nosnippet>242</a>    <span class="doccomment">/// Cue entry header.
-<a href=#243 id=243 data-nosnippet>243</a>    </span><span class="kw">pub </span>header: Header,
-<a href=#244 id=244 data-nosnippet>244</a>    <span class="doccomment">/// Hot cue number.
-<a href=#245 id=245 data-nosnippet>245</a>    ///
-<a href=#246 id=246 data-nosnippet>246</a>    /// | Value | Hot cue        |
-<a href=#247 id=247 data-nosnippet>247</a>    /// | ----- | -------------- |
-<a href=#248 id=248 data-nosnippet>248</a>    /// |     0 | Not a hot cue. |
-<a href=#249 id=249 data-nosnippet>249</a>    /// |     1 | A              |
-<a href=#250 id=250 data-nosnippet>250</a>    /// |     2 | B              |
-<a href=#251 id=251 data-nosnippet>251</a>    /// | ...   | ...            |
-<a href=#252 id=252 data-nosnippet>252</a>    </span><span class="kw">pub </span>hot_cue: u32,
-<a href=#253 id=253 data-nosnippet>253</a>    <span class="doccomment">/// Type of this cue (`2` if this cue is a loop).
-<a href=#254 id=254 data-nosnippet>254</a>    </span><span class="kw">pub </span>cue_type: CueType,
-<a href=#255 id=255 data-nosnippet>255</a>    <span class="doccomment">/// Unknown field. Seems always have the value `0`.
-<a href=#256 id=256 data-nosnippet>256</a>    </span>unknown1: u8,
-<a href=#257 id=257 data-nosnippet>257</a>    <span class="doccomment">/// Unknown field. Seems always have the value `0x03E8` (= decimal 1000).
-<a href=#258 id=258 data-nosnippet>258</a>    </span>unknown2: u16,
-<a href=#259 id=259 data-nosnippet>259</a>    <span class="doccomment">/// Time in milliseconds after which this cue would occur (at normal playback speed).
-<a href=#260 id=260 data-nosnippet>260</a>    </span><span class="kw">pub </span>time: u32,
-<a href=#261 id=261 data-nosnippet>261</a>    <span class="doccomment">/// Time in milliseconds after which this the loop would jump back to `time` (at normal playback speed).
-<a href=#262 id=262 data-nosnippet>262</a>    </span><span class="kw">pub </span>loop_time: u32,
-<a href=#263 id=263 data-nosnippet>263</a>    <span class="doccomment">/// Color assigned to this cue.
-<a href=#264 id=264 data-nosnippet>264</a>    ///
-<a href=#265 id=265 data-nosnippet>265</a>    /// Only used by memory cues, hot cues use a different value (see below).
-<a href=#266 id=266 data-nosnippet>266</a>    </span><span class="kw">pub </span>color: ColorIndex,
-<a href=#267 id=267 data-nosnippet>267</a>    <span class="doccomment">/// Unknown field.
-<a href=#268 id=268 data-nosnippet>268</a>    </span>unknown3: u8,
-<a href=#269 id=269 data-nosnippet>269</a>    <span class="doccomment">/// Unknown field.
-<a href=#270 id=270 data-nosnippet>270</a>    </span>unknown4: u16,
-<a href=#271 id=271 data-nosnippet>271</a>    <span class="doccomment">/// Unknown field.
-<a href=#272 id=272 data-nosnippet>272</a>    </span>unknown5: u32,
-<a href=#273 id=273 data-nosnippet>273</a>    <span class="doccomment">/// Represents the loop size numerator (if this is a quantized loop).
-<a href=#274 id=274 data-nosnippet>274</a>    </span><span class="kw">pub </span>loop_numerator: u16,
-<a href=#275 id=275 data-nosnippet>275</a>    <span class="doccomment">/// Represents the loop size denominator (if this is a quantized loop).
-<a href=#276 id=276 data-nosnippet>276</a>    </span><span class="kw">pub </span>loop_denominator: u16,
-<a href=#277 id=277 data-nosnippet>277</a>    <span class="doccomment">/// Length of the comment string in bytes.
-<a href=#278 id=278 data-nosnippet>278</a>    </span><span class="attr">#[br(temp)]
-<a href=#279 id=279 data-nosnippet>279</a>    #[bw(calc = (comment.len() <span class="kw">as </span>u32 + <span class="number">1</span>) * <span class="number">2</span>)]
-<a href=#280 id=280 data-nosnippet>280</a>    </span>len_comment: u32,
-<a href=#281 id=281 data-nosnippet>281</a>    <span class="doccomment">/// An UTF-16BE encoded string, followed by a trailing  `0x0000`.
-<a href=#282 id=282 data-nosnippet>282</a>    </span><span class="attr">#[br(assert((comment.len() <span class="kw">as </span>u32 + <span class="number">1</span>) * <span class="number">2 </span>== len_comment))]
-<a href=#283 id=283 data-nosnippet>283</a>    </span><span class="kw">pub </span>comment: NullWideString,
-<a href=#284 id=284 data-nosnippet>284</a>    <span class="doccomment">/// Rekordbox hotcue color index.
-<a href=#285 id=285 data-nosnippet>285</a>    ///
-<a href=#286 id=286 data-nosnippet>286</a>    /// | Value  | Color                       |
-<a href=#287 id=287 data-nosnippet>287</a>    /// | ------ | --------------------------- |
-<a href=#288 id=288 data-nosnippet>288</a>    /// | `0x00` | None (Green on older CDJs). |
-<a href=#289 id=289 data-nosnippet>289</a>    /// | `0x01` | `#305aff`                   |
-<a href=#290 id=290 data-nosnippet>290</a>    /// | `0x02` | `#5073ff`                   |
-<a href=#291 id=291 data-nosnippet>291</a>    /// | `0x03` | `#508cff`                   |
-<a href=#292 id=292 data-nosnippet>292</a>    /// | `0x04` | `#50a0ff`                   |
-<a href=#293 id=293 data-nosnippet>293</a>    /// | `0x05` | `#50b4ff`                   |
-<a href=#294 id=294 data-nosnippet>294</a>    /// | `0x06` | `#50b0f2`                   |
-<a href=#295 id=295 data-nosnippet>295</a>    /// | `0x07` | `#50aee8`                   |
-<a href=#296 id=296 data-nosnippet>296</a>    /// | `0x08` | `#45acdb`                   |
-<a href=#297 id=297 data-nosnippet>297</a>    /// | `0x09` | `#00e0ff`                   |
-<a href=#298 id=298 data-nosnippet>298</a>    /// | `0x0a` | `#19daf0`                   |
-<a href=#299 id=299 data-nosnippet>299</a>    /// | `0x0b` | `#32d2e6`                   |
-<a href=#300 id=300 data-nosnippet>300</a>    /// | `0x0c` | `#21b4b9`                   |
-<a href=#301 id=301 data-nosnippet>301</a>    /// | `0x0d` | `#20aaa0`                   |
-<a href=#302 id=302 data-nosnippet>302</a>    /// | `0x0e` | `#1fa392`                   |
-<a href=#303 id=303 data-nosnippet>303</a>    /// | `0x0f` | `#19a08c`                   |
-<a href=#304 id=304 data-nosnippet>304</a>    /// | `0x10` | `#14a584`                   |
-<a href=#305 id=305 data-nosnippet>305</a>    /// | `0x11` | `#14aa7d`                   |
-<a href=#306 id=306 data-nosnippet>306</a>    /// | `0x12` | `#10b176`                   |
-<a href=#307 id=307 data-nosnippet>307</a>    /// | `0x13` | `#30d26e`                   |
-<a href=#308 id=308 data-nosnippet>308</a>    /// | `0x14` | `#37de5a`                   |
-<a href=#309 id=309 data-nosnippet>309</a>    /// | `0x15` | `#3ceb50`                   |
-<a href=#310 id=310 data-nosnippet>310</a>    /// | `0x16` | `#28e214`                   |
-<a href=#311 id=311 data-nosnippet>311</a>    /// | `0x17` | `#7dc13d`                   |
-<a href=#312 id=312 data-nosnippet>312</a>    /// | `0x18` | `#8cc832`                   |
-<a href=#313 id=313 data-nosnippet>313</a>    /// | `0x19` | `#9bd723`                   |
-<a href=#314 id=314 data-nosnippet>314</a>    /// | `0x1a` | `#a5e116`                   |
-<a href=#315 id=315 data-nosnippet>315</a>    /// | `0x1b` | `#a5dc0a`                   |
-<a href=#316 id=316 data-nosnippet>316</a>    /// | `0x1c` | `#aad208`                   |
-<a href=#317 id=317 data-nosnippet>317</a>    /// | `0x1d` | `#b4c805`                   |
-<a href=#318 id=318 data-nosnippet>318</a>    /// | `0x1e` | `#b4be04`                   |
-<a href=#319 id=319 data-nosnippet>319</a>    /// | `0x1f` | `#bab404`                   |
-<a href=#320 id=320 data-nosnippet>320</a>    /// | `0x20` | `#c3af04`                   |
-<a href=#321 id=321 data-nosnippet>321</a>    /// | `0x21` | `#e1aa00`                   |
-<a href=#322 id=322 data-nosnippet>322</a>    /// | `0x22` | `#ffa000`                   |
-<a href=#323 id=323 data-nosnippet>323</a>    /// | `0x23` | `#ff9600`                   |
-<a href=#324 id=324 data-nosnippet>324</a>    /// | `0x24` | `#ff8c00`                   |
-<a href=#325 id=325 data-nosnippet>325</a>    /// | `0x25` | `#ff7500`                   |
-<a href=#326 id=326 data-nosnippet>326</a>    /// | `0x26` | `#e0641b`                   |
-<a href=#327 id=327 data-nosnippet>327</a>    /// | `0x27` | `#e0461e`                   |
-<a href=#328 id=328 data-nosnippet>328</a>    /// | `0x28` | `#e0301e`                   |
-<a href=#329 id=329 data-nosnippet>329</a>    /// | `0x29` | `#e02823`                   |
-<a href=#330 id=330 data-nosnippet>330</a>    /// | `0x2a` | `#e62828`                   |
-<a href=#331 id=331 data-nosnippet>331</a>    /// | `0x2b` | `#ff376f`                   |
-<a href=#332 id=332 data-nosnippet>332</a>    /// | `0x2c` | `#ff2d6f`                   |
-<a href=#333 id=333 data-nosnippet>333</a>    /// | `0x2d` | `#ff127b`                   |
-<a href=#334 id=334 data-nosnippet>334</a>    /// | `0x2e` | `#f51e8c`                   |
-<a href=#335 id=335 data-nosnippet>335</a>    /// | `0x2f` | `#eb2da0`                   |
-<a href=#336 id=336 data-nosnippet>336</a>    /// | `0x30` | `#e637b4`                   |
-<a href=#337 id=337 data-nosnippet>337</a>    /// | `0x31` | `#de44cf`                   |
-<a href=#338 id=338 data-nosnippet>338</a>    /// | `0x32` | `#de448d`                   |
-<a href=#339 id=339 data-nosnippet>339</a>    /// | `0x33` | `#e630b4`                   |
-<a href=#340 id=340 data-nosnippet>340</a>    /// | `0x34` | `#e619dc`                   |
-<a href=#341 id=341 data-nosnippet>341</a>    /// | `0x35` | `#e600ff`                   |
-<a href=#342 id=342 data-nosnippet>342</a>    /// | `0x36` | `#dc00ff`                   |
-<a href=#343 id=343 data-nosnippet>343</a>    /// | `0x37` | `#cc00ff`                   |
-<a href=#344 id=344 data-nosnippet>344</a>    /// | `0x38` | `#b432ff`                   |
-<a href=#345 id=345 data-nosnippet>345</a>    /// | `0x39` | `#b93cff`                   |
-<a href=#346 id=346 data-nosnippet>346</a>    /// | `0x3a` | `#c542ff`                   |
-<a href=#347 id=347 data-nosnippet>347</a>    /// | `0x3b` | `#aa5aff`                   |
-<a href=#348 id=348 data-nosnippet>348</a>    /// | `0x3c` | `#aa72ff`                   |
-<a href=#349 id=349 data-nosnippet>349</a>    /// | `0x3d` | `#8272ff`                   |
-<a href=#350 id=350 data-nosnippet>350</a>    /// | `0x3e` | `#6473ff`                   |
-<a href=#351 id=351 data-nosnippet>351</a>    </span><span class="kw">pub </span>hot_cue_color_index: u8,
-<a href=#352 id=352 data-nosnippet>352</a>    <span class="doccomment">/// Rekordbot hot cue color RGB value.
-<a href=#353 id=353 data-nosnippet>353</a>    ///
-<a href=#354 id=354 data-nosnippet>354</a>    /// This color is similar but not identical to the color that Rekordbox displays, and possibly
-<a href=#355 id=355 data-nosnippet>355</a>    /// used to illuminate the RGB LEDs in a player that has loaded the cue. If not color is
-<a href=#356 id=356 data-nosnippet>356</a>    /// associated with this hot cue, the value is `(0, 0, 0)`.
-<a href=#357 id=357 data-nosnippet>357</a>    </span><span class="kw">pub </span>hot_cue_color_rgb: (u8, u8, u8),
-<a href=#358 id=358 data-nosnippet>358</a>    <span class="doccomment">/// Unknown field.
-<a href=#359 id=359 data-nosnippet>359</a>    </span>unknown6: u32,
-<a href=#360 id=360 data-nosnippet>360</a>    <span class="doccomment">/// Unknown field.
-<a href=#361 id=361 data-nosnippet>361</a>    </span>unknown7: u32,
-<a href=#362 id=362 data-nosnippet>362</a>    <span class="doccomment">/// Unknown field.
-<a href=#363 id=363 data-nosnippet>363</a>    </span>unknown8: u32,
-<a href=#364 id=364 data-nosnippet>364</a>    <span class="doccomment">/// Unknown field.
-<a href=#365 id=365 data-nosnippet>365</a>    </span>unknown9: u32,
-<a href=#366 id=366 data-nosnippet>366</a>    <span class="doccomment">/// Unknown field.
-<a href=#367 id=367 data-nosnippet>367</a>    </span>unknown10: u32,
-<a href=#368 id=368 data-nosnippet>368</a>}
-<a href=#369 id=369 data-nosnippet>369</a>
-<a href=#370 id=370 data-nosnippet>370</a><span class="kw">impl </span>Default <span class="kw">for </span>WaveformPreviewColumn {
-<a href=#371 id=371 data-nosnippet>371</a>    <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
-<a href=#372 id=372 data-nosnippet>372</a>        <span class="self">Self</span>::new()
-<a href=#373 id=373 data-nosnippet>373</a>    }
-<a href=#374 id=374 data-nosnippet>374</a>}
-<a href=#375 id=375 data-nosnippet>375</a>
-<a href=#376 id=376 data-nosnippet>376</a><span class="doccomment">/// Single Column value in a Waveform Preview.
-<a href=#377 id=377 data-nosnippet>377</a>///
-<a href=#378 id=378 data-nosnippet>378</a>/// See these the documentation for details:
-<a href=#379 id=379 data-nosnippet>379</a>/// &lt;https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#waveform-preview-tag&gt;
-<a href=#380 id=380 data-nosnippet>380</a></span><span class="attr">#[bitfield]
-<a href=#381 id=381 data-nosnippet>381</a>#[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy)]
-<a href=#382 id=382 data-nosnippet>382</a>#[br(big, map = <span class="self">Self</span>::from_bytes)]
-<a href=#383 id=383 data-nosnippet>383</a>#[bw(big, map = |x: <span class="kw-2">&amp;</span>WaveformPreviewColumn| x.into_bytes())]
-<a href=#384 id=384 data-nosnippet>384</a></span><span class="kw">pub struct </span>WaveformPreviewColumn {
-<a href=#385 id=385 data-nosnippet>385</a>    <span class="doccomment">/// Height of the Column in pixels.
-<a href=#386 id=386 data-nosnippet>386</a>    </span><span class="kw">pub </span>height: B5,
-<a href=#387 id=387 data-nosnippet>387</a>    <span class="doccomment">/// Shade of white.
-<a href=#388 id=388 data-nosnippet>388</a>    </span><span class="kw">pub </span>whiteness: B3,
-<a href=#389 id=389 data-nosnippet>389</a>}
-<a href=#390 id=390 data-nosnippet>390</a>
-<a href=#391 id=391 data-nosnippet>391</a><span class="kw">impl </span>Default <span class="kw">for </span>TinyWaveformPreviewColumn {
-<a href=#392 id=392 data-nosnippet>392</a>    <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
-<a href=#393 id=393 data-nosnippet>393</a>        <span class="self">Self</span>::new()
-<a href=#394 id=394 data-nosnippet>394</a>    }
-<a href=#395 id=395 data-nosnippet>395</a>}
-<a href=#396 id=396 data-nosnippet>396</a>
-<a href=#397 id=397 data-nosnippet>397</a><span class="doccomment">/// Single Column value in a Tiny Waveform Preview.
-<a href=#398 id=398 data-nosnippet>398</a>///
-<a href=#399 id=399 data-nosnippet>399</a>/// See these the documentation for details:
-<a href=#400 id=400 data-nosnippet>400</a>/// &lt;https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#tiny-preview&gt;
-<a href=#401 id=401 data-nosnippet>401</a></span><span class="attr">#[bitfield]
-<a href=#402 id=402 data-nosnippet>402</a>#[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy)]
-<a href=#403 id=403 data-nosnippet>403</a>#[br(big, map = <span class="self">Self</span>::from_bytes)]
-<a href=#404 id=404 data-nosnippet>404</a>#[bw(big, map = |x: <span class="kw-2">&amp;</span>TinyWaveformPreviewColumn| x.into_bytes())]
-<a href=#405 id=405 data-nosnippet>405</a></span><span class="kw">pub struct </span>TinyWaveformPreviewColumn {
-<a href=#406 id=406 data-nosnippet>406</a>    <span class="attr">#[allow(dead_code)]
-<a href=#407 id=407 data-nosnippet>407</a>    </span>unused: B4,
-<a href=#408 id=408 data-nosnippet>408</a>    <span class="doccomment">/// Height of the Column in pixels.
-<a href=#409 id=409 data-nosnippet>409</a>    </span><span class="kw">pub </span>height: B4,
-<a href=#410 id=410 data-nosnippet>410</a>}
-<a href=#411 id=411 data-nosnippet>411</a>
-<a href=#412 id=412 data-nosnippet>412</a><span class="doccomment">/// Single Column value in a Waveform Color Preview.
-<a href=#413 id=413 data-nosnippet>413</a>///
-<a href=#414 id=414 data-nosnippet>414</a>/// See these the documentation for details:
-<a href=#415 id=415 data-nosnippet>415</a>/// &lt;https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#color-preview&gt;
-<a href=#416 id=416 data-nosnippet>416</a></span><span class="attr">#[binrw]
-<a href=#417 id=417 data-nosnippet>417</a>#[derive(Debug, PartialEq, Eq)]
-<a href=#418 id=418 data-nosnippet>418</a>#[brw(big)]
-<a href=#419 id=419 data-nosnippet>419</a></span><span class="kw">pub struct </span>WaveformColorPreviewColumn {
-<a href=#420 id=420 data-nosnippet>420</a>    <span class="doccomment">/// Unknown field (somehow encodes the "whiteness").
-<a href=#421 id=421 data-nosnippet>421</a>    </span>unknown1: u8,
-<a href=#422 id=422 data-nosnippet>422</a>    <span class="doccomment">/// Unknown field (somehow encodes the "whiteness").
-<a href=#423 id=423 data-nosnippet>423</a>    </span>unknown2: u8,
-<a href=#424 id=424 data-nosnippet>424</a>    <span class="doccomment">/// Sound energy in the bottom half of the frequency range (&lt;10 KHz).
-<a href=#425 id=425 data-nosnippet>425</a>    </span><span class="kw">pub </span>energy_bottom_half_freq: u8,
-<a href=#426 id=426 data-nosnippet>426</a>    <span class="doccomment">/// Sound energy in the bottom third of the frequency range.
-<a href=#427 id=427 data-nosnippet>427</a>    </span><span class="kw">pub </span>energy_bottom_third_freq: u8,
-<a href=#428 id=428 data-nosnippet>428</a>    <span class="doccomment">/// Sound energy in the mid of the frequency range.
-<a href=#429 id=429 data-nosnippet>429</a>    </span><span class="kw">pub </span>energy_mid_third_freq: u8,
-<a href=#430 id=430 data-nosnippet>430</a>    <span class="doccomment">/// Sound energy in the top of the frequency range.
-<a href=#431 id=431 data-nosnippet>431</a>    </span><span class="kw">pub </span>energy_top_third_freq: u8,
-<a href=#432 id=432 data-nosnippet>432</a>}
-<a href=#433 id=433 data-nosnippet>433</a>
-<a href=#434 id=434 data-nosnippet>434</a><span class="kw">impl </span>Default <span class="kw">for </span>WaveformColorDetailColumn {
-<a href=#435 id=435 data-nosnippet>435</a>    <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
-<a href=#436 id=436 data-nosnippet>436</a>        <span class="self">Self</span>::new()
-<a href=#437 id=437 data-nosnippet>437</a>    }
-<a href=#438 id=438 data-nosnippet>438</a>}
-<a href=#439 id=439 data-nosnippet>439</a>
-<a href=#440 id=440 data-nosnippet>440</a><span class="doccomment">/// Single Column value in a Waveform Color Detail section.
-<a href=#441 id=441 data-nosnippet>441</a>///
-<a href=#442 id=442 data-nosnippet>442</a>/// See these the documentation for details:
-<a href=#443 id=443 data-nosnippet>443</a>/// &lt;https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#color-detail&gt;
-<a href=#444 id=444 data-nosnippet>444</a></span><span class="attr">#[bitfield]
-<a href=#445 id=445 data-nosnippet>445</a>#[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy)]
-<a href=#446 id=446 data-nosnippet>446</a>#[br(map = <span class="self">Self</span>::from_bytes)]
-<a href=#447 id=447 data-nosnippet>447</a>#[bw(big, map = |x: <span class="kw-2">&amp;</span>WaveformColorDetailColumn| x.into_bytes())]
-<a href=#448 id=448 data-nosnippet>448</a></span><span class="kw">pub struct </span>WaveformColorDetailColumn {
-<a href=#449 id=449 data-nosnippet>449</a>    <span class="doccomment">/// Red color component.
-<a href=#450 id=450 data-nosnippet>450</a>    </span><span class="kw">pub </span>red: B3,
-<a href=#451 id=451 data-nosnippet>451</a>    <span class="doccomment">/// Green color component.
-<a href=#452 id=452 data-nosnippet>452</a>    </span><span class="kw">pub </span>green: B3,
-<a href=#453 id=453 data-nosnippet>453</a>    <span class="doccomment">/// Blue color component.
-<a href=#454 id=454 data-nosnippet>454</a>    </span><span class="kw">pub </span>blue: B3,
-<a href=#455 id=455 data-nosnippet>455</a>    <span class="doccomment">/// Height of the column.
-<a href=#456 id=456 data-nosnippet>456</a>    </span><span class="kw">pub </span>height: B5,
-<a href=#457 id=457 data-nosnippet>457</a>    <span class="doccomment">/// Unknown field
-<a href=#458 id=458 data-nosnippet>458</a>    </span><span class="attr">#[allow(dead_code)]
-<a href=#459 id=459 data-nosnippet>459</a>    </span>unknown: B2,
-<a href=#460 id=460 data-nosnippet>460</a>}
-<a href=#461 id=461 data-nosnippet>461</a>
-<a href=#462 id=462 data-nosnippet>462</a><span class="doccomment">/// Single Column value in a Waveform 3-Band Preview.
-<a href=#463 id=463 data-nosnippet>463</a>///
-<a href=#464 id=464 data-nosnippet>464</a>/// See these the documentation for details:
-<a href=#465 id=465 data-nosnippet>465</a>/// &lt;https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#three-band-preview&gt;
-<a href=#466 id=466 data-nosnippet>466</a></span><span class="attr">#[binrw]
-<a href=#467 id=467 data-nosnippet>467</a>#[derive(Debug, PartialEq, Eq)]
-<a href=#468 id=468 data-nosnippet>468</a>#[brw(big)]
-<a href=#469 id=469 data-nosnippet>469</a></span><span class="kw">pub struct </span>Waveform3BandPreviewColumn {
-<a href=#470 id=470 data-nosnippet>470</a>    <span class="doccomment">/// Sound energy in the mid of the frequency range.
-<a href=#471 id=471 data-nosnippet>471</a>    </span><span class="kw">pub </span>energy_mid_third_freq: u8,
-<a href=#472 id=472 data-nosnippet>472</a>    <span class="doccomment">/// Sound energy in the top of the frequency range.
-<a href=#473 id=473 data-nosnippet>473</a>    </span><span class="kw">pub </span>energy_top_third_freq: u8,
-<a href=#474 id=474 data-nosnippet>474</a>    <span class="doccomment">/// Sound energy in the bottom third of the frequency range.
-<a href=#475 id=475 data-nosnippet>475</a>    </span><span class="kw">pub </span>energy_bottom_third_freq: u8,
-<a href=#476 id=476 data-nosnippet>476</a>}
-<a href=#477 id=477 data-nosnippet>477</a>
-<a href=#478 id=478 data-nosnippet>478</a><span class="doccomment">/// Single Column value in a Waveform 3-Band Detail section.
-<a href=#479 id=479 data-nosnippet>479</a>///
-<a href=#480 id=480 data-nosnippet>480</a>/// See these the documentation for details:
-<a href=#481 id=481 data-nosnippet>481</a>/// &lt;https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#three-band-detail&gt;
-<a href=#482 id=482 data-nosnippet>482</a></span><span class="attr">#[binrw]
-<a href=#483 id=483 data-nosnippet>483</a>#[derive(Debug, PartialEq, Eq)]
-<a href=#484 id=484 data-nosnippet>484</a>#[brw(big)]
-<a href=#485 id=485 data-nosnippet>485</a></span><span class="kw">pub struct </span>Waveform3BandDetailColumn {
-<a href=#486 id=486 data-nosnippet>486</a>    <span class="doccomment">/// Sound energy in the mid of the frequency range.
-<a href=#487 id=487 data-nosnippet>487</a>    </span><span class="kw">pub </span>energy_mid_third_freq: u8,
-<a href=#488 id=488 data-nosnippet>488</a>    <span class="doccomment">/// Sound energy in the top of the frequency range.
-<a href=#489 id=489 data-nosnippet>489</a>    </span><span class="kw">pub </span>energy_top_third_freq: u8,
-<a href=#490 id=490 data-nosnippet>490</a>    <span class="doccomment">/// Sound energy in the bottom third of the frequency range.
-<a href=#491 id=491 data-nosnippet>491</a>    </span><span class="kw">pub </span>energy_bottom_third_freq: u8,
-<a href=#492 id=492 data-nosnippet>492</a>}
-<a href=#493 id=493 data-nosnippet>493</a>
-<a href=#494 id=494 data-nosnippet>494</a><span class="doccomment">/// Music classification that is used for Lightnight mode and based on rhythm, tempo kick drum and
-<a href=#495 id=495 data-nosnippet>495</a>/// sound density.
-<a href=#496 id=496 data-nosnippet>496</a></span><span class="attr">#[binrw]
-<a href=#497 id=497 data-nosnippet>497</a>#[derive(Debug, PartialEq, Eq)]
-<a href=#498 id=498 data-nosnippet>498</a>#[brw(big, repr = u16)]
-<a href=#499 id=499 data-nosnippet>499</a></span><span class="kw">pub enum </span>Mood {
-<a href=#500 id=500 data-nosnippet>500</a>    <span class="doccomment">/// Phrase types consist of "Intro", "Up", "Down", "Chorus", and "Outro". Other values in each
-<a href=#501 id=501 data-nosnippet>501</a>    /// phrase entry cause the intro, chorus, and outro phrases to have their labels subdivided
-<a href=#502 id=502 data-nosnippet>502</a>    /// into styles "1" or "2" (for example, "Intro 1"), and "up" is subdivided into style "Up 1",
-<a href=#503 id=503 data-nosnippet>503</a>    /// "Up 2", or "Up 3".
-<a href=#504 id=504 data-nosnippet>504</a>    </span>High = <span class="number">1</span>,
-<a href=#505 id=505 data-nosnippet>505</a>    <span class="doccomment">/// Phrase types are labeled "Intro", "Verse 1" through "Verse 6", "Chorus", "Bridge", and
-<a href=#506 id=506 data-nosnippet>506</a>    /// "Outro".
-<a href=#507 id=507 data-nosnippet>507</a>    </span>Mid,
-<a href=#508 id=508 data-nosnippet>508</a>    <span class="doccomment">/// Phrase types are labeled "Intro", "Verse 1", "Verse 2", "Chorus", "Bridge", and "Outro".
-<a href=#509 id=509 data-nosnippet>509</a>    /// There are three different phrase type values for each of "Verse 1" and "Verse 2", but
-<a href=#510 id=510 data-nosnippet>510</a>    /// rekordbox makes no distinction between them.
-<a href=#511 id=511 data-nosnippet>511</a>    </span>Low,
-<a href=#512 id=512 data-nosnippet>512</a>}
-<a href=#513 id=513 data-nosnippet>513</a>
-<a href=#514 id=514 data-nosnippet>514</a><span class="doccomment">/// Stylistic track bank for Lightning mode.
-<a href=#515 id=515 data-nosnippet>515</a></span><span class="attr">#[binrw]
-<a href=#516 id=516 data-nosnippet>516</a>#[derive(Debug, PartialEq, Eq)]
-<a href=#517 id=517 data-nosnippet>517</a>#[brw(repr = u8)]
-<a href=#518 id=518 data-nosnippet>518</a></span><span class="kw">pub enum </span>Bank {
-<a href=#519 id=519 data-nosnippet>519</a>    <span class="doccomment">/// Default bank variant, treated as `Cool`.
-<a href=#520 id=520 data-nosnippet>520</a>    </span>Default = <span class="number">0</span>,
-<a href=#521 id=521 data-nosnippet>521</a>    <span class="doccomment">/// "Cool" bank variant.
-<a href=#522 id=522 data-nosnippet>522</a>    </span>Cool,
-<a href=#523 id=523 data-nosnippet>523</a>    <span class="doccomment">/// "Natural" bank variant.
-<a href=#524 id=524 data-nosnippet>524</a>    </span>Natural,
-<a href=#525 id=525 data-nosnippet>525</a>    <span class="doccomment">/// "Hot" bank variant.
-<a href=#526 id=526 data-nosnippet>526</a>    </span>Hot,
-<a href=#527 id=527 data-nosnippet>527</a>    <span class="doccomment">/// "Subtle" bank variant.
-<a href=#528 id=528 data-nosnippet>528</a>    </span>Subtle,
-<a href=#529 id=529 data-nosnippet>529</a>    <span class="doccomment">/// "Warm" bank variant.
-<a href=#530 id=530 data-nosnippet>530</a>    </span>Warm,
-<a href=#531 id=531 data-nosnippet>531</a>    <span class="doccomment">/// "Vivid" bank variant.
-<a href=#532 id=532 data-nosnippet>532</a>    </span>Vivid,
-<a href=#533 id=533 data-nosnippet>533</a>    <span class="doccomment">/// "Club 1" bank variant.
-<a href=#534 id=534 data-nosnippet>534</a>    </span>Club1,
-<a href=#535 id=535 data-nosnippet>535</a>    <span class="doccomment">/// "Club 2" bank variant.
-<a href=#536 id=536 data-nosnippet>536</a>    </span>Club2,
-<a href=#537 id=537 data-nosnippet>537</a>}
-<a href=#538 id=538 data-nosnippet>538</a>
-<a href=#539 id=539 data-nosnippet>539</a><span class="doccomment">/// A song structure entry that represents a phrase in the track.
-<a href=#540 id=540 data-nosnippet>540</a></span><span class="attr">#[binrw]
-<a href=#541 id=541 data-nosnippet>541</a>#[derive(Debug, PartialEq, Eq)]
-<a href=#542 id=542 data-nosnippet>542</a>#[brw(big)]
-<a href=#543 id=543 data-nosnippet>543</a></span><span class="kw">pub struct </span>Phrase {
-<a href=#544 id=544 data-nosnippet>544</a>    <span class="doccomment">/// Phrase number (starting at 1).
-<a href=#545 id=545 data-nosnippet>545</a>    </span><span class="kw">pub </span>index: u16,
-<a href=#546 id=546 data-nosnippet>546</a>    <span class="doccomment">/// Beat number where this phrase begins.
-<a href=#547 id=547 data-nosnippet>547</a>    </span><span class="kw">pub </span>beat: u16,
-<a href=#548 id=548 data-nosnippet>548</a>    <span class="doccomment">/// Kind of phrase that rekordbox has identified (?).
-<a href=#549 id=549 data-nosnippet>549</a>    </span><span class="kw">pub </span>kind: u16,
-<a href=#550 id=550 data-nosnippet>550</a>    <span class="doccomment">/// Unknown field.
+<a href=#237 id=237 data-nosnippet>237</a><span class="doccomment">/// A fixed-length UTF-16BE string read from a specified number of bytes.
+<a href=#238 id=238 data-nosnippet>238</a>/// Used for the `comment` field in the `ExtendedCue` section.
+<a href=#239 id=239 data-nosnippet>239</a>///
+<a href=#240 id=240 data-nosnippet>240</a>/// Unlike [`NullWideString`], this does not scan for a NUL terminator; it reads
+<a href=#241 id=241 data-nosnippet>241</a>/// exactly `len_comment` bytes and decodes them. This matches the Kaitai spec's
+<a href=#242 id=242 data-nosnippet>242</a>/// `size: len_comment` approach.
+<a href=#243 id=243 data-nosnippet>243</a></span><span class="attr">#[derive(Debug, Default, PartialEq, Eq, Clone)]
+<a href=#244 id=244 data-nosnippet>244</a></span><span class="kw">pub struct </span>FixedUtf16String(<span class="kw">pub </span>String);
+<a href=#245 id=245 data-nosnippet>245</a>
+<a href=#246 id=246 data-nosnippet>246</a><span class="kw">impl </span>FixedUtf16String {
+<a href=#247 id=247 data-nosnippet>247</a>    <span class="doccomment">/// Returns the number of bytes required to encode this string as UTF-16BE
+<a href=#248 id=248 data-nosnippet>248</a>    /// with a trailing NUL terminator.
+<a href=#249 id=249 data-nosnippet>249</a>    </span><span class="attr">#[must_use]
+<a href=#250 id=250 data-nosnippet>250</a>    </span><span class="kw">pub fn </span>byte_len(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u32 {
+<a href=#251 id=251 data-nosnippet>251</a>        (<span class="self">self</span>.<span class="number">0</span>.encode_utf16().count() <span class="kw">as </span>u32 + <span class="number">1</span>) * <span class="number">2
+<a href=#252 id=252 data-nosnippet>252</a>    </span>}
+<a href=#253 id=253 data-nosnippet>253</a>}
+<a href=#254 id=254 data-nosnippet>254</a>
+<a href=#255 id=255 data-nosnippet>255</a><span class="kw">impl </span>From&lt;String&gt; <span class="kw">for </span>FixedUtf16String {
+<a href=#256 id=256 data-nosnippet>256</a>    <span class="kw">fn </span>from(s: String) -&gt; <span class="self">Self </span>{
+<a href=#257 id=257 data-nosnippet>257</a>        <span class="self">Self</span>(s)
+<a href=#258 id=258 data-nosnippet>258</a>    }
+<a href=#259 id=259 data-nosnippet>259</a>}
+<a href=#260 id=260 data-nosnippet>260</a>
+<a href=#261 id=261 data-nosnippet>261</a><span class="kw">impl </span>From&lt;<span class="kw-2">&amp;</span>str&gt; <span class="kw">for </span>FixedUtf16String {
+<a href=#262 id=262 data-nosnippet>262</a>    <span class="kw">fn </span>from(s: <span class="kw-2">&amp;</span>str) -&gt; <span class="self">Self </span>{
+<a href=#263 id=263 data-nosnippet>263</a>        <span class="self">Self</span>(s.to_string())
+<a href=#264 id=264 data-nosnippet>264</a>    }
+<a href=#265 id=265 data-nosnippet>265</a>}
+<a href=#266 id=266 data-nosnippet>266</a>
+<a href=#267 id=267 data-nosnippet>267</a><span class="kw">impl </span>std::ops::Deref <span class="kw">for </span>FixedUtf16String {
+<a href=#268 id=268 data-nosnippet>268</a>    <span class="kw">type </span>Target = str;
+<a href=#269 id=269 data-nosnippet>269</a>
+<a href=#270 id=270 data-nosnippet>270</a>    <span class="kw">fn </span>deref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>str {
+<a href=#271 id=271 data-nosnippet>271</a>        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0
+<a href=#272 id=272 data-nosnippet>272</a>    </span>}
+<a href=#273 id=273 data-nosnippet>273</a>}
+<a href=#274 id=274 data-nosnippet>274</a>
+<a href=#275 id=275 data-nosnippet>275</a><span class="kw">impl </span>BinRead <span class="kw">for </span>FixedUtf16String {
+<a href=#276 id=276 data-nosnippet>276</a>    <span class="kw">type </span>Args&lt;<span class="lifetime">'a</span>&gt; = (u32,);
+<a href=#277 id=277 data-nosnippet>277</a>
+<a href=#278 id=278 data-nosnippet>278</a>    <span class="kw">fn </span>read_options&lt;R: Read + Seek&gt;(
+<a href=#279 id=279 data-nosnippet>279</a>        reader: <span class="kw-2">&amp;mut </span>R,
+<a href=#280 id=280 data-nosnippet>280</a>        _endian: Endian,
+<a href=#281 id=281 data-nosnippet>281</a>        (len_comment,): <span class="self">Self</span>::Args&lt;<span class="lifetime">'_</span>&gt;,
+<a href=#282 id=282 data-nosnippet>282</a>    ) -&gt; BinResult&lt;<span class="self">Self</span>&gt; {
+<a href=#283 id=283 data-nosnippet>283</a>        <span class="kw">let </span>len = len_comment <span class="kw">as </span>usize;
+<a href=#284 id=284 data-nosnippet>284</a>        <span class="kw">if </span>len == <span class="number">0 </span>{
+<a href=#285 id=285 data-nosnippet>285</a>            <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="self">Self</span>(String::new()));
+<a href=#286 id=286 data-nosnippet>286</a>        }
+<a href=#287 id=287 data-nosnippet>287</a>        <span class="kw">let </span><span class="kw-2">mut </span>bytes = <span class="macro">vec!</span>[<span class="number">0u8</span>; len];
+<a href=#288 id=288 data-nosnippet>288</a>        reader.read_exact(<span class="kw-2">&amp;mut </span>bytes)<span class="question-mark">?</span>;
+<a href=#289 id=289 data-nosnippet>289</a>        <span class="kw">let </span>code_units: Vec&lt;u16&gt; = bytes
+<a href=#290 id=290 data-nosnippet>290</a>            .chunks_exact(<span class="number">2</span>)
+<a href=#291 id=291 data-nosnippet>291</a>            .map(|c| u16::from_be_bytes([c[<span class="number">0</span>], c[<span class="number">1</span>]]))
+<a href=#292 id=292 data-nosnippet>292</a>            .collect();
+<a href=#293 id=293 data-nosnippet>293</a>        <span class="kw">let </span>s = String::from_utf16(<span class="kw-2">&amp;</span>code_units)
+<a href=#294 id=294 data-nosnippet>294</a>            .map(|s| s.trim_end_matches(<span class="string">'\0'</span>).to_string())
+<a href=#295 id=295 data-nosnippet>295</a>            .map_err(|e| binrw::Error::Custom {
+<a href=#296 id=296 data-nosnippet>296</a>                pos: reader.stream_position().unwrap_or(<span class="number">0</span>),
+<a href=#297 id=297 data-nosnippet>297</a>                err: Box::new(e),
+<a href=#298 id=298 data-nosnippet>298</a>            })<span class="question-mark">?</span>;
+<a href=#299 id=299 data-nosnippet>299</a>        <span class="prelude-val">Ok</span>(<span class="self">Self</span>(s))
+<a href=#300 id=300 data-nosnippet>300</a>    }
+<a href=#301 id=301 data-nosnippet>301</a>}
+<a href=#302 id=302 data-nosnippet>302</a>
+<a href=#303 id=303 data-nosnippet>303</a><span class="kw">impl </span>BinWrite <span class="kw">for </span>FixedUtf16String {
+<a href=#304 id=304 data-nosnippet>304</a>    <span class="kw">type </span>Args&lt;<span class="lifetime">'a</span>&gt; = ();
+<a href=#305 id=305 data-nosnippet>305</a>
+<a href=#306 id=306 data-nosnippet>306</a>    <span class="kw">fn </span>write_options&lt;W: Write + Seek&gt;(
+<a href=#307 id=307 data-nosnippet>307</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
+<a href=#308 id=308 data-nosnippet>308</a>        writer: <span class="kw-2">&amp;mut </span>W,
+<a href=#309 id=309 data-nosnippet>309</a>        _endian: Endian,
+<a href=#310 id=310 data-nosnippet>310</a>        _args: <span class="self">Self</span>::Args&lt;<span class="lifetime">'_</span>&gt;,
+<a href=#311 id=311 data-nosnippet>311</a>    ) -&gt; BinResult&lt;()&gt; {
+<a href=#312 id=312 data-nosnippet>312</a>        <span class="kw">let </span><span class="kw-2">mut </span>bytes: Vec&lt;u8&gt; = Vec::new();
+<a href=#313 id=313 data-nosnippet>313</a>        <span class="kw">for </span>cu <span class="kw">in </span><span class="self">self</span>.<span class="number">0</span>.encode_utf16() {
+<a href=#314 id=314 data-nosnippet>314</a>            bytes.extend_from_slice(<span class="kw-2">&amp;</span>cu.to_be_bytes());
+<a href=#315 id=315 data-nosnippet>315</a>        }
+<a href=#316 id=316 data-nosnippet>316</a>        bytes.extend_from_slice(<span class="kw-2">&amp;</span>[<span class="number">0</span>, <span class="number">0</span>]);
+<a href=#317 id=317 data-nosnippet>317</a>        writer.write_all(<span class="kw-2">&amp;</span>bytes)<span class="question-mark">?</span>;
+<a href=#318 id=318 data-nosnippet>318</a>        <span class="prelude-val">Ok</span>(())
+<a href=#319 id=319 data-nosnippet>319</a>    }
+<a href=#320 id=320 data-nosnippet>320</a>}
+<a href=#321 id=321 data-nosnippet>321</a>
+<a href=#322 id=322 data-nosnippet>322</a><span class="doccomment">/// A memory or hot cue (or loop).
+<a href=#323 id=323 data-nosnippet>323</a></span><span class="attr">#[binrw]
+<a href=#324 id=324 data-nosnippet>324</a>#[derive(Debug, PartialEq, Eq)]
+<a href=#325 id=325 data-nosnippet>325</a>#[brw(big)]
+<a href=#326 id=326 data-nosnippet>326</a></span><span class="kw">pub struct </span>ExtendedCue {
+<a href=#327 id=327 data-nosnippet>327</a>    <span class="doccomment">/// Cue entry header.
+<a href=#328 id=328 data-nosnippet>328</a>    </span><span class="kw">pub </span>header: Header,
+<a href=#329 id=329 data-nosnippet>329</a>    <span class="doccomment">/// Hot cue number.
+<a href=#330 id=330 data-nosnippet>330</a>    ///
+<a href=#331 id=331 data-nosnippet>331</a>    /// | Value | Hot cue        |
+<a href=#332 id=332 data-nosnippet>332</a>    /// | ----- | -------------- |
+<a href=#333 id=333 data-nosnippet>333</a>    /// |     0 | Not a hot cue. |
+<a href=#334 id=334 data-nosnippet>334</a>    /// |     1 | A              |
+<a href=#335 id=335 data-nosnippet>335</a>    /// |     2 | B              |
+<a href=#336 id=336 data-nosnippet>336</a>    /// | ...   | ...            |
+<a href=#337 id=337 data-nosnippet>337</a>    </span><span class="kw">pub </span>hot_cue: u32,
+<a href=#338 id=338 data-nosnippet>338</a>    <span class="doccomment">/// Type of this cue (`2` if this cue is a loop).
+<a href=#339 id=339 data-nosnippet>339</a>    </span><span class="kw">pub </span>cue_type: CueType,
+<a href=#340 id=340 data-nosnippet>340</a>    <span class="doccomment">/// Unknown field. Seems always have the value `0`.
+<a href=#341 id=341 data-nosnippet>341</a>    </span>unknown1: u8,
+<a href=#342 id=342 data-nosnippet>342</a>    <span class="doccomment">/// Unknown field. Seems always have the value `0x03E8` (= decimal 1000).
+<a href=#343 id=343 data-nosnippet>343</a>    </span>unknown2: u16,
+<a href=#344 id=344 data-nosnippet>344</a>    <span class="doccomment">/// Time in milliseconds after which this cue would occur (at normal playback speed).
+<a href=#345 id=345 data-nosnippet>345</a>    </span><span class="kw">pub </span>time: u32,
+<a href=#346 id=346 data-nosnippet>346</a>    <span class="doccomment">/// Time in milliseconds after which this the loop would jump back to `time` (at normal playback speed).
+<a href=#347 id=347 data-nosnippet>347</a>    </span><span class="kw">pub </span>loop_time: u32,
+<a href=#348 id=348 data-nosnippet>348</a>    <span class="doccomment">/// Color assigned to this cue.
+<a href=#349 id=349 data-nosnippet>349</a>    ///
+<a href=#350 id=350 data-nosnippet>350</a>    /// Only used by memory cues, hot cues use a different value (see below).
+<a href=#351 id=351 data-nosnippet>351</a>    </span><span class="kw">pub </span>color: ColorIndex,
+<a href=#352 id=352 data-nosnippet>352</a>    <span class="doccomment">/// Unknown field.
+<a href=#353 id=353 data-nosnippet>353</a>    </span>unknown3: u8,
+<a href=#354 id=354 data-nosnippet>354</a>    <span class="doccomment">/// Unknown field.
+<a href=#355 id=355 data-nosnippet>355</a>    </span>unknown4: u16,
+<a href=#356 id=356 data-nosnippet>356</a>    <span class="doccomment">/// Unknown field.
+<a href=#357 id=357 data-nosnippet>357</a>    </span>unknown5: u32,
+<a href=#358 id=358 data-nosnippet>358</a>    <span class="doccomment">/// Represents the loop size numerator (if this is a quantized loop).
+<a href=#359 id=359 data-nosnippet>359</a>    </span><span class="kw">pub </span>loop_numerator: u16,
+<a href=#360 id=360 data-nosnippet>360</a>    <span class="doccomment">/// Represents the loop size denominator (if this is a quantized loop).
+<a href=#361 id=361 data-nosnippet>361</a>    </span><span class="kw">pub </span>loop_denominator: u16,
+<a href=#362 id=362 data-nosnippet>362</a>    <span class="doccomment">/// Length of the comment string in bytes (including trailing NUL).
+<a href=#363 id=363 data-nosnippet>363</a>    </span><span class="attr">#[br(temp)]
+<a href=#364 id=364 data-nosnippet>364</a>    #[bw(calc = comment.byte_len())]
+<a href=#365 id=365 data-nosnippet>365</a>    </span>len_comment: u32,
+<a href=#366 id=366 data-nosnippet>366</a>    <span class="doccomment">/// An UTF-16BE encoded string, with a trailing NUL (`0x0000`).
+<a href=#367 id=367 data-nosnippet>367</a>    ///
+<a href=#368 id=368 data-nosnippet>368</a>    /// Parsed as a fixed-length field of `len_comment` bytes (per the Kaitai spec).
+<a href=#369 id=369 data-nosnippet>369</a>    </span><span class="attr">#[br(args(len_comment))]
+<a href=#370 id=370 data-nosnippet>370</a>    </span><span class="kw">pub </span>comment: FixedUtf16String,
+<a href=#371 id=371 data-nosnippet>371</a>    <span class="doccomment">/// Rekordbox hotcue color index.
+<a href=#372 id=372 data-nosnippet>372</a>    ///
+<a href=#373 id=373 data-nosnippet>373</a>    /// | Value  | Color                       |
+<a href=#374 id=374 data-nosnippet>374</a>    /// | ------ | --------------------------- |
+<a href=#375 id=375 data-nosnippet>375</a>    /// | `0x00` | None (Green on older CDJs). |
+<a href=#376 id=376 data-nosnippet>376</a>    /// | `0x01` | `#305aff`                   |
+<a href=#377 id=377 data-nosnippet>377</a>    /// | `0x02` | `#5073ff`                   |
+<a href=#378 id=378 data-nosnippet>378</a>    /// | `0x03` | `#508cff`                   |
+<a href=#379 id=379 data-nosnippet>379</a>    /// | `0x04` | `#50a0ff`                   |
+<a href=#380 id=380 data-nosnippet>380</a>    /// | `0x05` | `#50b4ff`                   |
+<a href=#381 id=381 data-nosnippet>381</a>    /// | `0x06` | `#50b0f2`                   |
+<a href=#382 id=382 data-nosnippet>382</a>    /// | `0x07` | `#50aee8`                   |
+<a href=#383 id=383 data-nosnippet>383</a>    /// | `0x08` | `#45acdb`                   |
+<a href=#384 id=384 data-nosnippet>384</a>    /// | `0x09` | `#00e0ff`                   |
+<a href=#385 id=385 data-nosnippet>385</a>    /// | `0x0a` | `#19daf0`                   |
+<a href=#386 id=386 data-nosnippet>386</a>    /// | `0x0b` | `#32d2e6`                   |
+<a href=#387 id=387 data-nosnippet>387</a>    /// | `0x0c` | `#21b4b9`                   |
+<a href=#388 id=388 data-nosnippet>388</a>    /// | `0x0d` | `#20aaa0`                   |
+<a href=#389 id=389 data-nosnippet>389</a>    /// | `0x0e` | `#1fa392`                   |
+<a href=#390 id=390 data-nosnippet>390</a>    /// | `0x0f` | `#19a08c`                   |
+<a href=#391 id=391 data-nosnippet>391</a>    /// | `0x10` | `#14a584`                   |
+<a href=#392 id=392 data-nosnippet>392</a>    /// | `0x11` | `#14aa7d`                   |
+<a href=#393 id=393 data-nosnippet>393</a>    /// | `0x12` | `#10b176`                   |
+<a href=#394 id=394 data-nosnippet>394</a>    /// | `0x13` | `#30d26e`                   |
+<a href=#395 id=395 data-nosnippet>395</a>    /// | `0x14` | `#37de5a`                   |
+<a href=#396 id=396 data-nosnippet>396</a>    /// | `0x15` | `#3ceb50`                   |
+<a href=#397 id=397 data-nosnippet>397</a>    /// | `0x16` | `#28e214`                   |
+<a href=#398 id=398 data-nosnippet>398</a>    /// | `0x17` | `#7dc13d`                   |
+<a href=#399 id=399 data-nosnippet>399</a>    /// | `0x18` | `#8cc832`                   |
+<a href=#400 id=400 data-nosnippet>400</a>    /// | `0x19` | `#9bd723`                   |
+<a href=#401 id=401 data-nosnippet>401</a>    /// | `0x1a` | `#a5e116`                   |
+<a href=#402 id=402 data-nosnippet>402</a>    /// | `0x1b` | `#a5dc0a`                   |
+<a href=#403 id=403 data-nosnippet>403</a>    /// | `0x1c` | `#aad208`                   |
+<a href=#404 id=404 data-nosnippet>404</a>    /// | `0x1d` | `#b4c805`                   |
+<a href=#405 id=405 data-nosnippet>405</a>    /// | `0x1e` | `#b4be04`                   |
+<a href=#406 id=406 data-nosnippet>406</a>    /// | `0x1f` | `#bab404`                   |
+<a href=#407 id=407 data-nosnippet>407</a>    /// | `0x20` | `#c3af04`                   |
+<a href=#408 id=408 data-nosnippet>408</a>    /// | `0x21` | `#e1aa00`                   |
+<a href=#409 id=409 data-nosnippet>409</a>    /// | `0x22` | `#ffa000`                   |
+<a href=#410 id=410 data-nosnippet>410</a>    /// | `0x23` | `#ff9600`                   |
+<a href=#411 id=411 data-nosnippet>411</a>    /// | `0x24` | `#ff8c00`                   |
+<a href=#412 id=412 data-nosnippet>412</a>    /// | `0x25` | `#ff7500`                   |
+<a href=#413 id=413 data-nosnippet>413</a>    /// | `0x26` | `#e0641b`                   |
+<a href=#414 id=414 data-nosnippet>414</a>    /// | `0x27` | `#e0461e`                   |
+<a href=#415 id=415 data-nosnippet>415</a>    /// | `0x28` | `#e0301e`                   |
+<a href=#416 id=416 data-nosnippet>416</a>    /// | `0x29` | `#e02823`                   |
+<a href=#417 id=417 data-nosnippet>417</a>    /// | `0x2a` | `#e62828`                   |
+<a href=#418 id=418 data-nosnippet>418</a>    /// | `0x2b` | `#ff376f`                   |
+<a href=#419 id=419 data-nosnippet>419</a>    /// | `0x2c` | `#ff2d6f`                   |
+<a href=#420 id=420 data-nosnippet>420</a>    /// | `0x2d` | `#ff127b`                   |
+<a href=#421 id=421 data-nosnippet>421</a>    /// | `0x2e` | `#f51e8c`                   |
+<a href=#422 id=422 data-nosnippet>422</a>    /// | `0x2f` | `#eb2da0`                   |
+<a href=#423 id=423 data-nosnippet>423</a>    /// | `0x30` | `#e637b4`                   |
+<a href=#424 id=424 data-nosnippet>424</a>    /// | `0x31` | `#de44cf`                   |
+<a href=#425 id=425 data-nosnippet>425</a>    /// | `0x32` | `#de448d`                   |
+<a href=#426 id=426 data-nosnippet>426</a>    /// | `0x33` | `#e630b4`                   |
+<a href=#427 id=427 data-nosnippet>427</a>    /// | `0x34` | `#e619dc`                   |
+<a href=#428 id=428 data-nosnippet>428</a>    /// | `0x35` | `#e600ff`                   |
+<a href=#429 id=429 data-nosnippet>429</a>    /// | `0x36` | `#dc00ff`                   |
+<a href=#430 id=430 data-nosnippet>430</a>    /// | `0x37` | `#cc00ff`                   |
+<a href=#431 id=431 data-nosnippet>431</a>    /// | `0x38` | `#b432ff`                   |
+<a href=#432 id=432 data-nosnippet>432</a>    /// | `0x39` | `#b93cff`                   |
+<a href=#433 id=433 data-nosnippet>433</a>    /// | `0x3a` | `#c542ff`                   |
+<a href=#434 id=434 data-nosnippet>434</a>    /// | `0x3b` | `#aa5aff`                   |
+<a href=#435 id=435 data-nosnippet>435</a>    /// | `0x3c` | `#aa72ff`                   |
+<a href=#436 id=436 data-nosnippet>436</a>    /// | `0x3d` | `#8272ff`                   |
+<a href=#437 id=437 data-nosnippet>437</a>    /// | `0x3e` | `#6473ff`                   |
+<a href=#438 id=438 data-nosnippet>438</a>    </span><span class="kw">pub </span>hot_cue_color_index: u8,
+<a href=#439 id=439 data-nosnippet>439</a>    <span class="doccomment">/// Rekordbox hot cue color RGB value.
+<a href=#440 id=440 data-nosnippet>440</a>    ///
+<a href=#441 id=441 data-nosnippet>441</a>    /// This color is similar but not identical to the color that Rekordbox displays, and possibly
+<a href=#442 id=442 data-nosnippet>442</a>    /// used to illuminate the RGB LEDs in a player that has loaded the cue. If not color is
+<a href=#443 id=443 data-nosnippet>443</a>    /// associated with this hot cue, the value is `(0, 0, 0)`.
+<a href=#444 id=444 data-nosnippet>444</a>    </span><span class="kw">pub </span>hot_cue_color_rgb: (u8, u8, u8),
+<a href=#445 id=445 data-nosnippet>445</a>    <span class="doccomment">/// Unknown field.
+<a href=#446 id=446 data-nosnippet>446</a>    </span>unknown6: u32,
+<a href=#447 id=447 data-nosnippet>447</a>    <span class="doccomment">/// Unknown field.
+<a href=#448 id=448 data-nosnippet>448</a>    </span>unknown7: u32,
+<a href=#449 id=449 data-nosnippet>449</a>    <span class="doccomment">/// Unknown field.
+<a href=#450 id=450 data-nosnippet>450</a>    </span>unknown8: u32,
+<a href=#451 id=451 data-nosnippet>451</a>    <span class="doccomment">/// Unknown field.
+<a href=#452 id=452 data-nosnippet>452</a>    </span>unknown9: u32,
+<a href=#453 id=453 data-nosnippet>453</a>    <span class="doccomment">/// Unknown field.
+<a href=#454 id=454 data-nosnippet>454</a>    </span>unknown10: u32,
+<a href=#455 id=455 data-nosnippet>455</a>    <span class="doccomment">/// Trailing unknown bytes after `unknown10` to the end of the entry.
+<a href=#456 id=456 data-nosnippet>456</a>    ///
+<a href=#457 id=457 data-nosnippet>457</a>    /// Per the Kaitai spec, the entry may contain extra data beyond the known fields;
+<a href=#458 id=458 data-nosnippet>458</a>    /// any remaining bytes are captured here.
+<a href=#459 id=459 data-nosnippet>459</a>    </span><span class="attr">#[br(count = header.total_size.saturating_sub(<span class="number">68 </span>+ len_comment) <span class="kw">as </span>usize)]
+<a href=#460 id=460 data-nosnippet>460</a>    </span><span class="kw">pub </span>trailing: Vec&lt;u8&gt;,
+<a href=#461 id=461 data-nosnippet>461</a>}
+<a href=#462 id=462 data-nosnippet>462</a>
+<a href=#463 id=463 data-nosnippet>463</a><span class="kw">impl </span>Default <span class="kw">for </span>WaveformPreviewColumn {
+<a href=#464 id=464 data-nosnippet>464</a>    <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
+<a href=#465 id=465 data-nosnippet>465</a>        <span class="self">Self</span>::new()
+<a href=#466 id=466 data-nosnippet>466</a>    }
+<a href=#467 id=467 data-nosnippet>467</a>}
+<a href=#468 id=468 data-nosnippet>468</a>
+<a href=#469 id=469 data-nosnippet>469</a><span class="doccomment">/// Single Column value in a Waveform Preview.
+<a href=#470 id=470 data-nosnippet>470</a>///
+<a href=#471 id=471 data-nosnippet>471</a>/// See these the documentation for details:
+<a href=#472 id=472 data-nosnippet>472</a>/// &lt;https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#waveform-preview-tag&gt;
+<a href=#473 id=473 data-nosnippet>473</a></span><span class="attr">#[bitfield]
+<a href=#474 id=474 data-nosnippet>474</a>#[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy)]
+<a href=#475 id=475 data-nosnippet>475</a>#[br(big, map = <span class="self">Self</span>::from_bytes)]
+<a href=#476 id=476 data-nosnippet>476</a>#[bw(big, map = |x: <span class="kw-2">&amp;</span>WaveformPreviewColumn| x.into_bytes())]
+<a href=#477 id=477 data-nosnippet>477</a></span><span class="kw">pub struct </span>WaveformPreviewColumn {
+<a href=#478 id=478 data-nosnippet>478</a>    <span class="doccomment">/// Height of the Column in pixels.
+<a href=#479 id=479 data-nosnippet>479</a>    </span><span class="kw">pub </span>height: B5,
+<a href=#480 id=480 data-nosnippet>480</a>    <span class="doccomment">/// Shade of white.
+<a href=#481 id=481 data-nosnippet>481</a>    </span><span class="kw">pub </span>whiteness: B3,
+<a href=#482 id=482 data-nosnippet>482</a>}
+<a href=#483 id=483 data-nosnippet>483</a>
+<a href=#484 id=484 data-nosnippet>484</a><span class="kw">impl </span>Default <span class="kw">for </span>TinyWaveformPreviewColumn {
+<a href=#485 id=485 data-nosnippet>485</a>    <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
+<a href=#486 id=486 data-nosnippet>486</a>        <span class="self">Self</span>::new()
+<a href=#487 id=487 data-nosnippet>487</a>    }
+<a href=#488 id=488 data-nosnippet>488</a>}
+<a href=#489 id=489 data-nosnippet>489</a>
+<a href=#490 id=490 data-nosnippet>490</a><span class="doccomment">/// Single Column value in a Tiny Waveform Preview.
+<a href=#491 id=491 data-nosnippet>491</a>///
+<a href=#492 id=492 data-nosnippet>492</a>/// See these the documentation for details:
+<a href=#493 id=493 data-nosnippet>493</a>/// &lt;https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#tiny-preview&gt;
+<a href=#494 id=494 data-nosnippet>494</a></span><span class="attr">#[bitfield]
+<a href=#495 id=495 data-nosnippet>495</a>#[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy)]
+<a href=#496 id=496 data-nosnippet>496</a>#[br(big, map = <span class="self">Self</span>::from_bytes)]
+<a href=#497 id=497 data-nosnippet>497</a>#[bw(big, map = |x: <span class="kw-2">&amp;</span>TinyWaveformPreviewColumn| x.into_bytes())]
+<a href=#498 id=498 data-nosnippet>498</a></span><span class="kw">pub struct </span>TinyWaveformPreviewColumn {
+<a href=#499 id=499 data-nosnippet>499</a>    <span class="attr">#[allow(dead_code)]
+<a href=#500 id=500 data-nosnippet>500</a>    </span>unused: B4,
+<a href=#501 id=501 data-nosnippet>501</a>    <span class="doccomment">/// Height of the Column in pixels.
+<a href=#502 id=502 data-nosnippet>502</a>    </span><span class="kw">pub </span>height: B4,
+<a href=#503 id=503 data-nosnippet>503</a>}
+<a href=#504 id=504 data-nosnippet>504</a>
+<a href=#505 id=505 data-nosnippet>505</a><span class="doccomment">/// Single Column value in a Waveform Color Preview.
+<a href=#506 id=506 data-nosnippet>506</a>///
+<a href=#507 id=507 data-nosnippet>507</a>/// See these the documentation for details:
+<a href=#508 id=508 data-nosnippet>508</a>/// &lt;https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#color-preview&gt;
+<a href=#509 id=509 data-nosnippet>509</a></span><span class="attr">#[binrw]
+<a href=#510 id=510 data-nosnippet>510</a>#[derive(Debug, PartialEq, Eq)]
+<a href=#511 id=511 data-nosnippet>511</a>#[brw(big)]
+<a href=#512 id=512 data-nosnippet>512</a></span><span class="kw">pub struct </span>WaveformColorPreviewColumn {
+<a href=#513 id=513 data-nosnippet>513</a>    <span class="doccomment">/// Unknown field (somehow encodes the "whiteness").
+<a href=#514 id=514 data-nosnippet>514</a>    </span>unknown1: u8,
+<a href=#515 id=515 data-nosnippet>515</a>    <span class="doccomment">/// Unknown field (somehow encodes the "whiteness").
+<a href=#516 id=516 data-nosnippet>516</a>    </span>unknown2: u8,
+<a href=#517 id=517 data-nosnippet>517</a>    <span class="doccomment">/// Sound energy in the bottom half of the frequency range (&lt;10 KHz).
+<a href=#518 id=518 data-nosnippet>518</a>    </span><span class="kw">pub </span>energy_bottom_half_freq: u8,
+<a href=#519 id=519 data-nosnippet>519</a>    <span class="doccomment">/// Sound energy in the bottom third of the frequency range.
+<a href=#520 id=520 data-nosnippet>520</a>    </span><span class="kw">pub </span>energy_bottom_third_freq: u8,
+<a href=#521 id=521 data-nosnippet>521</a>    <span class="doccomment">/// Sound energy in the mid of the frequency range.
+<a href=#522 id=522 data-nosnippet>522</a>    </span><span class="kw">pub </span>energy_mid_third_freq: u8,
+<a href=#523 id=523 data-nosnippet>523</a>    <span class="doccomment">/// Sound energy in the top of the frequency range.
+<a href=#524 id=524 data-nosnippet>524</a>    </span><span class="kw">pub </span>energy_top_third_freq: u8,
+<a href=#525 id=525 data-nosnippet>525</a>}
+<a href=#526 id=526 data-nosnippet>526</a>
+<a href=#527 id=527 data-nosnippet>527</a><span class="kw">impl </span>Default <span class="kw">for </span>WaveformColorDetailColumn {
+<a href=#528 id=528 data-nosnippet>528</a>    <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
+<a href=#529 id=529 data-nosnippet>529</a>        <span class="self">Self</span>::new()
+<a href=#530 id=530 data-nosnippet>530</a>    }
+<a href=#531 id=531 data-nosnippet>531</a>}
+<a href=#532 id=532 data-nosnippet>532</a>
+<a href=#533 id=533 data-nosnippet>533</a><span class="doccomment">/// Single Column value in a Waveform Color Detail section.
+<a href=#534 id=534 data-nosnippet>534</a>///
+<a href=#535 id=535 data-nosnippet>535</a>/// See these the documentation for details:
+<a href=#536 id=536 data-nosnippet>536</a>/// &lt;https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#color-detail&gt;
+<a href=#537 id=537 data-nosnippet>537</a></span><span class="attr">#[bitfield]
+<a href=#538 id=538 data-nosnippet>538</a>#[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy)]
+<a href=#539 id=539 data-nosnippet>539</a>#[br(map = <span class="self">Self</span>::from_bytes)]
+<a href=#540 id=540 data-nosnippet>540</a>#[bw(big, map = |x: <span class="kw-2">&amp;</span>WaveformColorDetailColumn| x.into_bytes())]
+<a href=#541 id=541 data-nosnippet>541</a></span><span class="kw">pub struct </span>WaveformColorDetailColumn {
+<a href=#542 id=542 data-nosnippet>542</a>    <span class="doccomment">/// Red color component.
+<a href=#543 id=543 data-nosnippet>543</a>    </span><span class="kw">pub </span>red: B3,
+<a href=#544 id=544 data-nosnippet>544</a>    <span class="doccomment">/// Green color component.
+<a href=#545 id=545 data-nosnippet>545</a>    </span><span class="kw">pub </span>green: B3,
+<a href=#546 id=546 data-nosnippet>546</a>    <span class="doccomment">/// Blue color component.
+<a href=#547 id=547 data-nosnippet>547</a>    </span><span class="kw">pub </span>blue: B3,
+<a href=#548 id=548 data-nosnippet>548</a>    <span class="doccomment">/// Height of the column.
+<a href=#549 id=549 data-nosnippet>549</a>    </span><span class="kw">pub </span>height: B5,
+<a href=#550 id=550 data-nosnippet>550</a>    <span class="doccomment">/// Unknown field
 <a href=#551 id=551 data-nosnippet>551</a>    </span><span class="attr">#[allow(dead_code)]
-<a href=#552 id=552 data-nosnippet>552</a>    </span>unknown1: u8,
-<a href=#553 id=553 data-nosnippet>553</a>    <span class="doccomment">/// Flag byte used for numbered variations (in case of the `High` mood).
-<a href=#554 id=554 data-nosnippet>554</a>    ///
-<a href=#555 id=555 data-nosnippet>555</a>    /// See the documentation for details:
-<a href=#556 id=556 data-nosnippet>556</a>    /// &lt;https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#high-phrase-variants&gt;
-<a href=#557 id=557 data-nosnippet>557</a>    </span><span class="kw">pub </span>k1: u8,
-<a href=#558 id=558 data-nosnippet>558</a>    <span class="doccomment">/// Unknown field.
-<a href=#559 id=559 data-nosnippet>559</a>    </span><span class="attr">#[allow(dead_code)]
-<a href=#560 id=560 data-nosnippet>560</a>    </span>unknown2: u8,
-<a href=#561 id=561 data-nosnippet>561</a>    <span class="doccomment">/// Flag byte used for numbered variations (in case of the `High` mood).
-<a href=#562 id=562 data-nosnippet>562</a>    ///
-<a href=#563 id=563 data-nosnippet>563</a>    /// See the documentation for details:
-<a href=#564 id=564 data-nosnippet>564</a>    /// &lt;https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#high-phrase-variants&gt;
-<a href=#565 id=565 data-nosnippet>565</a>    </span><span class="kw">pub </span>k2: u8,
-<a href=#566 id=566 data-nosnippet>566</a>    <span class="doccomment">/// Unknown field.
-<a href=#567 id=567 data-nosnippet>567</a>    </span><span class="attr">#[allow(dead_code)]
-<a href=#568 id=568 data-nosnippet>568</a>    </span>unknown3: u8,
-<a href=#569 id=569 data-nosnippet>569</a>    <span class="doccomment">/// Flag that determined if only `beat2` is used (0), or if `beat2`, `beat3` and `beat4` are
-<a href=#570 id=570 data-nosnippet>570</a>    /// used (1).
-<a href=#571 id=571 data-nosnippet>571</a>    </span><span class="kw">pub </span>b: u8,
-<a href=#572 id=572 data-nosnippet>572</a>    <span class="doccomment">/// Beat number.
-<a href=#573 id=573 data-nosnippet>573</a>    </span><span class="kw">pub </span>beat2: u16,
-<a href=#574 id=574 data-nosnippet>574</a>    <span class="doccomment">/// Beat number.
-<a href=#575 id=575 data-nosnippet>575</a>    </span><span class="kw">pub </span>beat3: u16,
-<a href=#576 id=576 data-nosnippet>576</a>    <span class="doccomment">/// Beat number.
-<a href=#577 id=577 data-nosnippet>577</a>    </span><span class="kw">pub </span>beat4: u16,
-<a href=#578 id=578 data-nosnippet>578</a>    <span class="doccomment">/// Unknown field.
-<a href=#579 id=579 data-nosnippet>579</a>    </span><span class="attr">#[allow(dead_code)]
-<a href=#580 id=580 data-nosnippet>580</a>    </span>unknown4: u8,
-<a href=#581 id=581 data-nosnippet>581</a>    <span class="doccomment">/// Flag byte used for numbered variations (in case of the `High` mood).
-<a href=#582 id=582 data-nosnippet>582</a>    ///
-<a href=#583 id=583 data-nosnippet>583</a>    /// See the documentation for details:
-<a href=#584 id=584 data-nosnippet>584</a>    /// &lt;https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#high-phrase-variants&gt;
-<a href=#585 id=585 data-nosnippet>585</a>    </span><span class="kw">pub </span>k3: u8,
-<a href=#586 id=586 data-nosnippet>586</a>    <span class="doccomment">/// Unknown field.
-<a href=#587 id=587 data-nosnippet>587</a>    </span><span class="attr">#[allow(dead_code)]
-<a href=#588 id=588 data-nosnippet>588</a>    </span>unknown5: u8,
-<a href=#589 id=589 data-nosnippet>589</a>    <span class="doccomment">/// Indicates if there are fill (non-phrase) beats at the end of the phrase.
-<a href=#590 id=590 data-nosnippet>590</a>    </span><span class="kw">pub </span>fill: u8,
-<a href=#591 id=591 data-nosnippet>591</a>    <span class="doccomment">/// Beat number where the fill begins (if `fill` is non-zero).
-<a href=#592 id=592 data-nosnippet>592</a>    </span><span class="kw">pub </span>beat_fill: u16,
-<a href=#593 id=593 data-nosnippet>593</a>}
-<a href=#594 id=594 data-nosnippet>594</a>
-<a href=#595 id=595 data-nosnippet>595</a><span class="doccomment">/// Section content which differs depending on the section type.
-<a href=#596 id=596 data-nosnippet>596</a></span><span class="attr">#[binrw]
-<a href=#597 id=597 data-nosnippet>597</a>#[derive(Debug, PartialEq, Eq)]
-<a href=#598 id=598 data-nosnippet>598</a>#[br(import(header: Header))]
-<a href=#599 id=599 data-nosnippet>599</a></span><span class="kw">pub enum </span>Content {
-<a href=#600 id=600 data-nosnippet>600</a>    <span class="doccomment">/// All beats in the track.
-<a href=#601 id=601 data-nosnippet>601</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::BeatGrid))]
-<a href=#602 id=602 data-nosnippet>602</a>    </span>BeatGrid(BeatGrid),
-<a href=#603 id=603 data-nosnippet>603</a>    <span class="doccomment">/// List of cue points or loops (either hot cues or memory cues).
-<a href=#604 id=604 data-nosnippet>604</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::CueList))]
-<a href=#605 id=605 data-nosnippet>605</a>    </span>CueList(CueList),
-<a href=#606 id=606 data-nosnippet>606</a>    <span class="doccomment">/// List of cue points or loops (either hot cues or memory cues, extended version).
-<a href=#607 id=607 data-nosnippet>607</a>    ///
-<a href=#608 id=608 data-nosnippet>608</a>    /// Variation of the original `CueList` that also adds support for more metadata such as
-<a href=#609 id=609 data-nosnippet>609</a>    /// comments and colors. Introduces with the Nexus 2 series players.
-<a href=#610 id=610 data-nosnippet>610</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::ExtendedCueList))]
-<a href=#611 id=611 data-nosnippet>611</a>    </span>ExtendedCueList(ExtendedCueList),
-<a href=#612 id=612 data-nosnippet>612</a>    <span class="doccomment">/// Path of the audio file that this analysis belongs to.
-<a href=#613 id=613 data-nosnippet>613</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::Path))]
-<a href=#614 id=614 data-nosnippet>614</a>    </span>Path(<span class="attr">#[br(args(header.clone()))] </span>Path),
-<a href=#615 id=615 data-nosnippet>615</a>    <span class="doccomment">/// Seek information for variable bitrate files (probably).
-<a href=#616 id=616 data-nosnippet>616</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::VBR))]
-<a href=#617 id=617 data-nosnippet>617</a>    </span>VBR(<span class="attr">#[br(args(header.clone()))] </span>VBR),
-<a href=#618 id=618 data-nosnippet>618</a>    <span class="doccomment">/// Fixed-width monochrome preview of the track waveform.
-<a href=#619 id=619 data-nosnippet>619</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::WaveformPreview))]
-<a href=#620 id=620 data-nosnippet>620</a>    </span>WaveformPreview(<span class="attr">#[br(args(header.clone()))] </span>WaveformPreview),
-<a href=#621 id=621 data-nosnippet>621</a>    <span class="doccomment">/// Smaller version of the fixed-width monochrome preview of the track waveform.
-<a href=#622 id=622 data-nosnippet>622</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::TinyWaveformPreview))]
-<a href=#623 id=623 data-nosnippet>623</a>    </span>TinyWaveformPreview(<span class="attr">#[br(args(header.clone()))] </span>TinyWaveformPreview),
-<a href=#624 id=624 data-nosnippet>624</a>    <span class="doccomment">/// Variable-width large monochrome version of the track waveform.
-<a href=#625 id=625 data-nosnippet>625</a>    ///
-<a href=#626 id=626 data-nosnippet>626</a>    /// Used in `.EXT` files.
-<a href=#627 id=627 data-nosnippet>627</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::WaveformDetail))]
-<a href=#628 id=628 data-nosnippet>628</a>    </span>WaveformDetail(<span class="attr">#[br(args(header.clone()))] </span>WaveformDetail),
-<a href=#629 id=629 data-nosnippet>629</a>    <span class="doccomment">/// Smaller version of the fixed-width colored preview of the track waveform.
-<a href=#630 id=630 data-nosnippet>630</a>    ///
-<a href=#631 id=631 data-nosnippet>631</a>    /// Used in `.EXT` files.
-<a href=#632 id=632 data-nosnippet>632</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::WaveformColorPreview))]
-<a href=#633 id=633 data-nosnippet>633</a>    </span>WaveformColorPreview(<span class="attr">#[br(args(header.clone()))] </span>WaveformColorPreview),
-<a href=#634 id=634 data-nosnippet>634</a>    <span class="doccomment">/// Variable-width large colored version of the track waveform.
-<a href=#635 id=635 data-nosnippet>635</a>    ///
-<a href=#636 id=636 data-nosnippet>636</a>    /// Used in `.EXT` files.
-<a href=#637 id=637 data-nosnippet>637</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::WaveformColorDetail))]
-<a href=#638 id=638 data-nosnippet>638</a>    </span>WaveformColorDetail(<span class="attr">#[br(args(header.clone()))] </span>WaveformColorDetail),
-<a href=#639 id=639 data-nosnippet>639</a>    <span class="doccomment">/// Variable-width large monochrome version of the track waveform.
-<a href=#640 id=640 data-nosnippet>640</a>    ///
-<a href=#641 id=641 data-nosnippet>641</a>    /// Used in `.2EX` files.
-<a href=#642 id=642 data-nosnippet>642</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::Waveform3BandPreview))]
-<a href=#643 id=643 data-nosnippet>643</a>    </span>Waveform3BandPreview(<span class="attr">#[br(args(header.clone()))] </span>Waveform3BandPreview),
-<a href=#644 id=644 data-nosnippet>644</a>    <span class="doccomment">/// Variable-width large 3-band version of the track waveform.
-<a href=#645 id=645 data-nosnippet>645</a>    ///
-<a href=#646 id=646 data-nosnippet>646</a>    /// Used in `.2EX` files.
-<a href=#647 id=647 data-nosnippet>647</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::Waveform3BandDetail))]
-<a href=#648 id=648 data-nosnippet>648</a>    </span>Waveform3BandDetail(<span class="attr">#[br(args(header.clone()))] </span>Waveform3BandDetail),
-<a href=#649 id=649 data-nosnippet>649</a>    <span class="doccomment">/// Describes the structure of a sond (Intro, Chrous, Verse, etc.).
-<a href=#650 id=650 data-nosnippet>650</a>    ///
-<a href=#651 id=651 data-nosnippet>651</a>    /// Used in `.EXT` files.
-<a href=#652 id=652 data-nosnippet>652</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::SongStructure))]
-<a href=#653 id=653 data-nosnippet>653</a>    </span>SongStructure(<span class="attr">#[br(args(header.clone()))] </span>SongStructure),
-<a href=#654 id=654 data-nosnippet>654</a>    <span class="doccomment">/// Unknown content.
+<a href=#552 id=552 data-nosnippet>552</a>    </span>unknown: B2,
+<a href=#553 id=553 data-nosnippet>553</a>}
+<a href=#554 id=554 data-nosnippet>554</a>
+<a href=#555 id=555 data-nosnippet>555</a><span class="doccomment">/// Single Column value in a Waveform 3-Band Preview.
+<a href=#556 id=556 data-nosnippet>556</a>///
+<a href=#557 id=557 data-nosnippet>557</a>/// See these the documentation for details:
+<a href=#558 id=558 data-nosnippet>558</a>/// &lt;https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#three-band-preview&gt;
+<a href=#559 id=559 data-nosnippet>559</a></span><span class="attr">#[binrw]
+<a href=#560 id=560 data-nosnippet>560</a>#[derive(Debug, PartialEq, Eq)]
+<a href=#561 id=561 data-nosnippet>561</a>#[brw(big)]
+<a href=#562 id=562 data-nosnippet>562</a></span><span class="kw">pub struct </span>Waveform3BandPreviewColumn {
+<a href=#563 id=563 data-nosnippet>563</a>    <span class="doccomment">/// Sound energy in the mid of the frequency range.
+<a href=#564 id=564 data-nosnippet>564</a>    </span><span class="kw">pub </span>energy_mid_third_freq: u8,
+<a href=#565 id=565 data-nosnippet>565</a>    <span class="doccomment">/// Sound energy in the top of the frequency range.
+<a href=#566 id=566 data-nosnippet>566</a>    </span><span class="kw">pub </span>energy_top_third_freq: u8,
+<a href=#567 id=567 data-nosnippet>567</a>    <span class="doccomment">/// Sound energy in the bottom third of the frequency range.
+<a href=#568 id=568 data-nosnippet>568</a>    </span><span class="kw">pub </span>energy_bottom_third_freq: u8,
+<a href=#569 id=569 data-nosnippet>569</a>}
+<a href=#570 id=570 data-nosnippet>570</a>
+<a href=#571 id=571 data-nosnippet>571</a><span class="doccomment">/// Single Column value in a Waveform 3-Band Detail section.
+<a href=#572 id=572 data-nosnippet>572</a>///
+<a href=#573 id=573 data-nosnippet>573</a>/// See these the documentation for details:
+<a href=#574 id=574 data-nosnippet>574</a>/// &lt;https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#three-band-detail&gt;
+<a href=#575 id=575 data-nosnippet>575</a></span><span class="attr">#[binrw]
+<a href=#576 id=576 data-nosnippet>576</a>#[derive(Debug, PartialEq, Eq)]
+<a href=#577 id=577 data-nosnippet>577</a>#[brw(big)]
+<a href=#578 id=578 data-nosnippet>578</a></span><span class="kw">pub struct </span>Waveform3BandDetailColumn {
+<a href=#579 id=579 data-nosnippet>579</a>    <span class="doccomment">/// Sound energy in the mid of the frequency range.
+<a href=#580 id=580 data-nosnippet>580</a>    </span><span class="kw">pub </span>energy_mid_third_freq: u8,
+<a href=#581 id=581 data-nosnippet>581</a>    <span class="doccomment">/// Sound energy in the top of the frequency range.
+<a href=#582 id=582 data-nosnippet>582</a>    </span><span class="kw">pub </span>energy_top_third_freq: u8,
+<a href=#583 id=583 data-nosnippet>583</a>    <span class="doccomment">/// Sound energy in the bottom third of the frequency range.
+<a href=#584 id=584 data-nosnippet>584</a>    </span><span class="kw">pub </span>energy_bottom_third_freq: u8,
+<a href=#585 id=585 data-nosnippet>585</a>}
+<a href=#586 id=586 data-nosnippet>586</a>
+<a href=#587 id=587 data-nosnippet>587</a><span class="doccomment">/// Music classification that is used for Lightnight mode and based on rhythm, tempo kick drum and
+<a href=#588 id=588 data-nosnippet>588</a>/// sound density.
+<a href=#589 id=589 data-nosnippet>589</a></span><span class="attr">#[binrw]
+<a href=#590 id=590 data-nosnippet>590</a>#[derive(Debug, PartialEq, Eq)]
+<a href=#591 id=591 data-nosnippet>591</a>#[brw(big, repr = u16)]
+<a href=#592 id=592 data-nosnippet>592</a></span><span class="kw">pub enum </span>Mood {
+<a href=#593 id=593 data-nosnippet>593</a>    <span class="doccomment">/// Phrase types consist of "Intro", "Up", "Down", "Chorus", and "Outro". Other values in each
+<a href=#594 id=594 data-nosnippet>594</a>    /// phrase entry cause the intro, chorus, and outro phrases to have their labels subdivided
+<a href=#595 id=595 data-nosnippet>595</a>    /// into styles "1" or "2" (for example, "Intro 1"), and "up" is subdivided into style "Up 1",
+<a href=#596 id=596 data-nosnippet>596</a>    /// "Up 2", or "Up 3".
+<a href=#597 id=597 data-nosnippet>597</a>    </span>High = <span class="number">1</span>,
+<a href=#598 id=598 data-nosnippet>598</a>    <span class="doccomment">/// Phrase types are labeled "Intro", "Verse 1" through "Verse 6", "Chorus", "Bridge", and
+<a href=#599 id=599 data-nosnippet>599</a>    /// "Outro".
+<a href=#600 id=600 data-nosnippet>600</a>    </span>Mid,
+<a href=#601 id=601 data-nosnippet>601</a>    <span class="doccomment">/// Phrase types are labeled "Intro", "Verse 1", "Verse 2", "Chorus", "Bridge", and "Outro".
+<a href=#602 id=602 data-nosnippet>602</a>    /// There are three different phrase type values for each of "Verse 1" and "Verse 2", but
+<a href=#603 id=603 data-nosnippet>603</a>    /// rekordbox makes no distinction between them.
+<a href=#604 id=604 data-nosnippet>604</a>    </span>Low,
+<a href=#605 id=605 data-nosnippet>605</a>}
+<a href=#606 id=606 data-nosnippet>606</a>
+<a href=#607 id=607 data-nosnippet>607</a><span class="doccomment">/// Stylistic track bank for Lightning mode.
+<a href=#608 id=608 data-nosnippet>608</a></span><span class="attr">#[binrw]
+<a href=#609 id=609 data-nosnippet>609</a>#[derive(Debug, PartialEq, Eq)]
+<a href=#610 id=610 data-nosnippet>610</a>#[brw(repr = u8)]
+<a href=#611 id=611 data-nosnippet>611</a></span><span class="kw">pub enum </span>Bank {
+<a href=#612 id=612 data-nosnippet>612</a>    <span class="doccomment">/// Default bank variant, treated as `Cool`.
+<a href=#613 id=613 data-nosnippet>613</a>    </span>Default = <span class="number">0</span>,
+<a href=#614 id=614 data-nosnippet>614</a>    <span class="doccomment">/// "Cool" bank variant.
+<a href=#615 id=615 data-nosnippet>615</a>    </span>Cool,
+<a href=#616 id=616 data-nosnippet>616</a>    <span class="doccomment">/// "Natural" bank variant.
+<a href=#617 id=617 data-nosnippet>617</a>    </span>Natural,
+<a href=#618 id=618 data-nosnippet>618</a>    <span class="doccomment">/// "Hot" bank variant.
+<a href=#619 id=619 data-nosnippet>619</a>    </span>Hot,
+<a href=#620 id=620 data-nosnippet>620</a>    <span class="doccomment">/// "Subtle" bank variant.
+<a href=#621 id=621 data-nosnippet>621</a>    </span>Subtle,
+<a href=#622 id=622 data-nosnippet>622</a>    <span class="doccomment">/// "Warm" bank variant.
+<a href=#623 id=623 data-nosnippet>623</a>    </span>Warm,
+<a href=#624 id=624 data-nosnippet>624</a>    <span class="doccomment">/// "Vivid" bank variant.
+<a href=#625 id=625 data-nosnippet>625</a>    </span>Vivid,
+<a href=#626 id=626 data-nosnippet>626</a>    <span class="doccomment">/// "Club 1" bank variant.
+<a href=#627 id=627 data-nosnippet>627</a>    </span>Club1,
+<a href=#628 id=628 data-nosnippet>628</a>    <span class="doccomment">/// "Club 2" bank variant.
+<a href=#629 id=629 data-nosnippet>629</a>    </span>Club2,
+<a href=#630 id=630 data-nosnippet>630</a>}
+<a href=#631 id=631 data-nosnippet>631</a>
+<a href=#632 id=632 data-nosnippet>632</a><span class="doccomment">/// A song structure entry that represents a phrase in the track.
+<a href=#633 id=633 data-nosnippet>633</a></span><span class="attr">#[binrw]
+<a href=#634 id=634 data-nosnippet>634</a>#[derive(Debug, PartialEq, Eq)]
+<a href=#635 id=635 data-nosnippet>635</a>#[brw(big)]
+<a href=#636 id=636 data-nosnippet>636</a></span><span class="kw">pub struct </span>Phrase {
+<a href=#637 id=637 data-nosnippet>637</a>    <span class="doccomment">/// Phrase number (starting at 1).
+<a href=#638 id=638 data-nosnippet>638</a>    </span><span class="kw">pub </span>index: u16,
+<a href=#639 id=639 data-nosnippet>639</a>    <span class="doccomment">/// Beat number where this phrase begins.
+<a href=#640 id=640 data-nosnippet>640</a>    </span><span class="kw">pub </span>beat: u16,
+<a href=#641 id=641 data-nosnippet>641</a>    <span class="doccomment">/// Kind of phrase that rekordbox has identified (?).
+<a href=#642 id=642 data-nosnippet>642</a>    </span><span class="kw">pub </span>kind: u16,
+<a href=#643 id=643 data-nosnippet>643</a>    <span class="doccomment">/// Unknown field.
+<a href=#644 id=644 data-nosnippet>644</a>    </span><span class="attr">#[allow(dead_code)]
+<a href=#645 id=645 data-nosnippet>645</a>    </span>unknown1: u8,
+<a href=#646 id=646 data-nosnippet>646</a>    <span class="doccomment">/// Flag byte used for numbered variations (in case of the `High` mood).
+<a href=#647 id=647 data-nosnippet>647</a>    ///
+<a href=#648 id=648 data-nosnippet>648</a>    /// See the documentation for details:
+<a href=#649 id=649 data-nosnippet>649</a>    /// &lt;https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#high-phrase-variants&gt;
+<a href=#650 id=650 data-nosnippet>650</a>    </span><span class="kw">pub </span>k1: u8,
+<a href=#651 id=651 data-nosnippet>651</a>    <span class="doccomment">/// Unknown field.
+<a href=#652 id=652 data-nosnippet>652</a>    </span><span class="attr">#[allow(dead_code)]
+<a href=#653 id=653 data-nosnippet>653</a>    </span>unknown2: u8,
+<a href=#654 id=654 data-nosnippet>654</a>    <span class="doccomment">/// Flag byte used for numbered variations (in case of the `High` mood).
 <a href=#655 id=655 data-nosnippet>655</a>    ///
-<a href=#656 id=656 data-nosnippet>656</a>    /// This allows handling files that contain unknown section types and allows to access later
-<a href=#657 id=657 data-nosnippet>657</a>    /// sections in the file that have a known type instead of failing to parse the whole file.
-<a href=#658 id=658 data-nosnippet>658</a>    </span><span class="attr">#[br(pre_assert(<span class="macro">matches!</span>(header.kind, ContentKind::Unknown(<span class="kw">_</span>))))]
-<a href=#659 id=659 data-nosnippet>659</a>    </span>Unknown(<span class="attr">#[br(args(header.clone()))] </span>Unknown),
-<a href=#660 id=660 data-nosnippet>660</a>}
-<a href=#661 id=661 data-nosnippet>661</a>
-<a href=#662 id=662 data-nosnippet>662</a><span class="doccomment">/// All beats in the track.
-<a href=#663 id=663 data-nosnippet>663</a></span><span class="attr">#[binrw]
-<a href=#664 id=664 data-nosnippet>664</a>#[derive(Debug, PartialEq, Eq)]
-<a href=#665 id=665 data-nosnippet>665</a></span><span class="kw">pub struct </span>BeatGrid {
-<a href=#666 id=666 data-nosnippet>666</a>    <span class="doccomment">/// Unknown field.
-<a href=#667 id=667 data-nosnippet>667</a>    </span>unknown1: u32,
-<a href=#668 id=668 data-nosnippet>668</a>    <span class="doccomment">/// Unknown field.
-<a href=#669 id=669 data-nosnippet>669</a>    ///
-<a href=#670 id=670 data-nosnippet>670</a>    /// According to [@flesniak](https://github.com/flesniak), this is always `00800000`.
-<a href=#671 id=671 data-nosnippet>671</a>    </span>unknown2: u32,
-<a href=#672 id=672 data-nosnippet>672</a>    <span class="doccomment">/// Number of beats in this beatgrid.
-<a href=#673 id=673 data-nosnippet>673</a>    </span><span class="attr">#[br(temp)]
-<a href=#674 id=674 data-nosnippet>674</a>    #[bw(calc = beats.len() <span class="kw">as </span>u32)]
-<a href=#675 id=675 data-nosnippet>675</a>    </span>len_beats: u32,
-<a href=#676 id=676 data-nosnippet>676</a>    <span class="doccomment">/// Beats in this beatgrid.
-<a href=#677 id=677 data-nosnippet>677</a>    </span><span class="attr">#[br(count = len_beats)]
-<a href=#678 id=678 data-nosnippet>678</a>    </span><span class="kw">pub </span>beats: Vec&lt;Beat&gt;,
-<a href=#679 id=679 data-nosnippet>679</a>}
-<a href=#680 id=680 data-nosnippet>680</a>
-<a href=#681 id=681 data-nosnippet>681</a><span class="doccomment">/// List of cue points or loops (either hot cues or memory cues).
-<a href=#682 id=682 data-nosnippet>682</a></span><span class="attr">#[binrw]
-<a href=#683 id=683 data-nosnippet>683</a>#[derive(Debug, PartialEq, Eq)]
-<a href=#684 id=684 data-nosnippet>684</a></span><span class="kw">pub struct </span>CueList {
-<a href=#685 id=685 data-nosnippet>685</a>    <span class="doccomment">/// The types of cues (memory or hot) that this list contains.
-<a href=#686 id=686 data-nosnippet>686</a>    </span><span class="kw">pub </span>list_type: CueListType,
-<a href=#687 id=687 data-nosnippet>687</a>    <span class="doccomment">/// Unknown field
-<a href=#688 id=688 data-nosnippet>688</a>    </span>unknown: u16,
-<a href=#689 id=689 data-nosnippet>689</a>    <span class="doccomment">/// Number of cues.
-<a href=#690 id=690 data-nosnippet>690</a>    </span><span class="attr">#[br(temp)]
-<a href=#691 id=691 data-nosnippet>691</a>    #[bw(calc = cues.len() <span class="kw">as </span>u16)]
-<a href=#692 id=692 data-nosnippet>692</a>    </span>len_cues: u16,
-<a href=#693 id=693 data-nosnippet>693</a>    <span class="doccomment">/// Unknown field.
-<a href=#694 id=694 data-nosnippet>694</a>    </span>memory_count: u32,
-<a href=#695 id=695 data-nosnippet>695</a>    <span class="doccomment">/// Cues
-<a href=#696 id=696 data-nosnippet>696</a>    </span><span class="attr">#[br(count = usize::from(len_cues))]
-<a href=#697 id=697 data-nosnippet>697</a>    </span><span class="kw">pub </span>cues: Vec&lt;Cue&gt;,
-<a href=#698 id=698 data-nosnippet>698</a>}
-<a href=#699 id=699 data-nosnippet>699</a>
-<a href=#700 id=700 data-nosnippet>700</a><span class="doccomment">/// List of cue points or loops (either hot cues or memory cues, extended version).
-<a href=#701 id=701 data-nosnippet>701</a>///
-<a href=#702 id=702 data-nosnippet>702</a>/// Variation of the original `CueList` that also adds support for more metadata such as
-<a href=#703 id=703 data-nosnippet>703</a>/// comments and colors. Introduces with the Nexus 2 series players.
-<a href=#704 id=704 data-nosnippet>704</a></span><span class="attr">#[binrw]
-<a href=#705 id=705 data-nosnippet>705</a>#[derive(Debug, PartialEq, Eq)]
-<a href=#706 id=706 data-nosnippet>706</a></span><span class="kw">pub struct </span>ExtendedCueList {
-<a href=#707 id=707 data-nosnippet>707</a>    <span class="doccomment">/// The types of cues (memory or hot) that this list contains.
-<a href=#708 id=708 data-nosnippet>708</a>    </span><span class="kw">pub </span>list_type: CueListType,
-<a href=#709 id=709 data-nosnippet>709</a>    <span class="doccomment">/// Number of cues.
-<a href=#710 id=710 data-nosnippet>710</a>    </span><span class="attr">#[br(temp)]
-<a href=#711 id=711 data-nosnippet>711</a>    #[bw(calc = cues.len() <span class="kw">as </span>u16)]
-<a href=#712 id=712 data-nosnippet>712</a>    </span>len_cues: u16,
-<a href=#713 id=713 data-nosnippet>713</a>    <span class="doccomment">/// Unknown field
-<a href=#714 id=714 data-nosnippet>714</a>    </span><span class="attr">#[br(assert(unknown == <span class="number">0</span>))]
-<a href=#715 id=715 data-nosnippet>715</a>    </span>unknown: u16,
-<a href=#716 id=716 data-nosnippet>716</a>    <span class="doccomment">/// Cues
-<a href=#717 id=717 data-nosnippet>717</a>    </span><span class="attr">#[br(count = usize::from(len_cues))]
-<a href=#718 id=718 data-nosnippet>718</a>    </span><span class="kw">pub </span>cues: Vec&lt;ExtendedCue&gt;,
-<a href=#719 id=719 data-nosnippet>719</a>}
-<a href=#720 id=720 data-nosnippet>720</a>
-<a href=#721 id=721 data-nosnippet>721</a><span class="doccomment">/// Path of the audio file that this analysis belongs to.
-<a href=#722 id=722 data-nosnippet>722</a></span><span class="attr">#[binrw]
-<a href=#723 id=723 data-nosnippet>723</a>#[derive(Debug, PartialEq, Eq)]
-<a href=#724 id=724 data-nosnippet>724</a>#[br(import(header: Header))]
-<a href=#725 id=725 data-nosnippet>725</a></span><span class="kw">pub struct </span>Path {
-<a href=#726 id=726 data-nosnippet>726</a>    <span class="doccomment">/// Length of the path field in bytes.
-<a href=#727 id=727 data-nosnippet>727</a>    </span><span class="attr">#[br(temp)]
-<a href=#728 id=728 data-nosnippet>728</a>    #[br(assert(len_path == header.content_size()))]
-<a href=#729 id=729 data-nosnippet>729</a>    #[bw(calc = ((path.len() <span class="kw">as </span>u32) + <span class="number">1</span>) * <span class="number">2</span>)]
-<a href=#730 id=730 data-nosnippet>730</a>    </span>len_path: u32,
-<a href=#731 id=731 data-nosnippet>731</a>    <span class="doccomment">/// Path of the audio file.
-<a href=#732 id=732 data-nosnippet>732</a>    </span><span class="attr">#[br(assert(len_path == header.content_size()))]
-<a href=#733 id=733 data-nosnippet>733</a>    #[br(assert((path.len() <span class="kw">as </span>u32 + <span class="number">1</span>) * <span class="number">2 </span>== len_path))]
-<a href=#734 id=734 data-nosnippet>734</a>    </span><span class="kw">pub </span>path: NullWideString,
-<a href=#735 id=735 data-nosnippet>735</a>}
-<a href=#736 id=736 data-nosnippet>736</a>
-<a href=#737 id=737 data-nosnippet>737</a><span class="doccomment">/// Seek information for variable bitrate files (probably).
-<a href=#738 id=738 data-nosnippet>738</a></span><span class="attr">#[binrw]
-<a href=#739 id=739 data-nosnippet>739</a>#[derive(Debug, PartialEq, Eq)]
-<a href=#740 id=740 data-nosnippet>740</a>#[br(import(header: Header))]
-<a href=#741 id=741 data-nosnippet>741</a></span><span class="kw">pub struct </span>VBR {
-<a href=#742 id=742 data-nosnippet>742</a>    <span class="doccomment">/// Unknown field.
-<a href=#743 id=743 data-nosnippet>743</a>    </span>unknown1: u32,
-<a href=#744 id=744 data-nosnippet>744</a>    <span class="doccomment">/// Unknown data.
-<a href=#745 id=745 data-nosnippet>745</a>    </span><span class="attr">#[br(count = header.content_size())]
-<a href=#746 id=746 data-nosnippet>746</a>    </span>unknown2: Vec&lt;u8&gt;,
-<a href=#747 id=747 data-nosnippet>747</a>}
-<a href=#748 id=748 data-nosnippet>748</a>
-<a href=#749 id=749 data-nosnippet>749</a><span class="doccomment">/// Fixed-width monochrome preview of the track waveform.
-<a href=#750 id=750 data-nosnippet>750</a></span><span class="attr">#[binrw]
-<a href=#751 id=751 data-nosnippet>751</a>#[derive(Debug, PartialEq, Eq)]
-<a href=#752 id=752 data-nosnippet>752</a>#[br(import(header: Header))]
-<a href=#753 id=753 data-nosnippet>753</a></span><span class="kw">pub struct </span>WaveformPreview {
-<a href=#754 id=754 data-nosnippet>754</a>    <span class="doccomment">/// Unknown field.
-<a href=#755 id=755 data-nosnippet>755</a>    </span><span class="attr">#[br(temp)]
-<a href=#756 id=756 data-nosnippet>756</a>    #[br(assert(len_preview == header.content_size()))]
-<a href=#757 id=757 data-nosnippet>757</a>    #[bw(calc = data.len() <span class="kw">as </span>u32)]
-<a href=#758 id=758 data-nosnippet>758</a>    </span>len_preview: u32,
-<a href=#759 id=759 data-nosnippet>759</a>    <span class="doccomment">/// Unknown field (apparently always `0x00100000`)
-<a href=#760 id=760 data-nosnippet>760</a>    </span>unknown: u32,
-<a href=#761 id=761 data-nosnippet>761</a>    <span class="doccomment">/// Waveform preview column data.
-<a href=#762 id=762 data-nosnippet>762</a>    </span><span class="attr">#[br(count = len_preview)]
-<a href=#763 id=763 data-nosnippet>763</a>    </span><span class="kw">pub </span>data: Vec&lt;WaveformPreviewColumn&gt;,
-<a href=#764 id=764 data-nosnippet>764</a>}
-<a href=#765 id=765 data-nosnippet>765</a>
-<a href=#766 id=766 data-nosnippet>766</a><span class="doccomment">/// Smaller version of the fixed-width monochrome preview of the track waveform.
-<a href=#767 id=767 data-nosnippet>767</a></span><span class="attr">#[binrw]
-<a href=#768 id=768 data-nosnippet>768</a>#[derive(Debug, PartialEq, Eq)]
-<a href=#769 id=769 data-nosnippet>769</a>#[br(import(header: Header))]
-<a href=#770 id=770 data-nosnippet>770</a></span><span class="kw">pub struct </span>TinyWaveformPreview {
-<a href=#771 id=771 data-nosnippet>771</a>    <span class="doccomment">/// Unknown field.
-<a href=#772 id=772 data-nosnippet>772</a>    </span><span class="attr">#[br(temp)]
-<a href=#773 id=773 data-nosnippet>773</a>    #[br(assert(len_preview == header.content_size()))]
-<a href=#774 id=774 data-nosnippet>774</a>    #[bw(calc = data.len() <span class="kw">as </span>u32)]
-<a href=#775 id=775 data-nosnippet>775</a>    </span>len_preview: u32,
-<a href=#776 id=776 data-nosnippet>776</a>    <span class="doccomment">/// Unknown field (apparently always `0x00100000`)
-<a href=#777 id=777 data-nosnippet>777</a>    </span>unknown: u32,
-<a href=#778 id=778 data-nosnippet>778</a>    <span class="doccomment">/// Waveform preview column data.
-<a href=#779 id=779 data-nosnippet>779</a>    </span><span class="attr">#[br(count = len_preview)]
-<a href=#780 id=780 data-nosnippet>780</a>    </span><span class="kw">pub </span>data: Vec&lt;TinyWaveformPreviewColumn&gt;,
-<a href=#781 id=781 data-nosnippet>781</a>}
-<a href=#782 id=782 data-nosnippet>782</a>
-<a href=#783 id=783 data-nosnippet>783</a><span class="doccomment">/// Variable-width large monochrome version of the track waveform.
-<a href=#784 id=784 data-nosnippet>784</a>///
-<a href=#785 id=785 data-nosnippet>785</a>/// Used in `.EXT` files.
-<a href=#786 id=786 data-nosnippet>786</a></span><span class="attr">#[binrw]
-<a href=#787 id=787 data-nosnippet>787</a>#[derive(Debug, PartialEq, Eq)]
-<a href=#788 id=788 data-nosnippet>788</a>#[br(import(header: Header))]
-<a href=#789 id=789 data-nosnippet>789</a></span><span class="kw">pub struct </span>WaveformDetail {
-<a href=#790 id=790 data-nosnippet>790</a>    <span class="doccomment">/// Size of a single entry, always 1.
-<a href=#791 id=791 data-nosnippet>791</a>    </span><span class="attr">#[br(temp)]
-<a href=#792 id=792 data-nosnippet>792</a>    #[br(assert(len_entry_bytes == <span class="number">1</span>))]
-<a href=#793 id=793 data-nosnippet>793</a>    #[bw(calc = <span class="number">1u32</span>)]
-<a href=#794 id=794 data-nosnippet>794</a>    </span>len_entry_bytes: u32,
-<a href=#795 id=795 data-nosnippet>795</a>    <span class="doccomment">/// Number of entries in this section.
-<a href=#796 id=796 data-nosnippet>796</a>    </span><span class="attr">#[br(temp)]
-<a href=#797 id=797 data-nosnippet>797</a>    #[bw(calc = data.len() <span class="kw">as </span>u32)]
-<a href=#798 id=798 data-nosnippet>798</a>    #[br(assert((len_entry_bytes * len_entries)== header.content_size()))]
-<a href=#799 id=799 data-nosnippet>799</a>    </span>len_entries: u32,
-<a href=#800 id=800 data-nosnippet>800</a>    <span class="doccomment">/// Unknown field (apparently always `0x00960000`)
-<a href=#801 id=801 data-nosnippet>801</a>    </span><span class="attr">#[br(assert(unknown == <span class="number">0x00960000</span>))]
-<a href=#802 id=802 data-nosnippet>802</a>    </span>unknown: u32,
-<a href=#803 id=803 data-nosnippet>803</a>    <span class="doccomment">/// Waveform preview column data.
-<a href=#804 id=804 data-nosnippet>804</a>    ///
-<a href=#805 id=805 data-nosnippet>805</a>    /// Each entry represents one half-frame of audio data, and there are 75 frames per second,
-<a href=#806 id=806 data-nosnippet>806</a>    /// so for each second of track audio there are 150 waveform detail entries.
-<a href=#807 id=807 data-nosnippet>807</a>    </span><span class="attr">#[br(count = len_entries)]
-<a href=#808 id=808 data-nosnippet>808</a>    </span><span class="kw">pub </span>data: Vec&lt;WaveformPreviewColumn&gt;,
-<a href=#809 id=809 data-nosnippet>809</a>}
-<a href=#810 id=810 data-nosnippet>810</a>
-<a href=#811 id=811 data-nosnippet>811</a><span class="doccomment">/// Smaller version of the fixed-width colored preview of the track waveform.
-<a href=#812 id=812 data-nosnippet>812</a>///
-<a href=#813 id=813 data-nosnippet>813</a>/// Used in `.EXT` files.
-<a href=#814 id=814 data-nosnippet>814</a></span><span class="attr">#[binrw]
-<a href=#815 id=815 data-nosnippet>815</a>#[derive(Debug, PartialEq, Eq)]
-<a href=#816 id=816 data-nosnippet>816</a>#[br(import(header: Header))]
-<a href=#817 id=817 data-nosnippet>817</a></span><span class="kw">pub struct </span>WaveformColorPreview {
-<a href=#818 id=818 data-nosnippet>818</a>    <span class="doccomment">/// Size of a single entry, always 6.
-<a href=#819 id=819 data-nosnippet>819</a>    </span><span class="attr">#[br(temp)]
-<a href=#820 id=820 data-nosnippet>820</a>    #[br(assert(len_entry_bytes == <span class="number">6</span>))]
-<a href=#821 id=821 data-nosnippet>821</a>    #[bw(calc = <span class="number">6u32</span>)]
-<a href=#822 id=822 data-nosnippet>822</a>    </span>len_entry_bytes: u32,
-<a href=#823 id=823 data-nosnippet>823</a>    <span class="doccomment">/// Number of entries in this section.
-<a href=#824 id=824 data-nosnippet>824</a>    </span><span class="attr">#[br(temp)]
-<a href=#825 id=825 data-nosnippet>825</a>    #[bw(calc = data.len() <span class="kw">as </span>u32)]
-<a href=#826 id=826 data-nosnippet>826</a>    #[br(assert((len_entry_bytes * len_entries) == header.content_size()))]
-<a href=#827 id=827 data-nosnippet>827</a>    </span>len_entries: u32,
-<a href=#828 id=828 data-nosnippet>828</a>    <span class="doccomment">/// Unknown field.
-<a href=#829 id=829 data-nosnippet>829</a>    </span>unknown: u32,
-<a href=#830 id=830 data-nosnippet>830</a>    <span class="doccomment">/// Waveform preview column data.
-<a href=#831 id=831 data-nosnippet>831</a>    </span><span class="attr">#[br(count = len_entries)]
-<a href=#832 id=832 data-nosnippet>832</a>    </span><span class="kw">pub </span>data: Vec&lt;WaveformColorPreviewColumn&gt;,
-<a href=#833 id=833 data-nosnippet>833</a>}
-<a href=#834 id=834 data-nosnippet>834</a>
-<a href=#835 id=835 data-nosnippet>835</a><span class="doccomment">/// Variable-width large colored version of the track waveform.
-<a href=#836 id=836 data-nosnippet>836</a>///
-<a href=#837 id=837 data-nosnippet>837</a>/// Used in `.EXT` files.
-<a href=#838 id=838 data-nosnippet>838</a></span><span class="attr">#[binrw]
-<a href=#839 id=839 data-nosnippet>839</a>#[derive(Debug, PartialEq, Eq)]
-<a href=#840 id=840 data-nosnippet>840</a>#[br(import(header: Header))]
-<a href=#841 id=841 data-nosnippet>841</a></span><span class="kw">pub struct </span>WaveformColorDetail {
-<a href=#842 id=842 data-nosnippet>842</a>    <span class="doccomment">/// Size of a single entry, always 2.
-<a href=#843 id=843 data-nosnippet>843</a>    </span><span class="attr">#[br(temp)]
-<a href=#844 id=844 data-nosnippet>844</a>    #[br(assert(len_entry_bytes == <span class="number">2</span>))]
-<a href=#845 id=845 data-nosnippet>845</a>    #[bw(calc = <span class="number">2u32</span>)]
-<a href=#846 id=846 data-nosnippet>846</a>    </span>len_entry_bytes: u32,
-<a href=#847 id=847 data-nosnippet>847</a>    <span class="doccomment">/// Number of entries in this section.
+<a href=#656 id=656 data-nosnippet>656</a>    /// See the documentation for details:
+<a href=#657 id=657 data-nosnippet>657</a>    /// &lt;https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#high-phrase-variants&gt;
+<a href=#658 id=658 data-nosnippet>658</a>    </span><span class="kw">pub </span>k2: u8,
+<a href=#659 id=659 data-nosnippet>659</a>    <span class="doccomment">/// Unknown field.
+<a href=#660 id=660 data-nosnippet>660</a>    </span><span class="attr">#[allow(dead_code)]
+<a href=#661 id=661 data-nosnippet>661</a>    </span>unknown3: u8,
+<a href=#662 id=662 data-nosnippet>662</a>    <span class="doccomment">/// Flag that determined if only `beat2` is used (0), or if `beat2`, `beat3` and `beat4` are
+<a href=#663 id=663 data-nosnippet>663</a>    /// used (1).
+<a href=#664 id=664 data-nosnippet>664</a>    </span><span class="kw">pub </span>b: u8,
+<a href=#665 id=665 data-nosnippet>665</a>    <span class="doccomment">/// Beat number.
+<a href=#666 id=666 data-nosnippet>666</a>    </span><span class="kw">pub </span>beat2: u16,
+<a href=#667 id=667 data-nosnippet>667</a>    <span class="doccomment">/// Beat number.
+<a href=#668 id=668 data-nosnippet>668</a>    </span><span class="kw">pub </span>beat3: u16,
+<a href=#669 id=669 data-nosnippet>669</a>    <span class="doccomment">/// Beat number.
+<a href=#670 id=670 data-nosnippet>670</a>    </span><span class="kw">pub </span>beat4: u16,
+<a href=#671 id=671 data-nosnippet>671</a>    <span class="doccomment">/// Unknown field.
+<a href=#672 id=672 data-nosnippet>672</a>    </span><span class="attr">#[allow(dead_code)]
+<a href=#673 id=673 data-nosnippet>673</a>    </span>unknown4: u8,
+<a href=#674 id=674 data-nosnippet>674</a>    <span class="doccomment">/// Flag byte used for numbered variations (in case of the `High` mood).
+<a href=#675 id=675 data-nosnippet>675</a>    ///
+<a href=#676 id=676 data-nosnippet>676</a>    /// See the documentation for details:
+<a href=#677 id=677 data-nosnippet>677</a>    /// &lt;https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#high-phrase-variants&gt;
+<a href=#678 id=678 data-nosnippet>678</a>    </span><span class="kw">pub </span>k3: u8,
+<a href=#679 id=679 data-nosnippet>679</a>    <span class="doccomment">/// Unknown field.
+<a href=#680 id=680 data-nosnippet>680</a>    </span><span class="attr">#[allow(dead_code)]
+<a href=#681 id=681 data-nosnippet>681</a>    </span>unknown5: u8,
+<a href=#682 id=682 data-nosnippet>682</a>    <span class="doccomment">/// Indicates if there are fill (non-phrase) beats at the end of the phrase.
+<a href=#683 id=683 data-nosnippet>683</a>    </span><span class="kw">pub </span>fill: u8,
+<a href=#684 id=684 data-nosnippet>684</a>    <span class="doccomment">/// Beat number where the fill begins (if `fill` is non-zero).
+<a href=#685 id=685 data-nosnippet>685</a>    </span><span class="kw">pub </span>beat_fill: u16,
+<a href=#686 id=686 data-nosnippet>686</a>}
+<a href=#687 id=687 data-nosnippet>687</a>
+<a href=#688 id=688 data-nosnippet>688</a><span class="doccomment">/// Section content which differs depending on the section type.
+<a href=#689 id=689 data-nosnippet>689</a></span><span class="attr">#[binrw]
+<a href=#690 id=690 data-nosnippet>690</a>#[derive(Debug, PartialEq, Eq)]
+<a href=#691 id=691 data-nosnippet>691</a>#[br(import(header: Header))]
+<a href=#692 id=692 data-nosnippet>692</a></span><span class="kw">pub enum </span>Content {
+<a href=#693 id=693 data-nosnippet>693</a>    <span class="doccomment">/// All beats in the track.
+<a href=#694 id=694 data-nosnippet>694</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::BeatGrid))]
+<a href=#695 id=695 data-nosnippet>695</a>    </span>BeatGrid(BeatGrid),
+<a href=#696 id=696 data-nosnippet>696</a>    <span class="doccomment">/// List of cue points or loops (either hot cues or memory cues).
+<a href=#697 id=697 data-nosnippet>697</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::CueList))]
+<a href=#698 id=698 data-nosnippet>698</a>    </span>CueList(CueList),
+<a href=#699 id=699 data-nosnippet>699</a>    <span class="doccomment">/// List of cue points or loops (either hot cues or memory cues, extended version).
+<a href=#700 id=700 data-nosnippet>700</a>    ///
+<a href=#701 id=701 data-nosnippet>701</a>    /// Variation of the original `CueList` that also adds support for more metadata such as
+<a href=#702 id=702 data-nosnippet>702</a>    /// comments and colors. Introduces with the Nexus 2 series players.
+<a href=#703 id=703 data-nosnippet>703</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::ExtendedCueList))]
+<a href=#704 id=704 data-nosnippet>704</a>    </span>ExtendedCueList(ExtendedCueList),
+<a href=#705 id=705 data-nosnippet>705</a>    <span class="doccomment">/// Path of the audio file that this analysis belongs to.
+<a href=#706 id=706 data-nosnippet>706</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::Path))]
+<a href=#707 id=707 data-nosnippet>707</a>    </span>Path(<span class="attr">#[br(args(header.clone()))] </span>Path),
+<a href=#708 id=708 data-nosnippet>708</a>    <span class="doccomment">/// Seek information for variable bitrate files (probably).
+<a href=#709 id=709 data-nosnippet>709</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::VBR))]
+<a href=#710 id=710 data-nosnippet>710</a>    </span>VBR(<span class="attr">#[br(args(header.clone()))] </span>VBR),
+<a href=#711 id=711 data-nosnippet>711</a>    <span class="doccomment">/// Fixed-width monochrome preview of the track waveform.
+<a href=#712 id=712 data-nosnippet>712</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::WaveformPreview))]
+<a href=#713 id=713 data-nosnippet>713</a>    </span>WaveformPreview(<span class="attr">#[br(args(header.clone()))] </span>WaveformPreview),
+<a href=#714 id=714 data-nosnippet>714</a>    <span class="doccomment">/// Smaller version of the fixed-width monochrome preview of the track waveform.
+<a href=#715 id=715 data-nosnippet>715</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::TinyWaveformPreview))]
+<a href=#716 id=716 data-nosnippet>716</a>    </span>TinyWaveformPreview(<span class="attr">#[br(args(header.clone()))] </span>TinyWaveformPreview),
+<a href=#717 id=717 data-nosnippet>717</a>    <span class="doccomment">/// Variable-width large monochrome version of the track waveform.
+<a href=#718 id=718 data-nosnippet>718</a>    ///
+<a href=#719 id=719 data-nosnippet>719</a>    /// Used in `.EXT` files.
+<a href=#720 id=720 data-nosnippet>720</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::WaveformDetail))]
+<a href=#721 id=721 data-nosnippet>721</a>    </span>WaveformDetail(<span class="attr">#[br(args(header.clone()))] </span>WaveformDetail),
+<a href=#722 id=722 data-nosnippet>722</a>    <span class="doccomment">/// Smaller version of the fixed-width colored preview of the track waveform.
+<a href=#723 id=723 data-nosnippet>723</a>    ///
+<a href=#724 id=724 data-nosnippet>724</a>    /// Used in `.EXT` files.
+<a href=#725 id=725 data-nosnippet>725</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::WaveformColorPreview))]
+<a href=#726 id=726 data-nosnippet>726</a>    </span>WaveformColorPreview(<span class="attr">#[br(args(header.clone()))] </span>WaveformColorPreview),
+<a href=#727 id=727 data-nosnippet>727</a>    <span class="doccomment">/// Variable-width large colored version of the track waveform.
+<a href=#728 id=728 data-nosnippet>728</a>    ///
+<a href=#729 id=729 data-nosnippet>729</a>    /// Used in `.EXT` files.
+<a href=#730 id=730 data-nosnippet>730</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::WaveformColorDetail))]
+<a href=#731 id=731 data-nosnippet>731</a>    </span>WaveformColorDetail(<span class="attr">#[br(args(header.clone()))] </span>WaveformColorDetail),
+<a href=#732 id=732 data-nosnippet>732</a>    <span class="doccomment">/// Variable-width large monochrome version of the track waveform.
+<a href=#733 id=733 data-nosnippet>733</a>    ///
+<a href=#734 id=734 data-nosnippet>734</a>    /// Used in `.2EX` files.
+<a href=#735 id=735 data-nosnippet>735</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::Waveform3BandPreview))]
+<a href=#736 id=736 data-nosnippet>736</a>    </span>Waveform3BandPreview(<span class="attr">#[br(args(header.clone()))] </span>Waveform3BandPreview),
+<a href=#737 id=737 data-nosnippet>737</a>    <span class="doccomment">/// Variable-width large 3-band version of the track waveform.
+<a href=#738 id=738 data-nosnippet>738</a>    ///
+<a href=#739 id=739 data-nosnippet>739</a>    /// Used in `.2EX` files.
+<a href=#740 id=740 data-nosnippet>740</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::Waveform3BandDetail))]
+<a href=#741 id=741 data-nosnippet>741</a>    </span>Waveform3BandDetail(<span class="attr">#[br(args(header.clone()))] </span>Waveform3BandDetail),
+<a href=#742 id=742 data-nosnippet>742</a>    <span class="doccomment">/// Describes the structure of a sond (Intro, Chrous, Verse, etc.).
+<a href=#743 id=743 data-nosnippet>743</a>    ///
+<a href=#744 id=744 data-nosnippet>744</a>    /// Used in `.EXT` files.
+<a href=#745 id=745 data-nosnippet>745</a>    </span><span class="attr">#[br(pre_assert(header.kind == ContentKind::SongStructure))]
+<a href=#746 id=746 data-nosnippet>746</a>    </span>SongStructure(<span class="attr">#[br(args(header.clone()))] </span>SongStructure),
+<a href=#747 id=747 data-nosnippet>747</a>    <span class="doccomment">/// Unknown content.
+<a href=#748 id=748 data-nosnippet>748</a>    ///
+<a href=#749 id=749 data-nosnippet>749</a>    /// This allows handling files that contain unknown section types and allows to access later
+<a href=#750 id=750 data-nosnippet>750</a>    /// sections in the file that have a known type instead of failing to parse the whole file.
+<a href=#751 id=751 data-nosnippet>751</a>    </span><span class="attr">#[br(pre_assert(<span class="macro">matches!</span>(header.kind, ContentKind::Unknown(<span class="kw">_</span>))))]
+<a href=#752 id=752 data-nosnippet>752</a>    </span>Unknown(<span class="attr">#[br(args(header.clone()))] </span>Unknown),
+<a href=#753 id=753 data-nosnippet>753</a>}
+<a href=#754 id=754 data-nosnippet>754</a>
+<a href=#755 id=755 data-nosnippet>755</a><span class="doccomment">/// All beats in the track.
+<a href=#756 id=756 data-nosnippet>756</a></span><span class="attr">#[binrw]
+<a href=#757 id=757 data-nosnippet>757</a>#[derive(Debug, PartialEq, Eq)]
+<a href=#758 id=758 data-nosnippet>758</a></span><span class="kw">pub struct </span>BeatGrid {
+<a href=#759 id=759 data-nosnippet>759</a>    <span class="doccomment">/// Unknown field.
+<a href=#760 id=760 data-nosnippet>760</a>    </span>unknown1: u32,
+<a href=#761 id=761 data-nosnippet>761</a>    <span class="doccomment">/// Unknown field.
+<a href=#762 id=762 data-nosnippet>762</a>    ///
+<a href=#763 id=763 data-nosnippet>763</a>    /// According to [@flesniak](https://github.com/flesniak), this is always `00800000`.
+<a href=#764 id=764 data-nosnippet>764</a>    </span>unknown2: u32,
+<a href=#765 id=765 data-nosnippet>765</a>    <span class="doccomment">/// Number of beats in this beatgrid.
+<a href=#766 id=766 data-nosnippet>766</a>    </span><span class="attr">#[br(temp)]
+<a href=#767 id=767 data-nosnippet>767</a>    #[bw(calc = beats.len() <span class="kw">as </span>u32)]
+<a href=#768 id=768 data-nosnippet>768</a>    </span>len_beats: u32,
+<a href=#769 id=769 data-nosnippet>769</a>    <span class="doccomment">/// Beats in this beatgrid.
+<a href=#770 id=770 data-nosnippet>770</a>    </span><span class="attr">#[br(count = len_beats)]
+<a href=#771 id=771 data-nosnippet>771</a>    </span><span class="kw">pub </span>beats: Vec&lt;Beat&gt;,
+<a href=#772 id=772 data-nosnippet>772</a>}
+<a href=#773 id=773 data-nosnippet>773</a>
+<a href=#774 id=774 data-nosnippet>774</a><span class="doccomment">/// List of cue points or loops (either hot cues or memory cues).
+<a href=#775 id=775 data-nosnippet>775</a></span><span class="attr">#[binrw]
+<a href=#776 id=776 data-nosnippet>776</a>#[derive(Debug, PartialEq, Eq)]
+<a href=#777 id=777 data-nosnippet>777</a></span><span class="kw">pub struct </span>CueList {
+<a href=#778 id=778 data-nosnippet>778</a>    <span class="doccomment">/// The types of cues (memory or hot) that this list contains.
+<a href=#779 id=779 data-nosnippet>779</a>    </span><span class="kw">pub </span>list_type: CueListType,
+<a href=#780 id=780 data-nosnippet>780</a>    <span class="doccomment">/// Unknown field
+<a href=#781 id=781 data-nosnippet>781</a>    </span>unknown: u16,
+<a href=#782 id=782 data-nosnippet>782</a>    <span class="doccomment">/// Number of cues.
+<a href=#783 id=783 data-nosnippet>783</a>    </span><span class="attr">#[br(temp)]
+<a href=#784 id=784 data-nosnippet>784</a>    #[bw(calc = cues.len() <span class="kw">as </span>u16)]
+<a href=#785 id=785 data-nosnippet>785</a>    </span>len_cues: u16,
+<a href=#786 id=786 data-nosnippet>786</a>    <span class="doccomment">/// Unknown field.
+<a href=#787 id=787 data-nosnippet>787</a>    </span>memory_count: u32,
+<a href=#788 id=788 data-nosnippet>788</a>    <span class="doccomment">/// Cues
+<a href=#789 id=789 data-nosnippet>789</a>    </span><span class="attr">#[br(count = usize::from(len_cues))]
+<a href=#790 id=790 data-nosnippet>790</a>    </span><span class="kw">pub </span>cues: Vec&lt;Cue&gt;,
+<a href=#791 id=791 data-nosnippet>791</a>}
+<a href=#792 id=792 data-nosnippet>792</a>
+<a href=#793 id=793 data-nosnippet>793</a><span class="doccomment">/// List of cue points or loops (either hot cues or memory cues, extended version).
+<a href=#794 id=794 data-nosnippet>794</a>///
+<a href=#795 id=795 data-nosnippet>795</a>/// Variation of the original `CueList` that also adds support for more metadata such as
+<a href=#796 id=796 data-nosnippet>796</a>/// comments and colors. Introduces with the Nexus 2 series players.
+<a href=#797 id=797 data-nosnippet>797</a></span><span class="attr">#[binrw]
+<a href=#798 id=798 data-nosnippet>798</a>#[derive(Debug, PartialEq, Eq)]
+<a href=#799 id=799 data-nosnippet>799</a></span><span class="kw">pub struct </span>ExtendedCueList {
+<a href=#800 id=800 data-nosnippet>800</a>    <span class="doccomment">/// The types of cues (memory or hot) that this list contains.
+<a href=#801 id=801 data-nosnippet>801</a>    </span><span class="kw">pub </span>list_type: CueListType,
+<a href=#802 id=802 data-nosnippet>802</a>    <span class="doccomment">/// Number of cues.
+<a href=#803 id=803 data-nosnippet>803</a>    </span><span class="attr">#[br(temp)]
+<a href=#804 id=804 data-nosnippet>804</a>    #[bw(calc = cues.len() <span class="kw">as </span>u16)]
+<a href=#805 id=805 data-nosnippet>805</a>    </span>len_cues: u16,
+<a href=#806 id=806 data-nosnippet>806</a>    <span class="doccomment">/// Unknown field
+<a href=#807 id=807 data-nosnippet>807</a>    </span><span class="attr">#[br(assert(unknown == <span class="number">0</span>))]
+<a href=#808 id=808 data-nosnippet>808</a>    </span>unknown: u16,
+<a href=#809 id=809 data-nosnippet>809</a>    <span class="doccomment">/// Cues
+<a href=#810 id=810 data-nosnippet>810</a>    </span><span class="attr">#[br(count = usize::from(len_cues))]
+<a href=#811 id=811 data-nosnippet>811</a>    </span><span class="kw">pub </span>cues: Vec&lt;ExtendedCue&gt;,
+<a href=#812 id=812 data-nosnippet>812</a>}
+<a href=#813 id=813 data-nosnippet>813</a>
+<a href=#814 id=814 data-nosnippet>814</a><span class="doccomment">/// Path of the audio file that this analysis belongs to.
+<a href=#815 id=815 data-nosnippet>815</a></span><span class="attr">#[binrw]
+<a href=#816 id=816 data-nosnippet>816</a>#[derive(Debug, PartialEq, Eq)]
+<a href=#817 id=817 data-nosnippet>817</a>#[br(import(header: Header))]
+<a href=#818 id=818 data-nosnippet>818</a></span><span class="kw">pub struct </span>Path {
+<a href=#819 id=819 data-nosnippet>819</a>    <span class="doccomment">/// Length of the path field in bytes.
+<a href=#820 id=820 data-nosnippet>820</a>    </span><span class="attr">#[br(temp)]
+<a href=#821 id=821 data-nosnippet>821</a>    #[br(assert(len_path == header.content_size()))]
+<a href=#822 id=822 data-nosnippet>822</a>    #[bw(calc = ((path.len() <span class="kw">as </span>u32) + <span class="number">1</span>) * <span class="number">2</span>)]
+<a href=#823 id=823 data-nosnippet>823</a>    </span>len_path: u32,
+<a href=#824 id=824 data-nosnippet>824</a>    <span class="doccomment">/// Path of the audio file.
+<a href=#825 id=825 data-nosnippet>825</a>    </span><span class="attr">#[br(assert(len_path == header.content_size()))]
+<a href=#826 id=826 data-nosnippet>826</a>    #[br(assert((path.len() <span class="kw">as </span>u32 + <span class="number">1</span>) * <span class="number">2 </span>== len_path))]
+<a href=#827 id=827 data-nosnippet>827</a>    </span><span class="kw">pub </span>path: NullWideString,
+<a href=#828 id=828 data-nosnippet>828</a>}
+<a href=#829 id=829 data-nosnippet>829</a>
+<a href=#830 id=830 data-nosnippet>830</a><span class="doccomment">/// Seek information for variable bitrate files (probably).
+<a href=#831 id=831 data-nosnippet>831</a></span><span class="attr">#[binrw]
+<a href=#832 id=832 data-nosnippet>832</a>#[derive(Debug, PartialEq, Eq)]
+<a href=#833 id=833 data-nosnippet>833</a>#[br(import(header: Header))]
+<a href=#834 id=834 data-nosnippet>834</a></span><span class="kw">pub struct </span>VBR {
+<a href=#835 id=835 data-nosnippet>835</a>    <span class="doccomment">/// Unknown field.
+<a href=#836 id=836 data-nosnippet>836</a>    </span>unknown1: u32,
+<a href=#837 id=837 data-nosnippet>837</a>    <span class="doccomment">/// Unknown data.
+<a href=#838 id=838 data-nosnippet>838</a>    </span><span class="attr">#[br(count = header.content_size())]
+<a href=#839 id=839 data-nosnippet>839</a>    </span>unknown2: Vec&lt;u8&gt;,
+<a href=#840 id=840 data-nosnippet>840</a>}
+<a href=#841 id=841 data-nosnippet>841</a>
+<a href=#842 id=842 data-nosnippet>842</a><span class="doccomment">/// Fixed-width monochrome preview of the track waveform.
+<a href=#843 id=843 data-nosnippet>843</a></span><span class="attr">#[binrw]
+<a href=#844 id=844 data-nosnippet>844</a>#[derive(Debug, PartialEq, Eq)]
+<a href=#845 id=845 data-nosnippet>845</a>#[br(import(header: Header))]
+<a href=#846 id=846 data-nosnippet>846</a></span><span class="kw">pub struct </span>WaveformPreview {
+<a href=#847 id=847 data-nosnippet>847</a>    <span class="doccomment">/// Unknown field.
 <a href=#848 id=848 data-nosnippet>848</a>    </span><span class="attr">#[br(temp)]
-<a href=#849 id=849 data-nosnippet>849</a>    #[bw(calc = data.len() <span class="kw">as </span>u32)]
-<a href=#850 id=850 data-nosnippet>850</a>    #[br(assert((len_entry_bytes * len_entries) == header.content_size()))]
-<a href=#851 id=851 data-nosnippet>851</a>    </span>len_entries: u32,
-<a href=#852 id=852 data-nosnippet>852</a>    <span class="doccomment">/// Unknown field.
+<a href=#849 id=849 data-nosnippet>849</a>    #[br(assert(len_preview == header.content_size()))]
+<a href=#850 id=850 data-nosnippet>850</a>    #[bw(calc = data.len() <span class="kw">as </span>u32)]
+<a href=#851 id=851 data-nosnippet>851</a>    </span>len_preview: u32,
+<a href=#852 id=852 data-nosnippet>852</a>    <span class="doccomment">/// Unknown field (apparently always `0x00100000`)
 <a href=#853 id=853 data-nosnippet>853</a>    </span>unknown: u32,
-<a href=#854 id=854 data-nosnippet>854</a>    <span class="doccomment">/// Waveform detail column data.
-<a href=#855 id=855 data-nosnippet>855</a>    ///
-<a href=#856 id=856 data-nosnippet>856</a>    /// Each entry represents one half-frame of audio data, and there are 75 frames per second,
-<a href=#857 id=857 data-nosnippet>857</a>    /// so for each second of track audio there are 150 waveform detail entries.
-<a href=#858 id=858 data-nosnippet>858</a>    </span><span class="attr">#[br(count = len_entries)]
-<a href=#859 id=859 data-nosnippet>859</a>    </span><span class="kw">pub </span>data: Vec&lt;WaveformColorDetailColumn&gt;,
-<a href=#860 id=860 data-nosnippet>860</a>}
-<a href=#861 id=861 data-nosnippet>861</a>
-<a href=#862 id=862 data-nosnippet>862</a><span class="doccomment">/// Smaller version of the fixed-width 3-band preview of the track waveform.
-<a href=#863 id=863 data-nosnippet>863</a>///
-<a href=#864 id=864 data-nosnippet>864</a>/// Used in `.2EX` files.
-<a href=#865 id=865 data-nosnippet>865</a></span><span class="attr">#[binrw]
-<a href=#866 id=866 data-nosnippet>866</a>#[derive(Debug, PartialEq, Eq)]
-<a href=#867 id=867 data-nosnippet>867</a>#[br(import(header: Header))]
-<a href=#868 id=868 data-nosnippet>868</a></span><span class="kw">pub struct </span>Waveform3BandPreview {
-<a href=#869 id=869 data-nosnippet>869</a>    <span class="doccomment">/// Size of a single entry, always 3.
-<a href=#870 id=870 data-nosnippet>870</a>    </span><span class="attr">#[br(temp)]
-<a href=#871 id=871 data-nosnippet>871</a>    #[br(assert(len_entry_bytes == <span class="number">3</span>))]
-<a href=#872 id=872 data-nosnippet>872</a>    #[bw(calc = <span class="number">3u32</span>)]
-<a href=#873 id=873 data-nosnippet>873</a>    </span>len_entry_bytes: u32,
-<a href=#874 id=874 data-nosnippet>874</a>    <span class="doccomment">/// Number of entries in this section.
-<a href=#875 id=875 data-nosnippet>875</a>    </span><span class="attr">#[br(temp)]
-<a href=#876 id=876 data-nosnippet>876</a>    #[bw(calc = data.len() <span class="kw">as </span>u32)]
-<a href=#877 id=877 data-nosnippet>877</a>    #[br(assert((len_entry_bytes * len_entries) == header.content_size()))]
-<a href=#878 id=878 data-nosnippet>878</a>    </span>len_entries: u32,
-<a href=#879 id=879 data-nosnippet>879</a>    <span class="doccomment">/// Waveform preview column data.
-<a href=#880 id=880 data-nosnippet>880</a>    </span><span class="attr">#[br(count = len_entries)]
-<a href=#881 id=881 data-nosnippet>881</a>    </span><span class="kw">pub </span>data: Vec&lt;Waveform3BandPreviewColumn&gt;,
-<a href=#882 id=882 data-nosnippet>882</a>}
-<a href=#883 id=883 data-nosnippet>883</a>
-<a href=#884 id=884 data-nosnippet>884</a><span class="doccomment">/// Variable-width large 3-band version of the track waveform.
-<a href=#885 id=885 data-nosnippet>885</a>///
-<a href=#886 id=886 data-nosnippet>886</a>/// Used in `.2EX` files.
-<a href=#887 id=887 data-nosnippet>887</a></span><span class="attr">#[binrw]
-<a href=#888 id=888 data-nosnippet>888</a>#[derive(Debug, PartialEq, Eq)]
-<a href=#889 id=889 data-nosnippet>889</a>#[br(import(header: Header))]
-<a href=#890 id=890 data-nosnippet>890</a></span><span class="kw">pub struct </span>Waveform3BandDetail {
-<a href=#891 id=891 data-nosnippet>891</a>    <span class="doccomment">/// Size of a single entry, always 3.
-<a href=#892 id=892 data-nosnippet>892</a>    </span><span class="attr">#[br(temp)]
-<a href=#893 id=893 data-nosnippet>893</a>    #[br(assert(len_entry_bytes == <span class="number">3</span>))]
-<a href=#894 id=894 data-nosnippet>894</a>    #[bw(calc = <span class="number">3u32</span>)]
-<a href=#895 id=895 data-nosnippet>895</a>    </span>len_entry_bytes: u32,
-<a href=#896 id=896 data-nosnippet>896</a>    <span class="doccomment">/// Number of entries in this section.
-<a href=#897 id=897 data-nosnippet>897</a>    </span><span class="attr">#[br(temp)]
-<a href=#898 id=898 data-nosnippet>898</a>    #[bw(calc = data.len() <span class="kw">as </span>u32)]
-<a href=#899 id=899 data-nosnippet>899</a>    #[br(assert((len_entry_bytes * len_entries) == header.content_size()))]
-<a href=#900 id=900 data-nosnippet>900</a>    </span>len_entries: u32,
-<a href=#901 id=901 data-nosnippet>901</a>    <span class="doccomment">/// Unknown field (apparently always `0x00960000`)
-<a href=#902 id=902 data-nosnippet>902</a>    </span><span class="attr">#[br(assert(unknown == <span class="number">0x00960000</span>))]
-<a href=#903 id=903 data-nosnippet>903</a>    </span>unknown: u32,
-<a href=#904 id=904 data-nosnippet>904</a>    <span class="doccomment">/// Waveform detail column data.
-<a href=#905 id=905 data-nosnippet>905</a>    ///
-<a href=#906 id=906 data-nosnippet>906</a>    /// Each entry represents one half-frame of audio data, and there are 75 frames per second,
-<a href=#907 id=907 data-nosnippet>907</a>    /// so for each second of track audio there are 150 waveform detail entries.
-<a href=#908 id=908 data-nosnippet>908</a>    </span><span class="attr">#[br(count = len_entries)]
-<a href=#909 id=909 data-nosnippet>909</a>    </span><span class="kw">pub </span>data: Vec&lt;Waveform3BandDetailColumn&gt;,
-<a href=#910 id=910 data-nosnippet>910</a>}
-<a href=#911 id=911 data-nosnippet>911</a>
-<a href=#912 id=912 data-nosnippet>912</a><span class="doccomment">/// Describes the structure of a song (Intro, Chrous, Verse, etc.).
-<a href=#913 id=913 data-nosnippet>913</a>///
-<a href=#914 id=914 data-nosnippet>914</a>/// Used in `.EXT` files.
-<a href=#915 id=915 data-nosnippet>915</a></span><span class="attr">#[binrw]
-<a href=#916 id=916 data-nosnippet>916</a>#[derive(Debug, PartialEq, Eq)]
-<a href=#917 id=917 data-nosnippet>917</a>#[br(import(header: Header))]
-<a href=#918 id=918 data-nosnippet>918</a></span><span class="kw">pub struct </span>SongStructure {
-<a href=#919 id=919 data-nosnippet>919</a>    <span class="doccomment">/// Size of a single entry, always 24.
-<a href=#920 id=920 data-nosnippet>920</a>    </span><span class="attr">#[br(temp)]
-<a href=#921 id=921 data-nosnippet>921</a>    #[br(assert(len_entry_bytes == <span class="number">24</span>))]
-<a href=#922 id=922 data-nosnippet>922</a>    #[bw(calc = <span class="number">24u32</span>)]
-<a href=#923 id=923 data-nosnippet>923</a>    </span>len_entry_bytes: u32,
-<a href=#924 id=924 data-nosnippet>924</a>    <span class="doccomment">/// Number of entries in this section.
-<a href=#925 id=925 data-nosnippet>925</a>    </span><span class="attr">#[br(temp)]
-<a href=#926 id=926 data-nosnippet>926</a>    #[br(assert((len_entry_bytes * (len_entries <span class="kw">as </span>u32)) == header.content_size()))]
-<a href=#927 id=927 data-nosnippet>927</a>    #[bw(calc = data.phrases.len() <span class="kw">as </span>u16)]
-<a href=#928 id=928 data-nosnippet>928</a>    </span>len_entries: u16,
-<a href=#929 id=929 data-nosnippet>929</a>    <span class="doccomment">/// Indicates if the remaining parts of the song structure section are encrypted.
-<a href=#930 id=930 data-nosnippet>930</a>    ///
-<a href=#931 id=931 data-nosnippet>931</a>    /// This is a virtual field and not actually present in the file.
-<a href=#932 id=932 data-nosnippet>932</a>    </span><span class="attr">#[br(restore_position, map = |raw_mood: [u8; <span class="number">2</span>]</span>| SongStructureData::check_if_encrypted(raw_mood, len_entries))]
-<a href=#933 id=933 data-nosnippet>933</a>    <span class="attr">#[bw(ignore)]
-<a href=#934 id=934 data-nosnippet>934</a>    </span>is_encrypted: bool,
-<a href=#935 id=935 data-nosnippet>935</a>    <span class="doccomment">/// Song structure data.
-<a href=#936 id=936 data-nosnippet>936</a>    </span><span class="attr">#[br(args(is_encrypted, len_entries), parse_with = SongStructureData::read_encrypted)]
-<a href=#937 id=937 data-nosnippet>937</a>    #[bw(args(<span class="kw-2">*</span>is_encrypted, len_entries), write_with = SongStructureData::write_encrypted)]
-<a href=#938 id=938 data-nosnippet>938</a>    </span>data: SongStructureData,
-<a href=#939 id=939 data-nosnippet>939</a>}
-<a href=#940 id=940 data-nosnippet>940</a>
-<a href=#941 id=941 data-nosnippet>941</a><span class="doccomment">/// The data part of the [`SongStructure`] section that may be encrypted (RB6+).
-<a href=#942 id=942 data-nosnippet>942</a>///
-<a href=#943 id=943 data-nosnippet>943</a>/// See the documentation for details:
-<a href=#944 id=944 data-nosnippet>944</a>/// - &lt;https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#song-structure-tag&gt;
-<a href=#945 id=945 data-nosnippet>945</a></span><span class="attr">#[binrw]
-<a href=#946 id=946 data-nosnippet>946</a>#[derive(Debug, PartialEq, Eq)]
-<a href=#947 id=947 data-nosnippet>947</a>#[br(import(len_entries: u16))]
-<a href=#948 id=948 data-nosnippet>948</a></span><span class="kw">pub struct </span>SongStructureData {
-<a href=#949 id=949 data-nosnippet>949</a>    <span class="doccomment">/// Overall type of phrase structure.
-<a href=#950 id=950 data-nosnippet>950</a>    </span><span class="kw">pub </span>mood: Mood,
-<a href=#951 id=951 data-nosnippet>951</a>    <span class="doccomment">/// Unknown field.
-<a href=#952 id=952 data-nosnippet>952</a>    </span>unknown1: u32,
-<a href=#953 id=953 data-nosnippet>953</a>    <span class="doccomment">/// Unknown field.
-<a href=#954 id=954 data-nosnippet>954</a>    </span>unknown2: u16,
-<a href=#955 id=955 data-nosnippet>955</a>    <span class="doccomment">/// Number of the beat at which the last recognized phrase ends.
-<a href=#956 id=956 data-nosnippet>956</a>    </span><span class="kw">pub </span>end_beat: u16,
-<a href=#957 id=957 data-nosnippet>957</a>    <span class="doccomment">/// Unknown field.
-<a href=#958 id=958 data-nosnippet>958</a>    </span>unknown3: u16,
-<a href=#959 id=959 data-nosnippet>959</a>    <span class="doccomment">/// Stylistic bank assigned in Lightning Mode.
-<a href=#960 id=960 data-nosnippet>960</a>    </span><span class="kw">pub </span>bank: Bank,
-<a href=#961 id=961 data-nosnippet>961</a>    <span class="doccomment">/// Unknown field.
-<a href=#962 id=962 data-nosnippet>962</a>    </span>unknown4: u8,
-<a href=#963 id=963 data-nosnippet>963</a>    <span class="doccomment">/// Phrase entry data.
-<a href=#964 id=964 data-nosnippet>964</a>    </span><span class="attr">#[br(count = usize::from(len_entries))]
-<a href=#965 id=965 data-nosnippet>965</a>    </span><span class="kw">pub </span>phrases: Vec&lt;Phrase&gt;,
-<a href=#966 id=966 data-nosnippet>966</a>}
-<a href=#967 id=967 data-nosnippet>967</a>
-<a href=#968 id=968 data-nosnippet>968</a><span class="kw">impl </span>SongStructureData {
-<a href=#969 id=969 data-nosnippet>969</a>    <span class="kw">const </span>KEY_DATA: [u8; <span class="number">19</span>] = [
-<a href=#970 id=970 data-nosnippet>970</a>        <span class="number">0xCB</span>, <span class="number">0xE1</span>, <span class="number">0xEE</span>, <span class="number">0xFA</span>, <span class="number">0xE5</span>, <span class="number">0xEE</span>, <span class="number">0xAD</span>, <span class="number">0xEE</span>, <span class="number">0xE9</span>, <span class="number">0xD2</span>, <span class="number">0xE9</span>, <span class="number">0xEB</span>, <span class="number">0xE1</span>, <span class="number">0xE9</span>, <span class="number">0xF3</span>,
-<a href=#971 id=971 data-nosnippet>971</a>        <span class="number">0xE8</span>, <span class="number">0xE9</span>, <span class="number">0xF4</span>, <span class="number">0xE1</span>,
-<a href=#972 id=972 data-nosnippet>972</a>    ];
-<a href=#973 id=973 data-nosnippet>973</a>
-<a href=#974 id=974 data-nosnippet>974</a>    <span class="doccomment">/// Returns an iterator over the key bytes (RB6+).
-<a href=#975 id=975 data-nosnippet>975</a>    </span><span class="kw">fn </span>get_key(len_entries: u16) -&gt; <span class="kw">impl </span>Iterator&lt;Item = u8&gt; {
-<a href=#976 id=976 data-nosnippet>976</a>        <span class="self">Self</span>::KEY_DATA.into_iter().map(<span class="kw">move </span>|x: u8| -&gt; u8 {
-<a href=#977 id=977 data-nosnippet>977</a>            <span class="kw">let </span>value = u16::from(x) + len_entries;
-<a href=#978 id=978 data-nosnippet>978</a>            (value % <span class="number">256</span>) <span class="kw">as </span>u8
-<a href=#979 id=979 data-nosnippet>979</a>        })
-<a href=#980 id=980 data-nosnippet>980</a>    }
-<a href=#981 id=981 data-nosnippet>981</a>
-<a href=#982 id=982 data-nosnippet>982</a>    <span class="doccomment">/// Returns `true` if the [`SongStructureData`] is encrypted.
-<a href=#983 id=983 data-nosnippet>983</a>    ///
-<a href=#984 id=984 data-nosnippet>984</a>    /// The method tries to decrypt the `raw_mood` field and checking if the result is valid.
-<a href=#985 id=985 data-nosnippet>985</a>    </span><span class="kw">fn </span>check_if_encrypted(raw_mood: [u8; <span class="number">2</span>], len_entries: u16) -&gt; bool {
-<a href=#986 id=986 data-nosnippet>986</a>        <span class="kw">let </span>buffer: Vec&lt;u8&gt; = raw_mood
-<a href=#987 id=987 data-nosnippet>987</a>            .iter()
-<a href=#988 id=988 data-nosnippet>988</a>            .zip(<span class="self">Self</span>::get_key(len_entries).take(<span class="number">2</span>))
-<a href=#989 id=989 data-nosnippet>989</a>            .map(|(byte, key)| byte ^ key)
-<a href=#990 id=990 data-nosnippet>990</a>            .collect();
-<a href=#991 id=991 data-nosnippet>991</a>        <span class="kw">let </span><span class="kw-2">mut </span>reader = binrw::io::Cursor::new(buffer);
-<a href=#992 id=992 data-nosnippet>992</a>        Mood::read(<span class="kw-2">&amp;mut </span>reader).is_ok()
-<a href=#993 id=993 data-nosnippet>993</a>    }
-<a href=#994 id=994 data-nosnippet>994</a>
-<a href=#995 id=995 data-nosnippet>995</a>    <span class="doccomment">/// Read a [`SongStructureData`] section that may be encrypted, depending on the `is_encrypted`
-<a href=#996 id=996 data-nosnippet>996</a>    /// value.
-<a href=#997 id=997 data-nosnippet>997</a>    </span><span class="kw">fn </span>read_encrypted&lt;R: Read + Seek&gt;(
-<a href=#998 id=998 data-nosnippet>998</a>        reader: <span class="kw-2">&amp;mut </span>R,
-<a href=#999 id=999 data-nosnippet>999</a>        endian: Endian,
-<a href=#1000 id=1000 data-nosnippet>1000</a>        (is_encrypted, len_entries): (bool, u16),
-<a href=#1001 id=1001 data-nosnippet>1001</a>    ) -&gt; BinResult&lt;<span class="self">Self</span>&gt; {
-<a href=#1002 id=1002 data-nosnippet>1002</a>        <span class="kw">if </span>is_encrypted {
-<a href=#1003 id=1003 data-nosnippet>1003</a>            <span class="kw">let </span>key: Vec&lt;u8&gt; = <span class="self">Self</span>::get_key(len_entries).collect();
-<a href=#1004 id=1004 data-nosnippet>1004</a>            <span class="kw">let </span><span class="kw-2">mut </span>xor_reader = XorStream::with_key(reader, key);
-<a href=#1005 id=1005 data-nosnippet>1005</a>            <span class="self">Self</span>::read_options(<span class="kw-2">&amp;mut </span>xor_reader, endian, (len_entries,))
-<a href=#1006 id=1006 data-nosnippet>1006</a>        } <span class="kw">else </span>{
-<a href=#1007 id=1007 data-nosnippet>1007</a>            <span class="self">Self</span>::read_options(reader, endian, (len_entries,))
-<a href=#1008 id=1008 data-nosnippet>1008</a>        }
-<a href=#1009 id=1009 data-nosnippet>1009</a>    }
-<a href=#1010 id=1010 data-nosnippet>1010</a>
-<a href=#1011 id=1011 data-nosnippet>1011</a>    <span class="doccomment">/// Write a [`SongStructureData`] section that may be encrypted, depending on the
-<a href=#1012 id=1012 data-nosnippet>1012</a>    /// `is_encrypted` value.
-<a href=#1013 id=1013 data-nosnippet>1013</a>    </span><span class="kw">fn </span>write_encrypted&lt;W: Write + Seek&gt;(
-<a href=#1014 id=1014 data-nosnippet>1014</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
-<a href=#1015 id=1015 data-nosnippet>1015</a>        writer: <span class="kw-2">&amp;mut </span>W,
-<a href=#1016 id=1016 data-nosnippet>1016</a>        endian: Endian,
-<a href=#1017 id=1017 data-nosnippet>1017</a>        (is_encrypted, len_entries): (bool, u16),
-<a href=#1018 id=1018 data-nosnippet>1018</a>    ) -&gt; BinResult&lt;()&gt; {
-<a href=#1019 id=1019 data-nosnippet>1019</a>        <span class="kw">if </span>is_encrypted {
-<a href=#1020 id=1020 data-nosnippet>1020</a>            <span class="kw">let </span>key: Vec&lt;u8&gt; = <span class="self">Self</span>::get_key(len_entries).collect();
-<a href=#1021 id=1021 data-nosnippet>1021</a>            <span class="kw">let </span><span class="kw-2">mut </span>xor_writer = XorStream::with_key(writer, key);
-<a href=#1022 id=1022 data-nosnippet>1022</a>            <span class="self">self</span>.write_options(<span class="kw-2">&amp;mut </span>xor_writer, endian, ())
-<a href=#1023 id=1023 data-nosnippet>1023</a>        } <span class="kw">else </span>{
-<a href=#1024 id=1024 data-nosnippet>1024</a>            <span class="self">self</span>.write_options(writer, endian, ())
-<a href=#1025 id=1025 data-nosnippet>1025</a>        }
-<a href=#1026 id=1026 data-nosnippet>1026</a>    }
-<a href=#1027 id=1027 data-nosnippet>1027</a>}
-<a href=#1028 id=1028 data-nosnippet>1028</a>
-<a href=#1029 id=1029 data-nosnippet>1029</a><span class="doccomment">/// Unknown content.
-<a href=#1030 id=1030 data-nosnippet>1030</a></span><span class="attr">#[binrw]
-<a href=#1031 id=1031 data-nosnippet>1031</a>#[derive(Debug, PartialEq, Eq)]
-<a href=#1032 id=1032 data-nosnippet>1032</a>#[br(import(header: Header))]
-<a href=#1033 id=1033 data-nosnippet>1033</a></span><span class="kw">pub struct </span>Unknown {
-<a href=#1034 id=1034 data-nosnippet>1034</a>    <span class="doccomment">/// Unknown header data.
-<a href=#1035 id=1035 data-nosnippet>1035</a>    </span><span class="attr">#[br(count = header.remaining_size())]
-<a href=#1036 id=1036 data-nosnippet>1036</a>    </span>header_data: Vec&lt;u8&gt;,
-<a href=#1037 id=1037 data-nosnippet>1037</a>    <span class="doccomment">/// Unknown content data.
-<a href=#1038 id=1038 data-nosnippet>1038</a>    </span><span class="attr">#[br(count = header.content_size())]
-<a href=#1039 id=1039 data-nosnippet>1039</a>    </span>content_data: Vec&lt;u8&gt;,
-<a href=#1040 id=1040 data-nosnippet>1040</a>}
-<a href=#1041 id=1041 data-nosnippet>1041</a>
-<a href=#1042 id=1042 data-nosnippet>1042</a><span class="doccomment">/// ANLZ Section.
-<a href=#1043 id=1043 data-nosnippet>1043</a></span><span class="attr">#[binrw]
-<a href=#1044 id=1044 data-nosnippet>1044</a>#[derive(Debug, PartialEq, Eq)]
-<a href=#1045 id=1045 data-nosnippet>1045</a></span><span class="kw">pub struct </span>Section {
-<a href=#1046 id=1046 data-nosnippet>1046</a>    <span class="doccomment">/// The header.
-<a href=#1047 id=1047 data-nosnippet>1047</a>    </span><span class="kw">pub </span>header: Header,
-<a href=#1048 id=1048 data-nosnippet>1048</a>    <span class="doccomment">/// The section content.
-<a href=#1049 id=1049 data-nosnippet>1049</a>    </span><span class="attr">#[br(args(header.clone()))]
-<a href=#1050 id=1050 data-nosnippet>1050</a>    </span><span class="kw">pub </span>content: Content,
-<a href=#1051 id=1051 data-nosnippet>1051</a>}
-<a href=#1052 id=1052 data-nosnippet>1052</a>
-<a href=#1053 id=1053 data-nosnippet>1053</a><span class="doccomment">/// ANLZ file section.
-<a href=#1054 id=1054 data-nosnippet>1054</a>///
-<a href=#1055 id=1055 data-nosnippet>1055</a>/// The actual contents are not part of this struct and can parsed on-the-fly by iterating over the
-<a href=#1056 id=1056 data-nosnippet>1056</a>/// `ANLZ::sections()` method.
-<a href=#1057 id=1057 data-nosnippet>1057</a></span><span class="attr">#[binrw]
-<a href=#1058 id=1058 data-nosnippet>1058</a>#[derive(Debug, PartialEq, Eq)]
-<a href=#1059 id=1059 data-nosnippet>1059</a>#[brw(big)]
-<a href=#1060 id=1060 data-nosnippet>1060</a></span><span class="kw">pub struct </span>ANLZ {
-<a href=#1061 id=1061 data-nosnippet>1061</a>    <span class="doccomment">/// The file header.
-<a href=#1062 id=1062 data-nosnippet>1062</a>    </span><span class="attr">#[br(assert(header.kind == ContentKind::File))]
-<a href=#1063 id=1063 data-nosnippet>1063</a>    </span><span class="kw">pub </span>header: Header,
-<a href=#1064 id=1064 data-nosnippet>1064</a>    <span class="doccomment">/// The header data.
-<a href=#1065 id=1065 data-nosnippet>1065</a>    </span><span class="attr">#[br(count = header.remaining_size())]
-<a href=#1066 id=1066 data-nosnippet>1066</a>    </span><span class="kw">pub </span>header_data: Vec&lt;u8&gt;,
-<a href=#1067 id=1067 data-nosnippet>1067</a>    <span class="doccomment">/// The content sections.
-<a href=#1068 id=1068 data-nosnippet>1068</a>    </span><span class="attr">#[br(parse_with = <span class="self">Self</span>::parse_sections, args(header.content_size()))]
-<a href=#1069 id=1069 data-nosnippet>1069</a>    </span><span class="kw">pub </span>sections: Vec&lt;Section&gt;,
-<a href=#1070 id=1070 data-nosnippet>1070</a>}
-<a href=#1071 id=1071 data-nosnippet>1071</a>
-<a href=#1072 id=1072 data-nosnippet>1072</a><span class="kw">impl </span>ANLZ {
-<a href=#1073 id=1073 data-nosnippet>1073</a>    <span class="kw">fn </span>parse_sections&lt;R: Read + Seek&gt;(
-<a href=#1074 id=1074 data-nosnippet>1074</a>        reader: <span class="kw-2">&amp;mut </span>R,
-<a href=#1075 id=1075 data-nosnippet>1075</a>        endian: Endian,
-<a href=#1076 id=1076 data-nosnippet>1076</a>        args: (u32,),
-<a href=#1077 id=1077 data-nosnippet>1077</a>    ) -&gt; BinResult&lt;Vec&lt;Section&gt;&gt; {
-<a href=#1078 id=1078 data-nosnippet>1078</a>        <span class="kw">let </span>(content_size,) = args;
-<a href=#1079 id=1079 data-nosnippet>1079</a>        <span class="kw">let </span>final_position = reader.stream_position()<span class="question-mark">? </span>+ u64::from(content_size);
-<a href=#1080 id=1080 data-nosnippet>1080</a>
-<a href=#1081 id=1081 data-nosnippet>1081</a>        <span class="kw">let </span><span class="kw-2">mut </span>sections: Vec&lt;Section&gt; = <span class="macro">vec!</span>[];
-<a href=#1082 id=1082 data-nosnippet>1082</a>        <span class="kw">while </span>reader.stream_position()<span class="question-mark">? </span>&lt; final_position {
-<a href=#1083 id=1083 data-nosnippet>1083</a>            <span class="kw">let </span>section = Section::read_options(reader, endian, ())<span class="question-mark">?</span>;
-<a href=#1084 id=1084 data-nosnippet>1084</a>            sections.push(section);
-<a href=#1085 id=1085 data-nosnippet>1085</a>        }
-<a href=#1086 id=1086 data-nosnippet>1086</a>
-<a href=#1087 id=1087 data-nosnippet>1087</a>        <span class="prelude-val">Ok</span>(sections)
-<a href=#1088 id=1088 data-nosnippet>1088</a>    }
-<a href=#1089 id=1089 data-nosnippet>1089</a>}
+<a href=#854 id=854 data-nosnippet>854</a>    <span class="doccomment">/// Waveform preview column data.
+<a href=#855 id=855 data-nosnippet>855</a>    </span><span class="attr">#[br(count = len_preview)]
+<a href=#856 id=856 data-nosnippet>856</a>    </span><span class="kw">pub </span>data: Vec&lt;WaveformPreviewColumn&gt;,
+<a href=#857 id=857 data-nosnippet>857</a>}
+<a href=#858 id=858 data-nosnippet>858</a>
+<a href=#859 id=859 data-nosnippet>859</a><span class="doccomment">/// Smaller version of the fixed-width monochrome preview of the track waveform.
+<a href=#860 id=860 data-nosnippet>860</a></span><span class="attr">#[binrw]
+<a href=#861 id=861 data-nosnippet>861</a>#[derive(Debug, PartialEq, Eq)]
+<a href=#862 id=862 data-nosnippet>862</a>#[br(import(header: Header))]
+<a href=#863 id=863 data-nosnippet>863</a></span><span class="kw">pub struct </span>TinyWaveformPreview {
+<a href=#864 id=864 data-nosnippet>864</a>    <span class="doccomment">/// Unknown field.
+<a href=#865 id=865 data-nosnippet>865</a>    </span><span class="attr">#[br(temp)]
+<a href=#866 id=866 data-nosnippet>866</a>    #[br(assert(len_preview == header.content_size()))]
+<a href=#867 id=867 data-nosnippet>867</a>    #[bw(calc = data.len() <span class="kw">as </span>u32)]
+<a href=#868 id=868 data-nosnippet>868</a>    </span>len_preview: u32,
+<a href=#869 id=869 data-nosnippet>869</a>    <span class="doccomment">/// Unknown field (apparently always `0x00100000`)
+<a href=#870 id=870 data-nosnippet>870</a>    </span>unknown: u32,
+<a href=#871 id=871 data-nosnippet>871</a>    <span class="doccomment">/// Waveform preview column data.
+<a href=#872 id=872 data-nosnippet>872</a>    </span><span class="attr">#[br(count = len_preview)]
+<a href=#873 id=873 data-nosnippet>873</a>    </span><span class="kw">pub </span>data: Vec&lt;TinyWaveformPreviewColumn&gt;,
+<a href=#874 id=874 data-nosnippet>874</a>}
+<a href=#875 id=875 data-nosnippet>875</a>
+<a href=#876 id=876 data-nosnippet>876</a><span class="doccomment">/// Variable-width large monochrome version of the track waveform.
+<a href=#877 id=877 data-nosnippet>877</a>///
+<a href=#878 id=878 data-nosnippet>878</a>/// Used in `.EXT` files.
+<a href=#879 id=879 data-nosnippet>879</a></span><span class="attr">#[binrw]
+<a href=#880 id=880 data-nosnippet>880</a>#[derive(Debug, PartialEq, Eq)]
+<a href=#881 id=881 data-nosnippet>881</a>#[br(import(header: Header))]
+<a href=#882 id=882 data-nosnippet>882</a></span><span class="kw">pub struct </span>WaveformDetail {
+<a href=#883 id=883 data-nosnippet>883</a>    <span class="doccomment">/// Size of a single entry, always 1.
+<a href=#884 id=884 data-nosnippet>884</a>    </span><span class="attr">#[br(temp)]
+<a href=#885 id=885 data-nosnippet>885</a>    #[br(assert(len_entry_bytes == <span class="number">1</span>))]
+<a href=#886 id=886 data-nosnippet>886</a>    #[bw(calc = <span class="number">1u32</span>)]
+<a href=#887 id=887 data-nosnippet>887</a>    </span>len_entry_bytes: u32,
+<a href=#888 id=888 data-nosnippet>888</a>    <span class="doccomment">/// Number of entries in this section.
+<a href=#889 id=889 data-nosnippet>889</a>    </span><span class="attr">#[br(temp)]
+<a href=#890 id=890 data-nosnippet>890</a>    #[bw(calc = data.len() <span class="kw">as </span>u32)]
+<a href=#891 id=891 data-nosnippet>891</a>    #[br(assert((len_entry_bytes * len_entries)== header.content_size()))]
+<a href=#892 id=892 data-nosnippet>892</a>    </span>len_entries: u32,
+<a href=#893 id=893 data-nosnippet>893</a>    <span class="doccomment">/// Unknown field (apparently always `0x00960000`)
+<a href=#894 id=894 data-nosnippet>894</a>    </span><span class="attr">#[br(assert(unknown == <span class="number">0x00960000</span>))]
+<a href=#895 id=895 data-nosnippet>895</a>    </span>unknown: u32,
+<a href=#896 id=896 data-nosnippet>896</a>    <span class="doccomment">/// Waveform preview column data.
+<a href=#897 id=897 data-nosnippet>897</a>    ///
+<a href=#898 id=898 data-nosnippet>898</a>    /// Each entry represents one half-frame of audio data, and there are 75 frames per second,
+<a href=#899 id=899 data-nosnippet>899</a>    /// so for each second of track audio there are 150 waveform detail entries.
+<a href=#900 id=900 data-nosnippet>900</a>    </span><span class="attr">#[br(count = len_entries)]
+<a href=#901 id=901 data-nosnippet>901</a>    </span><span class="kw">pub </span>data: Vec&lt;WaveformPreviewColumn&gt;,
+<a href=#902 id=902 data-nosnippet>902</a>}
+<a href=#903 id=903 data-nosnippet>903</a>
+<a href=#904 id=904 data-nosnippet>904</a><span class="doccomment">/// Smaller version of the fixed-width colored preview of the track waveform.
+<a href=#905 id=905 data-nosnippet>905</a>///
+<a href=#906 id=906 data-nosnippet>906</a>/// Used in `.EXT` files.
+<a href=#907 id=907 data-nosnippet>907</a></span><span class="attr">#[binrw]
+<a href=#908 id=908 data-nosnippet>908</a>#[derive(Debug, PartialEq, Eq)]
+<a href=#909 id=909 data-nosnippet>909</a>#[br(import(header: Header))]
+<a href=#910 id=910 data-nosnippet>910</a></span><span class="kw">pub struct </span>WaveformColorPreview {
+<a href=#911 id=911 data-nosnippet>911</a>    <span class="doccomment">/// Size of a single entry, always 6.
+<a href=#912 id=912 data-nosnippet>912</a>    </span><span class="attr">#[br(temp)]
+<a href=#913 id=913 data-nosnippet>913</a>    #[br(assert(len_entry_bytes == <span class="number">6</span>))]
+<a href=#914 id=914 data-nosnippet>914</a>    #[bw(calc = <span class="number">6u32</span>)]
+<a href=#915 id=915 data-nosnippet>915</a>    </span>len_entry_bytes: u32,
+<a href=#916 id=916 data-nosnippet>916</a>    <span class="doccomment">/// Number of entries in this section.
+<a href=#917 id=917 data-nosnippet>917</a>    </span><span class="attr">#[br(temp)]
+<a href=#918 id=918 data-nosnippet>918</a>    #[bw(calc = data.len() <span class="kw">as </span>u32)]
+<a href=#919 id=919 data-nosnippet>919</a>    #[br(assert((len_entry_bytes * len_entries) == header.content_size()))]
+<a href=#920 id=920 data-nosnippet>920</a>    </span>len_entries: u32,
+<a href=#921 id=921 data-nosnippet>921</a>    <span class="doccomment">/// Unknown field.
+<a href=#922 id=922 data-nosnippet>922</a>    </span>unknown: u32,
+<a href=#923 id=923 data-nosnippet>923</a>    <span class="doccomment">/// Waveform preview column data.
+<a href=#924 id=924 data-nosnippet>924</a>    </span><span class="attr">#[br(count = len_entries)]
+<a href=#925 id=925 data-nosnippet>925</a>    </span><span class="kw">pub </span>data: Vec&lt;WaveformColorPreviewColumn&gt;,
+<a href=#926 id=926 data-nosnippet>926</a>}
+<a href=#927 id=927 data-nosnippet>927</a>
+<a href=#928 id=928 data-nosnippet>928</a><span class="doccomment">/// Variable-width large colored version of the track waveform.
+<a href=#929 id=929 data-nosnippet>929</a>///
+<a href=#930 id=930 data-nosnippet>930</a>/// Used in `.EXT` files.
+<a href=#931 id=931 data-nosnippet>931</a></span><span class="attr">#[binrw]
+<a href=#932 id=932 data-nosnippet>932</a>#[derive(Debug, PartialEq, Eq)]
+<a href=#933 id=933 data-nosnippet>933</a>#[br(import(header: Header))]
+<a href=#934 id=934 data-nosnippet>934</a></span><span class="kw">pub struct </span>WaveformColorDetail {
+<a href=#935 id=935 data-nosnippet>935</a>    <span class="doccomment">/// Size of a single entry, always 2.
+<a href=#936 id=936 data-nosnippet>936</a>    </span><span class="attr">#[br(temp)]
+<a href=#937 id=937 data-nosnippet>937</a>    #[br(assert(len_entry_bytes == <span class="number">2</span>))]
+<a href=#938 id=938 data-nosnippet>938</a>    #[bw(calc = <span class="number">2u32</span>)]
+<a href=#939 id=939 data-nosnippet>939</a>    </span>len_entry_bytes: u32,
+<a href=#940 id=940 data-nosnippet>940</a>    <span class="doccomment">/// Number of entries in this section.
+<a href=#941 id=941 data-nosnippet>941</a>    </span><span class="attr">#[br(temp)]
+<a href=#942 id=942 data-nosnippet>942</a>    #[bw(calc = data.len() <span class="kw">as </span>u32)]
+<a href=#943 id=943 data-nosnippet>943</a>    #[br(assert((len_entry_bytes * len_entries) == header.content_size()))]
+<a href=#944 id=944 data-nosnippet>944</a>    </span>len_entries: u32,
+<a href=#945 id=945 data-nosnippet>945</a>    <span class="doccomment">/// Unknown field.
+<a href=#946 id=946 data-nosnippet>946</a>    </span>unknown: u32,
+<a href=#947 id=947 data-nosnippet>947</a>    <span class="doccomment">/// Waveform detail column data.
+<a href=#948 id=948 data-nosnippet>948</a>    ///
+<a href=#949 id=949 data-nosnippet>949</a>    /// Each entry represents one half-frame of audio data, and there are 75 frames per second,
+<a href=#950 id=950 data-nosnippet>950</a>    /// so for each second of track audio there are 150 waveform detail entries.
+<a href=#951 id=951 data-nosnippet>951</a>    </span><span class="attr">#[br(count = len_entries)]
+<a href=#952 id=952 data-nosnippet>952</a>    </span><span class="kw">pub </span>data: Vec&lt;WaveformColorDetailColumn&gt;,
+<a href=#953 id=953 data-nosnippet>953</a>}
+<a href=#954 id=954 data-nosnippet>954</a>
+<a href=#955 id=955 data-nosnippet>955</a><span class="doccomment">/// Smaller version of the fixed-width 3-band preview of the track waveform.
+<a href=#956 id=956 data-nosnippet>956</a>///
+<a href=#957 id=957 data-nosnippet>957</a>/// Used in `.2EX` files.
+<a href=#958 id=958 data-nosnippet>958</a></span><span class="attr">#[binrw]
+<a href=#959 id=959 data-nosnippet>959</a>#[derive(Debug, PartialEq, Eq)]
+<a href=#960 id=960 data-nosnippet>960</a>#[br(import(header: Header))]
+<a href=#961 id=961 data-nosnippet>961</a></span><span class="kw">pub struct </span>Waveform3BandPreview {
+<a href=#962 id=962 data-nosnippet>962</a>    <span class="doccomment">/// Size of a single entry, always 3.
+<a href=#963 id=963 data-nosnippet>963</a>    </span><span class="attr">#[br(temp)]
+<a href=#964 id=964 data-nosnippet>964</a>    #[br(assert(len_entry_bytes == <span class="number">3</span>))]
+<a href=#965 id=965 data-nosnippet>965</a>    #[bw(calc = <span class="number">3u32</span>)]
+<a href=#966 id=966 data-nosnippet>966</a>    </span>len_entry_bytes: u32,
+<a href=#967 id=967 data-nosnippet>967</a>    <span class="doccomment">/// Number of entries in this section.
+<a href=#968 id=968 data-nosnippet>968</a>    </span><span class="attr">#[br(temp)]
+<a href=#969 id=969 data-nosnippet>969</a>    #[bw(calc = data.len() <span class="kw">as </span>u32)]
+<a href=#970 id=970 data-nosnippet>970</a>    #[br(assert((len_entry_bytes * len_entries) == header.content_size()))]
+<a href=#971 id=971 data-nosnippet>971</a>    </span>len_entries: u32,
+<a href=#972 id=972 data-nosnippet>972</a>    <span class="doccomment">/// Waveform preview column data.
+<a href=#973 id=973 data-nosnippet>973</a>    </span><span class="attr">#[br(count = len_entries)]
+<a href=#974 id=974 data-nosnippet>974</a>    </span><span class="kw">pub </span>data: Vec&lt;Waveform3BandPreviewColumn&gt;,
+<a href=#975 id=975 data-nosnippet>975</a>}
+<a href=#976 id=976 data-nosnippet>976</a>
+<a href=#977 id=977 data-nosnippet>977</a><span class="doccomment">/// Variable-width large 3-band version of the track waveform.
+<a href=#978 id=978 data-nosnippet>978</a>///
+<a href=#979 id=979 data-nosnippet>979</a>/// Used in `.2EX` files.
+<a href=#980 id=980 data-nosnippet>980</a></span><span class="attr">#[binrw]
+<a href=#981 id=981 data-nosnippet>981</a>#[derive(Debug, PartialEq, Eq)]
+<a href=#982 id=982 data-nosnippet>982</a>#[br(import(header: Header))]
+<a href=#983 id=983 data-nosnippet>983</a></span><span class="kw">pub struct </span>Waveform3BandDetail {
+<a href=#984 id=984 data-nosnippet>984</a>    <span class="doccomment">/// Size of a single entry, always 3.
+<a href=#985 id=985 data-nosnippet>985</a>    </span><span class="attr">#[br(temp)]
+<a href=#986 id=986 data-nosnippet>986</a>    #[br(assert(len_entry_bytes == <span class="number">3</span>))]
+<a href=#987 id=987 data-nosnippet>987</a>    #[bw(calc = <span class="number">3u32</span>)]
+<a href=#988 id=988 data-nosnippet>988</a>    </span>len_entry_bytes: u32,
+<a href=#989 id=989 data-nosnippet>989</a>    <span class="doccomment">/// Number of entries in this section.
+<a href=#990 id=990 data-nosnippet>990</a>    </span><span class="attr">#[br(temp)]
+<a href=#991 id=991 data-nosnippet>991</a>    #[bw(calc = data.len() <span class="kw">as </span>u32)]
+<a href=#992 id=992 data-nosnippet>992</a>    #[br(assert((len_entry_bytes * len_entries) == header.content_size()))]
+<a href=#993 id=993 data-nosnippet>993</a>    </span>len_entries: u32,
+<a href=#994 id=994 data-nosnippet>994</a>    <span class="doccomment">/// Unknown field (apparently always `0x00960000`)
+<a href=#995 id=995 data-nosnippet>995</a>    </span><span class="attr">#[br(assert(unknown == <span class="number">0x00960000</span>))]
+<a href=#996 id=996 data-nosnippet>996</a>    </span>unknown: u32,
+<a href=#997 id=997 data-nosnippet>997</a>    <span class="doccomment">/// Waveform detail column data.
+<a href=#998 id=998 data-nosnippet>998</a>    ///
+<a href=#999 id=999 data-nosnippet>999</a>    /// Each entry represents one half-frame of audio data, and there are 75 frames per second,
+<a href=#1000 id=1000 data-nosnippet>1000</a>    /// so for each second of track audio there are 150 waveform detail entries.
+<a href=#1001 id=1001 data-nosnippet>1001</a>    </span><span class="attr">#[br(count = len_entries)]
+<a href=#1002 id=1002 data-nosnippet>1002</a>    </span><span class="kw">pub </span>data: Vec&lt;Waveform3BandDetailColumn&gt;,
+<a href=#1003 id=1003 data-nosnippet>1003</a>}
+<a href=#1004 id=1004 data-nosnippet>1004</a>
+<a href=#1005 id=1005 data-nosnippet>1005</a><span class="doccomment">/// Describes the structure of a song (Intro, Chrous, Verse, etc.).
+<a href=#1006 id=1006 data-nosnippet>1006</a>///
+<a href=#1007 id=1007 data-nosnippet>1007</a>/// Used in `.EXT` files.
+<a href=#1008 id=1008 data-nosnippet>1008</a></span><span class="attr">#[binrw]
+<a href=#1009 id=1009 data-nosnippet>1009</a>#[derive(Debug, PartialEq, Eq)]
+<a href=#1010 id=1010 data-nosnippet>1010</a>#[br(import(header: Header))]
+<a href=#1011 id=1011 data-nosnippet>1011</a></span><span class="kw">pub struct </span>SongStructure {
+<a href=#1012 id=1012 data-nosnippet>1012</a>    <span class="doccomment">/// Size of a single entry, always 24.
+<a href=#1013 id=1013 data-nosnippet>1013</a>    </span><span class="attr">#[br(temp)]
+<a href=#1014 id=1014 data-nosnippet>1014</a>    #[br(assert(len_entry_bytes == <span class="number">24</span>))]
+<a href=#1015 id=1015 data-nosnippet>1015</a>    #[bw(calc = <span class="number">24u32</span>)]
+<a href=#1016 id=1016 data-nosnippet>1016</a>    </span>len_entry_bytes: u32,
+<a href=#1017 id=1017 data-nosnippet>1017</a>    <span class="doccomment">/// Number of entries in this section.
+<a href=#1018 id=1018 data-nosnippet>1018</a>    </span><span class="attr">#[br(temp)]
+<a href=#1019 id=1019 data-nosnippet>1019</a>    #[br(assert((len_entry_bytes * (len_entries <span class="kw">as </span>u32)) == header.content_size()))]
+<a href=#1020 id=1020 data-nosnippet>1020</a>    #[bw(calc = data.phrases.len() <span class="kw">as </span>u16)]
+<a href=#1021 id=1021 data-nosnippet>1021</a>    </span>len_entries: u16,
+<a href=#1022 id=1022 data-nosnippet>1022</a>    <span class="doccomment">/// Indicates if the remaining parts of the song structure section are encrypted.
+<a href=#1023 id=1023 data-nosnippet>1023</a>    ///
+<a href=#1024 id=1024 data-nosnippet>1024</a>    /// This is a virtual field and not actually present in the file.
+<a href=#1025 id=1025 data-nosnippet>1025</a>    </span><span class="attr">#[br(restore_position, map = |raw_mood: [u8; <span class="number">2</span>]</span>| SongStructureData::check_if_encrypted(raw_mood, len_entries))]
+<a href=#1026 id=1026 data-nosnippet>1026</a>    <span class="attr">#[bw(ignore)]
+<a href=#1027 id=1027 data-nosnippet>1027</a>    </span>is_encrypted: bool,
+<a href=#1028 id=1028 data-nosnippet>1028</a>    <span class="doccomment">/// Song structure data.
+<a href=#1029 id=1029 data-nosnippet>1029</a>    </span><span class="attr">#[br(args(is_encrypted, len_entries), parse_with = SongStructureData::read_encrypted)]
+<a href=#1030 id=1030 data-nosnippet>1030</a>    #[bw(args(<span class="kw-2">*</span>is_encrypted, len_entries), write_with = SongStructureData::write_encrypted)]
+<a href=#1031 id=1031 data-nosnippet>1031</a>    </span>data: SongStructureData,
+<a href=#1032 id=1032 data-nosnippet>1032</a>}
+<a href=#1033 id=1033 data-nosnippet>1033</a>
+<a href=#1034 id=1034 data-nosnippet>1034</a><span class="doccomment">/// The data part of the [`SongStructure`] section that may be encrypted (RB6+).
+<a href=#1035 id=1035 data-nosnippet>1035</a>///
+<a href=#1036 id=1036 data-nosnippet>1036</a>/// See the documentation for details:
+<a href=#1037 id=1037 data-nosnippet>1037</a>/// - &lt;https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#song-structure-tag&gt;
+<a href=#1038 id=1038 data-nosnippet>1038</a></span><span class="attr">#[binrw]
+<a href=#1039 id=1039 data-nosnippet>1039</a>#[derive(Debug, PartialEq, Eq)]
+<a href=#1040 id=1040 data-nosnippet>1040</a>#[br(import(len_entries: u16))]
+<a href=#1041 id=1041 data-nosnippet>1041</a></span><span class="kw">pub struct </span>SongStructureData {
+<a href=#1042 id=1042 data-nosnippet>1042</a>    <span class="doccomment">/// Overall type of phrase structure.
+<a href=#1043 id=1043 data-nosnippet>1043</a>    </span><span class="kw">pub </span>mood: Mood,
+<a href=#1044 id=1044 data-nosnippet>1044</a>    <span class="doccomment">/// Unknown field.
+<a href=#1045 id=1045 data-nosnippet>1045</a>    </span>unknown1: u32,
+<a href=#1046 id=1046 data-nosnippet>1046</a>    <span class="doccomment">/// Unknown field.
+<a href=#1047 id=1047 data-nosnippet>1047</a>    </span>unknown2: u16,
+<a href=#1048 id=1048 data-nosnippet>1048</a>    <span class="doccomment">/// Number of the beat at which the last recognized phrase ends.
+<a href=#1049 id=1049 data-nosnippet>1049</a>    </span><span class="kw">pub </span>end_beat: u16,
+<a href=#1050 id=1050 data-nosnippet>1050</a>    <span class="doccomment">/// Unknown field.
+<a href=#1051 id=1051 data-nosnippet>1051</a>    </span>unknown3: u16,
+<a href=#1052 id=1052 data-nosnippet>1052</a>    <span class="doccomment">/// Stylistic bank assigned in Lightning Mode.
+<a href=#1053 id=1053 data-nosnippet>1053</a>    </span><span class="kw">pub </span>bank: Bank,
+<a href=#1054 id=1054 data-nosnippet>1054</a>    <span class="doccomment">/// Unknown field.
+<a href=#1055 id=1055 data-nosnippet>1055</a>    </span>unknown4: u8,
+<a href=#1056 id=1056 data-nosnippet>1056</a>    <span class="doccomment">/// Phrase entry data.
+<a href=#1057 id=1057 data-nosnippet>1057</a>    </span><span class="attr">#[br(count = usize::from(len_entries))]
+<a href=#1058 id=1058 data-nosnippet>1058</a>    </span><span class="kw">pub </span>phrases: Vec&lt;Phrase&gt;,
+<a href=#1059 id=1059 data-nosnippet>1059</a>}
+<a href=#1060 id=1060 data-nosnippet>1060</a>
+<a href=#1061 id=1061 data-nosnippet>1061</a><span class="kw">impl </span>SongStructureData {
+<a href=#1062 id=1062 data-nosnippet>1062</a>    <span class="kw">const </span>KEY_DATA: [u8; <span class="number">19</span>] = [
+<a href=#1063 id=1063 data-nosnippet>1063</a>        <span class="number">0xCB</span>, <span class="number">0xE1</span>, <span class="number">0xEE</span>, <span class="number">0xFA</span>, <span class="number">0xE5</span>, <span class="number">0xEE</span>, <span class="number">0xAD</span>, <span class="number">0xEE</span>, <span class="number">0xE9</span>, <span class="number">0xD2</span>, <span class="number">0xE9</span>, <span class="number">0xEB</span>, <span class="number">0xE1</span>, <span class="number">0xE9</span>, <span class="number">0xF3</span>,
+<a href=#1064 id=1064 data-nosnippet>1064</a>        <span class="number">0xE8</span>, <span class="number">0xE9</span>, <span class="number">0xF4</span>, <span class="number">0xE1</span>,
+<a href=#1065 id=1065 data-nosnippet>1065</a>    ];
+<a href=#1066 id=1066 data-nosnippet>1066</a>
+<a href=#1067 id=1067 data-nosnippet>1067</a>    <span class="doccomment">/// Returns an iterator over the key bytes (RB6+).
+<a href=#1068 id=1068 data-nosnippet>1068</a>    </span><span class="kw">fn </span>get_key(len_entries: u16) -&gt; <span class="kw">impl </span>Iterator&lt;Item = u8&gt; {
+<a href=#1069 id=1069 data-nosnippet>1069</a>        <span class="self">Self</span>::KEY_DATA.into_iter().map(<span class="kw">move </span>|x: u8| -&gt; u8 {
+<a href=#1070 id=1070 data-nosnippet>1070</a>            <span class="kw">let </span>value = u16::from(x) + len_entries;
+<a href=#1071 id=1071 data-nosnippet>1071</a>            (value % <span class="number">256</span>) <span class="kw">as </span>u8
+<a href=#1072 id=1072 data-nosnippet>1072</a>        })
+<a href=#1073 id=1073 data-nosnippet>1073</a>    }
+<a href=#1074 id=1074 data-nosnippet>1074</a>
+<a href=#1075 id=1075 data-nosnippet>1075</a>    <span class="doccomment">/// Returns `true` if the [`SongStructureData`] is encrypted.
+<a href=#1076 id=1076 data-nosnippet>1076</a>    ///
+<a href=#1077 id=1077 data-nosnippet>1077</a>    /// The method tries to decrypt the `raw_mood` field and checking if the result is valid.
+<a href=#1078 id=1078 data-nosnippet>1078</a>    </span><span class="kw">fn </span>check_if_encrypted(raw_mood: [u8; <span class="number">2</span>], len_entries: u16) -&gt; bool {
+<a href=#1079 id=1079 data-nosnippet>1079</a>        <span class="kw">let </span>buffer: Vec&lt;u8&gt; = raw_mood
+<a href=#1080 id=1080 data-nosnippet>1080</a>            .iter()
+<a href=#1081 id=1081 data-nosnippet>1081</a>            .zip(<span class="self">Self</span>::get_key(len_entries).take(<span class="number">2</span>))
+<a href=#1082 id=1082 data-nosnippet>1082</a>            .map(|(byte, key)| byte ^ key)
+<a href=#1083 id=1083 data-nosnippet>1083</a>            .collect();
+<a href=#1084 id=1084 data-nosnippet>1084</a>        <span class="kw">let </span><span class="kw-2">mut </span>reader = binrw::io::Cursor::new(buffer);
+<a href=#1085 id=1085 data-nosnippet>1085</a>        Mood::read(<span class="kw-2">&amp;mut </span>reader).is_ok()
+<a href=#1086 id=1086 data-nosnippet>1086</a>    }
+<a href=#1087 id=1087 data-nosnippet>1087</a>
+<a href=#1088 id=1088 data-nosnippet>1088</a>    <span class="doccomment">/// Read a [`SongStructureData`] section that may be encrypted, depending on the `is_encrypted`
+<a href=#1089 id=1089 data-nosnippet>1089</a>    /// value.
+<a href=#1090 id=1090 data-nosnippet>1090</a>    </span><span class="kw">fn </span>read_encrypted&lt;R: Read + Seek&gt;(
+<a href=#1091 id=1091 data-nosnippet>1091</a>        reader: <span class="kw-2">&amp;mut </span>R,
+<a href=#1092 id=1092 data-nosnippet>1092</a>        endian: Endian,
+<a href=#1093 id=1093 data-nosnippet>1093</a>        (is_encrypted, len_entries): (bool, u16),
+<a href=#1094 id=1094 data-nosnippet>1094</a>    ) -&gt; BinResult&lt;<span class="self">Self</span>&gt; {
+<a href=#1095 id=1095 data-nosnippet>1095</a>        <span class="kw">if </span>is_encrypted {
+<a href=#1096 id=1096 data-nosnippet>1096</a>            <span class="kw">let </span>key: Vec&lt;u8&gt; = <span class="self">Self</span>::get_key(len_entries).collect();
+<a href=#1097 id=1097 data-nosnippet>1097</a>            <span class="kw">let </span><span class="kw-2">mut </span>xor_reader = XorStream::with_key(reader, key);
+<a href=#1098 id=1098 data-nosnippet>1098</a>            <span class="self">Self</span>::read_options(<span class="kw-2">&amp;mut </span>xor_reader, endian, (len_entries,))
+<a href=#1099 id=1099 data-nosnippet>1099</a>        } <span class="kw">else </span>{
+<a href=#1100 id=1100 data-nosnippet>1100</a>            <span class="self">Self</span>::read_options(reader, endian, (len_entries,))
+<a href=#1101 id=1101 data-nosnippet>1101</a>        }
+<a href=#1102 id=1102 data-nosnippet>1102</a>    }
+<a href=#1103 id=1103 data-nosnippet>1103</a>
+<a href=#1104 id=1104 data-nosnippet>1104</a>    <span class="doccomment">/// Write a [`SongStructureData`] section that may be encrypted, depending on the
+<a href=#1105 id=1105 data-nosnippet>1105</a>    /// `is_encrypted` value.
+<a href=#1106 id=1106 data-nosnippet>1106</a>    </span><span class="kw">fn </span>write_encrypted&lt;W: Write + Seek&gt;(
+<a href=#1107 id=1107 data-nosnippet>1107</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
+<a href=#1108 id=1108 data-nosnippet>1108</a>        writer: <span class="kw-2">&amp;mut </span>W,
+<a href=#1109 id=1109 data-nosnippet>1109</a>        endian: Endian,
+<a href=#1110 id=1110 data-nosnippet>1110</a>        (is_encrypted, len_entries): (bool, u16),
+<a href=#1111 id=1111 data-nosnippet>1111</a>    ) -&gt; BinResult&lt;()&gt; {
+<a href=#1112 id=1112 data-nosnippet>1112</a>        <span class="kw">if </span>is_encrypted {
+<a href=#1113 id=1113 data-nosnippet>1113</a>            <span class="kw">let </span>key: Vec&lt;u8&gt; = <span class="self">Self</span>::get_key(len_entries).collect();
+<a href=#1114 id=1114 data-nosnippet>1114</a>            <span class="kw">let </span><span class="kw-2">mut </span>xor_writer = XorStream::with_key(writer, key);
+<a href=#1115 id=1115 data-nosnippet>1115</a>            <span class="self">self</span>.write_options(<span class="kw-2">&amp;mut </span>xor_writer, endian, ())
+<a href=#1116 id=1116 data-nosnippet>1116</a>        } <span class="kw">else </span>{
+<a href=#1117 id=1117 data-nosnippet>1117</a>            <span class="self">self</span>.write_options(writer, endian, ())
+<a href=#1118 id=1118 data-nosnippet>1118</a>        }
+<a href=#1119 id=1119 data-nosnippet>1119</a>    }
+<a href=#1120 id=1120 data-nosnippet>1120</a>}
+<a href=#1121 id=1121 data-nosnippet>1121</a>
+<a href=#1122 id=1122 data-nosnippet>1122</a><span class="doccomment">/// Unknown content.
+<a href=#1123 id=1123 data-nosnippet>1123</a></span><span class="attr">#[binrw]
+<a href=#1124 id=1124 data-nosnippet>1124</a>#[derive(Debug, PartialEq, Eq)]
+<a href=#1125 id=1125 data-nosnippet>1125</a>#[br(import(header: Header))]
+<a href=#1126 id=1126 data-nosnippet>1126</a></span><span class="kw">pub struct </span>Unknown {
+<a href=#1127 id=1127 data-nosnippet>1127</a>    <span class="doccomment">/// Unknown header data.
+<a href=#1128 id=1128 data-nosnippet>1128</a>    </span><span class="attr">#[br(count = header.remaining_size())]
+<a href=#1129 id=1129 data-nosnippet>1129</a>    </span>header_data: Vec&lt;u8&gt;,
+<a href=#1130 id=1130 data-nosnippet>1130</a>    <span class="doccomment">/// Unknown content data.
+<a href=#1131 id=1131 data-nosnippet>1131</a>    </span><span class="attr">#[br(count = header.content_size())]
+<a href=#1132 id=1132 data-nosnippet>1132</a>    </span>content_data: Vec&lt;u8&gt;,
+<a href=#1133 id=1133 data-nosnippet>1133</a>}
+<a href=#1134 id=1134 data-nosnippet>1134</a>
+<a href=#1135 id=1135 data-nosnippet>1135</a><span class="doccomment">/// ANLZ Section.
+<a href=#1136 id=1136 data-nosnippet>1136</a></span><span class="attr">#[binrw]
+<a href=#1137 id=1137 data-nosnippet>1137</a>#[derive(Debug, PartialEq, Eq)]
+<a href=#1138 id=1138 data-nosnippet>1138</a></span><span class="kw">pub struct </span>Section {
+<a href=#1139 id=1139 data-nosnippet>1139</a>    <span class="doccomment">/// The header.
+<a href=#1140 id=1140 data-nosnippet>1140</a>    </span><span class="kw">pub </span>header: Header,
+<a href=#1141 id=1141 data-nosnippet>1141</a>    <span class="doccomment">/// The section content.
+<a href=#1142 id=1142 data-nosnippet>1142</a>    </span><span class="attr">#[br(args(header.clone()))]
+<a href=#1143 id=1143 data-nosnippet>1143</a>    </span><span class="kw">pub </span>content: Content,
+<a href=#1144 id=1144 data-nosnippet>1144</a>}
+<a href=#1145 id=1145 data-nosnippet>1145</a>
+<a href=#1146 id=1146 data-nosnippet>1146</a><span class="doccomment">/// ANLZ file section.
+<a href=#1147 id=1147 data-nosnippet>1147</a>///
+<a href=#1148 id=1148 data-nosnippet>1148</a>/// The actual contents are not part of this struct and can parsed on-the-fly by iterating over the
+<a href=#1149 id=1149 data-nosnippet>1149</a>/// `ANLZ::sections()` method.
+<a href=#1150 id=1150 data-nosnippet>1150</a></span><span class="attr">#[binrw]
+<a href=#1151 id=1151 data-nosnippet>1151</a>#[derive(Debug, PartialEq, Eq)]
+<a href=#1152 id=1152 data-nosnippet>1152</a>#[brw(big)]
+<a href=#1153 id=1153 data-nosnippet>1153</a></span><span class="kw">pub struct </span>ANLZ {
+<a href=#1154 id=1154 data-nosnippet>1154</a>    <span class="doccomment">/// The file header.
+<a href=#1155 id=1155 data-nosnippet>1155</a>    </span><span class="attr">#[br(assert(header.kind == ContentKind::File))]
+<a href=#1156 id=1156 data-nosnippet>1156</a>    </span><span class="kw">pub </span>header: Header,
+<a href=#1157 id=1157 data-nosnippet>1157</a>    <span class="doccomment">/// The header data.
+<a href=#1158 id=1158 data-nosnippet>1158</a>    </span><span class="attr">#[br(count = header.remaining_size())]
+<a href=#1159 id=1159 data-nosnippet>1159</a>    </span><span class="kw">pub </span>header_data: Vec&lt;u8&gt;,
+<a href=#1160 id=1160 data-nosnippet>1160</a>    <span class="doccomment">/// The content sections.
+<a href=#1161 id=1161 data-nosnippet>1161</a>    </span><span class="attr">#[br(parse_with = <span class="self">Self</span>::parse_sections, args(header.content_size()))]
+<a href=#1162 id=1162 data-nosnippet>1162</a>    </span><span class="kw">pub </span>sections: Vec&lt;Section&gt;,
+<a href=#1163 id=1163 data-nosnippet>1163</a>}
+<a href=#1164 id=1164 data-nosnippet>1164</a>
+<a href=#1165 id=1165 data-nosnippet>1165</a><span class="kw">impl </span>ANLZ {
+<a href=#1166 id=1166 data-nosnippet>1166</a>    <span class="kw">fn </span>parse_sections&lt;R: Read + Seek&gt;(
+<a href=#1167 id=1167 data-nosnippet>1167</a>        reader: <span class="kw-2">&amp;mut </span>R,
+<a href=#1168 id=1168 data-nosnippet>1168</a>        endian: Endian,
+<a href=#1169 id=1169 data-nosnippet>1169</a>        args: (u32,),
+<a href=#1170 id=1170 data-nosnippet>1170</a>    ) -&gt; BinResult&lt;Vec&lt;Section&gt;&gt; {
+<a href=#1171 id=1171 data-nosnippet>1171</a>        <span class="kw">let </span>(content_size,) = args;
+<a href=#1172 id=1172 data-nosnippet>1172</a>        <span class="kw">let </span>final_position = reader.stream_position()<span class="question-mark">? </span>+ u64::from(content_size);
+<a href=#1173 id=1173 data-nosnippet>1173</a>
+<a href=#1174 id=1174 data-nosnippet>1174</a>        <span class="kw">let </span><span class="kw-2">mut </span>sections: Vec&lt;Section&gt; = <span class="macro">vec!</span>[];
+<a href=#1175 id=1175 data-nosnippet>1175</a>        <span class="kw">while </span>reader.stream_position()<span class="question-mark">? </span>&lt; final_position {
+<a href=#1176 id=1176 data-nosnippet>1176</a>            <span class="kw">let </span>section = Section::read_options(reader, endian, ())<span class="question-mark">?</span>;
+<a href=#1177 id=1177 data-nosnippet>1177</a>            sections.push(section);
+<a href=#1178 id=1178 data-nosnippet>1178</a>        }
+<a href=#1179 id=1179 data-nosnippet>1179</a>
+<a href=#1180 id=1180 data-nosnippet>1180</a>        <span class="prelude-val">Ok</span>(sections)
+<a href=#1181 id=1181 data-nosnippet>1181</a>    }
+<a href=#1182 id=1182 data-nosnippet>1182</a>}
 </code></pre></div></section></main></body></html>
