@@ -65,6 +65,7 @@ All notable changes to this project will be documented in this file.
 - xml: Publicise xml structs
 - xml: Publicise members
 - anlz: Add support for 3-band waveforms in 2EX files
+- anlz: Replace FixedUtf16String with LenPrefixedWideString
 
 ### Refactor
 
@@ -116,6 +117,7 @@ All notable changes to this project will be documented in this file.
 - pdb: Add `index_page` unit test
 - pdb: Add tests for Menu row and page
 - pdb: Add tests for History row
+- anlz: Add roundtrip test for ExtendedCue with empty comment
 
 ## [0.3.0] - 2025-01-23
 
