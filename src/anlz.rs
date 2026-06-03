@@ -1190,3 +1190,60 @@ impl ANLZ {
         Ok(sections)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::util::testing::test_roundtrip;
+
+    #[test]
+    fn extended_cue_empty_comment_roundtrip() {
+        // Real ExtendedCue with an empty comment (len_comment=0), extracted
+        // from a file provided by @FizzyApple12
+        // This would have failed to parse before the fix that replaced
+        // NullWideString with LenPrefixedWideString for the `comment` field.
+        let raw = [
+            0x50, 0x43, 0x50, 0x32, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x58, 0x00, 0x00,
+            0x00, 0x04, 0x01, 0x00, 0x03, 0xe8, 0x00, 0x04, 0x62, 0xf7, 0xff, 0xff, 0xff, 0xff,
+            0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x4d, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0xc1, 0x70, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x30,
+            0x77, 0x61, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+        ];
+
+        let cue = ExtendedCue {
+            header: Header {
+                kind: ContentKind::ExtendedCue,
+                size: 16,
+                total_size: 88,
+            },
+            hot_cue: 4,
+            cue_type: CueType::Point,
+            unknown1: 0,
+            unknown2: 1000,
+            time: 287479,
+            loop_time: 4294967295,
+            color: ColorIndex::None,
+            unknown3: 1,
+            unknown4: 0,
+            unknown5: 0,
+            loop_numerator: 0,
+            loop_denominator: 0,
+            comment: LenPrefixedWideString(String::new()),
+            hot_cue_color_index: 0,
+            hot_cue_color_rgb: (0x4d, 0x00, 0xff),
+            unknown6: 0,
+            unknown7: 0x00c17000,
+            unknown8: 0,
+            unknown9: 0,
+            unknown10: 0,
+            trailing: vec![
+                0x02, 0x30, 0x77, 0x61, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x10, 0x00, 0x00, 0x00, 0x00, 0x00,
+            ],
+        };
+
+        test_roundtrip(&raw, cue);
+    }
+}
