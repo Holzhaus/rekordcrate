@@ -15,7 +15,7 @@ exclude = [".*"]
 binrw = "0.15"
 modular-bitfield = "0.13"
 crc16 = "0.4"
-clap = { version = "4.5", features = ["derive"], optional = true }
+clap = { version = "4.6", features = ["derive"], optional = true }
 parse-display = "0.10"
 thiserror = "2.0"
 quick-xml = { version = "0.38.4", features = ["serialize", "serde-types"] }
