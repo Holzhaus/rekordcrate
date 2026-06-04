@@ -1464,6 +1464,20 @@ impl OffsetArrayItems<21> for TrackStrings {
     }
 }
 
+impl TrackStrings {
+    /// Get the path of the track analysis file.
+    #[must_use]
+    pub fn analyze_path(&self) -> &DeviceSQLString {
+        &self.analyze_path
+    }
+
+    /// Get the track comment.
+    #[must_use]
+    pub fn comment(&self) -> &DeviceSQLString {
+        &self.comment
+    }
+}
+
 /// Contains the album name, along with an ID of the corresponding artist.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -1536,6 +1550,68 @@ pub struct Track {
     /// offsets (strings) at row end
     #[brw(args(0x5C, subtype.get_offset_size(), ()))]
     pub offsets: OffsetArrayContainer<TrackStrings, 21>,
+}
+
+impl Track {
+    /// Get the sample rate in Hz.
+    #[must_use]
+    pub const fn sample_rate(&self) -> u32 {
+        self.sample_rate
+    }
+
+    /// Get the file size in bytes.
+    #[must_use]
+    pub const fn file_size(&self) -> u32 {
+        self.file_size
+    }
+
+    /// Get the bitrate in kbps.
+    #[must_use]
+    pub const fn bitrate(&self) -> u32 {
+        self.bitrate
+    }
+
+    /// Get the track number.
+    #[must_use]
+    pub const fn track_number(&self) -> u32 {
+        self.track_number
+    }
+
+    /// Get the average tempo in BPM.
+    #[must_use]
+    pub fn average_bpm(&self) -> Option<f64> {
+        (self.tempo > 0).then_some(f64::from(self.tempo) / 100.0)
+    }
+
+    /// Get the disc number.
+    #[must_use]
+    pub const fn disc_number(&self) -> u16 {
+        self.disc_number
+    }
+
+    /// Get the play count.
+    #[must_use]
+    pub const fn play_count(&self) -> u16 {
+        self.play_count
+    }
+
+    /// Get the release year.
+    #[must_use]
+    pub const fn year(&self) -> u16 {
+        self.year
+    }
+
+    /// Get the playback duration in seconds.
+    #[must_use]
+    pub const fn duration(&self) -> u16 {
+        self.duration
+    }
+
+    /// Get the file type.
+    #[must_use]
+    pub const fn file_type(&self) -> &FileType {
+        &self.file_type
+    }
 }
 
 impl PageHeapObject for Track {

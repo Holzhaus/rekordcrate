@@ -34,6 +34,10 @@ pub enum RekordcrateError {
     #[error(transparent)]
     IOError(#[from] std::io::Error),
 
+    /// Represents a failure to serialize XML.
+    #[error(transparent)]
+    SerializeError(#[from] quick_xml::se::SeError),
+
     /// Represents an `std::io::Error`.
     #[error("component not loaded")]
     NotLoadedError,

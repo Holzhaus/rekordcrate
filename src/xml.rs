@@ -82,57 +82,70 @@ pub struct Track {
 
     /// Name of track
     #[serde(rename = "@Name")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub name: Option<String>,
 
     /// Name of artist
     #[serde(rename = "@Artist")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub artist: Option<String>,
 
     /// Name of composer (or producer)
     #[serde(rename = "@Composer")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub composer: Option<String>,
 
     /// Name of Album
     #[serde(rename = "@Album")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub album: Option<String>,
 
     /// Name of goupe
     #[serde(rename = "@Grouping")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub grouping: Option<String>,
 
     /// Name of genre
     #[serde(rename = "@Genre")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub genre: Option<String>,
 
     /// Type of audio file
     #[serde(rename = "@Kind")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub kind: Option<String>,
 
     /// Size of audio file
     /// Unit : Octet
     #[serde(rename = "@Size")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub size: Option<i64>,
 
     /// Duration of track
     /// Unit : Second (without decimal numbers)
     #[serde(rename = "@TotalTime")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub totaltime: Option<f64>,
 
     /// Order number of the disc of the album
     #[serde(rename = "@DiscNumber")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub discnumber: Option<i32>,
 
     /// Order number of the track in the album
     #[serde(rename = "@TrackNumber")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tracknumber: Option<i32>,
 
     /// Year of release
     #[serde(rename = "@Year")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub year: Option<i32>,
 
     /// Value of average BPM
     /// Unit : Second (with decimal numbers)
     #[serde(rename = "@AverageBpm")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub averagebpm: Option<f64>,
 
     /// Date of last modification
@@ -150,19 +163,23 @@ pub struct Track {
     /// Encoding bit rate
     /// Unit : Kbps
     #[serde(rename = "@BitRate")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub bitrate: Option<i32>,
 
     /// Frequency of sampling
     /// Unit : Hertz
     #[serde(rename = "@SampleRate")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub samplerate: Option<f64>,
 
     /// Comments
     #[serde(rename = "@Comments")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub comments: Option<String>,
 
     /// Play count of the track
     #[serde(rename = "@PlayCount")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub playcount: Option<i32>,
 
     /// Date of last playing
@@ -174,6 +191,7 @@ pub struct Track {
     /// Rating of the track
     /// 0 star = "@0", 1 star = "51", 2 stars = "102", 3 stars = "153", 4 stars = "204", 5 stars = "255"
     #[serde(rename = "@Rating")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub rating: Option<i32>, // TODO: Use StarRating type here
 
     /// Location of the file
@@ -183,18 +201,22 @@ pub struct Track {
 
     /// Name of remixer
     #[serde(rename = "@Remixer")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub remixer: Option<String>,
 
     /// Tonality (Kind of musical key)
     #[serde(rename = "@Tonality")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub tonality: Option<String>,
 
     /// Name of record label
     #[serde(rename = "@Label")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub label: Option<String>,
 
     /// Name of mix
     #[serde(rename = "@Mix")]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub mix: Option<String>,
 
     /// Colour for track grouping
@@ -441,6 +463,7 @@ pub struct PlaylistFolderNode {
     // can just take the number of elements in the `tracks` vector instead.
     /// Nodes
     #[serde(rename = "NODE")]
+    #[serde(default = "Vec::new")]
     pub nodes: Vec<PlaylistGenericNode>,
 }
 

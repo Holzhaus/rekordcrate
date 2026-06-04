@@ -10,7 +10,7 @@
 
 use crate::{
     pdb::{
-        DatabaseType, Header, Page, PageContent, PageType, PlainPageType, PlainRow,
+        Artist, DatabaseType, Header, Page, PageContent, PageType, PlainPageType, PlainRow,
         PlaylistTreeNode, PlaylistTreeNodeId, Row, Track, TrackId,
     },
     setting,
@@ -700,6 +700,18 @@ impl Pdb {
             .filter_map(|row| {
                 if let Row::Plain(PlainRow::Track(track)) = row {
                     Some(track)
+                } else {
+                    None
+                }
+            })
+    }
+
+    /// Get artists.
+    pub fn get_artists(&self) -> impl Iterator<Item = &Artist> + '_ {
+        self.get_rows_by_page_type(PlainPageType::Artists)
+            .filter_map(|row| {
+                if let Row::Plain(PlainRow::Artist(artist)) = row {
+                    Some(artist)
                 } else {
                     None
                 }
