@@ -14,7 +14,8 @@ macro_rules! read_mysetting {
         let data = include_bytes!($path);
         println!("Setting file: {}", $path);
         let mut reader = Cursor::new(data);
-        let setting = Setting::read(&mut reader).expect("failed to parse setting file");
+        let setting = Setting::read_args(&mut reader, (SettingType::MySetting,))
+            .expect("failed to parse setting file");
         let result = match setting.data {
             SettingData::MySetting(x) => Some(x),
             _ => None,

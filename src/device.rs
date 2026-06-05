@@ -9,65 +9,52 @@
 //! High-level API for working with Rekordbox device exports.
 
 use crate::{
-    pdb::{
-        DatabaseType, Header, Page, PageContent, PageType, PlainPageType, PlainRow,
-        PlaylistTreeNode, PlaylistTreeNodeId, Row, Track, TrackId,
-    },
+    pdb::io::Database,
+    pdb::{DatabaseType, PlaylistTreeNode, PlaylistTreeNodeId},
     setting,
-    setting::Setting,
+    setting::{Setting, SettingType},
 };
 use binrw::BinRead;
+use fallible_iterator::FallibleIterator;
 use std::collections::HashMap;
 use std::fmt;
+use std::io::{Read, Seek};
 use std::path::{Path, PathBuf};
 
 /// Represents a Rekordbox device export.
 #[derive(Debug, PartialEq)]
-pub struct DeviceExport {
-    path: PathBuf,
-    pdb: Option<Pdb>,
-    devsetting: Option<Setting>,
-    djmmysetting: Option<Setting>,
-    mysetting: Option<Setting>,
-    mysetting2: Option<Setting>,
-}
+pub struct DeviceExportLoader(PathBuf);
 
-impl DeviceExport {
+impl DeviceExportLoader {
     /// Load device export from the given path.
     ///
     /// The path should contain a `PIONEER` directory.
     #[must_use]
     pub fn new(path: PathBuf) -> Self {
-        Self {
-            path,
-            pdb: None,
-            devsetting: None,
-            djmmysetting: None,
-            mysetting: None,
-            mysetting2: None,
-        }
+        Self(path)
     }
 
     /// Get the device path.
     #[must_use]
     pub fn get_path(&self) -> &Path {
-        &self.path
+        &self.0
     }
 
-    fn read_setting_file(path: &PathBuf) -> crate::Result<Setting> {
+    fn read_setting_file(path: &PathBuf, setting_type: SettingType) -> crate::Result<Setting> {
         let mut reader = std::fs::File::open(path)?;
-        let setting = Setting::read(&mut reader)?;
+        let setting = Setting::read_args(&mut reader, (setting_type,))?;
         Ok(setting)
     }
 
-    /// Load setting files. If a file is missing or cannot be read, the
-    /// corresponding setting will be `None` and a warning will be printed.
-    pub fn load_settings(&mut self) {
-        let path = self.path.join("PIONEER");
+    /// Load setting files. If a file is missing or cannot be read,
+    /// a warning will be printed.
+    #[must_use]
+    pub fn load_settings(&self) -> Settings {
+        let path = self.0.join("PIONEER");
 
-        let load_setting = |filename: &str| -> Option<Setting> {
+        let load_setting = |filename: &str, setting_type: SettingType| -> Option<Setting> {
             let file_path = path.join(filename);
-            match Self::read_setting_file(&file_path) {
+            match Self::read_setting_file(&file_path, setting_type) {
                 Ok(setting) => Some(setting),
                 Err(e) => {
                     eprintln!("Warning: Could not load {}: {}", file_path.display(), e);
@@ -76,79 +63,28 @@ impl DeviceExport {
             }
         };
 
-        self.devsetting = load_setting("DEVSETTING.DAT");
-        self.djmmysetting = load_setting("DJMMYSETTING.DAT");
-        self.mysetting = load_setting("MYSETTING.DAT");
-        self.mysetting2 = load_setting("MYSETTING2.DAT");
-    }
-
-    fn read_pdb_file(path: &PathBuf) -> crate::Result<Pdb> {
-        let mut reader = std::fs::File::open(path)?;
-        let header = Header::read_args(&mut reader, (DatabaseType::Plain,))?;
-        let pages = header
-            .tables
-            .iter()
-            .flat_map(|table| {
-                header
-                    .read_pages(
-                        &mut reader,
-                        binrw::Endian::NATIVE,
-                        (&table.first_page, &table.last_page, DatabaseType::Plain),
-                    )
-                    .into_iter()
-            })
-            .flatten()
-            .collect::<Vec<Page>>();
-
-        let pdb = Pdb { header, pages };
-        Ok(pdb)
-    }
-
-    /// Load PDB file.
-    pub fn load_pdb(&mut self) -> crate::Result<()> {
-        let path = self
-            .path
-            .join("PIONEER")
-            .join("rekordbox")
-            .join("export.pdb");
-        self.pdb = Some(Self::read_pdb_file(&path)?);
-        Ok(())
-    }
-
-    /// Get the settings from this export.
-    #[must_use]
-    pub fn get_settings(&self) -> Settings {
         let mut settings = Settings::default();
-        [
-            &self.mysetting,
-            &self.mysetting2,
-            &self.djmmysetting,
-            &self.devsetting,
-        ]
-        .into_iter()
-        .flatten()
-        .for_each(|setting| match &setting.data {
-            setting::SettingData::MySetting(data) => {
-                settings.set_mysetting(data);
-            }
-            setting::SettingData::MySetting2(data) => {
-                settings.set_mysetting2(data);
-            }
-            setting::SettingData::DJMMySetting(data) => {
-                settings.set_djmmysetting(data);
-            }
-            setting::SettingData::DevSetting(data) => {
-                settings.set_devsetting(data);
-            }
-        });
+        if let Some(devsetting) = load_setting("DEVSETTING.DAT", SettingType::DevSetting) {
+            settings.set_devsetting(devsetting.data.as_dev_setting().unwrap());
+        }
+        if let Some(djmmysetting) = load_setting("DJMMYSETTING.DAT", SettingType::DJMMySetting) {
+            settings.set_djmmysetting(djmmysetting.data.as_djm_my_setting().unwrap());
+        }
+        if let Some(mysetting) = load_setting("MYSETTING.DAT", SettingType::MySetting) {
+            settings.set_mysetting(mysetting.data.as_my_setting().unwrap());
+        }
+        if let Some(mysetting2) = load_setting("MYSETTING2.DAT", SettingType::MySetting2) {
+            settings.set_mysetting2(mysetting2.data.as_my_setting2().unwrap());
+        }
 
         settings
     }
 
-    /// Get a reference to the PDB if loaded.
-    #[must_use]
-    pub fn pdb(&self) -> Option<&Pdb> {
-        self.pdb.as_ref()
+    /// Open a PDB database without persistence back to disk.
+    /// Still allows modifying data in memory.
+    pub fn open_pdb_non_persistent(&self) -> crate::Result<Database<std::fs::File>> {
+        let path = self.0.join("PIONEER").join("rekordbox").join("export.pdb");
+        Database::open_non_persistent(std::fs::File::open(path)?, DatabaseType::Plain)
     }
 }
 
@@ -556,13 +492,6 @@ impl fmt::Display for Settings {
     }
 }
 
-/// Represent a PDB file.
-#[derive(Debug, PartialEq)]
-pub struct Pdb {
-    header: Header,
-    pages: Vec<Page>,
-}
-
 /// Represents either a playlist folder or a playlist.
 #[derive(Debug, PartialEq)]
 pub enum PlaylistNode {
@@ -592,117 +521,45 @@ pub struct Playlist {
     pub name: String,
 }
 
-impl Pdb {
-    /// Create a new `Pdb` object by reading the PDB file at the given path.
-    pub fn open_from_path(path: &PathBuf) -> crate::Result<Self> {
-        let mut reader = std::fs::File::open(path)?;
-        let header = Header::read_args(&mut reader, (DatabaseType::Plain,))?;
-        let pages = header
-            .tables
-            .iter()
-            .flat_map(|table| {
-                header
-                    .read_pages(
-                        &mut reader,
-                        binrw::Endian::NATIVE,
-                        (&table.first_page, &table.last_page, DatabaseType::Plain),
-                    )
-                    .into_iter()
-            })
-            .flatten()
-            .collect::<Vec<Page>>();
+/// Get playlist tree.
+pub fn get_playlists<R: Read + Seek>(db: &mut Database<R>) -> crate::Result<Vec<PlaylistNode>> {
+    let mut playlists: HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>> = HashMap::new();
 
-        let pdb = Pdb { header, pages };
+    db.iter_rows::<PlaylistTreeNode>()?.for_each(|node| {
+        playlists
+            .entry(node.parent_id)
+            .or_default()
+            .push(node.clone());
+        Ok(())
+    })?;
 
-        Ok(pdb)
-    }
-
-    fn get_rows_by_page_type(&self, page_type: PlainPageType) -> impl Iterator<Item = &Row> + '_ {
-        self.pages
-            .iter()
-            .filter(move |page| page.header.page_type == PageType::Plain(page_type))
-            .filter_map(|page| match &page.content {
-                PageContent::Data(data) => Some(data),
-                _ => None,
-            })
-            .flat_map(|data| data.rows.values())
-    }
-
-    /// Get playlist tree.
-    pub fn get_playlists(&self) -> crate::Result<Vec<PlaylistNode>> {
-        let mut playlists: HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>> = HashMap::new();
-        self.get_rows_by_page_type(PlainPageType::PlaylistTree)
-            .filter_map(|row| {
-                if let Row::Plain(PlainRow::PlaylistTreeNode(playlist_tree)) = row {
-                    Some(playlist_tree.clone())
-                } else {
-                    None
-                }
-            })
-            .for_each(|node| {
-                playlists.entry(node.parent_id).or_default().push(node);
-            });
-
-        fn get_child_nodes(
-            playlists: &HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>>,
-            id: PlaylistTreeNodeId,
-        ) -> impl Iterator<Item = crate::Result<PlaylistNode>> + '_ {
-            playlists
-                .get(&id)
-                .into_iter()
-                .flat_map(|nodes| nodes.iter())
-                .map(|node| -> crate::Result<PlaylistNode> {
-                    let child_node = if node.is_folder() {
-                        let folder = PlaylistFolder {
-                            id: node.id,
-                            name: node.name.clone().into_string()?,
-                            children: get_child_nodes(playlists, node.id)
-                                .collect::<crate::Result<Vec<PlaylistNode>>>()?,
-                        };
-                        PlaylistNode::Folder(folder)
-                    } else {
-                        let playlist = Playlist {
-                            id: node.id,
-                            name: node.name.clone().into_string()?,
-                        };
-                        PlaylistNode::Playlist(playlist)
+    fn get_child_nodes(
+        playlists: &HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>>,
+        id: PlaylistTreeNodeId,
+    ) -> impl Iterator<Item = crate::Result<PlaylistNode>> + '_ {
+        playlists
+            .get(&id)
+            .into_iter()
+            .flat_map(|nodes| nodes.iter())
+            .map(|node| -> crate::Result<PlaylistNode> {
+                let child_node = if node.is_folder() {
+                    let folder = PlaylistFolder {
+                        id: node.id,
+                        name: node.name.clone().into_string()?,
+                        children: get_child_nodes(playlists, node.id)
+                            .collect::<crate::Result<Vec<PlaylistNode>>>()?,
                     };
-                    Ok(child_node)
-                })
-        }
-
-        get_child_nodes(&playlists, PlaylistTreeNodeId(0))
-            .collect::<crate::Result<Vec<PlaylistNode>>>()
-    }
-
-    /// Get playlist entries.
-    pub fn get_playlist_entries(
-        &self,
-        playlist_id: PlaylistTreeNodeId,
-    ) -> impl Iterator<Item = (u32, TrackId)> + '_ {
-        self.get_rows_by_page_type(PlainPageType::PlaylistEntries)
-            .filter_map(move |row| {
-                if let Row::Plain(PlainRow::PlaylistEntry(entry)) = row {
-                    if entry.playlist_id == playlist_id {
-                        Some((entry.entry_index, entry.track_id))
-                    } else {
-                        None
-                    }
+                    PlaylistNode::Folder(folder)
                 } else {
-                    None
-                }
+                    let playlist = Playlist {
+                        id: node.id,
+                        name: node.name.clone().into_string()?,
+                    };
+                    PlaylistNode::Playlist(playlist)
+                };
+                Ok(child_node)
             })
     }
 
-    /// Get tracks.
-    pub fn get_tracks(&self) -> impl Iterator<Item = &Track> + '_ {
-        self.get_rows_by_page_type(PlainPageType::Tracks)
-            .filter_map(|row| {
-                if let Row::Plain(PlainRow::Track(track)) = row {
-                    Some(track)
-                } else {
-                    None
-                }
-            })
-    }
+    get_child_nodes(&playlists, PlaylistTreeNodeId(0)).collect::<crate::Result<Vec<PlaylistNode>>>()
 }
