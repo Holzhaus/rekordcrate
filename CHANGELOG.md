@@ -66,6 +66,8 @@ All notable changes to this project will be documented in this file.
 - xml: Publicise members
 - anlz: Add support for 3-band waveforms in 2EX files
 - anlz: Replace FixedUtf16String with LenPrefixedWideString
+- pdb: Encapsulate database reading/writing in a lazy container
+- setting: Improve settings ergonomics
 
 ### Refactor
 
@@ -97,6 +99,7 @@ All notable changes to this project will be documented in this file.
 - device: Return track references instead of clones
 - cli: Use Pdb abstraction for playlist listing
 - Implement Display for Settings to reduce some duplication
+- main: Improve error handling in dump-pdb
 
 ### Testing
 
