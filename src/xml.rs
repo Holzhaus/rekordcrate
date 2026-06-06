@@ -536,6 +536,7 @@ impl<'de> Deserialize<'de> for PlaylistGenericNode {
                                     #[derive(serde::Deserialize)]
                                     struct Nodes {
                                         #[serde(rename = "NODE")]
+                                        #[serde(default)]
                                         content: Vec<PlaylistGenericNode>,
                                     }
                                     let de = serde::de::value::MapAccessDeserializer::new(map);
@@ -555,6 +556,7 @@ impl<'de> Deserialize<'de> for PlaylistGenericNode {
                                     #[derive(serde::Deserialize)]
                                     struct Tracks {
                                         #[serde(rename = "TRACK")]
+                                        #[serde(default)]
                                         content: Vec<PlaylistTrack>,
                                     }
                                     let de = serde::de::value::MapAccessDeserializer::new(map);
