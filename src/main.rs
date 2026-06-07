@@ -19,6 +19,8 @@ use std::collections::BTreeMap;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
+mod render_waveforms;
+
 #[derive(Parser)]
 #[command(author, version, about)]
 #[command(propagate_version = true)]
@@ -55,6 +57,24 @@ enum Commands {
         /// File to parse.
         #[arg(value_name = "ANLZ_FILE")]
         path: PathBuf,
+    },
+    /// Render supported waveform sections from Rekordbox analysis files to SVG.
+    RenderWaveforms {
+        /// ANLZ file to parse. Sibling `.DAT`, `.EXT`, and `.2EX` files are auto-detected.
+        #[arg(value_name = "ANLZ_FILE")]
+        path: PathBuf,
+        /// Output SVG file to write.
+        #[arg(value_name = "SVG_FILE")]
+        output: PathBuf,
+        /// Skip reading the sibling `.EXT` file.
+        #[arg(long)]
+        no_ext: bool,
+        /// Skip reading the sibling `.2EX` file.
+        #[arg(long)]
+        no_2ex: bool,
+        /// Height in pixels for each waveform section.
+        #[arg(long, default_value_t = 144)]
+        section_height: u32,
     },
     /// Parse and dump a Pioneer Database (`.PDB`) file.
     DumpPDB {
@@ -429,6 +449,13 @@ fn main() -> rekordcrate::Result<()> {
             dump_pdb(path, db_type, *parse_unknown_tables)
         }
         Commands::DumpANLZ { path } => dump_anlz(path),
+        Commands::RenderWaveforms {
+            path,
+            output,
+            no_ext,
+            no_2ex,
+            section_height,
+        } => render_waveforms::render_waveforms(path, output, *no_ext, *no_2ex, *section_height),
         Commands::DumpSetting { path, setting_type } => {
             let setting_type = match guess_setting_type(path, setting_type.as_deref()) {
                 Some(setting_type) => setting_type,
