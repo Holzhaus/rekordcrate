@@ -25,6 +25,7 @@ chrono = { version = "0.4", features = ["serde"], optional = true }
 rgb = { version = "0.8", optional = true }
 fallible-iterator = "0.3.0"
 
+xmlwriter = "0.1"
 [build-dependencies]
 glob = "0.3"
 
