@@ -1041,6 +1041,20 @@ impl RowVariant for Album {
     }
 }
 
+impl Album {
+    /// Get the ID for this album row.
+    #[must_use]
+    pub fn id(&self) -> AlbumId {
+        self.id
+    }
+
+    /// Get the album name.
+    #[must_use]
+    pub fn name(&self) -> &DeviceSQLString {
+        &self.offsets.name
+    }
+}
+
 impl PageHeapObject for Album {
     type Args<'a> = ();
     fn heap_bytes_required(&self, _: ()) -> u16 {
@@ -1222,6 +1236,20 @@ impl RowVariant for Genre {
             Row::Plain(PlainRow::Genre(row)) => Some(row),
             _ => None,
         }
+    }
+}
+
+impl Genre {
+    /// Get the ID for this genre row.
+    #[must_use]
+    pub fn id(&self) -> GenreId {
+        self.id
+    }
+
+    /// Get the genre name.
+    #[must_use]
+    pub fn name(&self) -> &DeviceSQLString {
+        &self.name
     }
 }
 
@@ -1413,6 +1441,20 @@ impl RowVariant for Key {
     }
 }
 
+impl Key {
+    /// Get the ID for this key row.
+    #[must_use]
+    pub fn id(&self) -> KeyId {
+        self.id
+    }
+
+    /// Get the musical key name.
+    #[must_use]
+    pub fn name(&self) -> &DeviceSQLString {
+        &self.name
+    }
+}
+
 impl PageHeapObject for Key {
     type Args<'a> = ();
     fn heap_bytes_required(&self, _: ()) -> u16 {
@@ -1451,6 +1493,20 @@ impl RowVariant for Label {
             Row::Plain(PlainRow::Label(row)) => Some(row),
             _ => None,
         }
+    }
+}
+
+impl Label {
+    /// Get the ID for this label row.
+    #[must_use]
+    pub fn id(&self) -> LabelId {
+        self.id
+    }
+
+    /// Get the record label name.
+    #[must_use]
+    pub fn name(&self) -> &DeviceSQLString {
+        &self.name
     }
 }
 
@@ -1729,6 +1785,32 @@ impl OffsetArrayItems<21> for TrackStrings {
     }
 }
 
+impl TrackStrings {
+    /// Get the path of the track analysis file.
+    #[must_use]
+    pub fn analyze_path(&self) -> &DeviceSQLString {
+        &self.analyze_path
+    }
+
+    /// Get the date when the track was added to the collection.
+    #[must_use]
+    pub fn date_added(&self) -> &DeviceSQLString {
+        &self.date_added
+    }
+
+    /// Get the track comment.
+    #[must_use]
+    pub fn comment(&self) -> &DeviceSQLString {
+        &self.comment
+    }
+
+    /// Get the remix or mix name.
+    #[must_use]
+    pub fn mix_name(&self) -> &DeviceSQLString {
+        &self.mix_name
+    }
+}
+
 /// Contains the album name, along with an ID of the corresponding artist.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -1817,6 +1899,92 @@ impl RowVariant for Track {
             Row::Plain(PlainRow::Track(track)) => Some(track),
             _ => None,
         }
+    }
+}
+
+impl Track {
+    /// Get the file size in bytes.
+    #[must_use]
+    pub fn file_size(&self) -> u32 {
+        self.file_size
+    }
+
+    /// Get the sample rate in Hz.
+    #[must_use]
+    pub fn sample_rate(&self) -> u32 {
+        self.sample_rate
+    }
+
+    /// Get the bitrate in kbps.
+    #[must_use]
+    pub fn bitrate(&self) -> u32 {
+        self.bitrate
+    }
+
+    /// Get the track number.
+    #[must_use]
+    pub fn track_number(&self) -> u32 {
+        self.track_number
+    }
+
+    /// Get the track tempo in centi-BPM.
+    #[must_use]
+    pub fn tempo(&self) -> u32 {
+        self.tempo
+    }
+
+    /// Get the genre row ID.
+    #[must_use]
+    pub fn genre_id(&self) -> GenreId {
+        self.genre_id
+    }
+
+    /// Get the album row ID.
+    #[must_use]
+    pub fn album_id(&self) -> AlbumId {
+        self.album_id
+    }
+
+    /// Get the key row ID.
+    #[must_use]
+    pub fn key_id(&self) -> KeyId {
+        self.key_id
+    }
+
+    /// Get the label row ID.
+    #[must_use]
+    pub fn label_id(&self) -> LabelId {
+        self.label_id
+    }
+
+    /// Get the disc number.
+    #[must_use]
+    pub fn disc_number(&self) -> u16 {
+        self.disc_number
+    }
+
+    /// Get the play count.
+    #[must_use]
+    pub fn play_count(&self) -> u16 {
+        self.play_count
+    }
+
+    /// Get the release year.
+    #[must_use]
+    pub fn year(&self) -> u16 {
+        self.year
+    }
+
+    /// Get the playback duration in seconds.
+    #[must_use]
+    pub fn duration(&self) -> u16 {
+        self.duration
+    }
+
+    /// Get the file type.
+    #[must_use]
+    pub fn file_type(&self) -> &FileType {
+        &self.file_type
     }
 }
 
