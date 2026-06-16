@@ -12,6 +12,7 @@
 //! See <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/exports.html#devicesql-strings>
 
 use super::PageHeapObject;
+use crate::pdb::offset_array::OffsetArrayItemAlignment;
 use binrw::binrw;
 use std::{convert::TryInto, fmt, str::FromStr};
 use thiserror::Error;
@@ -193,6 +194,17 @@ impl PageHeapObject for DeviceSQLString {
                     + (0u8).heap_bytes_required(())
                     + content.byte_count().unwrap()
             }
+        }
+    }
+}
+
+impl OffsetArrayItemAlignment for DeviceSQLString {
+    fn required_alignment(&self) -> u16 {
+        match &self.0 {
+            DeviceSQLStringImpl::Long {
+                content: LongBody::Ucs2le(_),
+            } => 4,
+            _ => 1,
         }
     }
 }
