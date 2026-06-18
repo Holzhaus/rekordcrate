@@ -36,6 +36,7 @@ All notable changes to this project will be documented in this file.
 - device: Load_settings, don't fail if settings files are missing
 - Build status badge/shield
 - anlz: Change type of `comment` field and capture trailing bytes
+- pdb: Align Ucs2le strings to 4 bytes
 
 ### Documentation
 
