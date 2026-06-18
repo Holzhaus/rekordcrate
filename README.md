@@ -28,6 +28,12 @@ files in the `PIONEER` directory):
 
     $ cargo run -- dump-setting -- data/complete_export/demo_tracks/PIONEER/MYSETTING.DAT
 
+Device exports can be converted back to Rekordbox XML, including playlist
+structure, track metadata, beatgrid BPM entries and cue markers from matching
+analysis files:
+
+    $ cargo run -- export-xml data/complete_export/demo_tracks rekordbox.xml
+
 Information about additional commands can be accessed using the `--help` flag.
 
 ## FAQ
