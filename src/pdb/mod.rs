@@ -1803,6 +1803,92 @@ pub struct Track {
     pub offsets: OffsetArrayContainer<TrackStrings, 21>,
 }
 
+impl Track {
+    /// Sample rate in Hz.
+    #[must_use]
+    pub fn sample_rate(&self) -> u32 {
+        self.sample_rate
+    }
+
+    /// Audio file size in bytes.
+    #[must_use]
+    pub fn file_size(&self) -> u32 {
+        self.file_size
+    }
+
+    /// Bitrate in Kbps.
+    #[must_use]
+    pub fn bitrate(&self) -> u32 {
+        self.bitrate
+    }
+
+    /// Track number on the release.
+    #[must_use]
+    pub fn track_number(&self) -> u32 {
+        self.track_number
+    }
+
+    /// Average track tempo in BPM.
+    #[must_use]
+    pub fn average_bpm(&self) -> f64 {
+        f64::from(self.tempo) / 100.0
+    }
+
+    /// Disc number on the release.
+    #[must_use]
+    pub fn disc_number(&self) -> u16 {
+        self.disc_number
+    }
+
+    /// Number of times this track was played.
+    #[must_use]
+    pub fn play_count(&self) -> u16 {
+        self.play_count
+    }
+
+    /// Release year.
+    #[must_use]
+    pub fn year(&self) -> u16 {
+        self.year
+    }
+
+    /// Playback duration in seconds.
+    #[must_use]
+    pub fn duration(&self) -> u16 {
+        self.duration
+    }
+
+    /// Track file type.
+    #[must_use]
+    pub fn file_type(&self) -> &FileType {
+        &self.file_type
+    }
+
+    /// Path to the Rekordbox analysis file for this track.
+    #[must_use]
+    pub fn analyze_path(&self) -> &DeviceSQLString {
+        &self.offsets.analyze_path
+    }
+
+    /// Date when the track was added to the collection.
+    #[must_use]
+    pub fn date_added(&self) -> &DeviceSQLString {
+        &self.offsets.date_added
+    }
+
+    /// Track comment.
+    #[must_use]
+    pub fn comment(&self) -> &DeviceSQLString {
+        &self.offsets.comment
+    }
+
+    /// Name of the mix.
+    #[must_use]
+    pub fn mix_name(&self) -> &DeviceSQLString {
+        &self.offsets.mix_name
+    }
+}
+
 impl RowVariant for Track {
     const PAGE_TYPE: PageType = PageType::Plain(PlainPageType::Tracks);
 
