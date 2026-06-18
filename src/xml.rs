@@ -16,8 +16,17 @@
 //! - <https://cdn.rekordbox.com/files/20200410160904/xml_format_list.pdf>
 //! - <https://pyrekordbox.readthedocs.io/en/stable/formats/xml.html>
 type NaiveDate = String; //Replace with "use chrono::naive::NaiveDate;"
+use crate::anlz::{Content, CueListType, CueType, ANLZ};
+use crate::device::{get_playlists, DeviceExportLoader, PlaylistNode};
+use crate::pdb::{self, ArtistId, PlaylistEntry, PlaylistTreeNodeId, TrackId};
+use crate::util::FileType;
+use binrw::BinRead;
+use fallible_iterator::FallibleIterator;
 use serde::{de::Error, ser::Serializer, Deserialize, Serialize};
 use std::borrow::Cow;
+use std::collections::{BTreeMap, HashMap};
+use std::fs::File;
+use std::path::{Path as FsPath, PathBuf};
 
 /// The XML root element of a rekordbox XML file.
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
@@ -531,4 +540,317 @@ pub struct PlaylistTrack {
     /// "Track ID" or "Location" in "COLLECTION"
     #[serde(rename = "@Key")]
     pub key: i32,
+}
+
+#[derive(Default)]
+struct TrackAnalysis {
+    tempos: Vec<Tempo>,
+    position_marks: BTreeMap<(i32, u32, i32), PositionMark>,
+}
+
+/// Build a Rekordbox XML document from a device export directory.
+///
+/// The export directory must contain the usual `PIONEER/rekordbox/export.pdb`
+/// file. If matching `ANLZ` analysis files are present, beatgrid tempo entries
+/// and cue points are included as `TEMPO` and `POSITION_MARK` elements.
+pub fn document_from_device_export(path: &FsPath) -> crate::Result<Document> {
+    let loader = DeviceExportLoader::new(path.to_path_buf());
+    let export_path = loader.get_path().to_path_buf();
+    let mut db = loader.open_pdb_non_persistent()?;
+
+    let artists = db
+        .iter_rows::<pdb::Artist>()?
+        .map(|artist| Ok((artist.id, artist.offsets.name.clone().into_string()?)))
+        .collect::<HashMap<ArtistId, String>>()?;
+
+    let playlist_entries = db
+        .iter_rows::<PlaylistEntry>()?
+        .map(|entry| Ok((entry.playlist_id, (entry.entry_index, entry.track_id))))
+        .fold(
+            HashMap::<PlaylistTreeNodeId, BTreeMap<u32, TrackId>>::new(),
+            |mut acc, (playlist_id, entry)| {
+                acc.entry(playlist_id).or_default().insert(entry.0, entry.1);
+                Ok(acc)
+            },
+        )?;
+
+    let playlists = get_playlists(&mut db)?;
+    let tracks = db
+        .iter_rows::<pdb::Track>()?
+        .map(|track| Ok(track.clone()))
+        .collect::<Vec<pdb::Track>>()?;
+
+    let track = tracks
+        .iter()
+        .map(|track| track_from_device_export(&export_path, track, &artists))
+        .collect::<crate::Result<Vec<Track>>>()?;
+
+    Ok(Document {
+        version: "1.0.0".to_string(),
+        product: Product {
+            name: "rekordbox".to_string(),
+            version: env!("CARGO_PKG_VERSION").to_string(),
+            company: "rekordcrate".to_string(),
+        },
+        collection: Collection {
+            entries: track.len() as i32,
+            track,
+        },
+        playlists: Playlists {
+            node: PlaylistFolderNode {
+                name: "ROOT".to_string(),
+                nodes: playlist_nodes_from_device_export(playlists, &playlist_entries),
+            },
+        },
+    })
+}
+
+fn track_from_device_export(
+    export_path: &FsPath,
+    track: &pdb::Track,
+    artists: &HashMap<ArtistId, String>,
+) -> crate::Result<Track> {
+    let analysis = load_track_analysis(export_path, track)?;
+    let file_path = track.offsets.file_path.clone().into_string()?;
+    let average_bpm = if track.average_bpm() > 0.0 {
+        Some(track.average_bpm())
+    } else {
+        analysis.tempos.first().map(|tempo| tempo.bpm)
+    };
+
+    Ok(Track {
+        trackid: track.id.0 as i32,
+        name: non_empty(track.offsets.title.clone().into_string()?),
+        artist: artists.get(&track.artist_id).cloned().and_then(non_empty),
+        composer: None,
+        album: None,
+        grouping: None,
+        genre: None,
+        kind: file_type_name(track.file_type()).map(str::to_string),
+        size: Some(i64::from(track.file_size())),
+        totaltime: Some(f64::from(track.duration())),
+        discnumber: Some(i32::from(track.disc_number())),
+        tracknumber: Some(track.track_number() as i32),
+        year: Some(i32::from(track.year())),
+        averagebpm: average_bpm,
+        datemodified: None,
+        dateadded: non_empty(track.date_added().clone().into_string()?),
+        bitrate: Some(track.bitrate() as i32),
+        samplerate: Some(f64::from(track.sample_rate())),
+        comments: non_empty(track.comment().clone().into_string()?),
+        playcount: Some(i32::from(track.play_count())),
+        lastplayed: None,
+        rating: Some(i32::from(track.rating) * 51),
+        location: export_location_uri(export_path, &file_path)?,
+        remixer: None,
+        tonality: None,
+        label: None,
+        mix: non_empty(track.mix_name().clone().into_string()?),
+        colour: None,
+        tempos: analysis.tempos,
+        position_marks: analysis.position_marks.into_values().collect(),
+    })
+}
+
+fn load_track_analysis(export_path: &FsPath, track: &pdb::Track) -> crate::Result<TrackAnalysis> {
+    let analyze_path = track.analyze_path().clone().into_string()?;
+    let mut analysis = TrackAnalysis::default();
+    if analyze_path.is_empty() {
+        return Ok(analysis);
+    }
+
+    for path in analysis_file_candidates(export_path, &analyze_path) {
+        if !path.exists() {
+            continue;
+        }
+
+        let mut file = File::open(path)?;
+        let anlz = ANLZ::read(&mut file)?;
+        merge_analysis_file(&mut analysis, anlz);
+    }
+
+    Ok(analysis)
+}
+
+fn merge_analysis_file(analysis: &mut TrackAnalysis, anlz: ANLZ) {
+    for section in anlz.sections {
+        match section.content {
+            Content::BeatGrid(beat_grid) => {
+                if analysis.tempos.is_empty() {
+                    analysis.tempos = beat_grid
+                        .beats
+                        .into_iter()
+                        .map(|beat| Tempo {
+                            inizio: f64::from(beat.time) / 1000.0,
+                            bpm: f64::from(beat.tempo) / 100.0,
+                            metro: "4/4".to_string(),
+                            battito: i32::from(beat.beat_number),
+                        })
+                        .collect();
+                }
+            }
+            Content::CueList(cue_list) => {
+                let hot_cues = cue_list.list_type == CueListType::HotCues;
+                for cue in cue_list.cues {
+                    insert_position_mark(
+                        &mut analysis.position_marks,
+                        hot_cues,
+                        cue.hot_cue,
+                        cue.cue_type,
+                        cue.time,
+                        cue.loop_time,
+                        hot_cue_name(cue.hot_cue).unwrap_or_default().to_string(),
+                    );
+                }
+            }
+            Content::ExtendedCueList(cue_list) => {
+                let hot_cues = cue_list.list_type == CueListType::HotCues;
+                for cue in cue_list.cues {
+                    let fallback_name = hot_cue_name(cue.hot_cue).unwrap_or_default();
+                    let name = if cue.comment.is_empty() {
+                        fallback_name.to_string()
+                    } else {
+                        cue.comment.0
+                    };
+                    insert_position_mark(
+                        &mut analysis.position_marks,
+                        hot_cues,
+                        cue.hot_cue,
+                        cue.cue_type,
+                        cue.time,
+                        cue.loop_time,
+                        name,
+                    );
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+fn insert_position_mark(
+    marks: &mut BTreeMap<(i32, u32, i32), PositionMark>,
+    hot_cues: bool,
+    hot_cue: u32,
+    cue_type: CueType,
+    time: u32,
+    loop_time: u32,
+    name: String,
+) {
+    let num = if hot_cues {
+        if hot_cue == 0 || hot_cue > 4 {
+            return;
+        }
+        hot_cue as i32 - 1
+    } else {
+        -1
+    };
+    let mark_type = match cue_type {
+        CueType::Point => 0,
+        CueType::Loop => 4,
+    };
+    let end = (loop_time > time).then_some(f64::from(loop_time) / 1000.0);
+
+    marks.insert(
+        (num, time, mark_type),
+        PositionMark {
+            name,
+            mark_type,
+            start: f64::from(time) / 1000.0,
+            end,
+            num,
+        },
+    );
+}
+
+fn analysis_file_candidates(export_path: &FsPath, analyze_path: &str) -> Vec<PathBuf> {
+    let relative_path = analyze_path.strip_prefix('/').unwrap_or(analyze_path);
+    let path = export_path.join(relative_path);
+    let mut candidates = vec![path.clone()];
+    for extension in ["EXT", "DAT", "2EX"] {
+        let candidate = path.with_extension(extension);
+        if !candidates.contains(&candidate) {
+            candidates.push(candidate);
+        }
+    }
+    candidates
+}
+
+fn playlist_nodes_from_device_export(
+    nodes: Vec<PlaylistNode>,
+    playlist_entries: &HashMap<PlaylistTreeNodeId, BTreeMap<u32, TrackId>>,
+) -> Vec<PlaylistGenericNode> {
+    nodes
+        .into_iter()
+        .map(|node| match node {
+            PlaylistNode::Folder(folder) => PlaylistGenericNode::Folder(PlaylistFolderNode {
+                name: folder.name,
+                nodes: playlist_nodes_from_device_export(folder.children, playlist_entries),
+            }),
+            PlaylistNode::Playlist(playlist) => {
+                let tracks = playlist_entries
+                    .get(&playlist.id)
+                    .into_iter()
+                    .flat_map(|entries| entries.values())
+                    .map(|track_id| PlaylistTrack {
+                        key: track_id.0 as i32,
+                    })
+                    .collect();
+                PlaylistGenericNode::Playlist(PlaylistPlaylistNode {
+                    name: playlist.name,
+                    keytype: "0".to_string(),
+                    tracks,
+                })
+            }
+        })
+        .collect()
+}
+
+fn export_location_uri(export_path: &FsPath, device_path: &str) -> crate::Result<String> {
+    let relative_path = device_path.strip_prefix('/').unwrap_or(device_path);
+    let absolute_path = export_path.canonicalize()?.join(relative_path);
+    Ok(format!(
+        "file://localhost{}",
+        percent_encode_path(&absolute_path.to_string_lossy())
+    ))
+}
+
+fn percent_encode_path(path: &str) -> String {
+    path.bytes()
+        .flat_map(|byte| match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'.' | b'_' | b'~' | b'/' => {
+                vec![byte as char]
+            }
+            byte => format!("%{byte:02X}").chars().collect(),
+        })
+        .collect()
+}
+
+fn file_type_name(file_type: &FileType) -> Option<&'static str> {
+    match file_type {
+        FileType::Mp3 => Some("MP3 File"),
+        FileType::M4a => Some("M4A File"),
+        FileType::Flac => Some("FLAC File"),
+        FileType::Wav => Some("WAV File"),
+        FileType::Aiff => Some("AIFF File"),
+        FileType::Unknown | FileType::Other(_) => None,
+    }
+}
+
+fn hot_cue_name(hot_cue: u32) -> Option<&'static str> {
+    match hot_cue {
+        1 => Some("A"),
+        2 => Some("B"),
+        3 => Some("C"),
+        4 => Some("D"),
+        _ => None,
+    }
+}
+
+fn non_empty(value: String) -> Option<String> {
+    if value.is_empty() {
+        None
+    } else {
+        Some(value)
+    }
 }
