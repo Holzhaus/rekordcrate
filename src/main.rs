@@ -50,6 +50,15 @@ enum Commands {
         #[arg(value_name = "OUTPUT_DIR")]
         output_dir: PathBuf,
     },
+    /// Export a Rekordbox device export to Rekordbox XML.
+    ExportXML {
+        /// Device export directory to parse.
+        #[arg(value_name = "EXPORT_PATH")]
+        path: PathBuf,
+        /// XML file to write. Prints to stdout if omitted.
+        #[arg(value_name = "OUTPUT_FILE")]
+        output_file: Option<PathBuf>,
+    },
     /// Parse and dump a Rekordbox Analysis (`ANLZXXXX.DAT`) file.
     DumpANLZ {
         /// File to parse.
@@ -256,6 +265,22 @@ fn export_playlists(path: &Path, output_dir: &Path) -> rekordcrate::Result<()> {
     Ok(())
 }
 
+fn export_xml(path: &Path, output_file: Option<&Path>) -> rekordcrate::Result<()> {
+    let document = rekordcrate::xml::document_from_device_export(path)?;
+    let xml_data = format!(
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n{}",
+        quick_xml::se::to_string(&document).expect("failed to serialize XML")
+    );
+
+    if let Some(output_file) = output_file {
+        std::fs::write(output_file, xml_data)?;
+    } else {
+        println!("{xml_data}");
+    }
+
+    Ok(())
+}
+
 fn list_settings(path: &Path) -> rekordcrate::Result<()> {
     use rekordcrate::DeviceExportLoader;
 
@@ -417,6 +442,7 @@ fn main() -> rekordcrate::Result<()> {
         Commands::ListPlaylists { path } => list_playlists(path),
         Commands::ListSettings { path } => list_settings(path),
         Commands::ExportPlaylists { path, output_dir } => export_playlists(path, output_dir),
+        Commands::ExportXML { path, output_file } => export_xml(path, output_file.as_deref()),
         Commands::DumpPDB {
             path,
             db_type,
