@@ -441,6 +441,7 @@ pub struct PlaylistFolderNode {
     // can just take the number of elements in the `tracks` vector instead.
     /// Nodes
     #[serde(rename = "NODE")]
+    #[serde(default = "Vec::new")]
     pub nodes: Vec<PlaylistGenericNode>,
 }
 
