@@ -1037,3 +1037,118 @@ fn non_empty(value: String) -> Option<String> {
         Some(value)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn position_marks_from_hot_and_memory_cues() {
+        let mut marks = BTreeMap::new();
+
+        insert_position_mark(
+            &mut marks,
+            true,
+            2,
+            CueType::Point,
+            12_345,
+            0,
+            "Build".to_string(),
+        );
+        insert_position_mark(
+            &mut marks,
+            false,
+            0,
+            CueType::Loop,
+            20_000,
+            24_000,
+            "Memory Loop".to_string(),
+        );
+        insert_position_mark(
+            &mut marks,
+            true,
+            5,
+            CueType::Point,
+            30_000,
+            0,
+            "Unsupported hot cue".to_string(),
+        );
+
+        assert_eq!(marks.len(), 2);
+
+        let hot_cue = marks
+            .get(&(1, 12_345, 0))
+            .expect("hot cue B should be exported");
+        assert_eq!(hot_cue.name, "Build");
+        assert_eq!(hot_cue.mark_type, 0);
+        assert_eq!(hot_cue.start, 12.345);
+        assert_eq!(hot_cue.end, None);
+        assert_eq!(hot_cue.num, 1);
+
+        let memory_loop = marks
+            .get(&(-1, 20_000, 4))
+            .expect("memory loop should be exported");
+        assert_eq!(memory_loop.name, "Memory Loop");
+        assert_eq!(memory_loop.mark_type, 4);
+        assert_eq!(memory_loop.start, 20.0);
+        assert_eq!(memory_loop.end, Some(24.0));
+        assert_eq!(memory_loop.num, -1);
+    }
+
+    #[test]
+    fn track_serializes_position_marks() {
+        let track = Track {
+            trackid: 1,
+            name: Some("Demo Track".to_string()),
+            artist: Some("Demo Artist".to_string()),
+            composer: None,
+            album: None,
+            grouping: None,
+            genre: None,
+            kind: Some("MP3 File".to_string()),
+            size: Some(1024),
+            totaltime: Some(180.0),
+            discnumber: Some(0),
+            tracknumber: Some(1),
+            year: Some(2026),
+            averagebpm: Some(128.0),
+            datemodified: None,
+            dateadded: None,
+            bitrate: Some(320),
+            samplerate: Some(44_100.0),
+            comments: None,
+            playcount: Some(0),
+            lastplayed: None,
+            rating: Some(StarRating::Zero),
+            location: "file://localhost/Demo%20Track.mp3".to_string(),
+            remixer: None,
+            tonality: None,
+            label: None,
+            mix: None,
+            colour: None,
+            tempos: vec![Tempo {
+                inizio: 0.0,
+                bpm: 128.0,
+                metro: "4/4".to_string(),
+                battito: 1,
+            }],
+            position_marks: vec![PositionMark {
+                name: "A".to_string(),
+                mark_type: 0,
+                start: 8.0,
+                end: None,
+                num: 0,
+            }],
+        };
+
+        let xml = quick_xml::se::to_string(&track).expect("track should serialize");
+
+        assert!(xml.contains("<POSITION_MARK"));
+        assert!(xml.contains("Name=\"A\""));
+        assert!(xml.contains("Type=\"0\""));
+        assert!(xml.contains("Start=\"8\""));
+        assert!(xml.contains("Num=\"0\""));
+        assert!(xml.contains("<TEMPO"));
+        assert!(xml.contains("Bpm=\"128\""));
+    }
+}
