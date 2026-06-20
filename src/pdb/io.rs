@@ -87,6 +87,15 @@ pub struct Database<IO> {
     content: LazyDatabase,
 }
 
+/// Reference to a row stored in a page.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RowRef {
+    /// Index of the page that contains the row.
+    pub page_index: PageIndex,
+    /// Byte offset of the row inside the page data section.
+    pub row_offset: u16,
+}
+
 impl<R: Read + Seek> Database<R> {
     /// Opens a PDB database without writing back to disk.
     /// Still allows modifying data in memory.
@@ -198,6 +207,120 @@ impl<R: Read + Seek> Database<R> {
 }
 
 impl<RW: Read + Write + Seek> Database<RW> {
+    const DEFAULT_PAGE_SIZE: u32 = 4096;
+    const PAGE_CHAIN_END: PageIndex = PageIndex(0x03FF_FFFF);
+
+    /// If `previous_page_index.next_page` is still the chain-end sentinel, relink it.
+    fn relink_if_chain_end(
+        &mut self,
+        previous_page_index: PageIndex,
+        current_page_index: PageIndex,
+    ) -> RekordcrateResult<()> {
+        let previous_page = self.load_page(previous_page_index)?;
+        if previous_page.header.next_page == Self::PAGE_CHAIN_END {
+            previous_page.header.next_page = current_page_index;
+            // Keep both copies of `next_page` in index pages in sync.
+            if let PageContent::Index(ref mut index_content) = previous_page.content {
+                index_content.header.next_page = current_page_index;
+            }
+        }
+        Ok(())
+    }
+
+    /// Finds the page that points to `current_page_index` in the table chain.
+    fn find_previous_page_in_chain(
+        &mut self,
+        first_page: PageIndex,
+        current_page_index: PageIndex,
+    ) -> RekordcrateResult<Option<PageIndex>> {
+        if first_page == current_page_index {
+            return Ok(None);
+        }
+
+        let mut cursor = first_page;
+        for _ in 0..=self.content.pages.len() {
+            let next_page = {
+                let page = self.load_page(cursor)?;
+                page.header.next_page
+            };
+
+            if next_page == current_page_index {
+                return Ok(Some(cursor));
+            }
+            if next_page == Self::PAGE_CHAIN_END {
+                return Ok(None);
+            }
+
+            cursor = next_page;
+        }
+
+        Err(RekordcrateError::IntegrityError(
+            "page chain traversal exceeded page count",
+        ))
+    }
+
+    /// Creates a new empty PDB database.
+    ///
+    /// Initializes each table with an index page followed by an empty data page.
+    pub fn create(
+        io: RW,
+        db_type: DatabaseType,
+        table_page_types: &[PageType],
+    ) -> RekordcrateResult<Self> {
+        let mut pages = Vec::with_capacity(table_page_types.len() * 2);
+        let mut tables = Vec::with_capacity(table_page_types.len());
+
+        let mut next_page = PageIndex::try_from(1)?;
+        for &page_type in table_page_types {
+            let index_page_index = next_page;
+            next_page = PageIndex::try_from(next_page.0 + 1)?;
+
+            let data_page_index = next_page;
+            next_page = PageIndex::try_from(next_page.0 + 1)?;
+
+            let mut index_page = Page::new_index(index_page_index, page_type, Self::PAGE_CHAIN_END);
+            if let PageContent::Index(ref mut index_content) = index_page.content {
+                index_content.header.next_page = Self::PAGE_CHAIN_END;
+            }
+            let data_page = Page::new_data(
+                Self::DEFAULT_PAGE_SIZE,
+                data_page_index,
+                page_type,
+                Self::PAGE_CHAIN_END,
+            );
+
+            tables.push(Table {
+                page_type,
+                empty_candidate: data_page_index.0,
+                first_page: index_page_index,
+                // Empty table: logical chain tail is the index page.
+                last_page: index_page_index,
+            });
+
+            pages.push(LazyPage::Loaded(index_page));
+            pages.push(LazyPage::Loaded(data_page));
+        }
+
+        let num_tables = table_page_types
+            .len()
+            .try_into()
+            .map_err(|_| RekordcrateError::IntegrityError("too many tables"))?;
+        let header = Header {
+            page_size: Self::DEFAULT_PAGE_SIZE,
+            num_tables,
+            next_unused_page: next_page,
+            unknown: 5,
+            sequence: 1,
+            tables,
+        };
+
+        Ok(Self {
+            io,
+            db_type,
+            content: LazyDatabase { header, pages },
+        })
+    }
+
     /// Opens a PDB database for reading and writing.
     pub fn open(mut io: RW, db_type: DatabaseType) -> RekordcrateResult<Self> {
         let endian = Endian::Little;
@@ -221,6 +344,115 @@ impl<RW: Read + Write + Seek> Database<RW> {
     pub fn close(mut self) -> RekordcrateResult<()> {
         self.flush()?;
         Ok(())
+    }
+
+    /// Allocates a new empty data page and returns its page index.
+    fn alloc_data_page(&mut self, page_type: PageType) -> RekordcrateResult<PageIndex> {
+        let page_index = self.content.header.next_unused_page;
+        self.content.header.next_unused_page = PageIndex::try_from(page_index.0 + 1)?;
+
+        let page = Page::new_data(
+            self.content.header.page_size,
+            page_index,
+            page_type,
+            Self::PAGE_CHAIN_END,
+        );
+        self.content.pages.push(LazyPage::Loaded(page));
+
+        Ok(page_index)
+    }
+
+    /// Adds a row to the corresponding table, allocating a new page when needed.
+    pub fn add_row(&mut self, row: Row) -> RekordcrateResult<RowRef> {
+        let page_type = row.page_type()?;
+        let row_size = row.heap_bytes_required(());
+        let mut pending_row = Some(row);
+
+        let (_, table) = self
+            .content
+            .header
+            .find_table(page_type)
+            .ok_or_else(|| RekordcrateError::TableTypeNotPresent(page_type))?;
+        let first_page = table.first_page;
+        let old_last_page = table.last_page;
+        let empty_candidate = PageIndex::try_from(table.empty_candidate)?;
+        let mut target_page = old_last_page;
+
+        // For empty tables, use the preallocated empty-candidate data page first.
+        let can_use_empty_candidate =
+            if old_last_page == first_page && empty_candidate != first_page {
+                match self.load_page(empty_candidate) {
+                    Ok(page) => {
+                        page.header.page_type == page_type
+                            && matches!(page.content, PageContent::Data(_))
+                    }
+                    Err(_) => false,
+                }
+            } else {
+                false
+            };
+
+        if can_use_empty_candidate {
+            target_page = empty_candidate;
+        }
+
+        if old_last_page != target_page {
+            self.relink_if_chain_end(old_last_page, target_page)?;
+        } else if let Some(previous_page_index) =
+            self.find_previous_page_in_chain(first_page, target_page)?
+        {
+            self.relink_if_chain_end(previous_page_index, target_page)?;
+        }
+
+        let inserted_row_ref = {
+            let page = self.load_page(target_page)?;
+            let row_offset = page.header.used_size;
+            if let Some(insert) = page.allocate_row(row_size) {
+                insert(pending_row.take().expect("row should still be pending"));
+                Some(RowRef {
+                    page_index: target_page,
+                    row_offset,
+                })
+            } else {
+                None
+            }
+        };
+
+        if let Some(row_ref) = inserted_row_ref {
+            if old_last_page != target_page {
+                let (_, table) = self
+                    .content
+                    .header
+                    .find_table_mut(page_type)
+                    .ok_or_else(|| RekordcrateError::TableTypeNotPresent(page_type))?;
+                table.last_page = target_page;
+            }
+            return Ok(row_ref);
+        }
+
+        let new_page_index = self.alloc_data_page(page_type)?;
+        self.relink_if_chain_end(target_page, new_page_index)?;
+
+        let (_, table) = self
+            .content
+            .header
+            .find_table_mut(page_type)
+            .ok_or_else(|| RekordcrateError::TableTypeNotPresent(page_type))?;
+        table.last_page = new_page_index;
+
+        let page = self.load_page(new_page_index)?;
+        let row_offset = page.header.used_size;
+        let insert = page
+            .allocate_row(row_size)
+            .ok_or(RekordcrateError::IntegrityError(
+                "newly allocated page has no room for row",
+            ))?;
+        insert(pending_row.expect("row should still be pending"));
+
+        Ok(RowRef {
+            page_index: new_page_index,
+            row_offset,
+        })
     }
 }
 
@@ -314,6 +546,12 @@ impl<'db, R: Read + Seek> FallibleIterator for PageIterator<'db, R> {
 mod test {
     use super::*;
     use std::fs::File;
+    use std::io::Cursor;
+
+    fn open_test_db_rw() -> Database<Cursor<Vec<u8>>> {
+        let bytes = include_bytes!("../../data/pdb/num_rows/export.pdb");
+        Database::open(Cursor::new(bytes.to_vec()), DatabaseType::Plain).unwrap()
+    }
 
     #[test]
     fn test_pageiterator_safety() {
@@ -347,5 +585,176 @@ mod test {
         let _iter3 = db
             .iter_pages(PageType::Plain(PlainPageType::Tracks))
             .unwrap();
+    }
+
+    #[test]
+    fn test_allocate_page_updates_header_and_storage() {
+        let mut db = open_test_db_rw();
+        let next_unused_before = db.content.header.next_unused_page;
+        let page_count_before = db.content.pages.len();
+
+        let new_page_index = db
+            .alloc_data_page(PageType::Plain(PlainPageType::Keys))
+            .unwrap();
+
+        assert_eq!(new_page_index, next_unused_before);
+        assert_eq!(db.content.pages.len(), page_count_before + 1);
+        assert_eq!(
+            db.content.header.next_unused_page,
+            PageIndex::try_from(next_unused_before.0 + 1).unwrap()
+        );
+
+        let expected_next_page = Database::<Cursor<Vec<u8>>>::PAGE_CHAIN_END;
+        let new_page = db.load_page(new_page_index).unwrap();
+        assert_eq!(new_page.header.page_index, new_page_index);
+        assert_eq!(
+            new_page.header.page_type,
+            PageType::Plain(PlainPageType::Keys)
+        );
+        assert_eq!(new_page.header.next_page, expected_next_page);
+        assert!(matches!(new_page.content, PageContent::Data(_)));
+    }
+
+    #[test]
+    fn test_add_row_updates_index_inner_next_page_when_linking_new_page() {
+        let mut db = open_test_db_rw();
+        let tracks_page_type = PageType::Plain(PlainPageType::Tracks);
+
+        let (_, tracks_table) = db.content.header.find_table(tracks_page_type).unwrap();
+        let tracks_first_page = tracks_table.first_page;
+        let original_last_page = tracks_table.last_page;
+
+        let row = {
+            let page = db.load_page(original_last_page).unwrap();
+            let data_content = page.content.as_data().expect("expected data page");
+            data_content
+                .rows
+                .values()
+                .next()
+                .expect("expected existing row")
+                .clone()
+        };
+
+        {
+            let first_page = db.load_page(tracks_first_page).unwrap();
+            assert!(matches!(first_page.content, PageContent::Index(_)));
+        }
+
+        {
+            let first_page = db.load_page(tracks_first_page).unwrap();
+            first_page.header.next_page = Database::<Cursor<Vec<u8>>>::PAGE_CHAIN_END;
+            match &mut first_page.content {
+                PageContent::Index(index_content) => {
+                    index_content.header.next_page = Database::<Cursor<Vec<u8>>>::PAGE_CHAIN_END;
+                }
+                _ => panic!("expected index page"),
+            }
+        }
+
+        let (_, tracks_table_mut) = db.content.header.find_table_mut(tracks_page_type).unwrap();
+        tracks_table_mut.last_page = tracks_first_page;
+
+        let row_ref = db.add_row(row).unwrap();
+        assert_eq!(row_ref.row_offset, 0);
+
+        let first_page = db.load_page(tracks_first_page).unwrap();
+        assert_eq!(first_page.header.next_page, row_ref.page_index);
+        match &first_page.content {
+            PageContent::Index(index_content) => {
+                assert_eq!(index_content.header.next_page, row_ref.page_index);
+            }
+            _ => panic!("expected index page"),
+        }
+
+        let (_, tracks_table_after) = db.content.header.find_table(tracks_page_type).unwrap();
+        assert_eq!(tracks_table_after.last_page, row_ref.page_index);
+    }
+
+    #[test]
+    fn test_create_initializes_index_data_pairs() {
+        let table_page_types = [
+            PageType::Plain(PlainPageType::Tracks),
+            PageType::Plain(PlainPageType::Artists),
+        ];
+        let db = Database::create(
+            Cursor::new(Vec::new()),
+            DatabaseType::Plain,
+            &table_page_types,
+        )
+        .unwrap();
+
+        assert_eq!(db.content.header.page_size, 4096);
+        assert_eq!(db.content.header.num_tables, 2);
+        assert_eq!(
+            db.content.header.next_unused_page,
+            PageIndex::try_from(5).unwrap()
+        );
+        assert_eq!(db.content.pages.len(), 4);
+
+        let tracks_table = &db.content.header.tables[0];
+        assert_eq!(tracks_table.first_page, PageIndex::try_from(1).unwrap());
+        assert_eq!(tracks_table.last_page, PageIndex::try_from(1).unwrap());
+
+        let artists_table = &db.content.header.tables[1];
+        assert_eq!(artists_table.first_page, PageIndex::try_from(3).unwrap());
+        assert_eq!(artists_table.last_page, PageIndex::try_from(3).unwrap());
+
+        let tracks_index = match &db.content.pages[0] {
+            LazyPage::Loaded(page) => page,
+            LazyPage::NotLoaded => panic!("expected loaded page"),
+        };
+        assert!(matches!(tracks_index.content, PageContent::Index(_)));
+        assert_eq!(
+            tracks_index.header.next_page,
+            Database::<Cursor<Vec<u8>>>::PAGE_CHAIN_END
+        );
+        match &tracks_index.content {
+            PageContent::Index(index_content) => {
+                assert_eq!(
+                    index_content.header.next_page,
+                    Database::<Cursor<Vec<u8>>>::PAGE_CHAIN_END
+                );
+            }
+            _ => panic!("expected index page"),
+        }
+
+        let tracks_data = match &db.content.pages[1] {
+            LazyPage::Loaded(page) => page,
+            LazyPage::NotLoaded => panic!("expected loaded page"),
+        };
+        assert!(matches!(tracks_data.content, PageContent::Data(_)));
+        assert_eq!(
+            tracks_data.header.next_page,
+            Database::<Cursor<Vec<u8>>>::PAGE_CHAIN_END
+        );
+    }
+
+    #[test]
+    fn test_create_uses_chain_end_sentinel_for_all_new_data_pages() {
+        let table_page_types = [
+            PageType::Plain(PlainPageType::Tracks),
+            PageType::Plain(PlainPageType::Genres),
+            PageType::Plain(PlainPageType::Artists),
+        ];
+        let db = Database::create(
+            Cursor::new(Vec::new()),
+            DatabaseType::Plain,
+            &table_page_types,
+        )
+        .unwrap();
+
+        for page_entry in &db.content.pages {
+            let page = match page_entry {
+                LazyPage::Loaded(page) => page,
+                LazyPage::NotLoaded => panic!("expected loaded page"),
+            };
+
+            if matches!(page.content, PageContent::Data(_)) {
+                assert_eq!(
+                    page.header.next_page,
+                    Database::<Cursor<Vec<u8>>>::PAGE_CHAIN_END
+                );
+            }
+        }
     }
 }

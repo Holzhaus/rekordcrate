@@ -53,6 +53,9 @@ pub enum PdbError {
     /// Invalid flags were passed when creating an `IndexEntry`.
     #[error("Invalid index flags (expected max 3 bits): {0:#b}")]
     InvalidIndexFlags(u8),
+    /// A `Row::Unknown` has no associated page type.
+    #[error("Cannot determine page type of unknown row")]
+    UnknownRowType,
 }
 
 /// The type of the database were looking at.
@@ -375,6 +378,23 @@ pub struct IndexPageContent {
 }
 
 impl IndexPageContent {
+    /// Creates an empty index page content section.
+    #[must_use]
+    pub fn empty(page_index: PageIndex, next_page: PageIndex) -> Self {
+        Self {
+            header: IndexPageHeader {
+                unknown_a: 8191,
+                unknown_b: 8191,
+                next_offset: 0,
+                page_index,
+                next_page,
+                num_entries: 0,
+                first_empty: 8191,
+            },
+            entries: vec![],
+        }
+    }
+
     fn total_entries(page_size: u32) -> usize {
         // The last 20 bytes in an index page are zeros.
         let entries_space = page_size - PageHeader::BINARY_SIZE - IndexPageHeader::BINARY_SIZE - 20;
@@ -564,6 +584,51 @@ pub struct Page {
 }
 
 impl Page {
+    /// Creates a new empty data page.
+    #[must_use]
+    pub fn new_data(
+        page_size: u32,
+        page_index: PageIndex,
+        page_type: PageType,
+        next_page: PageIndex,
+    ) -> Self {
+        let content = PageContent::Data(DataPageContent::empty());
+        let header = PageHeader {
+            page_index,
+            page_type,
+            next_page,
+            unknown1: 0,
+            unknown2: 0,
+            packed_row_counts: PackedRowCounts::new(),
+            page_flags: PageFlags::new_data_page(),
+            free_size: DataPageContent::page_heap_size(page_size)
+                .try_into()
+                .expect("page heap size must fit in u16"),
+            used_size: 0,
+        };
+
+        Self { header, content }
+    }
+
+    /// Creates a new empty index page.
+    #[must_use]
+    pub fn new_index(page_index: PageIndex, page_type: PageType, next_page: PageIndex) -> Self {
+        let content = PageContent::Index(IndexPageContent::empty(page_index, next_page));
+        let header = PageHeader {
+            page_index,
+            page_type,
+            next_page,
+            unknown1: 0,
+            unknown2: 0,
+            packed_row_counts: PackedRowCounts::new(),
+            page_flags: PageFlags::new_index_page(),
+            free_size: 0,
+            used_size: 0,
+        };
+
+        Self { header, content }
+    }
+
     /// Allocate space for a new row in the page heap and return a function to
     /// insert the row at the allocated offset. Returns `None` if there is
     /// insufficient free space in the page.
@@ -683,6 +748,21 @@ pub struct DataPageContent {
 }
 
 impl DataPageContent {
+    /// Creates an empty data page content section.
+    #[must_use]
+    pub fn empty() -> Self {
+        Self {
+            header: DataPageHeader {
+                unknown5: 0,
+                unknown_not_num_rows_large: 0,
+                unknown6: 0,
+                unknown7: 0,
+            },
+            row_groups: vec![],
+            rows: BTreeMap::new(),
+        }
+    }
+
     fn page_heap_size(page_size: u32) -> u32 {
         page_size - PageHeader::BINARY_SIZE - DataPageHeader::BINARY_SIZE
     }
@@ -1021,7 +1101,7 @@ pub struct Album {
     unknown3: u32,
     /// The offsets and its data and the end of this row
     #[brw(args(20, subtype.get_offset_size(), ()))]
-    offsets: OffsetArrayContainer<TrailingName, 1>,
+    pub offsets: OffsetArrayContainer<TrailingName, 1>,
 }
 
 impl RowVariant for Album {
@@ -2078,6 +2158,34 @@ pub enum Row {
 }
 
 impl Row {
+    /// Returns the page type this row belongs to.
+    pub fn page_type(&self) -> Result<PageType, PdbError> {
+        match self {
+            Row::Plain(plain_row) => Ok(PageType::Plain(match plain_row {
+                PlainRow::Album(_) => PlainPageType::Albums,
+                PlainRow::Artist(_) => PlainPageType::Artists,
+                PlainRow::Artwork(_) => PlainPageType::Artwork,
+                PlainRow::Color(_) => PlainPageType::Colors,
+                PlainRow::Genre(_) => PlainPageType::Genres,
+                PlainRow::HistoryPlaylist(_) => PlainPageType::HistoryPlaylists,
+                PlainRow::HistoryEntry(_) => PlainPageType::HistoryEntries,
+                PlainRow::Key(_) => PlainPageType::Keys,
+                PlainRow::Label(_) => PlainPageType::Labels,
+                PlainRow::PlaylistTreeNode(_) => PlainPageType::PlaylistTree,
+                PlainRow::PlaylistEntry(_) => PlainPageType::PlaylistEntries,
+                PlainRow::ColumnEntry(_) => PlainPageType::Columns,
+                PlainRow::Menu(_) => PlainPageType::Menu,
+                PlainRow::Track(_) => PlainPageType::Tracks,
+                PlainRow::History(_) => PlainPageType::History,
+            })),
+            Row::Ext(ext_row) => Ok(PageType::Ext(match ext_row {
+                ExtRow::Tag(_) => ExtPageType::Tag,
+                ExtRow::TrackTag(_) => ExtPageType::TrackTag,
+            })),
+            Row::Unknown => Err(PdbError::UnknownRowType),
+        }
+    }
+
     /// Attempt to convert this row into a reference to the given variant type.
     #[must_use]
     pub fn as_variant<T: RowVariant>(&self) -> Option<&T> {
