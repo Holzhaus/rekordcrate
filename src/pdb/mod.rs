@@ -1652,7 +1652,7 @@ pub struct TrackStrings {
     /// Date when the track was released (YYYY-MM-DD).
     release_date: DeviceSQLString,
     /// Name of the remix (if any).
-    mix_name: DeviceSQLString,
+    pub mix_name: DeviceSQLString,
     /// Unknown string field (usually empty).
     unknown_string7: DeviceSQLString,
     /// File path of the track analysis file.
@@ -1660,7 +1660,7 @@ pub struct TrackStrings {
     /// Date when the track analysis was performed (YYYY-MM-DD).
     analyze_date: DeviceSQLString,
     /// Track comment.
-    comment: DeviceSQLString,
+    pub comment: DeviceSQLString,
     /// Track title.
     pub title: DeviceSQLString,
     /// Unknown string field (usually empty).
@@ -1874,18 +1874,6 @@ impl Track {
     #[must_use]
     pub fn date_added(&self) -> &DeviceSQLString {
         &self.offsets.date_added
-    }
-
-    /// Track comment.
-    #[must_use]
-    pub fn comment(&self) -> &DeviceSQLString {
-        &self.offsets.comment
-    }
-
-    /// Name of the mix.
-    #[must_use]
-    pub fn mix_name(&self) -> &DeviceSQLString {
-        &self.offsets.mix_name
     }
 }
 
