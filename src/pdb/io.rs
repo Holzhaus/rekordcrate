@@ -210,53 +210,20 @@ impl<RW: Read + Write + Seek> Database<RW> {
     const DEFAULT_PAGE_SIZE: u32 = 4096;
     const PAGE_CHAIN_END: PageIndex = PageIndex(0x03FF_FFFF);
 
-    /// If `previous_page_index.next_page` is still the chain-end sentinel, relink it.
-    fn relink_if_chain_end(
+    /// Points the previous page's `next_page` field at `current_page_index`.
+    ///
+    fn relink_chain_end(
         &mut self,
         previous_page_index: PageIndex,
         current_page_index: PageIndex,
     ) -> RekordcrateResult<()> {
         let previous_page = self.load_page(previous_page_index)?;
-        if previous_page.header.next_page == Self::PAGE_CHAIN_END {
-            previous_page.header.next_page = current_page_index;
-            // Keep both copies of `next_page` in index pages in sync.
-            if let PageContent::Index(ref mut index_content) = previous_page.content {
-                index_content.header.next_page = current_page_index;
-            }
+        previous_page.header.next_page = current_page_index;
+        // Keep both copies of `next_page` in index pages in sync.
+        if let PageContent::Index(ref mut index_content) = previous_page.content {
+            index_content.header.next_page = current_page_index;
         }
         Ok(())
-    }
-
-    /// Finds the page that points to `current_page_index` in the table chain.
-    fn find_previous_page_in_chain(
-        &mut self,
-        first_page: PageIndex,
-        current_page_index: PageIndex,
-    ) -> RekordcrateResult<Option<PageIndex>> {
-        if first_page == current_page_index {
-            return Ok(None);
-        }
-
-        let mut cursor = first_page;
-        for _ in 0..=self.content.pages.len() {
-            let next_page = {
-                let page = self.load_page(cursor)?;
-                page.header.next_page
-            };
-
-            if next_page == current_page_index {
-                return Ok(Some(cursor));
-            }
-            if next_page == Self::PAGE_CHAIN_END {
-                return Ok(None);
-            }
-
-            cursor = next_page;
-        }
-
-        Err(RekordcrateError::IntegrityError(
-            "page chain traversal exceeded page count",
-        ))
     }
 
     /// Creates a new empty PDB database.
@@ -362,6 +329,27 @@ impl<RW: Read + Write + Seek> Database<RW> {
         Ok(page_index)
     }
 
+    /// Tries to append a row to an existing page's heap. Returns `None` if the page
+    /// can't hold it (index page, or no free space).
+    fn try_insert_row(
+        &mut self,
+        page_index: PageIndex,
+        row_size: u16,
+        row: &mut Option<Row>,
+    ) -> RekordcrateResult<Option<RowRef>> {
+        let page = self.load_page(page_index)?;
+        let row_offset = page.header.used_size;
+        let insert = match page.allocate_row(row_size) {
+            Some(insert) => insert,
+            None => return Ok(None),
+        };
+        insert(row.take().expect("row should still be pending"));
+        Ok(Some(RowRef {
+            page_index,
+            row_offset,
+        }))
+    }
+
     /// Adds a row to the corresponding table, allocating a new page when needed.
     pub fn add_row(&mut self, row: Row) -> RekordcrateResult<RowRef> {
         let page_type = row.page_type()?;
@@ -373,65 +361,38 @@ impl<RW: Read + Write + Seek> Database<RW> {
             .header
             .find_table(page_type)
             .ok_or_else(|| RekordcrateError::TableTypeNotPresent(page_type))?;
-        let first_page = table.first_page;
         let old_last_page = table.last_page;
         let empty_candidate = PageIndex::try_from(table.empty_candidate)?;
-        let mut target_page = old_last_page;
 
-        // For empty tables, use the preallocated empty-candidate data page first.
-        let can_use_empty_candidate =
-            if old_last_page == first_page && empty_candidate != first_page {
-                match self.load_page(empty_candidate) {
-                    Ok(page) => {
-                        page.header.page_type == page_type
-                            && matches!(page.content, PageContent::Data(_))
-                    }
-                    Err(_) => false,
-                }
-            } else {
-                false
-            };
-
-        if can_use_empty_candidate {
-            target_page = empty_candidate;
+        // Try the chain tail first.
+        if let Some(row_ref) = self.try_insert_row(old_last_page, row_size, &mut pending_row)? {
+            return Ok(row_ref);
         }
 
-        if old_last_page != target_page {
-            self.relink_if_chain_end(old_last_page, target_page)?;
-        } else if let Some(previous_page_index) =
-            self.find_previous_page_in_chain(first_page, target_page)?
+        // Tail was full or not a data page. Here we check if for some reason empty_candidate
+        // is a usable (i.e. has enough space) data page of the right type, and if so we use it.
+        if empty_candidate != old_last_page
+            && self.load_page(empty_candidate).is_ok_and(|page| {
+                page.header.page_type == page_type && matches!(page.content, PageContent::Data(_))
+            })
         {
-            self.relink_if_chain_end(previous_page_index, target_page)?;
-        }
-
-        let inserted_row_ref = {
-            let page = self.load_page(target_page)?;
-            let row_offset = page.header.used_size;
-            if let Some(insert) = page.allocate_row(row_size) {
-                insert(pending_row.take().expect("row should still be pending"));
-                Some(RowRef {
-                    page_index: target_page,
-                    row_offset,
-                })
-            } else {
-                None
-            }
-        };
-
-        if let Some(row_ref) = inserted_row_ref {
-            if old_last_page != target_page {
+            if let Some(row_ref) =
+                self.try_insert_row(empty_candidate, row_size, &mut pending_row)?
+            {
+                self.relink_chain_end(old_last_page, empty_candidate)?;
                 let (_, table) = self
                     .content
                     .header
                     .find_table_mut(page_type)
                     .ok_or_else(|| RekordcrateError::TableTypeNotPresent(page_type))?;
-                table.last_page = target_page;
+                table.last_page = empty_candidate;
+                return Ok(row_ref);
             }
-            return Ok(row_ref);
         }
 
+        // No existing page fit: allocate a fresh one and link it onto the tail.
         let new_page_index = self.alloc_data_page(page_type)?;
-        self.relink_if_chain_end(target_page, new_page_index)?;
+        self.relink_chain_end(old_last_page, new_page_index)?;
 
         let (_, table) = self
             .content
@@ -440,19 +401,10 @@ impl<RW: Read + Write + Seek> Database<RW> {
             .ok_or_else(|| RekordcrateError::TableTypeNotPresent(page_type))?;
         table.last_page = new_page_index;
 
-        let page = self.load_page(new_page_index)?;
-        let row_offset = page.header.used_size;
-        let insert = page
-            .allocate_row(row_size)
+        self.try_insert_row(new_page_index, row_size, &mut pending_row)?
             .ok_or(RekordcrateError::IntegrityError(
                 "newly allocated page has no room for row",
-            ))?;
-        insert(pending_row.expect("row should still be pending"));
-
-        Ok(RowRef {
-            page_index: new_page_index,
-            row_offset,
-        })
+            ))
     }
 }
 
