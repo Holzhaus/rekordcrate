@@ -505,6 +505,15 @@ mod test {
         Database::open(Cursor::new(bytes.to_vec()), DatabaseType::Plain).unwrap()
     }
 
+    fn get_table_row_count<RowT: RowVariant>(
+        db: &mut Database<impl std::io::Read + std::io::Seek>,
+    ) -> usize {
+        db.iter_rows::<RowT>()
+            .expect("Failed to load rows")
+            .count()
+            .expect("Failed to count rows")
+    }
+
     #[test]
     fn test_pageiterator_safety() {
         // This was written when PageIterator used unsafe.
@@ -620,6 +629,75 @@ mod test {
 
         let (_, tracks_table_after) = db.content.header.find_table(tracks_page_type).unwrap();
         assert_eq!(tracks_table_after.last_page, row_ref.page_index);
+    }
+
+    #[test]
+    fn test_add_row_allocates_reachable_page() {
+        let mut data = Vec::from(include_bytes!("../../data/pdb/num_rows/export.pdb"));
+
+        // Capture state before modification (read-only snapshot via open_non_persistent).
+        let next_unused_before = {
+            let db =
+                Database::open_non_persistent(Cursor::new(&data[..]), DatabaseType::Plain).unwrap();
+            db.get_header().next_unused_page
+        };
+        let entries_before = get_table_row_count::<HistoryEntry>(
+            &mut Database::open_non_persistent(Cursor::new(&data[..]), DatabaseType::Plain)
+                .unwrap(),
+        );
+
+        let added = {
+            // Owned, growable buffer: allocating pages extends the DB past its original length.
+            let mut db = Database::open(Cursor::new(data.clone()), DatabaseType::Plain).unwrap();
+
+            // Grab an existing HistoryEntry to clone as a template for the appended rows.
+            let template_row = db
+                .iter_pages(PageType::Plain(PlainPageType::HistoryEntries))
+                .expect("failed to load HistoryEntries pages")
+                .find_map(|page| {
+                    Ok(page
+                        .content
+                        .as_data()
+                        .and_then(|d| d.rows.values().next().cloned()))
+                })
+                .expect("no HistoryEntry rows found")
+                .expect("expected a HistoryEntry row");
+
+            // The last page has 8 bytes free; a HistoryEntry is larger, so this forces allocation.
+            db.add_row(template_row.clone())
+                .expect("failed to append HistoryEntry row");
+            // A second append surely lands on the freshly allocated page (exercises link-following too).
+            db.add_row(template_row.clone())
+                .expect("failed to append second HistoryEntry row");
+
+            // Test-private field access: flush then move the cursor out without a public accessor.
+            db.flush().expect("failed to flush database");
+            data = db.io.into_inner();
+            2
+        };
+
+        // A new page should have been allocated.
+        let next_unused_after = {
+            let db =
+                Database::open_non_persistent(Cursor::new(&data[..]), DatabaseType::Plain).unwrap();
+            db.get_header().next_unused_page
+        };
+        assert!(
+            next_unused_after > next_unused_before,
+            "expected next_unused_page to advance after appending ({:?} -> {:?})",
+            next_unused_before,
+            next_unused_after
+        );
+
+        // Re-open read-only and confirm the appended rows are reachable through the chain.
+        let mut db = Database::open_non_persistent(Cursor::new(&data[..]), DatabaseType::Plain)
+            .expect("failed to reopen database");
+        let entries_after = get_table_row_count::<HistoryEntry>(&mut db);
+        assert_eq!(
+            entries_after,
+            entries_before + added,
+            "appended rows not reachable on re-read; the new page was allocated but never linked into the chain"
+        );
     }
 
     #[test]
