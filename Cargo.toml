@@ -24,6 +24,7 @@ serde_repr = { version = "0.1.19", optional = true }
 chrono = { version = "0.4", features = ["serde"], optional = true }
 rgb = { version = "0.8", optional = true }
 fallible-iterator = "0.3.0"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp"], optional = true }
 
 [build-dependencies]
 glob = "0.3"
@@ -36,6 +37,7 @@ pretty_assertions = "1"
 default = ["cli", "xml"]
 cli = ["dep:clap"]
 xml = ["dep:serde", "dep:serde_repr", "dep:quick-xml", "dep:chrono", "dep:rgb"]
+artwork = ["dep:image"]
 
 [[bin]]
 name = "rekordcrate"

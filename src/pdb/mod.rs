@@ -1932,8 +1932,6 @@ impl Track {
     /// domain meaning. Stamps `subtype`/`bitmask`/`unknown5` and the observed-default
     /// strings so callers only set what they care about.
     #[must_use]
-    #[allow(dead_code)] // ponytail: used once the device writer lands; kept here so the
-                        // visibility refactor compiles standalone.
     pub(crate) fn default_row() -> Self {
         Self {
             subtype: Subtype(0x24),

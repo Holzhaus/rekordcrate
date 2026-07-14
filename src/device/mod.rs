@@ -12,10 +12,13 @@
 //! `rekordbox/export.pdb`), `PIONEER/USBANLZ/` (per-track analysis files), and `Contents/` (audio
 //! files). The shared on-disk layout lives in [`layout`].
 //!
-//! [`DeviceExportReader`] inspects an existing export.
+//! [`DeviceExportReader`] inspects an existing export; [`DeviceExportWriter`] builds one from scratch.
 
 pub mod layout;
 pub mod reader;
+pub mod writer;
 
 pub use crate::device::reader::DeviceExportReader;
+pub use crate::device::writer::{AddTrackOutcome, DeviceExportWriter, Track};
+
 pub use crate::device::reader::{get_playlists, Playlist, PlaylistFolder, PlaylistNode};
