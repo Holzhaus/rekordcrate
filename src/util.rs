@@ -23,9 +23,10 @@ pub enum RekordcrateError {
     #[error(transparent)]
     StringError(#[from] StringError),
 
-    /// Represents a failure to parse input.
+    /// Represents a failure to read or write a binary format via `binrw` (covers both parse and
+    /// serialization errors).
     #[error(transparent)]
-    ParseError(#[from] binrw::Error),
+    BinrwError(#[from] binrw::Error),
 
     /// Represents a failure to validate a constraint.
     #[error("failed integrity constraint: {0}")]
