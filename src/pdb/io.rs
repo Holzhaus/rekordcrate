@@ -215,7 +215,7 @@ impl<RW: Read + Write + Seek> Database<RW> {
         row_size.next_multiple_of(4)
     }
 
-    fn validate_track_row_size(track: &Track) -> RekordcrateResult<()> {
+    pub(crate) fn validate_track_row_size(track: &Track) -> RekordcrateResult<()> {
         let allocated = Self::allocated_row_size(track.heap_bytes_required(()));
         if allocated < Self::MIN_TRACK_ALLOCATED_SIZE {
             return Err(RekordcrateError::TrackRowTooSmall {
