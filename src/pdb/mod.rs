@@ -40,7 +40,9 @@ use std::fmt;
 use crate::pdb::ext::{ExtPageType, ExtRow};
 use crate::pdb::offset_array::OffsetSize;
 use crate::pdb::string::DeviceSQLString;
-use crate::util::{parse_at_offsets, write_at_offsets, ColorIndex, FileType, TableIndex};
+use crate::util::{
+    parse_at_offsets, write_at_offsets, ColorIndex, FileType, MaybeCalculated, TableIndex,
+};
 use binrw::{binrw, BinRead, BinResult, BinWrite, Endian};
 use std::io::{Read, Seek, SeekFrom, Write};
 use thiserror::Error;
@@ -190,7 +192,6 @@ pub struct Table {
     pub page_type: PageType,
     /// Unknown field, maybe links to a chain of empty pages if the database is ever garbage
     /// collected (?).
-    #[allow(dead_code)]
     empty_candidate: u32,
     /// Index of the first page that belongs to this table.
     ///
@@ -769,8 +770,6 @@ impl DataPageContent {
     }
 }
 
-// Usage of PageHeapObject is coming in a future PR.
-#[allow(dead_code)]
 trait PageHeapObject {
     type Args<'a>;
 
@@ -1042,6 +1041,14 @@ impl PageHeapObject for LabelId {
 #[brw(little)]
 pub struct PlaylistTreeNodeId(pub u32);
 
+impl PlaylistTreeNodeId {
+    /// The root of the playlist tree. Nodes with this as their parent sit at the top level.
+    #[must_use]
+    pub const fn root() -> Self {
+        Self(0)
+    }
+}
+
 impl PageHeapObject for PlaylistTreeNodeId {
     type Args<'a> = ();
     fn heap_bytes_required(&self, _: ()) -> u16 {
@@ -1088,18 +1095,18 @@ impl OffsetArrayItems<1> for TrailingName {
 #[brw(little)]
 pub struct Album {
     /// Unknown field, usually `80 00`.
-    subtype: Subtype,
+    pub(crate) subtype: Subtype,
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
     /// Appears to always be 0x20 * row index.
-    index_shift: u16,
+    pub(crate) index_shift: u16,
     /// Unknown field.
-    unknown2: u32,
+    pub(crate) unknown2: u32,
     /// ID of the artist row associated with this row.
-    artist_id: ArtistId,
+    pub artist_id: ArtistId,
     /// ID of this row.
-    id: AlbumId,
+    pub id: AlbumId,
     /// Unknown field.
-    unknown3: u32,
+    pub(crate) unknown3: u32,
     /// The offsets and its data and the end of this row
     #[brw(args(20, subtype.get_offset_size(), ()))]
     pub offsets: OffsetArrayContainer<TrailingName, 1>,
@@ -1146,10 +1153,10 @@ impl PageHeapObject for Album {
 #[brw(little)]
 pub struct Artist {
     /// Determines if the `name` string is located at the 8-bit offset (0x60) or the 16-bit offset (0x64).
-    subtype: Subtype,
+    pub(crate) subtype: Subtype,
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
     /// Appears to always be 0x20 * row index.
-    index_shift: u16,
+    pub(crate) index_shift: u16,
     /// ID of this row.
     pub id: ArtistId,
     /// offsets at the row end
@@ -1195,9 +1202,9 @@ impl PageHeapObject for Artist {
 #[brw(little)]
 pub struct Artwork {
     /// ID of this row.
-    id: ArtworkId,
+    pub id: ArtworkId,
     /// Path to the album art file.
-    path: DeviceSQLString,
+    pub path: DeviceSQLString,
 }
 
 impl RowVariant for Artwork {
@@ -1284,9 +1291,9 @@ impl PageHeapObject for Color {
 #[brw(little)]
 pub struct Genre {
     /// ID of this row.
-    id: GenreId,
+    pub id: GenreId,
     /// Name of the genre.
-    name: DeviceSQLString,
+    pub name: DeviceSQLString,
 }
 
 impl RowVariant for Genre {
@@ -1411,22 +1418,22 @@ impl PageHeapObject for HistoryEntry {
 #[brw(little)]
 pub struct History {
     /// Subtype field, in this case usually `80 02` (hex) or `640` (decimal).
-    subtype: Subtype,
+    pub subtype: Subtype,
     /// Unknown field. I'm assuming this is the `index_shift` found in other row types.
-    index_shift: u16,
+    pub index_shift: u16,
     /// Tracks present in the database after this sync event.
-    num_tracks: u32,
+    pub num_tracks: u32,
     // Magic value, always zero.
     #[brw(magic = 0u32)]
     /// Sync date, e.g. "2022-02-02".
-    date: DeviceSQLString,
+    pub date: DeviceSQLString,
     // Magic value, always `7705` -> `0x1E19`.
     #[brw(magic = 0x1E19u16)]
     /// Format/protocol version string. In all known exports this is the string "1000".
     // We could make this magic, but for now this seems fine.
-    version: DeviceSQLString,
+    pub version: DeviceSQLString,
     /// Device or backup label. Can be empty.
-    label: DeviceSQLString,
+    pub label: DeviceSQLString,
 }
 
 impl PageHeapObject for History {
@@ -1470,11 +1477,11 @@ impl RowVariant for History {
 #[brw(little)]
 pub struct Key {
     /// ID of this row.
-    id: KeyId,
+    pub id: KeyId,
     /// Apparently a second copy of the row ID.
-    id2: u32,
+    pub id2: u32,
     /// Name of the key.
-    name: DeviceSQLString,
+    pub name: DeviceSQLString,
 }
 
 impl RowVariant for Key {
@@ -1513,9 +1520,9 @@ impl PageHeapObject for Key {
 #[brw(little)]
 pub struct Label {
     /// ID of this row.
-    id: LabelId,
+    pub id: LabelId,
     /// Name of the record label.
-    name: DeviceSQLString,
+    pub name: DeviceSQLString,
 }
 
 impl RowVariant for Label {
@@ -1555,13 +1562,13 @@ pub struct PlaylistTreeNode {
     /// ID of parent row of this row (which means that the parent is a folder).
     pub parent_id: PlaylistTreeNodeId,
     /// Unknown field.
-    unknown: u32,
+    pub(crate) unknown: u32,
     /// Sort order indicastor.
-    sort_order: u32,
+    pub sort_order: u32,
     /// ID of this row.
     pub id: PlaylistTreeNodeId,
     /// Indicates if the node is a folder. Non-zero if it's a leaf node, i.e. a playlist.
-    node_is_folder: u32,
+    pub(crate) node_is_folder: u32,
     /// Name of this node, as shown when navigating the menu.
     pub name: DeviceSQLString,
 }
@@ -1588,6 +1595,25 @@ impl PlaylistTreeNode {
     #[must_use]
     pub fn is_folder(&self) -> bool {
         self.node_is_folder > 0
+    }
+
+    /// Construct a node, encoding `is_folder` into the on-disk `node_is_folder` flag.
+    #[must_use]
+    pub fn new(
+        id: PlaylistTreeNodeId,
+        parent_id: PlaylistTreeNodeId,
+        name: DeviceSQLString,
+        is_folder: bool,
+        sort_order: u32,
+    ) -> Self {
+        Self {
+            parent_id,
+            unknown: 0,
+            sort_order,
+            id,
+            node_is_folder: u32::from(is_folder),
+            name,
+        }
     }
 }
 
@@ -1707,47 +1733,47 @@ impl PageHeapObject for ColumnEntry {
 /// String fields stored via the offset table in Track rows
 pub struct TrackStrings {
     /// International Standard Recording Code (ISRC), in mangled format.
-    isrc: DeviceSQLString,
+    pub(crate) isrc: DeviceSQLString,
     /// Lyricist of the track.
-    lyricist: DeviceSQLString,
+    pub(crate) lyricist: DeviceSQLString,
     /// Unknown string field containing a number.
     /// Appears to increment when the track is exported or modified in Rekordbox.
-    unknown_string2: DeviceSQLString,
+    pub(crate) unknown_string2: DeviceSQLString,
     /// Unknown string field containing a number.
-    unknown_string3: DeviceSQLString,
+    pub(crate) unknown_string3: DeviceSQLString,
     /// Unknown string field.
-    unknown_string4: DeviceSQLString,
+    pub(crate) unknown_string4: DeviceSQLString,
     /// Track "message", a field in the Rekordbox UI.
-    message: DeviceSQLString,
+    pub(crate) message: DeviceSQLString,
     /// "Publish track information" in Rekordbox, value is either "ON" or empty string.
     /// Appears related to the Stagehand product to control DJ equipment remotely.
-    publish_track_information: DeviceSQLString,
+    pub(crate) publish_track_information: DeviceSQLString,
     /// Determines if hotcues should be autoloaded. Value is either "ON" or empty string.
-    autoload_hotcues: DeviceSQLString,
+    pub(crate) autoload_hotcues: DeviceSQLString,
     /// Unknown string field (usually empty).
-    unknown_string5: DeviceSQLString,
+    pub(crate) unknown_string5: DeviceSQLString,
     /// Unknown string field (usually empty).
-    unknown_string6: DeviceSQLString,
+    pub(crate) unknown_string6: DeviceSQLString,
     /// Date when the track was added to the Rekordbox collection (YYYY-MM-DD).
-    date_added: DeviceSQLString,
+    pub(crate) date_added: DeviceSQLString,
     /// Date when the track was released (YYYY-MM-DD).
-    release_date: DeviceSQLString,
+    pub(crate) release_date: DeviceSQLString,
     /// Name of the remix (if any).
-    mix_name: DeviceSQLString,
+    pub(crate) mix_name: DeviceSQLString,
     /// Unknown string field (usually empty).
-    unknown_string7: DeviceSQLString,
+    pub(crate) unknown_string7: DeviceSQLString,
     /// File path of the track analysis file.
-    analyze_path: DeviceSQLString,
+    pub(crate) analyze_path: DeviceSQLString,
     /// Date when the track analysis was performed (YYYY-MM-DD).
-    analyze_date: DeviceSQLString,
+    pub(crate) analyze_date: DeviceSQLString,
     /// Track comment.
-    comment: DeviceSQLString,
+    pub(crate) comment: DeviceSQLString,
     /// Track title.
     pub title: DeviceSQLString,
     /// Unknown string field (usually empty).
-    unknown_string8: DeviceSQLString,
+    pub(crate) unknown_string8: DeviceSQLString,
     /// Name of the file.
-    filename: DeviceSQLString,
+    pub(crate) filename: DeviceSQLString,
     /// Path of the file.
     pub file_path: DeviceSQLString,
 }
@@ -1816,69 +1842,69 @@ impl OffsetArrayItems<21> for TrackStrings {
 #[brw(little)]
 pub struct Track {
     /// Unknown field, usually `24 00`.
-    subtype: Subtype,
+    pub(crate) subtype: Subtype,
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
     /// Appears to always be 0x20 * row index.
-    index_shift: u16,
+    pub(crate) index_shift: u16,
     /// Unknown field, called `bitmask` by [@flesniak](https://github.com/flesniak).
     /// Appears to always be 0x000c0700.
-    bitmask: u32,
+    pub(crate) bitmask: u32,
     /// Sample Rate in Hz.
-    sample_rate: u32,
+    pub(crate) sample_rate: u32,
     /// Composer of this track as artist row ID (non-zero if set).
-    composer_id: ArtistId,
+    pub(crate) composer_id: ArtistId,
     /// File size in bytes.
-    file_size: u32,
+    pub(crate) file_size: u32,
     /// Unknown field; observed values are effectively random.
-    unknown2: u32,
+    pub(crate) unknown2: u32,
     /// Unknown field; observed values: 19048, 64128, 31844.
     /// Appears to be the same for all tracks in a given DB.
-    unknown3: u16,
+    pub(crate) unknown3: u16,
     /// Unknown field; observed values: 30967, 1511, 9043.
     /// Appears to be the same for all tracks in a given DB.
-    unknown4: u16,
+    pub(crate) unknown4: u16,
     /// Artwork row ID for the cover art (non-zero if set),
-    artwork_id: ArtworkId,
+    pub(crate) artwork_id: ArtworkId,
     /// Key row ID for the cover art (non-zero if set).
-    key_id: KeyId,
+    pub(crate) key_id: KeyId,
     /// Artist row ID of the original performer (non-zero if set).
-    orig_artist_id: ArtistId,
+    pub(crate) orig_artist_id: ArtistId,
     /// Label row ID of the original performer (non-zero if set).
-    label_id: LabelId,
+    pub(crate) label_id: LabelId,
     /// Artist row ID of the remixer (non-zero if set).
-    remixer_id: ArtistId,
+    pub(crate) remixer_id: ArtistId,
     /// Bitrate of the track.
-    bitrate: u32,
+    pub(crate) bitrate: u32,
     /// Track number of the track.
-    track_number: u32,
+    pub(crate) track_number: u32,
     /// Track tempo in centi-BPM (= 1/100 BPM).
-    tempo: u32,
+    pub(crate) tempo: u32,
     /// Genre row ID for this track (non-zero if set).
-    genre_id: GenreId,
+    pub(crate) genre_id: GenreId,
     /// Album row ID for this track (non-zero if set).
-    album_id: AlbumId,
+    pub(crate) album_id: AlbumId,
     /// Artist row ID for this track (non-zero if set).
     pub artist_id: ArtistId,
     /// Row ID of this track (non-zero if set).
     pub id: TrackId,
     /// Disc number of this track (non-zero if set).
-    disc_number: u16,
+    pub(crate) disc_number: u16,
     /// Number of times this track was played.
-    play_count: u16,
+    pub(crate) play_count: u16,
     /// Year this track was released.
-    year: u16,
+    pub(crate) year: u16,
     /// Bits per sample of the track aduio file.
-    sample_depth: u16,
+    pub(crate) sample_depth: u16,
     /// Playback duration of this track in seconds (at normal speed).
-    duration: u16,
+    pub(crate) duration: u16,
     /// Unknown field, apparently always "0x29".
-    unknown5: u16,
+    pub(crate) unknown5: u16,
     /// Color row ID for this track (non-zero if set).
-    color: ColorIndex,
+    pub(crate) color: ColorIndex,
     /// User rating of this track (0 to 5 starts).
     pub rating: u8,
     /// Format of the file.
-    file_type: FileType,
+    pub(crate) file_type: FileType,
     /// offsets (strings) at row end
     #[brw(args(0x5C, subtype.get_offset_size(), ()))]
     pub offsets: OffsetArrayContainer<TrackStrings, 21>,
@@ -1897,6 +1923,81 @@ impl RowVariant for Track {
         match row {
             Row::Plain(PlainRow::Track(track)) => Some(track),
             _ => None,
+        }
+    }
+}
+
+impl Track {
+    /// Default values for the reverse-engineered serialization fields that have no
+    /// domain meaning. Stamps `subtype`/`bitmask`/`unknown5` and the observed-default
+    /// strings so callers only set what they care about.
+    #[must_use]
+    #[allow(dead_code)] // ponytail: used once the device writer lands; kept here so the
+                        // visibility refactor compiles standalone.
+    pub(crate) fn default_row() -> Self {
+        Self {
+            subtype: Subtype(0x24),
+            index_shift: 0,
+            bitmask: 788_224,
+            sample_rate: 0,
+            composer_id: ArtistId(0),
+            file_size: 0,
+            unknown2: 0,
+            unknown3: 0,
+            unknown4: 0,
+            artwork_id: ArtworkId(0),
+            key_id: KeyId(0),
+            orig_artist_id: ArtistId(0),
+            label_id: LabelId(0),
+            remixer_id: ArtistId(0),
+            bitrate: 0,
+            track_number: 0,
+            tempo: 0,
+            genre_id: GenreId(0),
+            album_id: AlbumId(0),
+            artist_id: ArtistId(0),
+            id: TrackId(0),
+            disc_number: 0,
+            play_count: 0,
+            year: 0,
+            sample_depth: 0,
+            duration: 0,
+            unknown5: 41,
+            color: ColorIndex::None,
+            rating: 0,
+            file_type: FileType::Unknown,
+            offsets: OffsetArrayContainer {
+                offsets: MaybeCalculated::Calculated,
+                inner: TrackStrings::default(),
+            },
+        }
+    }
+}
+
+impl Default for TrackStrings {
+    fn default() -> Self {
+        Self {
+            isrc: DeviceSQLString::empty(),
+            lyricist: DeviceSQLString::empty(),
+            unknown_string2: DeviceSQLString::new("1").unwrap(),
+            unknown_string3: DeviceSQLString::new("1").unwrap(),
+            unknown_string4: DeviceSQLString::empty(),
+            message: DeviceSQLString::empty(),
+            publish_track_information: DeviceSQLString::new("ON").unwrap(),
+            autoload_hotcues: DeviceSQLString::empty(),
+            unknown_string5: DeviceSQLString::empty(),
+            unknown_string6: DeviceSQLString::empty(),
+            date_added: DeviceSQLString::empty(),
+            release_date: DeviceSQLString::empty(),
+            mix_name: DeviceSQLString::empty(),
+            unknown_string7: DeviceSQLString::empty(),
+            analyze_path: DeviceSQLString::empty(),
+            analyze_date: DeviceSQLString::empty(),
+            comment: DeviceSQLString::empty(),
+            title: DeviceSQLString::empty(),
+            unknown_string8: DeviceSQLString::empty(),
+            filename: DeviceSQLString::empty(),
+            file_path: DeviceSQLString::empty(),
         }
     }
 }
