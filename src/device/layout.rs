@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Jan Holthuis <jan.holthuis@rub.de>
+// Copyright (c) 2026 Jan Holthaus <jan.holthuis@rub.de>
 //
 // This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy
 // of the MPL was not distributed with this file, You can obtain one at
@@ -48,7 +48,39 @@ impl Layout {
         self.rekordbox_dir().join("export.pdb")
     }
 
+    pub(crate) fn usbanlz_dir(&self) -> PathBuf {
+        self.pioneer_dir().join("USBANLZ")
+    }
+
+    pub(crate) fn contents_dir(&self) -> PathBuf {
+        self.root.join("Contents")
+    }
+
     pub(crate) fn dat_path(&self, filename: &str) -> PathBuf {
         self.pioneer_dir().join(filename)
     }
+
+    #[cfg(feature = "artwork")]
+    pub(crate) fn artwork_dir(&self) -> PathBuf {
+        self.pioneer_dir().join("Artwork")
+    }
+
+    #[cfg(feature = "artwork")]
+    pub(crate) fn artwork_file(&self, id: u32) -> PathBuf {
+        self.artwork_dir()
+            .join(artwork_folder(id))
+            .join(format!("a{id}.jpg"))
+    }
+
+    #[cfg(feature = "artwork")]
+    pub(crate) fn artwork_m_file(&self, id: u32) -> PathBuf {
+        self.artwork_dir()
+            .join(artwork_folder(id))
+            .join(format!("a{id}_m.jpg"))
+    }
+}
+
+#[cfg(feature = "artwork")]
+pub(crate) fn artwork_folder(id: u32) -> String {
+    format!("{:05}", id / 20 + 1)
 }
