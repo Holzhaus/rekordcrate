@@ -15,6 +15,17 @@ use crate::pdb::{PageIndex, PageType};
 use binrw::{binrw, file_ptr::IntoSeekFrom, BinRead, BinResult, BinWrite, Endian};
 use thiserror::Error;
 
+/// Which kind of row a foreign key points at. Used by
+/// [`RekordcrateError::UnknownForeignKey`] to identify the missing reference.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ForeignKeyKind {
+    /// A track row (`add_track_to_playlist` referenced an unknown track id).
+    Track,
+    /// A playlist-tree node (`create_playlist`/`create_playlist_folder` referenced an unknown
+    /// parent id, or a call referenced an unknown playlist id).
+    PlaylistNode,
+}
+
 /// Enumerates errors returned by this library.
 #[derive(Error, Debug)]
 #[non_exhaustive]
@@ -77,6 +88,26 @@ pub enum RekordcrateError {
     #[cfg(feature = "xml")]
     #[error(transparent)]
     XmlDeserializationFailed(#[from] quick_xml::DeError),
+
+    /// A row referenced a foreign key (track id, playlist node id, ...) that does not exist.
+    #[error("unknown foreign key: {kind:?} id={id}")]
+    UnknownForeignKey {
+        /// Which kind of referenced row was missing.
+        kind: ForeignKeyKind,
+        /// The id that did not resolve to a row.
+        id: u32,
+    },
+
+    /// Artwork image processing failed (decoding, resizing, or writing). Only constructed under the
+    /// `artwork` feature, but the variant is unconditional so it does not leak the `image` crate
+    /// into the public error type.
+    #[error("artwork error for {path:?}: {message}")]
+    ArtworkError {
+        /// Path of the artwork file involved (source or destination).
+        path: std::path::PathBuf,
+        /// Human-readable detail from the underlying failure.
+        message: String,
+    },
 }
 
 /// Type alias for results where the error is a `RekordcrateError`.
