@@ -14,7 +14,7 @@ use crate::setting::SettingType;
 use std::path::{Path, PathBuf};
 
 /// The `*SETTING.DAT` files in a device export, in the order Rekordbox writes them.
-pub(crate) const DAT_FILES: &[(&str, SettingType)] = &[
+pub const DAT_FILES: &[(&str, SettingType)] = &[
     ("DEVSETTING.DAT", SettingType::DevSetting),
     ("DJMMYSETTING.DAT", SettingType::DJMMySetting),
     ("MYSETTING.DAT", SettingType::MySetting),
@@ -22,65 +22,102 @@ pub(crate) const DAT_FILES: &[(&str, SettingType)] = &[
 ];
 
 /// On-disk layout of a device export rooted at `root`. Derives all paths from it on demand.
+///
+/// Exposed so expert callers can locate [`Self::export_pdb`] and the surrounding `PIONEER` /
+/// `Contents` directories directly, for manual inspection or modification outside the high-level
+/// reader/writer.
 #[derive(Debug, Clone, PartialEq)]
-pub(crate) struct Layout {
+pub struct Layout {
     root: PathBuf,
 }
 
 impl Layout {
-    pub(crate) fn new(root: PathBuf) -> Self {
+    /// Wrap a device-export root directory.
+    #[must_use]
+    pub fn new(root: PathBuf) -> Self {
         Self { root }
     }
 
-    pub(crate) fn root(&self) -> &Path {
+    /// The device root directory this layout was built from.
+    #[must_use]
+    pub fn root(&self) -> &Path {
         &self.root
     }
 
-    pub(crate) fn pioneer_dir(&self) -> PathBuf {
+    /// The `PIONEER` directory.
+    #[must_use]
+    pub fn pioneer_dir(&self) -> PathBuf {
         self.root.join("PIONEER")
     }
 
-    pub(crate) fn rekordbox_dir(&self) -> PathBuf {
+    /// The `PIONEER/rekordbox` directory holding the PDB files.
+    #[must_use]
+    pub fn rekordbox_dir(&self) -> PathBuf {
         self.pioneer_dir().join("rekordbox")
     }
 
-    pub(crate) fn export_pdb(&self) -> PathBuf {
+    /// Path to `export.pdb`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use rekordcrate::device::layout::Layout;
+    /// let layout = Layout::new("/srv/export".into());
+    /// assert!(layout.export_pdb().ends_with("export.pdb"));
+    /// ```
+    #[must_use]
+    pub fn export_pdb(&self) -> PathBuf {
         self.rekordbox_dir().join("export.pdb")
     }
 
-    pub(crate) fn usbanlz_dir(&self) -> PathBuf {
+    /// The `PIONEER/USBANLZ` directory holding per-track analysis files.
+    #[must_use]
+    pub fn usbanlz_dir(&self) -> PathBuf {
         self.pioneer_dir().join("USBANLZ")
     }
 
-    pub(crate) fn contents_dir(&self) -> PathBuf {
+    /// The `Contents` directory holding audio files.
+    #[must_use]
+    pub fn contents_dir(&self) -> PathBuf {
         self.root.join("Contents")
     }
 
-    pub(crate) fn dat_path(&self, filename: &str) -> PathBuf {
+    /// Path to a `*SETTING.DAT` file by name, under `PIONEER`.
+    #[must_use]
+    pub fn dat_path(&self, filename: &str) -> PathBuf {
         self.pioneer_dir().join(filename)
     }
 
+    /// The `PIONEER/Artwork` directory (under the `artwork` feature).
     #[cfg(feature = "artwork")]
-    pub(crate) fn artwork_dir(&self) -> PathBuf {
+    #[must_use]
+    pub fn artwork_dir(&self) -> PathBuf {
         self.pioneer_dir().join("Artwork")
     }
 
+    /// Path to the 80×80 thumbnail `a{id}.jpg` (under the `artwork` feature).
     #[cfg(feature = "artwork")]
-    pub(crate) fn artwork_file(&self, id: u32) -> PathBuf {
+    #[must_use]
+    pub fn artwork_file(&self, id: u32) -> PathBuf {
         self.artwork_dir()
             .join(artwork_folder(id))
             .join(format!("a{id}.jpg"))
     }
 
+    /// Path to the 240×240 `a{id}_m.jpg` (under the `artwork` feature).
     #[cfg(feature = "artwork")]
-    pub(crate) fn artwork_m_file(&self, id: u32) -> PathBuf {
+    #[must_use]
+    pub fn artwork_m_file(&self, id: u32) -> PathBuf {
         self.artwork_dir()
             .join(artwork_folder(id))
             .join(format!("a{id}_m.jpg"))
     }
 }
 
+/// Five-digit shard folder name for artwork `id`: `id/20 + 1`, zero-padded (under the `artwork`
+/// feature).
 #[cfg(feature = "artwork")]
-pub(crate) fn artwork_folder(id: u32) -> String {
+#[must_use]
+pub fn artwork_folder(id: u32) -> String {
     format!("{:05}", id / 20 + 1)
 }
