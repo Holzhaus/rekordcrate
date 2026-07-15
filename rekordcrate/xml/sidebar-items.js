@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["PlaylistGenericNode","StarRating"],"struct":["Collection","Document","PlaylistFolderNode","PlaylistPlaylistNode","PlaylistTrack","Playlists","PositionMark","Product","Tempo","Track"]};
+window.SIDEBAR_ITEMS = {"enum":["Color","PlaylistGenericNode","StarRating"],"struct":["Collection","Document","PlaylistFolderNode","PlaylistPlaylistNode","PlaylistTrack","Playlists","PositionMark","Product","Tempo","Track"]};
