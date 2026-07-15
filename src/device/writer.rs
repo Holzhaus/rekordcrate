@@ -20,6 +20,9 @@
 #[cfg(feature = "artwork")]
 use crate::device::layout::artwork_folder;
 use crate::device::layout::{Layout, DAT_FILES};
+use crate::pdb::ext::{
+    ExtPageType, ExtRow, ParentId, TagId, TagOrCategory, TagOrCategoryStrings, TrackTag,
+};
 use crate::pdb::io::Database;
 use crate::pdb::offset_array::OffsetArrayContainer;
 use crate::pdb::string::DeviceSQLString;
@@ -38,6 +41,7 @@ use fallible_iterator::FallibleIterator;
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::Cursor;
+use std::num::NonZero;
 use std::path::Path;
 
 /// Re-export of [`crate::util::ForeignKeyKind`], for callers reaching it via this module.
@@ -176,10 +180,16 @@ pub struct AddTrackOutcome {
     pub is_new: bool,
 }
 
+/// Opaque id of a tag category created by [`DeviceExportWriter::create_tag_category`]. Pass it to
+/// [`DeviceExportWriter::add_tags_to_track`] to group leaf tags under the category.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct TagCategoryId(pub u32);
+
 /// Builder for a Rekordbox device export: PDB database, setting files, directory structure.
 #[derive(Debug)]
 pub struct DeviceExportWriter {
     db: Option<Database<fs::File>>,
+    ext_db: Option<Database<fs::File>>,
     #[allow(dead_code)]
     layout: Layout,
     next_track_id: u32,
@@ -191,6 +201,12 @@ pub struct DeviceExportWriter {
     #[cfg(feature = "artwork")]
     next_artwork_id: u32,
     next_playlist_node_id: u32,
+    // Shared id space for categories and leaf tags; 0 is the null foreign key, so both start at 1.
+    next_tag_id: u32,
+    /// Next `position` for a top-level category (0-based, as on real exports).
+    next_category_position: u32,
+    /// Per-row monotonic counter driving `index_shift` (`0x20`/row).
+    next_tag_row_index: u32,
     track_ids: HashSet<u32>,
     /// `id -> is_folder`. Root (id 0) is implicit — always valid as a parent, always a folder.
     playlist_nodes: HashMap<u32, bool>,
@@ -201,6 +217,12 @@ pub struct DeviceExportWriter {
     genres_by_name: HashMap<String, u32>,
     keys_by_canonical: HashMap<String, u32>,
     labels_by_name: HashMap<String, u32>,
+    /// Created tag category ids, for `add_tags_to_track` FK validation.
+    tag_categories: HashSet<u32>,
+    /// `(category_id, label) -> tag id` leaf dedup.
+    tags_by_key: HashMap<(u32, String), u32>,
+    /// `category_id -> next leaf position` (dense from 0 within a category).
+    tag_leaf_counts: HashMap<u32, u32>,
     #[cfg(feature = "artwork")]
     artwork_by_path: HashMap<String, u32>,
 }
@@ -265,6 +287,9 @@ impl Drop for DeviceExportWriter {
     fn drop(&mut self) {
         if let Some(db) = self.db.as_mut() {
             let _ = db.flush();
+        }
+        if let Some(ext_db) = self.ext_db.as_mut() {
+            let _ = ext_db.flush();
         }
     }
 }
@@ -343,6 +368,7 @@ impl DeviceExportWriter {
 
         Ok(Self {
             db: Some(db),
+            ext_db: None,
             layout,
             // Counters start at 1: id 0 is the null/empty foreign key (returned by the empty-name
             // branches of get_or_create_* and used for unset composer/orig-artist/remixer ids), so
@@ -356,6 +382,9 @@ impl DeviceExportWriter {
             #[cfg(feature = "artwork")]
             next_artwork_id: 1,
             next_playlist_node_id: 1,
+            next_tag_id: 1,
+            next_category_position: 0,
+            next_tag_row_index: 0,
             track_ids: HashSet::new(),
             playlist_nodes: HashMap::new(),
             tracks_by_path: HashMap::new(),
@@ -365,6 +394,9 @@ impl DeviceExportWriter {
             genres_by_name: HashMap::new(),
             keys_by_canonical: HashMap::new(),
             labels_by_name: HashMap::new(),
+            tag_categories: HashSet::new(),
+            tags_by_key: HashMap::new(),
+            tag_leaf_counts: HashMap::new(),
             #[cfg(feature = "artwork")]
             artwork_by_path: HashMap::new(),
         })
@@ -480,6 +512,8 @@ impl DeviceExportWriter {
 
         Ok(Self {
             db: Some(db),
+            // ext PDB is never read back by `open()` — any tags a prior session wrote are lost.
+            ext_db: None,
             layout,
             next_track_id,
             next_artist_id,
@@ -490,6 +524,9 @@ impl DeviceExportWriter {
             #[cfg(feature = "artwork")]
             next_artwork_id,
             next_playlist_node_id,
+            next_tag_id: 1,
+            next_category_position: 0,
+            next_tag_row_index: 0,
             track_ids,
             playlist_nodes,
             tracks_by_path,
@@ -499,6 +536,9 @@ impl DeviceExportWriter {
             genres_by_name,
             keys_by_canonical,
             labels_by_name,
+            tag_categories: HashSet::new(),
+            tags_by_key: HashMap::new(),
+            tag_leaf_counts: HashMap::new(),
             #[cfg(feature = "artwork")]
             artwork_by_path,
         })
@@ -805,6 +845,135 @@ impl DeviceExportWriter {
         Ok(())
     }
 
+    /// Create a top-level tag category (e.g. "Genre", "My Tags") in `exportExt.pdb` and return its
+    /// id. Leaf tags are grouped under a category via [`add_tags_to_track`](Self::add_tags_to_track).
+    /// The ext PDB is created lazily on first use.
+    ///
+    /// # Errors
+    ///
+    /// [`Error`] if the name can't be encoded or the row can't be written.
+    pub fn create_tag_category(&mut self, name: &str) -> Result<TagCategoryId> {
+        let id = self.next_tag_id;
+        self.next_tag_id += 1;
+        let position = self.next_category_position;
+        self.next_category_position += 1;
+
+        let row_index = self.next_tag_row_index;
+        self.next_tag_row_index += 1;
+        self.ext_db_mut().add_row(Row::Ext(ExtRow::Tag(tag_row(
+            ParentId(None),
+            position,
+            TagId(id),
+            true,
+            row_index,
+            name,
+        )?)))?;
+
+        self.tag_categories.insert(id);
+        Ok(TagCategoryId(id))
+    }
+
+    /// Associate `tags` with `track_id` under `category` in `exportExt.pdb`. Empty labels are
+    /// dropped; duplicate labels (within this call or already existing under the same category)
+    /// collapse to one leaf row, so each `(category, label)` pair produces at most one junction
+    /// row per track. The ext PDB is created lazily on first use.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::UnknownForeignKey`] if `track_id` isn't an existing track or `category` isn't a
+    /// category created by [`create_tag_category`](Self::create_tag_category), or [`Error`] if a
+    /// string can't be encoded.
+    pub fn add_tags_to_track(
+        &mut self,
+        track_id: TrackId,
+        category: TagCategoryId,
+        tags: &[String],
+    ) -> Result<()> {
+        if !self.track_ids.contains(&track_id.0) {
+            return Err(Error::UnknownForeignKey {
+                kind: ForeignKeyKind::Track,
+                id: track_id.0,
+            });
+        }
+        if !self.tag_categories.contains(&category.0) {
+            return Err(Error::UnknownForeignKey {
+                kind: ForeignKeyKind::TagCategory,
+                id: category.0,
+            });
+        }
+        let mut seen: HashSet<&str> = HashSet::new();
+        let non_empty: Vec<&str> = tags
+            .iter()
+            .map(String::as_str)
+            .filter(|label| !label.is_empty() && seen.insert(label))
+            .collect();
+        if non_empty.is_empty() {
+            return Ok(());
+        }
+
+        for label in non_empty {
+            let tag_id = self.get_or_create_tag(category, label)?;
+            self.ext_db_mut()
+                .add_row(Row::Ext(ExtRow::TrackTag(TrackTag {
+                    track_id,
+                    tag_id: TagId(tag_id),
+                    unknown_const: 3,
+                })))?;
+        }
+        Ok(())
+    }
+
+    /// Reuse the leaf tag for `(category, label)` if it exists, else insert a new leaf row under
+    /// `category` and remember it.
+    fn get_or_create_tag(&mut self, category: TagCategoryId, label: &str) -> Result<u32> {
+        let key = (category.0, label.to_string());
+        if let Some(&id) = self.tags_by_key.get(&key) {
+            return Ok(id);
+        }
+
+        let id = self.next_tag_id;
+        self.next_tag_id += 1;
+        let position = self.tag_leaf_counts.get(&category.0).copied().unwrap_or(0);
+        self.tag_leaf_counts.insert(category.0, position + 1);
+
+        let row_index = self.next_tag_row_index;
+        self.next_tag_row_index += 1;
+        self.ext_db_mut().add_row(Row::Ext(ExtRow::Tag(tag_row(
+            ParentId(NonZero::new(category.0)),
+            position,
+            TagId(id),
+            false,
+            row_index,
+            label,
+        )?)))?;
+
+        self.tags_by_key.insert(key, id);
+        Ok(id)
+    }
+
+    fn ext_db_mut(&mut self) -> &mut Database<fs::File> {
+        if self.ext_db.is_none() {
+            let ext_path = self.layout.export_ext_pdb();
+            if let Some(parent) = ext_path.parent() {
+                let _ = fs::create_dir_all(parent);
+            }
+            // panic on IO failure. Returning Result from every tag call would add a `?`
+            // to the hot path for a failure (unwritable device) that surfaces loudly a few lines
+            // later anyway. Revisit if a caller needs graceful handling.
+            let file = fs::File::create(&ext_path).expect("can create exportExt.pdb");
+            let table_page_types = [
+                PageType::Ext(ExtPageType::Tag),
+                PageType::Ext(ExtPageType::TrackTag),
+            ];
+            let ext_db = Database::create(file, DatabaseType::Ext, &table_page_types)
+                .expect("can create ext PDB");
+            self.ext_db = Some(ext_db);
+        }
+        self.ext_db
+            .as_mut()
+            .expect("ext_db was just initialized above")
+    }
+
     /// Flush pending writes and close the PDB. Prefer this over relying on `Drop`, which can't
     /// surface errors.
     ///
@@ -815,7 +984,11 @@ impl DeviceExportWriter {
         self.db
             .take()
             .expect("DeviceExportWriter.db always Some until close")
-            .close()
+            .close()?;
+        if let Some(ext_db) = self.ext_db.take() {
+            ext_db.close()?;
+        }
+        Ok(())
     }
 
     fn get_or_create<K, RowFn>(
@@ -1050,6 +1223,38 @@ fn write_setting_file(path: &Path, setting: &Setting) -> Result<()> {
         .map_err(Error::BinrwError)?;
     fs::write(path, buf.into_inner())?;
     Ok(())
+}
+
+/// Build a category or leaf tag row. `is_category` selects the `raw_is_category` flag
+/// (`0x01000000` for categories, `0` for leaves — confirmed against a real Rekordbox export).
+/// `row_index` is the per-row monotonic counter that drives `index_shift` (`0x20` per row, as
+/// observed on real exports). Leaf tag ids are sequential here, not the large random 32-bit values
+/// Rekordbox writes — unknown whether players care; revisit if round-trip fidelity is needed.
+fn tag_row(
+    parent_id: ParentId,
+    position: u32,
+    id: TagId,
+    is_category: bool,
+    row_index: u32,
+    name: &str,
+) -> Result<TagOrCategory> {
+    Ok(TagOrCategory {
+        subtype: Subtype(0x0680),
+        index_shift: (row_index * 0x20) as u16,
+        unknown1: 0,
+        unknown2: 0,
+        parent_id,
+        position,
+        id,
+        raw_is_category: u32::from(is_category) << 24,
+        offsets: OffsetArrayContainer {
+            offsets: MaybeCalculated::Calculated,
+            inner: TagOrCategoryStrings {
+                name: name.parse()?,
+                unknown: DeviceSQLString::empty(),
+            },
+        },
+    })
 }
 
 #[cfg(test)]
@@ -1589,5 +1794,274 @@ mod tests {
         assert_eq!(artwork_count, 0, "no Artwork row must be written");
 
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    fn collect_ext_rows(
+        ext_db: &mut Database<std::fs::File>,
+    ) -> (Vec<TagOrCategory>, Vec<crate::pdb::ext::TrackTag>) {
+        use crate::pdb::ext::{ExtPageType, ExtRow};
+        use fallible_iterator::FallibleIterator;
+
+        let mut tags = Vec::new();
+        let mut track_tags = Vec::new();
+        let mut pages = ext_db
+            .iter_pages(PageType::Ext(ExtPageType::Tag))
+            .expect("Tag pages");
+        while let Some(page) = pages.next().expect("page") {
+            let Some(data) = page.content.as_data() else {
+                continue;
+            };
+            for row in data.rows.values() {
+                if let Row::Ext(ExtRow::Tag(t)) = row {
+                    tags.push(t.clone());
+                }
+            }
+        }
+        let mut pages = ext_db
+            .iter_pages(PageType::Ext(ExtPageType::TrackTag))
+            .expect("TrackTag pages");
+        while let Some(page) = pages.next().expect("page") {
+            let Some(data) = page.content.as_data() else {
+                continue;
+            };
+            for row in data.rows.values() {
+                if let Row::Ext(ExtRow::TrackTag(t)) = row {
+                    track_tags.push(t.clone());
+                }
+            }
+        }
+        (tags, track_tags)
+    }
+
+    #[test]
+    fn tags_not_written_when_unused() {
+        let dir = std::env::temp_dir().join(format!(
+            "rekordcrate-export-tags-none-test-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+
+        let mut dev = DeviceExportWriter::create(&dir).unwrap();
+        let t = Track {
+            title: "song".into(),
+            filename: "song.mp3".into(),
+            file_path: "/Contents/song.mp3".into(),
+            ..Default::default()
+        };
+        dev.add_track(&t).unwrap();
+        dev.close().unwrap();
+
+        assert!(
+            !dir.join("PIONEER/rekordbox/exportExt.pdb").exists(),
+            "no exportExt.pdb must be written when no track has tags"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn add_tags_creates_category_leaves_and_junctions() {
+        let dir = std::env::temp_dir().join(format!(
+            "rekordcrate-export-tags-basic-test-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+
+        let mut dev = DeviceExportWriter::create(&dir).unwrap();
+        let t1 = Track {
+            title: "a".into(),
+            filename: "a.mp3".into(),
+            file_path: "/Contents/a.mp3".into(),
+            ..Default::default()
+        };
+        let t2 = Track {
+            title: "b".into(),
+            filename: "b.mp3".into(),
+            file_path: "/Contents/b.mp3".into(),
+            ..Default::default()
+        };
+        let id1 = dev.add_track(&t1).unwrap().id;
+        let id2 = dev.add_track(&t2).unwrap().id;
+
+        let cat = dev.create_tag_category("My Tags").unwrap();
+        dev.add_tags_to_track(id1, cat, &["Techno".into(), "Dub".into(), "Techno".into()])
+            .unwrap();
+        dev.add_tags_to_track(id2, cat, &["Dub".into(), "House".into()])
+            .unwrap();
+        dev.close().unwrap();
+
+        let mut ext_db = Database::open(
+            std::fs::File::open(dir.join("PIONEER/rekordbox/exportExt.pdb")).unwrap(),
+            DatabaseType::Ext,
+        )
+        .unwrap();
+        let (tags, track_tags) = collect_ext_rows(&mut ext_db);
+
+        let categories: Vec<_> = tags.iter().filter(|t| t.raw_is_category != 0).collect();
+        assert_eq!(categories.len(), 1);
+        // Confirmed against a real Rekordbox export: categories are `0x01000000`, not `1`.
+        assert_eq!(categories[0].raw_is_category, 0x01000000);
+        assert_eq!(categories[0].index_shift, 0x0000);
+        assert_eq!(
+            categories[0]
+                .offsets
+                .inner
+                .name
+                .clone()
+                .into_string()
+                .unwrap(),
+            "My Tags"
+        );
+        assert_eq!(categories[0].id.0, cat.0);
+        assert_eq!(categories[0].parent_id.0, None);
+
+        let mut leaves: Vec<_> = tags.iter().filter(|t| t.raw_is_category == 0).collect();
+        assert_eq!(leaves.len(), 3);
+        // Every leaf is a non-category row and lives under the caller's category.
+        for leaf in &leaves {
+            assert_eq!(leaf.raw_is_category, 0);
+            assert_eq!(leaf.parent_id.0.map(NonZero::get), Some(cat.0));
+        }
+        let leaf_names: Vec<String> = leaves
+            .iter()
+            .map(|t| t.offsets.inner.name.clone().into_string().unwrap())
+            .collect();
+        for expected in &["Techno", "Dub", "House"] {
+            assert!(
+                leaf_names.iter().any(|n| n == expected),
+                "{expected:?} missing, got {leaf_names:?}"
+            );
+        }
+        // `index_shift` grows by 0x20 per row across all tag rows (category + leaves), in write
+        // order — confirmed against a real Rekordbox export.
+        let mut sorted: Vec<u16> = tags.iter().map(|t| t.index_shift).collect();
+        sorted.sort_unstable();
+        sorted.dedup();
+        assert!(
+            sorted.windows(2).all(|w| w[1] - w[0] == 0x20),
+            "index_shift must step by 0x20 per row, got {sorted:?}"
+        );
+        // Category is written first (row_index 0); leaves follow. Sanity-check the leaf range.
+        leaves.sort_unstable_by_key(|t| t.index_shift);
+        assert_eq!(leaves[0].index_shift, 0x0020);
+        assert_eq!(leaves[1].index_shift, 0x0040);
+        assert_eq!(leaves[2].index_shift, 0x0060);
+
+        // t1: 2 tags, t2: 2 tags; the duplicate "Techno" within t1 must not add a junction, and the
+        // shared "Dub" must reuse one leaf row.
+        assert_eq!(track_tags.len(), 4);
+        for tt in &track_tags {
+            assert_eq!(tt.unknown_const, 3);
+        }
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn add_tags_rejects_unknown_track() {
+        let dir = std::env::temp_dir().join(format!(
+            "rekordcrate-export-tags-fk-test-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+
+        let mut dev = DeviceExportWriter::create(&dir).unwrap();
+        let cat = dev.create_tag_category("My Tags").unwrap();
+        let err = dev
+            .add_tags_to_track(TrackId(999), cat, &["x".into()])
+            .unwrap_err();
+        assert!(
+            matches!(err, Error::UnknownForeignKey { kind, id } if kind == ForeignKeyKind::Track && id == 999),
+            "got {err:?}"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn add_tags_rejects_unknown_category() {
+        let dir = std::env::temp_dir().join(format!(
+            "rekordcrate-export-tags-cat-fk-test-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+
+        let mut dev = DeviceExportWriter::create(&dir).unwrap();
+        let t = Track {
+            title: "a".into(),
+            filename: "a.mp3".into(),
+            file_path: "/Contents/a.mp3".into(),
+            ..Default::default()
+        };
+        let id = dev.add_track(&t).unwrap().id;
+
+        let err = dev
+            .add_tags_to_track(id, TagCategoryId(999), &["x".into()])
+            .unwrap_err();
+        assert!(
+            matches!(err, Error::UnknownForeignKey { kind, id } if kind == ForeignKeyKind::TagCategory && id == 999),
+            "unknown category must be rejected, got {err:?}"
+        );
+        // The track FK is checked before the category FK, so a bad track id reports Track first.
+        let err = dev
+            .add_tags_to_track(TrackId(888), TagCategoryId(999), &["x".into()])
+            .unwrap_err();
+        assert!(
+            matches!(err, Error::UnknownForeignKey { kind, id } if kind == ForeignKeyKind::Track && id == 888),
+            "track FK must be reported before category FK, got {err:?}"
+        );
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn add_tags_ignores_empty_labels() {
+        let dir = std::env::temp_dir().join(format!(
+            "rekordcrate-export-tags-empty-test-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+
+        let mut dev = DeviceExportWriter::create(&dir).unwrap();
+        let t = Track {
+            title: "a".into(),
+            filename: "a.mp3".into(),
+            file_path: "/Contents/a.mp3".into(),
+            ..Default::default()
+        };
+        let id = dev.add_track(&t).unwrap().id;
+
+        // No category yet, so the ext PDB must not exist even after an all-empty-labels call.
+        let cat = dev.create_tag_category("My Tags").unwrap();
+        dev.add_tags_to_track(id, cat, &["".into(), "".into()])
+            .unwrap();
+        // The category write already created exportExt.pdb; count its rows instead of asserting
+        // absence.
+        dev.close().unwrap();
+        let mut ext_db = Database::open(
+            std::fs::File::open(dir.join("PIONEER/rekordbox/exportExt.pdb")).unwrap(),
+            DatabaseType::Ext,
+        )
+        .unwrap();
+        let (tags, track_tags) = collect_ext_rows(&mut ext_db);
+        // Only the category row; no leaves, no junctions.
+        assert_eq!(tags.len(), 1);
+        assert_eq!(track_tags.len(), 0);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    // Focused self-check for the two tag_row encodings confirmed against a real Rekordbox export:
+    // `raw_is_category` is `0x01000000` for a category and `0` for a leaf, and `index_shift` is
+    // `row_index * 0x20`.
+    #[test]
+    fn tag_row_encodings() {
+        let cat = tag_row(ParentId(None), 0, TagId(1), true, 0, "C").unwrap();
+        assert_eq!(cat.raw_is_category, 0x01000000);
+        assert_eq!(cat.index_shift, 0x0000);
+
+        let leaf = tag_row(ParentId(NonZero::new(1)), 0, TagId(2), false, 3, "L").unwrap();
+        assert_eq!(leaf.raw_is_category, 0);
+        assert_eq!(leaf.index_shift, 0x0060);
     }
 }

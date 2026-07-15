@@ -24,6 +24,8 @@ pub enum ForeignKeyKind {
     /// A playlist-tree node (`create_playlist`/`create_playlist_folder` referenced an unknown
     /// parent id, or a call referenced an unknown playlist id).
     PlaylistNode,
+    /// A tag category (`add_tags_to_track` referenced an unknown category id).
+    TagCategory,
 }
 
 /// Enumerates errors returned by this library.

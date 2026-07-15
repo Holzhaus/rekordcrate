@@ -19,6 +19,6 @@ pub mod reader;
 pub mod writer;
 
 pub use crate::device::reader::DeviceExportReader;
-pub use crate::device::writer::{AddTrackOutcome, DeviceExportWriter, Track};
+pub use crate::device::writer::{AddTrackOutcome, DeviceExportWriter, TagCategoryId, Track};
 
 pub use crate::device::reader::{get_playlists, Playlist, PlaylistFolder, PlaylistNode};

@@ -23,9 +23,9 @@ pub const DAT_FILES: &[(&str, SettingType)] = &[
 
 /// On-disk layout of a device export rooted at `root`. Derives all paths from it on demand.
 ///
-/// Exposed so expert callers can locate [`Self::export_pdb`] and the surrounding `PIONEER` /
-/// `Contents` directories directly, for manual inspection or modification outside the high-level
-/// reader/writer.
+/// Exposed so expert callers can locate [`Self::export_pdb`] / [`Self::export_ext_pdb`] and the
+/// surrounding `PIONEER` / `Contents` directories directly, for manual inspection or modification
+/// outside the high-level reader/writer.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Layout {
     root: PathBuf,
@@ -68,6 +68,12 @@ impl Layout {
     #[must_use]
     pub fn export_pdb(&self) -> PathBuf {
         self.rekordbox_dir().join("export.pdb")
+    }
+
+    /// Path to `exportExt.pdb`.
+    #[must_use]
+    pub fn export_ext_pdb(&self) -> PathBuf {
+        self.rekordbox_dir().join("exportExt.pdb")
     }
 
     /// The `PIONEER/USBANLZ` directory holding per-track analysis files.
