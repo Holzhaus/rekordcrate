@@ -17,6 +17,20 @@
 //! - <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/exports.html>
 //! - <https://github.com/henrybetts/Rekordbox-Decoding>
 //! - <https://github.com/flesniak/python-prodj-link/tree/master/prodj/pdblib>
+//!
+//! # Editing existing rows
+//!
+//! `Database::open` + `iter_rows` + `close` round-trips edits to disk, but each row is written
+//! back at its **original fixed offset** — the page heap is never repacked.
+//!
+//! - **Size-stable edits are safe.** Mutating a fixed-width scalar field leaves the row's
+//!   serialized length unchanged, so it lands cleanly in its slot.
+//! - **Length-changing string edits corrupt the page**, and this is *not* detected: a longer
+//!   string overwrites the next row, a shorter one leaves stale bytes. Grow or add strings by
+//!   appending a new row via [`Database::add_row`] or [`crate::DeviceExportWriter`] instead.
+//!
+//! `flush`/`close` only re-check the 221-byte minimum track row size; they cannot detect heap
+//! overflow.
 
 use super::*;
 use crate::util::{RekordcrateError, RekordcrateResult, TableIndex};
