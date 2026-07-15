@@ -27,7 +27,8 @@ use crate::pdb::string::DeviceSQLString;
 use crate::pdb::Artwork;
 use crate::pdb::{
     AlbumId, ArtistId, ArtworkId, DatabaseType, GenreId, KeyId, LabelId, PageType, PlainPageType,
-    PlainRow, PlaylistEntry, PlaylistTreeNode, PlaylistTreeNodeId, Row, TrackId,
+    PlainRow, PlaylistEntry, PlaylistTreeNode, PlaylistTreeNodeId, Row, Subtype, Track as PdbTrack,
+    TrackId, TrackStrings,
 };
 use crate::setting::{Setting, SettingType};
 use crate::util::{ColorIndex, FileType, MaybeCalculated};
@@ -592,22 +593,6 @@ impl DeviceExportWriter {
     /// Encode all strings, set scalar fields, grow `comment` past the 221-byte minimum. Allocates
     /// no IDs, inserts nothing.
     fn build_pdb_track(&self, track: &Track) -> Result<(crate::pdb::Track, String)> {
-        let mut pdb_track = crate::pdb::Track::default_row();
-        pdb_track.sample_rate = track.sample_rate;
-        pdb_track.sample_depth = track.sample_depth;
-        pdb_track.bitrate = track.bitrate;
-        pdb_track.duration = track.duration_secs;
-        pdb_track.file_size = track.file_size;
-        // PDB tempo is centi-BPM (BPM × 100).
-        pdb_track.tempo = (track.tempo * 100.0).round() as u32;
-        pdb_track.file_type = track.file_type.clone();
-        pdb_track.track_number = track.track_number;
-        pdb_track.disc_number = track.disc_number;
-        pdb_track.year = track.year;
-        pdb_track.play_count = track.play_count;
-        pdb_track.rating = track.rating;
-        pdb_track.color = track.color.clone();
-
         // Only `comment` grows below; hoist the rest so they're encoded once.
         let isrc = DeviceSQLString::new(&track.isrc)?;
         let lyricist = DeviceSQLString::new(&track.lyricist)?;
@@ -623,19 +608,67 @@ impl DeviceExportWriter {
         } else {
             DeviceSQLString::empty()
         };
-        {
-            let s = &mut pdb_track.offsets.inner;
-            s.isrc = isrc;
-            s.lyricist = lyricist;
-            s.message = message;
-            s.mix_name = mix_name;
-            s.release_date = release_date;
-            s.date_added = date_added;
-            s.title = title;
-            s.filename = filename;
-            s.file_path = file_path;
-            s.autoload_hotcues = autoload_hotcues;
-        }
+
+        let mut pdb_track = PdbTrack {
+            // Reverse-engineered constants observed on fresh Rekordbox track rows.
+            subtype: Subtype(0x24),
+            index_shift: 0,
+            bitmask: 788_224,
+            unknown5: 41,
+            sample_rate: track.sample_rate,
+            sample_depth: track.sample_depth,
+            bitrate: track.bitrate,
+            duration: track.duration_secs,
+            file_size: track.file_size,
+            // PDB tempo is centi-BPM (BPM × 100).
+            tempo: (track.tempo * 100.0).round() as u32,
+            file_type: track.file_type.clone(),
+            track_number: track.track_number,
+            disc_number: track.disc_number,
+            year: track.year,
+            play_count: track.play_count,
+            rating: track.rating,
+            color: track.color.clone(),
+            composer_id: ArtistId(0),
+            artwork_id: ArtworkId(0),
+            key_id: KeyId(0),
+            orig_artist_id: ArtistId(0),
+            label_id: LabelId(0),
+            remixer_id: ArtistId(0),
+            genre_id: GenreId(0),
+            album_id: AlbumId(0),
+            artist_id: ArtistId(0),
+            id: TrackId(0),
+            unknown2: 0,
+            unknown3: 0,
+            unknown4: 0,
+            offsets: OffsetArrayContainer {
+                offsets: MaybeCalculated::Calculated,
+                inner: TrackStrings {
+                    isrc,
+                    lyricist,
+                    unknown_string2: DeviceSQLString::new("1")?,
+                    unknown_string3: DeviceSQLString::new("1")?,
+                    unknown_string4: DeviceSQLString::empty(),
+                    message,
+                    publish_track_information: DeviceSQLString::new("ON")?,
+                    autoload_hotcues,
+                    unknown_string5: DeviceSQLString::empty(),
+                    unknown_string6: DeviceSQLString::empty(),
+                    date_added,
+                    release_date,
+                    mix_name,
+                    unknown_string7: DeviceSQLString::empty(),
+                    analyze_path: DeviceSQLString::empty(),
+                    analyze_date: DeviceSQLString::empty(),
+                    comment: DeviceSQLString::empty(),
+                    title,
+                    unknown_string8: DeviceSQLString::empty(),
+                    filename,
+                    file_path,
+                },
+            },
+        };
 
         // Grow `comment` with trailing spaces (semantically harmless free text) until the row
         // meets the 221-byte minimum. Only `comment` is re-encoded each pass.

@@ -40,9 +40,7 @@ use std::fmt;
 use crate::pdb::ext::{ExtPageType, ExtRow};
 use crate::pdb::offset_array::OffsetSize;
 use crate::pdb::string::DeviceSQLString;
-use crate::util::{
-    parse_at_offsets, write_at_offsets, ColorIndex, FileType, MaybeCalculated, TableIndex,
-};
+use crate::util::{parse_at_offsets, write_at_offsets, ColorIndex, FileType, TableIndex};
 use binrw::{binrw, BinRead, BinResult, BinWrite, Endian};
 use std::io::{Read, Seek, SeekFrom, Write};
 use thiserror::Error;
@@ -1923,79 +1921,6 @@ impl RowVariant for Track {
         match row {
             Row::Plain(PlainRow::Track(track)) => Some(track),
             _ => None,
-        }
-    }
-}
-
-impl Track {
-    /// Default values for the reverse-engineered serialization fields that have no
-    /// domain meaning. Stamps `subtype`/`bitmask`/`unknown5` and the observed-default
-    /// strings so callers only set what they care about.
-    #[must_use]
-    pub(crate) fn default_row() -> Self {
-        Self {
-            subtype: Subtype(0x24),
-            index_shift: 0,
-            bitmask: 788_224,
-            sample_rate: 0,
-            composer_id: ArtistId(0),
-            file_size: 0,
-            unknown2: 0,
-            unknown3: 0,
-            unknown4: 0,
-            artwork_id: ArtworkId(0),
-            key_id: KeyId(0),
-            orig_artist_id: ArtistId(0),
-            label_id: LabelId(0),
-            remixer_id: ArtistId(0),
-            bitrate: 0,
-            track_number: 0,
-            tempo: 0,
-            genre_id: GenreId(0),
-            album_id: AlbumId(0),
-            artist_id: ArtistId(0),
-            id: TrackId(0),
-            disc_number: 0,
-            play_count: 0,
-            year: 0,
-            sample_depth: 0,
-            duration: 0,
-            unknown5: 41,
-            color: ColorIndex::None,
-            rating: 0,
-            file_type: FileType::Unknown,
-            offsets: OffsetArrayContainer {
-                offsets: MaybeCalculated::Calculated,
-                inner: TrackStrings::default(),
-            },
-        }
-    }
-}
-
-impl Default for TrackStrings {
-    fn default() -> Self {
-        Self {
-            isrc: DeviceSQLString::empty(),
-            lyricist: DeviceSQLString::empty(),
-            unknown_string2: DeviceSQLString::new("1").unwrap(),
-            unknown_string3: DeviceSQLString::new("1").unwrap(),
-            unknown_string4: DeviceSQLString::empty(),
-            message: DeviceSQLString::empty(),
-            publish_track_information: DeviceSQLString::new("ON").unwrap(),
-            autoload_hotcues: DeviceSQLString::empty(),
-            unknown_string5: DeviceSQLString::empty(),
-            unknown_string6: DeviceSQLString::empty(),
-            date_added: DeviceSQLString::empty(),
-            release_date: DeviceSQLString::empty(),
-            mix_name: DeviceSQLString::empty(),
-            unknown_string7: DeviceSQLString::empty(),
-            analyze_path: DeviceSQLString::empty(),
-            analyze_date: DeviceSQLString::empty(),
-            comment: DeviceSQLString::empty(),
-            title: DeviceSQLString::empty(),
-            unknown_string8: DeviceSQLString::empty(),
-            filename: DeviceSQLString::empty(),
-            file_path: DeviceSQLString::empty(),
         }
     }
 }
