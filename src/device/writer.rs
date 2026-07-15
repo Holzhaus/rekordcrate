@@ -16,7 +16,6 @@
 //! written. It never copies audio files into `Contents` or generates `PIONEER/USBANLZ` analysis
 //! files (`ANLZ.*`). The API is append-only — existing rows cannot be updated or deleted; re-add
 //! via a fresh export instead.
-//! TODO(acrilique): maybe we should make all pdb structs and fields public for now as a workaround
 
 #[cfg(feature = "artwork")]
 use crate::device::layout::artwork_folder;
