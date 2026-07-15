@@ -61,7 +61,7 @@
     </TRACK>
   </COLLECTION>
   <PLAYLISTS>
-    <NODE Type="0" Name="ROOT" Count="2">
+    <NODE Type="0" Name="ROOT" Count="3">
       <NODE Name="Folder" Type="0" Count="1">
         <NODE Name="Sub Playlist" Type="1" KeyType="0" Entries="2">
           <TRACK Key="5"/>
@@ -72,6 +72,7 @@
         <TRACK Key="5"/>
         <TRACK Key="6"/>
       </NODE>
+      <NODE Name="EmptyPlaylist" Type="1" KeyType="0" Entries="0" />
     </NODE>
   </PLAYLISTS>
 </DJ_PLAYLISTS>
