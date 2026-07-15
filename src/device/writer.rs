@@ -31,7 +31,7 @@ use crate::pdb::{
     TrackId, TrackStrings,
 };
 use crate::setting::{Setting, SettingType};
-use crate::util::{ColorIndex, FileType, MaybeCalculated};
+use crate::util::{ColorIndex, FileType, MaybeCalculated, Rating};
 use crate::{Error, Result};
 use binrw::BinWrite;
 use fallible_iterator::FallibleIterator;
@@ -49,10 +49,9 @@ pub use crate::util::ForeignKeyKind;
 /// tempo). Experts needing fields not exposed here should drive a `pdb::Track` row directly via
 /// [`crate::pdb::io::Database`].
 ///
-/// `rating` is a raw byte passed straight through to the PDB. Rekordbox's encoding is unknown;
-/// Pioneer's XML spec documents `0/51/102/153/204/255` for 0–5 stars, but we have not confirmed the
-/// PDB uses the same mapping.
-/// TODO: confirm the PDB rating encoding against real hardware, then encode 0–5 stars internally.
+/// `rating` is a typed [`Rating`] (0–5 stars); the writer encodes it to the raw PDB byte
+/// (`0..=5`, confirmed against a real Rekordbox export — not the XML's
+/// `0/51/102/153/204/255`).
 #[derive(Debug, Clone)]
 pub struct Track {
     /// Track title.
@@ -81,8 +80,8 @@ pub struct Track {
     pub lyricist: String,
     /// Remix/mix name.
     pub mix_name: String,
-    /// Free text (commonly `YYYY-MM-DD`, but Rekordbox doesn't seem to enforce the format).
-    /// TODO: check if Rekordbox constrains the format or allows arbitrary text.
+    /// Free text. Rekordbox itself writes strict `YYYY-MM-DD` or empty here, but this field is
+    /// passed through verbatim so callers can probe hardware behavior with arbitrary strings.
     pub release_date: String,
     /// Free text, commonly `YYYY-MM-DD` (see [`Self::release_date`]).
     pub date_added: String,
@@ -117,8 +116,8 @@ pub struct Track {
     pub year: u16,
     /// Number of times the track was played.
     pub play_count: u16,
-    /// Raw byte; see the struct docs.
-    pub rating: u8,
+    /// Star rating (0–5); see the struct docs.
+    pub rating: Rating,
     /// Color label.
     pub color: ColorIndex,
     /// Audio file format.
@@ -159,7 +158,7 @@ impl Default for Track {
             disc_number: 0,
             year: 0,
             play_count: 0,
-            rating: 0,
+            rating: Rating::Zero,
             color: ColorIndex::None,
             file_type: FileType::Unknown,
             autoload_hotcues: false,
@@ -627,7 +626,7 @@ impl DeviceExportWriter {
             disc_number: track.disc_number,
             year: track.year,
             play_count: track.play_count,
-            rating: track.rating,
+            rating: track.rating.to_byte(),
             color: track.color.clone(),
             composer_id: ArtistId(0),
             artwork_id: ArtworkId(0),

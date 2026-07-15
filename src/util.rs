@@ -192,6 +192,65 @@ pub enum FileType {
     Other(u16),
 }
 
+/// Track rating on a 0–5 star scale. The PDB encodes this as a raw byte `0..=5`, confirmed against
+/// a real Rekordbox export (not the XML's `0/51/102/153/204/255`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Rating {
+    /// 0 stars (unrated).
+    #[default]
+    Zero,
+    /// 1 star.
+    One,
+    /// 2 stars.
+    Two,
+    /// 3 stars.
+    Three,
+    /// 4 stars.
+    Four,
+    /// 5 stars.
+    Five,
+}
+
+impl Rating {
+    /// Construct from a raw star count. Values above 5 clamp to [`Rating::Five`].
+    #[must_use]
+    pub fn from_stars(n: u8) -> Self {
+        match n.min(5) {
+            0 => Self::Zero,
+            1 => Self::One,
+            2 => Self::Two,
+            3 => Self::Three,
+            4 => Self::Four,
+            _ => Self::Five,
+        }
+    }
+
+    /// The raw byte written to the PDB (`0..=5`).
+    #[must_use]
+    pub fn to_byte(self) -> u8 {
+        match self {
+            Self::Zero => 0,
+            Self::One => 1,
+            Self::Two => 2,
+            Self::Three => 3,
+            Self::Four => 4,
+            Self::Five => 5,
+        }
+    }
+}
+
+impl From<Rating> for u8 {
+    fn from(rating: Rating) -> u8 {
+        rating.to_byte()
+    }
+}
+
+impl From<u8> for Rating {
+    fn from(n: u8) -> Self {
+        Self::from_stars(n)
+    }
+}
+
 /// Parses a sequence of values with `BinRead` from the offsets provided by the iterator.
 pub(crate) fn parse_at_offsets<Offset, Value, T, Args, It, Reader>(
     it: It,
