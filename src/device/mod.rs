@@ -7,12 +7,6 @@
 // SPDX-License-Identifier: MPL-2.0
 
 //! High-level API for Rekordbox device exports.
-//!
-//! A device export is a directory tree holding `PIONEER/` (the `*SETTING.DAT` files and
-//! `rekordbox/export.pdb`), `PIONEER/USBANLZ/` (per-track analysis files), and `Contents/` (audio
-//! files). The shared on-disk layout lives in [`layout`].
-//!
-//! [`DeviceExportReader`] inspects an existing export; [`DeviceExportWriter`] builds one from scratch.
 
 pub mod layout;
 pub mod reader;
