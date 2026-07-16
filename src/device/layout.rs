@@ -6,9 +6,10 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-//! On-disk layout of a Rekordbox device export: where `export.pdb`, the `*SETTING.DAT` files,
-//! and the `PIONEER`/`USBANLZ`/`Contents` directories live relative to the device root. Shared by
-//! [`crate::device::DeviceExportReader`] and [`crate::device::DeviceExportWriter`].
+//! On-disk layout of a Rekordbox device export: where `export.pdb`, `exportExt.pdb`, the
+//! `SETTING.DAT` files and the `PIONEER`/`USBANLZ`/`Contents` directories live relative
+//! to the device root. Shared by [`crate::device::DeviceExportReader`] and
+//! [`crate::device::DeviceExportWriter`].
 
 use crate::setting::SettingType;
 use std::path::{Path, PathBuf};
@@ -120,9 +121,9 @@ impl Layout {
     }
 }
 
-/// Five-digit shard folder name for artwork `id`: `id/20 + 1`, zero-padded (under the `artwork`
-/// feature).
-#[cfg(feature = "artwork")]
+/// Five-digit shard folder name for artwork `id`: `id/20 + 1`, zero-padded. This is compiled even
+/// without the `artwork` feature, as the only thing the feature enables is converting and copying
+/// artwork files to their destination.
 #[must_use]
 pub fn artwork_folder(id: u32) -> String {
     format!("{:05}", id / 20 + 1)

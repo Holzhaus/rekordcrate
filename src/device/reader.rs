@@ -7,7 +7,9 @@
 // SPDX-License-Identifier: MPL-2.0
 
 //! Read-side access to a Rekordbox device export: a thin handle that exposes the setting files
-//! and the PDB database. See [`crate::device::layout`].
+//! and the PDB database.
+//!
+//! See [`crate::device::layout`].
 
 use crate::device::layout::{Layout, DAT_FILES};
 use crate::pdb::io::Database;
