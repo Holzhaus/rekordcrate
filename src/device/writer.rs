@@ -404,8 +404,10 @@ impl DeviceExportWriter {
 
     /// Open an existing device export at the given path.
     ///
-    /// Opens the existing PDB database and scans for the highest IDs in each
-    /// table category to continue adding rows with non-conflicting IDs.
+    /// Opens the existing PDB database and scans for the highest IDs in each table category to
+    /// continue adding rows with non-conflicting IDs. Tag categories/leaves are recovered from
+    /// `exportExt.pdb` the same way (appending to it on later tag calls); if that file is absent
+    /// it is created lazily on the first tag call, as in [`create`](Self::create).
     ///
     /// # Errors
     ///
@@ -510,10 +512,38 @@ impl DeviceExportWriter {
             Ok(())
         })?;
 
+        // Recover tag state from the ext PDB so later tag calls append instead of truncating it.
+        // If the file is absent (no tags were ever written), the maps stay empty and `ext_db`
+        // stays `None`, so the first tag call creates it fresh — same as `create()`.
+        let mut tag_categories = HashSet::new();
+        let mut tags_by_key = HashMap::new();
+        let mut tag_leaf_counts = HashMap::new();
+        let mut next_category_position = 0u32;
+        let mut next_tag_id = 1u32;
+        let mut next_tag_row_index = 0u32;
+        let ext_db = if layout.export_ext_pdb().exists() {
+            let ext_file = fs::OpenOptions::new()
+                .read(true)
+                .write(true)
+                .open(layout.export_ext_pdb())?;
+            let mut ext_db = Database::open(ext_file, DatabaseType::Ext)?;
+            scan_ext_tags(
+                &mut ext_db,
+                &mut tag_categories,
+                &mut tags_by_key,
+                &mut tag_leaf_counts,
+                &mut next_category_position,
+                &mut next_tag_id,
+                &mut next_tag_row_index,
+            )?;
+            Some(ext_db)
+        } else {
+            None
+        };
+
         Ok(Self {
             db: Some(db),
-            // ext PDB is never read back by `open()` — any tags a prior session wrote are lost.
-            ext_db: None,
+            ext_db,
             layout,
             next_track_id,
             next_artist_id,
@@ -524,9 +554,9 @@ impl DeviceExportWriter {
             #[cfg(feature = "artwork")]
             next_artwork_id,
             next_playlist_node_id,
-            next_tag_id: 1,
-            next_category_position: 0,
-            next_tag_row_index: 0,
+            next_tag_id,
+            next_category_position,
+            next_tag_row_index,
             track_ids,
             playlist_nodes,
             tracks_by_path,
@@ -536,9 +566,9 @@ impl DeviceExportWriter {
             genres_by_name,
             keys_by_canonical,
             labels_by_name,
-            tag_categories: HashSet::new(),
-            tags_by_key: HashMap::new(),
-            tag_leaf_counts: HashMap::new(),
+            tag_categories,
+            tags_by_key,
+            tag_leaf_counts,
             #[cfg(feature = "artwork")]
             artwork_by_path,
         })
@@ -860,7 +890,7 @@ impl DeviceExportWriter {
 
         let row_index = self.next_tag_row_index;
         self.next_tag_row_index += 1;
-        self.ext_db_mut().add_row(Row::Ext(ExtRow::Tag(tag_row(
+        self.ext_db_mut()?.add_row(Row::Ext(ExtRow::Tag(tag_row(
             ParentId(None),
             position,
             TagId(id),
@@ -913,7 +943,7 @@ impl DeviceExportWriter {
 
         for label in non_empty {
             let tag_id = self.get_or_create_tag(category, label)?;
-            self.ext_db_mut()
+            self.ext_db_mut()?
                 .add_row(Row::Ext(ExtRow::TrackTag(TrackTag {
                     track_id,
                     tag_id: TagId(tag_id),
@@ -938,7 +968,7 @@ impl DeviceExportWriter {
 
         let row_index = self.next_tag_row_index;
         self.next_tag_row_index += 1;
-        self.ext_db_mut().add_row(Row::Ext(ExtRow::Tag(tag_row(
+        self.ext_db_mut()?.add_row(Row::Ext(ExtRow::Tag(tag_row(
             ParentId(NonZero::new(category.0)),
             position,
             TagId(id),
@@ -951,27 +981,26 @@ impl DeviceExportWriter {
         Ok(id)
     }
 
-    fn ext_db_mut(&mut self) -> &mut Database<fs::File> {
+    fn ext_db_mut(&mut self) -> Result<&mut Database<fs::File>> {
         if self.ext_db.is_none() {
             let ext_path = self.layout.export_ext_pdb();
             if let Some(parent) = ext_path.parent() {
                 let _ = fs::create_dir_all(parent);
             }
-            // panic on IO failure. Returning Result from every tag call would add a `?`
-            // to the hot path for a failure (unwritable device) that surfaces loudly a few lines
-            // later anyway. Revisit if a caller needs graceful handling.
-            let file = fs::File::create(&ext_path).expect("can create exportExt.pdb");
+            // Reached only when the file did not exist at `open()` time (or after `create()`), so
+            // truncation cannot destroy prior tags — `open()` would otherwise have opened it.
+            let file = fs::File::create(&ext_path)?;
             let table_page_types = [
                 PageType::Ext(ExtPageType::Tag),
                 PageType::Ext(ExtPageType::TrackTag),
             ];
-            let ext_db = Database::create(file, DatabaseType::Ext, &table_page_types)
-                .expect("can create ext PDB");
+            let ext_db = Database::create(file, DatabaseType::Ext, &table_page_types)?;
             self.ext_db = Some(ext_db);
         }
-        self.ext_db
+        Ok(self
+            .ext_db
             .as_mut()
-            .expect("ext_db was just initialized above")
+            .expect("ext_db was just initialized above"))
     }
 
     /// Flush pending writes and close the PDB. Prefer this over relying on `Drop`, which can't
@@ -1214,6 +1243,48 @@ impl DeviceExportWriter {
 
         Ok(())
     }
+}
+
+/// Walk the Tag rows of an existing ext PDB and rebuild the writer's in-memory tag state so later
+/// tag calls append without id/row-index collision or truncating prior rows. Mirrors the manual
+/// page walk in the tag tests because `TagOrCategory` does not implement `RowVariant`.
+///
+/// TrackTag junction rows carry no state the writer tracks (their ids reference tag rows already
+/// counted here), so they are not scanned.
+fn scan_ext_tags(
+    ext_db: &mut Database<fs::File>,
+    tag_categories: &mut HashSet<u32>,
+    tags_by_key: &mut HashMap<(u32, String), u32>,
+    tag_leaf_counts: &mut HashMap<u32, u32>,
+    next_category_position: &mut u32,
+    next_tag_id: &mut u32,
+    next_tag_row_index: &mut u32,
+) -> Result<()> {
+    let mut pages = ext_db.iter_pages(PageType::Ext(ExtPageType::Tag))?;
+    while let Some(page) = pages.next()? {
+        let Some(data) = page.content.as_data() else {
+            continue;
+        };
+        for row in data.rows.values() {
+            let Row::Ext(ExtRow::Tag(t)) = row else {
+                continue;
+            };
+            *next_tag_id = (*next_tag_id).max(t.id.0 + 1);
+            *next_tag_row_index = (*next_tag_row_index).max(u32::from(t.index_shift) / 0x20 + 1);
+            let parent = t.parent_id.0.map(NonZero::get).unwrap_or(0);
+            if t.raw_is_category != 0 {
+                tag_categories.insert(t.id.0);
+                *next_category_position = (*next_category_position).max(t.position + 1);
+            } else {
+                if let Ok(name) = t.offsets.inner.name.clone().into_string() {
+                    tags_by_key.entry((parent, name)).or_insert(t.id.0);
+                }
+                let count = tag_leaf_counts.entry(parent).or_insert(0);
+                *count = (*count).max(t.position + 1);
+            }
+        }
+    }
+    Ok(())
 }
 
 fn write_setting_file(path: &Path, setting: &Setting) -> Result<()> {
@@ -2047,6 +2118,88 @@ mod tests {
         // Only the category row; no leaves, no junctions.
         assert_eq!(tags.len(), 1);
         assert_eq!(track_tags.len(), 0);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    // open() must not truncate exportExt.pdb: prior categories/leaves/junctions survive, and later
+    // tag calls append with fresh ids and row indices (no collision).
+    #[test]
+    fn open_preserves_existing_tags() {
+        let dir = std::env::temp_dir().join(format!(
+            "rekordcrate-export-tags-open-preserve-test-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+
+        let mut dev = DeviceExportWriter::create(&dir).unwrap();
+        let t = Track {
+            title: "a".into(),
+            filename: "a.mp3".into(),
+            file_path: "/Contents/a.mp3".into(),
+            ..Default::default()
+        };
+        let id = dev.add_track(&t).unwrap().id;
+        let cat = dev.create_tag_category("My Tags").unwrap();
+        dev.add_tags_to_track(id, cat, &["Techno".into(), "Dub".into()])
+            .unwrap();
+        dev.close().unwrap();
+
+        // Reopen and append a new leaf under the existing category plus a brand-new category.
+        let mut dev = DeviceExportWriter::open(&dir).unwrap();
+        dev.add_tags_to_track(id, cat, &["House".into()]).unwrap();
+        let cat2 = dev.create_tag_category("Mood").unwrap();
+        dev.add_tags_to_track(id, cat2, &["Dark".into()]).unwrap();
+        dev.close().unwrap();
+
+        let mut ext_db = Database::open(
+            std::fs::File::open(dir.join("PIONEER/rekordbox/exportExt.pdb")).unwrap(),
+            DatabaseType::Ext,
+        )
+        .unwrap();
+        let (tags, track_tags) = collect_ext_rows(&mut ext_db);
+
+        // Two categories (My Tags, Mood), no duplicates.
+        let categories: Vec<_> = tags.iter().filter(|t| t.raw_is_category != 0).collect();
+        assert_eq!(categories.len(), 2, "both categories must survive open()");
+        let cat_names: Vec<String> = categories
+            .iter()
+            .map(|t| t.offsets.inner.name.clone().into_string().unwrap())
+            .collect();
+        assert!(cat_names.iter().any(|n| n == "My Tags"));
+        assert!(cat_names.iter().any(|n| n == "Mood"));
+
+        // The three original leaves plus the two new ones (House, Dark); the pre-existing "Techno"
+        // and "Dub" must not have been duplicated.
+        let leaves: Vec<String> = tags
+            .iter()
+            .filter(|t| t.raw_is_category == 0)
+            .map(|t| t.offsets.inner.name.clone().into_string().unwrap())
+            .collect();
+        for expected in &["Techno", "Dub", "House", "Dark"] {
+            assert_eq!(
+                leaves.iter().filter(|n| *n == expected).count(),
+                1,
+                "leaf {expected:?} must appear exactly once, got {leaves:?}"
+            );
+        }
+
+        // TrackTag junctions: 2 from the first session + 1 (House) + 1 (Dark) = 4.
+        assert_eq!(track_tags.len(), 4);
+
+        // No two Tag rows share an id or an index_shift (would mean a counter wasn't recovered).
+        let mut ids: Vec<u32> = tags.iter().map(|t| t.id.0).collect();
+        ids.sort_unstable();
+        let id_dupes = ids.windows(2).any(|w| w[0] == w[1]);
+        assert!(!id_dupes, "tag ids collided after open(): {ids:?}");
+        let mut shifts: Vec<u16> = tags.iter().map(|t| t.index_shift).collect();
+        shifts.sort_unstable();
+        shifts.dedup();
+        assert_eq!(
+            shifts.len(),
+            tags.len(),
+            "index_shift values must be unique, got {shifts:?}"
+        );
 
         let _ = std::fs::remove_dir_all(&dir);
     }
