@@ -223,6 +223,11 @@ impl<R: Read + Seek> Database<R> {
 impl<RW: Read + Write + Seek> Database<RW> {
     const DEFAULT_PAGE_SIZE: u32 = 4096;
     const PAGE_CHAIN_END: PageIndex = PageIndex(0x03FF_FFFF);
+    /// Minimum value for the allocated (4-byte-aligned) size of a Track row, in bytes. A CDJ-350
+    /// crashes entering its "TRACK" menu when any track row is shorter than this; 221 was the
+    /// smallest value found to avoid the crash (by trial and error). Enforced on [`Database::add_row`]
+    /// and [`Database::flush`]; see [`crate::device::writer::Track`] for how the high-level writer
+    /// pads `comment` to satisfy it.
     const MIN_TRACK_ALLOCATED_SIZE: u16 = 221;
 
     fn allocated_row_size(row_size: u16) -> u16 {
