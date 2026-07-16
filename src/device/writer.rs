@@ -6,18 +6,25 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-//! Builds a Rekordbox USB export: the PDB database (`export.pdb`), the `PIONEER/*.DAT` setting
-//! files, and the `PIONEER`/`PIONEER/USBANLZ`/`Contents` directory layout.
+//! Builds a Rekordbox USB export from scratch or adds tracks to an existing one. A high-level
+//! builder that does most of the work for you and deals with the quirks of the underlying
+//! database format.
 //!
-//! With the `artwork` feature enabled, it also copies each track's [`Track::artwork_path`] into
-//! `PIONEER/Artwork/{folder}/`, resizing to the 80×80 thumbnail (`a{id}.jpg`) and the 240×240
-//! medium (`a{id}_m.jpg`) that newer Rekordbox versions expect. Without the feature, artwork is a
-//! no-op: a raw copy of an unknown format/size can't be guaranteed CDJ-readable, so nothing is
-//! written. It never copies audio files into `Contents` or generates `PIONEER/USBANLZ` analysis
-//! files (`ANLZ.*`). The API is append-only — existing rows cannot be updated or deleted; re-add
-//! via a fresh export instead.
+//! This module never copies audio files into `Contents` or generates `PIONEER/USBANLZ` analysis
+//! files (`ANLZ.*`). Also, the API is append-only, existing rows cannot be updated or deleted.
+//! So if you want to make edits, you should either open the `pdb` files with
+//! `pdb::io::Database::open` (and thus deal with the format intricacies yourself) or re-add via
+//! a fresh export instead.
+//!
+//! For each track's [`Track::artwork_path`], an `Artwork` PDB row is always created with an
+//! id-derived device path. With the `artwork` feature enabled, the source image is also decoded,
+//! resized to the 80×80 thumbnail (`a{id}.jpg`) and 240×240 (`a{id}_m.jpg`) that newer Rekordbox
+//! versions expect, and copied into `PIONEER/Artwork/{folder}/`. Without the feature only the
+//! PDB row is written and copying the image files is omitted, so the caller must place them at
+//! the id-derived shard path themselves.
+//!
+//! See [`crate::device::layout`].
 
-#[cfg(feature = "artwork")]
 use crate::device::layout::artwork_folder;
 use crate::device::layout::{Layout, DAT_FILES};
 use crate::pdb::ext::{
@@ -26,7 +33,6 @@ use crate::pdb::ext::{
 use crate::pdb::io::Database;
 use crate::pdb::offset_array::OffsetArrayContainer;
 use crate::pdb::string::DeviceSQLString;
-#[cfg(feature = "artwork")]
 use crate::pdb::Artwork;
 use crate::pdb::{
     AlbumId, ArtistId, ArtworkId, DatabaseType, GenreId, KeyId, LabelId, PageType, PlainPageType,
@@ -93,10 +99,10 @@ pub struct Track {
     pub file_path: String,
     /// File name without path.
     pub filename: String,
-    /// Host-side path to the artwork image source. Under the `artwork` feature it is decoded,
-    /// resized to 80×80 + 240×240, and written into `PIONEER/Artwork/` with an id-derived name;
-    /// the PDB `Artwork.path` is derived from the assigned id. Without the feature it is silently
-    /// ignored (no row, no file) — set it only when `artwork` is enabled.
+    /// Host-side path to the artwork image source. Always produces an `Artwork` PDB row with an
+    /// id-derived [`crate::pdb::Artwork::path`] (`/PIONEER/Artwork/{folder}/a{id}.jpg`); under the
+    /// `artwork` feature the image is also resized to 80×80 + 240×240, and copied there. Empty
+    /// means no artwork (null id, no row).
     pub artwork_path: String,
     /// Track "message" field shown in Rekordbox.
     pub message: String,
@@ -198,7 +204,6 @@ pub struct DeviceExportWriter {
     next_genre_id: u32,
     next_key_id: u32,
     next_label_id: u32,
-    #[cfg(feature = "artwork")]
     next_artwork_id: u32,
     next_playlist_node_id: u32,
     // Shared id space for categories and leaf tags; 0 is the null foreign key, so both start at 1.
@@ -223,7 +228,6 @@ pub struct DeviceExportWriter {
     tags_by_key: HashMap<(u32, String), u32>,
     /// `category_id -> next leaf position` (dense from 0 within a category).
     tag_leaf_counts: HashMap<u32, u32>,
-    #[cfg(feature = "artwork")]
     artwork_by_path: HashMap<String, u32>,
 }
 
@@ -276,7 +280,6 @@ fn canonical_key_name(name: &str) -> String {
 
 /// PDB `Artwork.path` for `id`: `/PIONEER/Artwork/{folder}/a{id}.jpg`. Always references the
 /// thumbnail; the medium-resolution `_m` file is not tracked in the PDB.
-#[cfg(feature = "artwork")]
 fn artwork_device_path(id: u32) -> String {
     format!("/PIONEER/Artwork/{}/a{id}.jpg", artwork_folder(id))
 }
@@ -379,7 +382,6 @@ impl DeviceExportWriter {
             next_genre_id: 1,
             next_key_id: 1,
             next_label_id: 1,
-            #[cfg(feature = "artwork")]
             next_artwork_id: 1,
             next_playlist_node_id: 1,
             next_tag_id: 1,
@@ -397,7 +399,6 @@ impl DeviceExportWriter {
             tag_categories: HashSet::new(),
             tags_by_key: HashMap::new(),
             tag_leaf_counts: HashMap::new(),
-            #[cfg(feature = "artwork")]
             artwork_by_path: HashMap::new(),
         })
     }
@@ -479,20 +480,16 @@ impl DeviceExportWriter {
             Ok(max.max(l.id.0))
         })? + 1;
 
-        #[cfg(feature = "artwork")]
-        let (next_artwork_id, artwork_by_path) = {
-            let mut artwork_by_path = HashMap::new();
-            let next_artwork_id = db
-                .iter_rows::<crate::pdb::Artwork>()?
-                .fold(0u32, |max, a| {
-                    if let Ok(path) = a.path.clone().into_string() {
-                        artwork_by_path.entry(path).or_insert(a.id.0);
-                    }
-                    Ok(max.max(a.id.0))
-                })?
-                + 1;
-            (next_artwork_id, artwork_by_path)
-        };
+        let mut artwork_by_path = HashMap::new();
+        let next_artwork_id = db
+            .iter_rows::<crate::pdb::Artwork>()?
+            .fold(0u32, |max, a| {
+                if let Ok(path) = a.path.clone().into_string() {
+                    artwork_by_path.entry(path).or_insert(a.id.0);
+                }
+                Ok(max.max(a.id.0))
+            })?
+            + 1;
 
         let mut playlist_nodes = HashMap::new();
         let next_playlist_node_id =
@@ -551,7 +548,6 @@ impl DeviceExportWriter {
             next_genre_id,
             next_key_id,
             next_label_id,
-            #[cfg(feature = "artwork")]
             next_artwork_id,
             next_playlist_node_id,
             next_tag_id,
@@ -569,7 +565,6 @@ impl DeviceExportWriter {
             tag_categories,
             tags_by_key,
             tag_leaf_counts,
-            #[cfg(feature = "artwork")]
             artwork_by_path,
         })
     }
@@ -1162,19 +1157,11 @@ impl DeviceExportWriter {
         )
     }
 
-    /// Without the `artwork` feature, producing no artwork at all: a raw copy of an unknown
-    /// format/size cannot be guaranteed readable by a CDJ, so we write nothing rather than risk a
-    /// broken image. Returns the null id `0`; no PDB row is created.
-    #[cfg(not(feature = "artwork"))]
-    fn get_or_create_artwork(&mut self, _path: &str) -> Result<u32> {
-        Ok(0)
-    }
-
-    /// With the `artwork` feature, resolve `path` (a host source file) to an artwork id: reuse an
-    /// existing one for the same source, or copy the image into the export (resizing to 80×80
-    /// thumbnail and 240×240 medium) and insert a new PDB `Artwork` row whose path is derived from
-    /// the assigned id. An empty `path` yields the null id `0` (no row, no copy).
-    #[cfg(feature = "artwork")]
+    // TODO(acrilique): Currently this does the same thing whether the `artwork` feature is enabled
+    // or not, except that the feature enables copying and resizing the artwork file to the device's
+    // artwork folder. If the feature is disabled, the caller must ensure the file is already present
+    // at the expected path, but this implies the caller should know what that path is, which is
+    // currently not exposed. Needs work.
     fn get_or_create_artwork(&mut self, path: &str) -> Result<u32> {
         if path.is_empty() {
             return Ok(0);
@@ -1184,7 +1171,10 @@ impl DeviceExportWriter {
         }
 
         let id = self.next_artwork_id;
-        self.copy_artwork_file(path, id)?;
+        #[cfg(feature = "artwork")]
+        {
+            self.copy_artwork_file(path, id)?;
+        }
         // Bump only after the copy succeeds, so a failure leaves no id gap and no orphan row.
         self.next_artwork_id += 1;
 
@@ -1815,13 +1805,14 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    // Without the artwork feature, setting artwork_path is a silent no-op: no Artwork dir, no row,
-    // and the track's artwork_id is the null id 0.
+    // Without the artwork feature, a non-empty artwork_path still allocates an Artwork row with an
+    // id-derived device path (so the PDB is consistent), but the image files are NOT copied — the
+    // caller owns placing them at the shard path. The track references the allocated artwork id.
     #[cfg(not(feature = "artwork"))]
     #[test]
-    fn artwork_noop_without_feature() {
+    fn artwork_allocates_row_without_copy() {
         let dir = std::env::temp_dir().join(format!(
-            "rekordcrate-export-artwork-noop-test-{}",
+            "rekordcrate-export-artwork-nofeat-test-{}",
             std::process::id()
         ));
         let _ = std::fs::remove_dir_all(&dir);
@@ -1838,31 +1829,49 @@ mod tests {
         let outcome = dev.add_track(&t).unwrap();
         dev.close().unwrap();
 
+        // No image files written — the caller's responsibility without the feature.
         assert!(
             !dir.join("PIONEER/Artwork").exists(),
-            "no artwork dir must be created without the feature"
+            "no artwork dir/files must be created without the feature"
         );
 
         let mut dev = DeviceExportWriter::open(&dir).unwrap();
-        let row = dev
-            .db()
-            .iter_rows::<crate::pdb::Track>()
-            .unwrap()
-            .find(|row| Ok(row.id == outcome.id))
-            .unwrap()
-            .unwrap();
-        assert_eq!(
-            row.artwork_id.0, 0,
-            "without the feature the track must reference the null artwork id"
-        );
 
-        let artwork_count = dev
+        // The track references the allocated artwork id (not the null id 0). Copy the scalar out so
+        // the row borrow ends before the next `db()` call.
+        let artwork_id = {
+            let track_row = dev
+                .db()
+                .iter_rows::<crate::pdb::Track>()
+                .unwrap()
+                .find(|row| Ok(row.id == outcome.id))
+                .unwrap()
+                .unwrap();
+            assert_ne!(
+                track_row.artwork_id.0, 0,
+                "track must reference the allocated artwork id, not the null id"
+            );
+            track_row.artwork_id.0
+        };
+
+        // Exactly one Artwork row, with the id-derived thumbnail path.
+        let artwork_rows: Vec<_> = dev
             .db()
             .iter_rows::<crate::pdb::Artwork>()
             .unwrap()
-            .count()
+            .collect::<Vec<_>>()
             .unwrap();
-        assert_eq!(artwork_count, 0, "no Artwork row must be written");
+        assert_eq!(artwork_rows.len(), 1, "one Artwork row must be written");
+        assert_eq!(
+            artwork_rows[0].id.0, artwork_id,
+            "Artwork row id must match the track's artwork_id"
+        );
+        let path = artwork_rows[0].path.clone().into_string().unwrap();
+        assert_eq!(
+            path,
+            artwork_device_path(artwork_id),
+            "Artwork.path must be the id-derived device path"
+        );
 
         let _ = std::fs::remove_dir_all(&dir);
     }
