@@ -16,15 +16,14 @@
 //! `pdb::io::Database::open` (and thus deal with the format intricacies yourself) or re-add via
 //! a fresh export instead.
 //!
-//! For each track's [`Track::artwork_path`], an `Artwork` PDB row is always created with an
-//! id-derived device path. With the `artwork` feature enabled, the source image is also decoded,
-//! resized to the 80×80 thumbnail (`a{id}.jpg`) and 240×240 (`a{id}_m.jpg`) that newer Rekordbox
-//! versions expect, and copied into `PIONEER/Artwork/{folder}/`. Without the feature only the
-//! PDB row is written and copying the image files is omitted, so the caller must place them at
-//! the id-derived shard path themselves.
+//! Per-track artwork: with the `artwork` feature, `Track::artwork_source` is a host-side path
+//! the writer decodes, resizes (80×80 + 240×240), and copies into `PIONEER/Artwork/{folder}/`.
+//! Without it, `Track::artwork_device_path` is stored in the `Artwork` row verbatim and the
+//! caller owns placing the image files.
 //!
 //! See [`crate::device::layout`].
 
+#[cfg(feature = "artwork")]
 use crate::device::layout::artwork_folder;
 use crate::device::layout::{Layout, DAT_FILES};
 use crate::pdb::ext::{
@@ -99,11 +98,12 @@ pub struct Track {
     pub file_path: String,
     /// File name without path.
     pub filename: String,
-    /// Host-side path to the artwork image source. Always produces an `Artwork` PDB row with an
-    /// id-derived [`crate::pdb::Artwork::path`] (`/PIONEER/Artwork/{folder}/a{id}.jpg`); under the
-    /// `artwork` feature the image is also resized to 80×80 + 240×240, and copied there. Empty
-    /// means no artwork (null id, no row).
-    pub artwork_path: String,
+    #[cfg(feature = "artwork")]
+    /// Host-side source path. Writer decodes, resizes, copies into `PIONEER/Artwork/`. Empty = none.
+    pub artwork_source: String,
+    #[cfg(not(feature = "artwork"))]
+    /// Device path stored verbatim in the `Artwork` row. Caller owns the files. Empty = none.
+    pub artwork_device_path: String,
     /// Track "message" field shown in Rekordbox.
     pub message: String,
     /// Tempo in BPM; encoded to centi-BPM (× 100) in the PDB.
@@ -136,6 +136,20 @@ pub struct Track {
     pub autoload_hotcues: bool,
 }
 
+impl Track {
+    /// The active artwork field: `artwork_source` with the feature, `artwork_device_path` without.
+    fn artwork_input(&self) -> &str {
+        #[cfg(feature = "artwork")]
+        {
+            &self.artwork_source
+        }
+        #[cfg(not(feature = "artwork"))]
+        {
+            &self.artwork_device_path
+        }
+    }
+}
+
 impl Default for Track {
     fn default() -> Self {
         Self {
@@ -156,7 +170,10 @@ impl Default for Track {
             date_added: String::new(),
             file_path: String::new(),
             filename: String::new(),
-            artwork_path: String::new(),
+            #[cfg(feature = "artwork")]
+            artwork_source: String::new(),
+            #[cfg(not(feature = "artwork"))]
+            artwork_device_path: String::new(),
             message: String::new(),
             tempo: 0.0,
             bitrate: 0,
@@ -278,8 +295,8 @@ fn canonical_key_name(name: &str) -> String {
         .replace(' ', "")
 }
 
-/// PDB `Artwork.path` for `id`: `/PIONEER/Artwork/{folder}/a{id}.jpg`. Always references the
-/// thumbnail; the medium-resolution `_m` file is not tracked in the PDB.
+/// Id-derived `Artwork.path`: `/PIONEER/Artwork/{folder}/a{id}.jpg` (thumbnail; `_m` not tracked).
+#[cfg(feature = "artwork")]
 fn artwork_device_path(id: u32) -> String {
     format!("/PIONEER/Artwork/{}/a{id}.jpg", artwork_folder(id))
 }
@@ -605,7 +622,7 @@ impl DeviceExportWriter {
         let genre_id = self.get_or_create_genre(&track.genre)?;
         let key_id = self.get_or_create_key(&track.key)?;
         let label_id = self.get_or_create_label(&track.label)?;
-        let artwork_id = self.get_or_create_artwork(&track.artwork_path)?;
+        let artwork_id = self.get_or_create_artwork(track.artwork_input())?;
 
         let composer_id = if track.composer.is_empty() {
             0
@@ -1157,11 +1174,6 @@ impl DeviceExportWriter {
         )
     }
 
-    // TODO(acrilique): Currently this does the same thing whether the `artwork` feature is enabled
-    // or not, except that the feature enables copying and resizing the artwork file to the device's
-    // artwork folder. If the feature is disabled, the caller must ensure the file is already present
-    // at the expected path, but this implies the caller should know what that path is, which is
-    // currently not exposed. Needs work.
     fn get_or_create_artwork(&mut self, path: &str) -> Result<u32> {
         if path.is_empty() {
             return Ok(0);
@@ -1175,12 +1187,22 @@ impl DeviceExportWriter {
         {
             self.copy_artwork_file(path, id)?;
         }
-        // Bump only after the copy succeeds, so a failure leaves no id gap and no orphan row.
+        // Bump only after the copy succeeds, so a failure leaves no id gap.
         self.next_artwork_id += 1;
 
+        let device_path = {
+            #[cfg(feature = "artwork")]
+            {
+                artwork_device_path(id)
+            }
+            #[cfg(not(feature = "artwork"))]
+            {
+                path.to_string()
+            }
+        };
         let row = Row::Plain(PlainRow::Artwork(Artwork {
             id: ArtworkId(id),
-            path: DeviceSQLString::new(&artwork_device_path(id))?,
+            path: DeviceSQLString::new(&device_path)?,
         }));
         self.db().add_row(row)?;
 
@@ -1682,7 +1704,7 @@ mod tests {
             title: "song".into(),
             filename: "song.mp3".into(),
             file_path: "/Contents/song.mp3".into(),
-            artwork_path: src.to_string_lossy().into_owned(),
+            artwork_source: src.to_string_lossy().into_owned(),
             ..Default::default()
         };
 
@@ -1730,7 +1752,7 @@ mod tests {
             title: format!("song{n}"),
             filename: format!("song{n}.mp3"),
             file_path: format!("/Contents/song{n}.mp3"),
-            artwork_path: src.to_string_lossy().into_owned(),
+            artwork_source: src.to_string_lossy().into_owned(),
             ..Default::default()
         };
 
@@ -1782,7 +1804,7 @@ mod tests {
             title: "song".into(),
             filename: "song.mp3".into(),
             file_path: "/Contents/song.mp3".into(),
-            artwork_path: src.to_string_lossy().into_owned(),
+            artwork_source: src.to_string_lossy().into_owned(),
             ..Default::default()
         };
 
@@ -1805,23 +1827,22 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    // Without the artwork feature, a non-empty artwork_path still allocates an Artwork row with an
-    // id-derived device path (so the PDB is consistent), but the image files are NOT copied — the
-    // caller owns placing them at the shard path. The track references the allocated artwork id.
+    // Without the feature, the caller's device path is stored verbatim; no files are written.
     #[cfg(not(feature = "artwork"))]
     #[test]
-    fn artwork_allocates_row_without_copy() {
+    fn artwork_stores_caller_path_without_copy() {
         let dir = std::env::temp_dir().join(format!(
             "rekordcrate-export-artwork-nofeat-test-{}",
             std::process::id()
         ));
         let _ = std::fs::remove_dir_all(&dir);
 
+        let caller_path = "/PIONEER/Artwork/00007/a137.jpg";
         let t = Track {
             title: "song".into(),
             filename: "song.mp3".into(),
             file_path: "/Contents/song.mp3".into(),
-            artwork_path: "/nonexistent/cover.jpg".into(),
+            artwork_device_path: caller_path.into(),
             ..Default::default()
         };
 
@@ -1837,9 +1858,8 @@ mod tests {
 
         let mut dev = DeviceExportWriter::open(&dir).unwrap();
 
-        // The track references the allocated artwork id (not the null id 0). Copy the scalar out so
-        // the row borrow ends before the next `db()` call.
-        let artwork_id = {
+        // The track references the allocated artwork id (not 0). Copy out to end the borrow.
+        let _artwork_id = {
             let track_row = dev
                 .db()
                 .iter_rows::<crate::pdb::Track>()
@@ -1854,7 +1874,7 @@ mod tests {
             track_row.artwork_id.0
         };
 
-        // Exactly one Artwork row, with the id-derived thumbnail path.
+        // One Artwork row; path is the caller's string verbatim.
         let artwork_rows: Vec<_> = dev
             .db()
             .iter_rows::<crate::pdb::Artwork>()
@@ -1862,15 +1882,10 @@ mod tests {
             .collect::<Vec<_>>()
             .unwrap();
         assert_eq!(artwork_rows.len(), 1, "one Artwork row must be written");
-        assert_eq!(
-            artwork_rows[0].id.0, artwork_id,
-            "Artwork row id must match the track's artwork_id"
-        );
         let path = artwork_rows[0].path.clone().into_string().unwrap();
         assert_eq!(
-            path,
-            artwork_device_path(artwork_id),
-            "Artwork.path must be the id-derived device path"
+            path, caller_path,
+            "Artwork.path must be the caller-supplied string, stored verbatim"
         );
 
         let _ = std::fs::remove_dir_all(&dir);
