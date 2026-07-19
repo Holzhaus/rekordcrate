@@ -15,6 +15,19 @@ use crate::pdb::{PageIndex, PageType};
 use binrw::{binrw, file_ptr::IntoSeekFrom, BinRead, BinResult, BinWrite, Endian};
 use thiserror::Error;
 
+/// Which kind of row a foreign key points at. Used by
+/// [`RekordcrateError::UnknownForeignKey`] to identify the missing reference.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ForeignKeyKind {
+    /// A track row (`add_track_to_playlist` referenced an unknown track id).
+    Track,
+    /// A playlist-tree node (`create_playlist`/`create_playlist_folder` referenced an unknown
+    /// parent id, or a call referenced an unknown playlist id).
+    PlaylistNode,
+    /// A tag category (`add_tags_to_track` referenced an unknown category id).
+    TagCategory,
+}
+
 /// Enumerates errors returned by this library.
 #[derive(Error, Debug)]
 #[non_exhaustive]
@@ -23,13 +36,27 @@ pub enum RekordcrateError {
     #[error(transparent)]
     StringError(#[from] StringError),
 
-    /// Represents a failure to parse input.
+    /// Represents a failure to read or write a binary format via `binrw` (covers both parse and
+    /// serialization errors).
     #[error(transparent)]
-    ParseError(#[from] binrw::Error),
+    BinrwError(#[from] binrw::Error),
 
     /// Represents a failure to validate a constraint.
     #[error("failed integrity constraint: {0}")]
     IntegrityError(&'static str),
+
+    /// Track row allocation is too small for robust CDJ compatibility.
+    #[error(
+        "track row id={track_id} allocates {allocated} bytes, minimum supported is {minimum} bytes"
+    )]
+    TrackRowTooSmall {
+        /// Track ID of the invalid row.
+        track_id: u32,
+        /// Allocated row size in bytes (4-byte aligned).
+        allocated: u16,
+        /// Minimum supported row size in bytes.
+        minimum: u16,
+    },
 
     /// Represents an `std::io::Error`.
     #[error(transparent)]
@@ -63,6 +90,26 @@ pub enum RekordcrateError {
     #[cfg(feature = "xml")]
     #[error(transparent)]
     XmlDeserializationFailed(#[from] quick_xml::DeError),
+
+    /// A row referenced a foreign key (track id, playlist node id, ...) that does not exist.
+    #[error("unknown foreign key: {kind:?} id={id}")]
+    UnknownForeignKey {
+        /// Which kind of referenced row was missing.
+        kind: ForeignKeyKind,
+        /// The id that did not resolve to a row.
+        id: u32,
+    },
+
+    /// Artwork image processing failed (decoding, resizing, or writing). Only constructed under the
+    /// `artwork` feature, but the variant is unconditional so it does not leak the `image` crate
+    /// into the public error type.
+    #[error("artwork error for {path:?}: {message}")]
+    ArtworkError {
+        /// Path of the artwork file involved (source or destination).
+        path: std::path::PathBuf,
+        /// Human-readable detail from the underlying failure.
+        message: String,
+    },
 }
 
 /// Type alias for results where the error is a `RekordcrateError`.
@@ -145,6 +192,65 @@ pub enum FileType {
     Aiff,
     /// Value that we haven't seen before.
     Other(u16),
+}
+
+/// Track rating on a 0–5 star scale. The PDB encodes this as a raw byte `0..=5`, confirmed against
+/// a real Rekordbox export (not the XML's `0/51/102/153/204/255`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum Rating {
+    /// 0 stars (unrated).
+    #[default]
+    Zero,
+    /// 1 star.
+    One,
+    /// 2 stars.
+    Two,
+    /// 3 stars.
+    Three,
+    /// 4 stars.
+    Four,
+    /// 5 stars.
+    Five,
+}
+
+impl Rating {
+    /// Construct from a raw star count. Values above 5 clamp to [`Rating::Five`].
+    #[must_use]
+    pub fn from_stars(n: u8) -> Self {
+        match n.min(5) {
+            0 => Self::Zero,
+            1 => Self::One,
+            2 => Self::Two,
+            3 => Self::Three,
+            4 => Self::Four,
+            _ => Self::Five,
+        }
+    }
+
+    /// The raw byte written to the PDB (`0..=5`).
+    #[must_use]
+    pub fn to_byte(self) -> u8 {
+        match self {
+            Self::Zero => 0,
+            Self::One => 1,
+            Self::Two => 2,
+            Self::Three => 3,
+            Self::Four => 4,
+            Self::Five => 5,
+        }
+    }
+}
+
+impl From<Rating> for u8 {
+    fn from(rating: Rating) -> u8 {
+        rating.to_byte()
+    }
+}
+
+impl From<u8> for Rating {
+    fn from(n: u8) -> Self {
+        Self::from_stars(n)
+    }
 }
 
 /// Parses a sequence of values with `BinRead` from the offsets provided by the iterator.

@@ -31,6 +31,10 @@ pub mod util;
 pub mod xml;
 pub(crate) mod xor;
 
-pub use crate::device::DeviceExportLoader;
+pub use crate::device::{
+    AddTrackOutcome, DeviceExportReader, DeviceExportWriter, TagCategoryId, Track,
+};
+pub use crate::pdb::{PlaylistTreeNodeId, TrackId};
+pub use crate::util::ForeignKeyKind;
 pub use crate::util::RekordcrateError as Error;
 pub use crate::util::RekordcrateResult as Result;

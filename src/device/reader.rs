@@ -6,14 +6,16 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-//! High-level API for working with Rekordbox device exports.
+//! Read-side access to a Rekordbox device export: a thin handle that exposes the setting files
+//! and the PDB database.
+//!
+//! See [`crate::device::layout`].
 
-use crate::{
-    pdb::io::Database,
-    pdb::{DatabaseType, PlaylistTreeNode, PlaylistTreeNodeId},
-    setting,
-    setting::{Setting, SettingType},
-};
+use crate::device::layout::{Layout, DAT_FILES};
+use crate::pdb::io::Database;
+use crate::pdb::{DatabaseType, PlaylistTreeNode, PlaylistTreeNodeId};
+use crate::setting;
+use crate::setting::{Setting, SettingType};
 use binrw::BinRead;
 use fallible_iterator::FallibleIterator;
 use std::collections::HashMap;
@@ -21,39 +23,34 @@ use std::fmt;
 use std::io::{Read, Seek};
 use std::path::{Path, PathBuf};
 
-/// Represents a Rekordbox device export.
+/// A read-side handle to a Rekordbox device export on disk.
 #[derive(Debug, PartialEq)]
-pub struct DeviceExportLoader(PathBuf);
+pub struct DeviceExportReader(Layout);
 
-impl DeviceExportLoader {
-    /// Load device export from the given path.
-    ///
-    /// The path should contain a `PIONEER` directory.
+impl DeviceExportReader {
+    /// Point a reader at a device export on disk (a directory containing `PIONEER`).
     #[must_use]
     pub fn new(path: PathBuf) -> Self {
-        Self(path)
+        Self(Layout::new(path))
     }
 
-    /// Get the device path.
+    /// The device root path.
     #[must_use]
     pub fn get_path(&self) -> &Path {
-        &self.0
+        self.0.root()
     }
 
-    fn read_setting_file(path: &PathBuf, setting_type: SettingType) -> crate::Result<Setting> {
+    fn read_setting_file(path: &Path, setting_type: SettingType) -> crate::Result<Setting> {
         let mut reader = std::fs::File::open(path)?;
         let setting = Setting::read_args(&mut reader, (setting_type,))?;
         Ok(setting)
     }
 
-    /// Load setting files. If a file is missing or cannot be read,
-    /// a warning will be printed.
+    /// Load setting files. A missing or unreadable file is printed as a warning and skipped.
     #[must_use]
     pub fn load_settings(&self) -> Settings {
-        let path = self.0.join("PIONEER");
-
         let load_setting = |filename: &str, setting_type: SettingType| -> Option<Setting> {
-            let file_path = path.join(filename);
+            let file_path = self.0.dat_path(filename);
             match Self::read_setting_file(&file_path, setting_type) {
                 Ok(setting) => Some(setting),
                 Err(e) => {
@@ -64,27 +61,40 @@ impl DeviceExportLoader {
         };
 
         let mut settings = Settings::default();
-        if let Some(devsetting) = load_setting("DEVSETTING.DAT", SettingType::DevSetting) {
-            settings.set_devsetting(devsetting.data.as_dev_setting().unwrap());
-        }
-        if let Some(djmmysetting) = load_setting("DJMMYSETTING.DAT", SettingType::DJMMySetting) {
-            settings.set_djmmysetting(djmmysetting.data.as_djm_my_setting().unwrap());
-        }
-        if let Some(mysetting) = load_setting("MYSETTING.DAT", SettingType::MySetting) {
-            settings.set_mysetting(mysetting.data.as_my_setting().unwrap());
-        }
-        if let Some(mysetting2) = load_setting("MYSETTING2.DAT", SettingType::MySetting2) {
-            settings.set_mysetting2(mysetting2.data.as_my_setting2().unwrap());
+        for &(filename, setting_type) in DAT_FILES {
+            match setting_type {
+                SettingType::DevSetting => {
+                    if let Some(devsetting) = load_setting(filename, setting_type) {
+                        settings.set_devsetting(devsetting.data.as_dev_setting().unwrap());
+                    }
+                }
+                SettingType::DJMMySetting => {
+                    if let Some(djmmysetting) = load_setting(filename, setting_type) {
+                        settings.set_djmmysetting(djmmysetting.data.as_djm_my_setting().unwrap());
+                    }
+                }
+                SettingType::MySetting => {
+                    if let Some(mysetting) = load_setting(filename, setting_type) {
+                        settings.set_mysetting(mysetting.data.as_my_setting().unwrap());
+                    }
+                }
+                SettingType::MySetting2 => {
+                    if let Some(mysetting2) = load_setting(filename, setting_type) {
+                        settings.set_mysetting2(mysetting2.data.as_my_setting2().unwrap());
+                    }
+                }
+            }
         }
 
         settings
     }
 
-    /// Open a PDB database without persistence back to disk.
-    /// Still allows modifying data in memory.
+    /// Open the PDB database in memory (changes are not written back to disk).
     pub fn open_pdb_non_persistent(&self) -> crate::Result<Database<std::fs::File>> {
-        let path = self.0.join("PIONEER").join("rekordbox").join("export.pdb");
-        Database::open_non_persistent(std::fs::File::open(path)?, DatabaseType::Plain)
+        Database::open_non_persistent(
+            std::fs::File::open(self.0.export_pdb())?,
+            DatabaseType::Plain,
+        )
     }
 }
 
@@ -492,16 +502,16 @@ impl fmt::Display for Settings {
     }
 }
 
-/// Represents either a playlist folder or a playlist.
+/// Either a playlist folder or a playlist.
 #[derive(Debug, PartialEq)]
 pub enum PlaylistNode {
-    /// Represents a playlist folder that contains `PlaylistNode`s.
+    /// A folder containing child [`PlaylistNode`]s.
     Folder(PlaylistFolder),
-    /// Represents a playlist.
+    /// A playlist (leaf).
     Playlist(Playlist),
 }
 
-/// Represents a playlist folder that contains `PlaylistNode`s.
+/// A playlist folder.
 #[derive(Debug, PartialEq)]
 pub struct PlaylistFolder {
     /// ID of this node in the playlist tree.
@@ -512,7 +522,7 @@ pub struct PlaylistFolder {
     pub children: Vec<PlaylistNode>,
 }
 
-/// Represents a playlist.
+/// A playlist.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Playlist {
     /// ID of this node in the playlist tree.
@@ -521,7 +531,7 @@ pub struct Playlist {
     pub name: String,
 }
 
-/// Get playlist tree.
+/// Build the playlist tree from the PDB database.
 pub fn get_playlists<R: Read + Seek>(db: &mut Database<R>) -> crate::Result<Vec<PlaylistNode>> {
     let mut playlists: HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>> = HashMap::new();
 
