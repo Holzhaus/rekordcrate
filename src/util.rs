@@ -77,6 +77,11 @@ pub enum RekordcrateError {
     #[cfg(feature = "xml")]
     #[error(transparent)]
     XmlDeserializationFailed(#[from] quick_xml::DeError),
+
+    /// Represents a `serde_json::Error` from serializing dump output.
+    #[cfg(feature = "json")]
+    #[error(transparent)]
+    JsonSerializationFailed(#[from] serde_json::Error),
 }
 
 /// Type alias for results where the error is a `RekordcrateError`.

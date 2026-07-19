@@ -685,7 +685,7 @@ pub struct DataPageContent {
     #[br(parse_with = parse_at_offsets(row_groups.iter().flat_map(RowGroup::present_rows_offsets)))]
     // `write_at_offsets` restores the writer position after writing.
     #[bw(write_with = write_at_offsets)]
-    #[br(assert(rows.len() == page_header.packed_row_counts.num_rows_valid().into(), "parsing page {:?}: num_rows_valid {} does not match parsed row count {}", page_header.page_index, page_header.packed_row_counts.num_rows_valid(), rows.len()))]
+    #[br(assert(rows.len() == page_header.packed_row_counts.num_rows_valid() as usize, "parsing page {:?}: num_rows_valid {} does not match parsed row count {}", page_header.page_index, page_header.packed_row_counts.num_rows_valid(), rows.len()))]
     pub rows: BTreeMap<u16, Row>,
 
     // Seek to the end of the data content area.

@@ -310,10 +310,7 @@ fn dump_anlz(path: &Path, format: DumpFormat) -> rekordcrate::Result<()> {
     let anlz = ANLZ::read(&mut reader)?;
     match format {
         #[cfg(feature = "json")]
-        DumpFormat::Json => println!(
-            "{}",
-            serde_json::to_string_pretty(&anlz).expect("failed to serialize ANLZ")
-        ),
+        DumpFormat::Json => println!("{}", serde_json::to_string_pretty(&anlz)?),
         DumpFormat::Debug => println!("{:#?}", anlz),
         #[cfg(not(feature = "json"))]
         _ => unreachable!("DumpFormat has no other variants without the json feature"),
@@ -368,10 +365,7 @@ fn dump_pdb(
             });
         }
         let dump = PdbDump { header, tables };
-        println!(
-            "{}",
-            serde_json::to_string_pretty(&dump).expect("failed to serialize PDB output")
-        );
+        println!("{}", serde_json::to_string_pretty(&dump)?);
         return Ok(());
     }
 
@@ -426,10 +420,7 @@ fn dump_setting(
 
     match format {
         #[cfg(feature = "json")]
-        DumpFormat::Json => println!(
-            "{}",
-            serde_json::to_string_pretty(&setting).expect("failed to serialize Setting")
-        ),
+        DumpFormat::Json => println!("{}", serde_json::to_string_pretty(&setting)?),
         DumpFormat::Debug => println!("{:#04x?}", setting),
         #[cfg(not(feature = "json"))]
         _ => unreachable!("DumpFormat has no other variants without the json feature"),
