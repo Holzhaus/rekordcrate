@@ -7,9 +7,7 @@
 // SPDX-License-Identifier: MPL-2.0
 
 use binrw::BinRead;
-#[cfg(feature = "json")]
-use clap::ValueEnum;
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use fallible_iterator::FallibleIterator;
 use rekordcrate::device::get_playlists;
 use rekordcrate::pdb::io::Database;
@@ -31,28 +29,15 @@ struct Cli {
 }
 
 /// Output format for the dump commands. The `Json` variant is only available when the
-/// `json` feature is enabled.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+/// `json` feature is enabled; clap's derive drops it from `--format`'s allowed values when absent.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]
 enum DumpFormat {
     #[default]
+    #[value(name = "debug")]
     Debug,
     #[cfg(feature = "json")]
+    #[value(name = "json")]
     Json,
-}
-
-// ponytail: clap's ValueEnum derive needs the full variant list at expansion time, so the
-// cfg on `Json` means the `--format` flag simply doesn't offer `json` when the feature is off.
-#[cfg(feature = "json")]
-impl ValueEnum for DumpFormat {
-    fn value_variants<'a>() -> &'a [Self] {
-        &[Self::Debug, Self::Json]
-    }
-    fn to_possible_value(&self) -> Option<clap::builder::PossibleValue> {
-        Some(match self {
-            Self::Debug => clap::builder::PossibleValue::new("debug"),
-            Self::Json => clap::builder::PossibleValue::new("json"),
-        })
-    }
 }
 
 #[derive(Subcommand)]
@@ -312,8 +297,6 @@ fn dump_anlz(path: &Path, format: DumpFormat) -> rekordcrate::Result<()> {
         #[cfg(feature = "json")]
         DumpFormat::Json => println!("{}", serde_json::to_string_pretty(&anlz)?),
         DumpFormat::Debug => println!("{:#?}", anlz),
-        #[cfg(not(feature = "json"))]
-        _ => unreachable!("DumpFormat has no other variants without the json feature"),
     }
 
     Ok(())
@@ -343,6 +326,11 @@ fn dump_pdb(
 ) -> rekordcrate::Result<()> {
     let reader = File::open(path)?;
     let mut db = Database::open_non_persistent(reader, typ)?;
+
+    // `format` is only consulted under the json feature; bind it to avoid an unused-variable
+    // warning when building with `cli` alone.
+    #[cfg(not(feature = "json"))]
+    let _ = format;
 
     #[cfg(feature = "json")]
     if matches!(format, DumpFormat::Json) {
@@ -422,8 +410,6 @@ fn dump_setting(
         #[cfg(feature = "json")]
         DumpFormat::Json => println!("{}", serde_json::to_string_pretty(&setting)?),
         DumpFormat::Debug => println!("{:#04x?}", setting),
-        #[cfg(not(feature = "json"))]
-        _ => unreachable!("DumpFormat has no other variants without the json feature"),
     }
 
     Ok(())
