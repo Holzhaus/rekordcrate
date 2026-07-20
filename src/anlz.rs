@@ -68,26 +68,26 @@ pub enum ContentKind {
     VBR,
     /// Fixed-width monochrome preview of the track waveform.
     #[brw(magic = b"PWAV")]
-    WaveformBluePreview,
+    WaveformPreview,
     /// Smaller version of the fixed-width monochrome preview of the track waveform (for the
     /// CDJ-900).
     #[brw(magic = b"PWV2")]
-    WaveformBlueTinyPreview,
+    TinyWaveformPreview,
     /// Variable-width large monochrome version of the track waveform.
     ///
     /// Used in `.EXT` files.
     #[brw(magic = b"PWV3")]
-    WaveformBlueDetail,
+    WaveformDetail,
     /// Fixed-width colored preview of the track waveform.
     ///
     /// Used in `.EXT` files.
     #[brw(magic = b"PWV4")]
-    WaveformRGBPreview,
+    WaveformColorPreview,
     /// Variable-width large colored version of the track waveform.
     ///
     /// Used in `.EXT` files.
     #[brw(magic = b"PWV5")]
-    WaveformRGBDetail,
+    WaveformColorDetail,
     /// Fixed-width 3-band preview of the track waveform.
     ///
     /// Used in `.2EX` files.
@@ -475,228 +475,95 @@ pub struct ExtendedCue {
     pub trailing: Vec<u8>,
 }
 
-impl Default for WaveformBlueColumn {
+impl Default for WaveformPreviewColumn {
     fn default() -> Self {
         Self::new()
     }
 }
 
-/// Single Column value in a blue waveform.
+/// Single Column value in a Waveform Preview.
 ///
 /// See these the documentation for details:
 /// <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#waveform-preview-tag>
 #[bitfield]
 #[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy)]
 #[br(big, map = Self::from_bytes)]
-#[bw(big, map = |x: &WaveformBlueColumn| x.into_bytes())]
-pub struct WaveformBlueColumn {
+#[bw(big, map = |x: &WaveformPreviewColumn| x.into_bytes())]
+pub struct WaveformPreviewColumn {
     /// Height of the Column in pixels.
     pub height: B5,
     /// Shade of white.
     pub whiteness: B3,
 }
 
-impl Default for WaveformBlueTinyPreviewColumn {
+impl Default for TinyWaveformPreviewColumn {
     fn default() -> Self {
         Self::new()
     }
 }
 
-/// Single Column value in a tiny blue waveform preview.
+/// Single Column value in a Tiny Waveform Preview.
 ///
 /// See these the documentation for details:
 /// <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#tiny-preview>
 #[bitfield]
 #[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy)]
 #[br(big, map = Self::from_bytes)]
-#[bw(big, map = |x: &WaveformBlueTinyPreviewColumn| x.into_bytes())]
-pub struct WaveformBlueTinyPreviewColumn {
+#[bw(big, map = |x: &TinyWaveformPreviewColumn| x.into_bytes())]
+pub struct TinyWaveformPreviewColumn {
     /// Height of the Column in pixels.
     pub height: B4,
     #[allow(dead_code)]
-    unknown: B4,
+    unused: B4,
 }
 
-/// Single column value in an RGB waveform preview.
+/// Single Column value in a Waveform Color Preview.
 ///
 /// See these the documentation for details:
 /// <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#color-preview>
 #[binrw]
 #[derive(Debug, PartialEq, Eq)]
 #[brw(big)]
-pub struct WaveformRGBPreviewColumn {
-    /// Auxiliary byte in RGB preview entries.
-    ///
-    /// Across the current fixture corpus this usually pairs with `unknown2` so their sum is near
-    /// `255` or `256`, but its exact meaning is still unknown.
-    pub unknown1: u8,
-    /// Auxiliary byte in RGB preview entries.
-    ///
-    /// Across the current fixture corpus this usually pairs with `unknown1` so their sum is near
-    /// `255` or `256`, but its exact meaning is still unknown.
-    pub unknown2: u8,
-    /// Auxiliary byte in RGB preview entries.
-    ///
-    /// This varies across the full `0..=127` range and seems related to overall preview intensity,
-    /// but its exact meaning is still unknown.
-    pub unknown3: u8,
-    /// Red channel intensity, corresponding to bass.
-    pub red_bass: u8,
-    /// Green channel intensity, corresponding to mids.
-    pub green_mids: u8,
-    /// Blue channel intensity, corresponding to highs.
-    pub blue_highs: u8,
+pub struct WaveformColorPreviewColumn {
+    /// Unknown field (somehow encodes the "whiteness").
+    unknown1: u8,
+    /// Unknown field (somehow encodes the "whiteness").
+    unknown2: u8,
+    /// Sound energy in the bottom half of the frequency range (<10 KHz).
+    pub energy_bottom_half_freq: u8,
+    /// Sound energy in the bottom third of the frequency range.
+    pub energy_bottom_third_freq: u8,
+    /// Sound energy in the mid of the frequency range.
+    pub energy_mid_third_freq: u8,
+    /// Sound energy in the top of the frequency range.
+    pub energy_top_third_freq: u8,
 }
 
-impl Default for WaveformRGBDetailColumn {
+impl Default for WaveformColorDetailColumn {
     fn default() -> Self {
         Self::new()
     }
 }
 
-/// Single column value in an RGB waveform detail section.
+/// Single Column value in a Waveform Color Detail section.
 ///
 /// See these the documentation for details:
 /// <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#color-detail>
-#[derive(Debug, PartialEq, Eq, Clone, Copy)]
-pub struct WaveformRGBDetailColumn {
-    red_bass: u8,
-    green_mids: u8,
-    blue_highs: u8,
-    height: u8,
-    low_bits: u8,
-}
-
-impl BinRead for WaveformRGBDetailColumn {
-    type Args<'a> = ();
-
-    fn read_options<R: Read + Seek>(
-        reader: &mut R,
-        endian: Endian,
-        _args: Self::Args<'_>,
-    ) -> BinResult<Self> {
-        let raw_word = u16::read_options(reader, endian, ())?;
-        Ok(Self::from_packed_word(raw_word))
-    }
-}
-
-impl BinWrite for WaveformRGBDetailColumn {
-    type Args<'a> = ();
-
-    fn write_options<W: Write + Seek>(
-        &self,
-        writer: &mut W,
-        endian: Endian,
-        _args: Self::Args<'_>,
-    ) -> BinResult<()> {
-        self.to_packed_word().write_options(writer, endian, ())
-    }
-}
-
-impl WaveformRGBDetailColumn {
-    const RED_BASS_SHIFT: u16 = 13;
-    const GREEN_MIDS_SHIFT: u16 = 10;
-    const BLUE_HIGHS_SHIFT: u16 = 7;
-    const HEIGHT_SHIFT: u16 = 2;
-    const CHANNEL_MASK: u16 = 0x7;
-    const HEIGHT_MASK: u16 = 0x1f;
-    const LOW_BITS_MASK: u16 = 0x3;
-
-    /// Create an empty RGB waveform detail word.
-    pub const fn new() -> Self {
-        Self {
-            red_bass: 0,
-            green_mids: 0,
-            blue_highs: 0,
-            height: 0,
-            low_bits: 0,
-        }
-    }
-
-    /// Decode an RGB waveform detail word from its packed 16-bit representation.
-    pub const fn from_packed_word(raw_word: u16) -> Self {
-        Self {
-            red_bass: ((raw_word >> Self::RED_BASS_SHIFT) & Self::CHANNEL_MASK) as u8,
-            green_mids: ((raw_word >> Self::GREEN_MIDS_SHIFT) & Self::CHANNEL_MASK) as u8,
-            blue_highs: ((raw_word >> Self::BLUE_HIGHS_SHIFT) & Self::CHANNEL_MASK) as u8,
-            height: ((raw_word >> Self::HEIGHT_SHIFT) & Self::HEIGHT_MASK) as u8,
-            low_bits: (raw_word & Self::LOW_BITS_MASK) as u8,
-        }
-    }
-
-    const fn to_packed_word(self) -> u16 {
-        ((self.red_bass as u16 & Self::CHANNEL_MASK) << Self::RED_BASS_SHIFT)
-            | ((self.green_mids as u16 & Self::CHANNEL_MASK) << Self::GREEN_MIDS_SHIFT)
-            | ((self.blue_highs as u16 & Self::CHANNEL_MASK) << Self::BLUE_HIGHS_SHIFT)
-            | ((self.height as u16 & Self::HEIGHT_MASK) << Self::HEIGHT_SHIFT)
-            | (self.low_bits as u16 & Self::LOW_BITS_MASK)
-    }
-
-    /// Red channel intensity, corresponding to bass.
-    pub const fn red_bass(&self) -> u8 {
-        self.red_bass
-    }
-
-    /// Green channel intensity, corresponding to mids.
-    pub const fn green_mids(&self) -> u8 {
-        self.green_mids
-    }
-
-    /// Blue channel intensity, corresponding to highs.
-    pub const fn blue_highs(&self) -> u8 {
-        self.blue_highs
-    }
-
-    /// Coarse 5-bit column height.
-    pub const fn height(&self) -> u8 {
-        self.height
-    }
-
-    /// Raw low-order fine-height bits in on-disk order.
-    pub const fn low_bits(&self) -> u8 {
-        self.low_bits
-    }
-
-    /// Fine-height sub-step with the observed significance ordering.
-    pub const fn fine_height_substep(&self) -> u8 {
-        let low = self.low_bits();
-        ((low & 1) << 1) | ((low >> 1) & 1)
-    }
-
-    /// Full 7-bit height formed from the coarse height plus reordered fine-height bits.
-    pub const fn full_height(&self) -> u8 {
-        (self.height() << 2) | self.fine_height_substep()
-    }
-
-    /// Return a copy with the red / bass intensity updated.
-    pub fn with_red_bass(mut self, value: u8) -> Self {
-        self.red_bass = value.min(7);
-        self
-    }
-
-    /// Return a copy with the green / mids intensity updated.
-    pub fn with_green_mids(mut self, value: u8) -> Self {
-        self.green_mids = value.min(7);
-        self
-    }
-
-    /// Return a copy with the blue / highs intensity updated.
-    pub fn with_blue_highs(mut self, value: u8) -> Self {
-        self.blue_highs = value.min(7);
-        self
-    }
-
-    /// Return a copy with the coarse height updated.
-    pub fn with_height(mut self, value: u8) -> Self {
-        self.height = value.min(31);
-        self
-    }
-
-    /// Return a copy with the raw fine-height bits updated.
-    pub fn with_low_bits(mut self, value: u8) -> Self {
-        self.low_bits = value.min(3);
-        self
-    }
+#[bitfield]
+#[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy)]
+#[br(big, map = Self::from_bytes)]
+#[bw(big, map = |x: &WaveformColorDetailColumn| x.into_bytes())]
+pub struct WaveformColorDetailColumn {
+    /// Red color component.
+    pub red: B3,
+    /// Green color component.
+    pub green: B3,
+    /// Blue color component.
+    pub blue: B3,
+    /// Height of the column.
+    pub height: B5,
+    /// Fine-height sub-step bits that further subdivide the column height.
+    pub fine_height: B2,
 }
 
 /// Single Column value in a Waveform 3-Band Preview.
@@ -707,12 +574,12 @@ impl WaveformRGBDetailColumn {
 #[derive(Debug, PartialEq, Eq)]
 #[brw(big)]
 pub struct Waveform3BandPreviewColumn {
-    /// Low / bass band intensity.
-    pub low: u8,
-    /// Mid band intensity.
-    pub mid: u8,
-    /// High band intensity.
-    pub high: u8,
+    /// Sound energy in the mid of the frequency range.
+    pub energy_mid_third_freq: u8,
+    /// Sound energy in the top of the frequency range.
+    pub energy_top_third_freq: u8,
+    /// Sound energy in the bottom third of the frequency range.
+    pub energy_bottom_third_freq: u8,
 }
 
 /// Single Column value in a Waveform 3-Band Detail section.
@@ -723,12 +590,12 @@ pub struct Waveform3BandPreviewColumn {
 #[derive(Debug, PartialEq, Eq)]
 #[brw(big)]
 pub struct Waveform3BandDetailColumn {
-    /// Low / bass band intensity.
-    pub low: u8,
-    /// Mid band intensity.
-    pub mid: u8,
-    /// High band intensity.
-    pub high: u8,
+    /// Sound energy in the mid of the frequency range.
+    pub energy_mid_third_freq: u8,
+    /// Sound energy in the top of the frequency range.
+    pub energy_top_third_freq: u8,
+    /// Sound energy in the bottom third of the frequency range.
+    pub energy_bottom_third_freq: u8,
 }
 
 /// Music classification that is used for Lightnight mode and based on rhythm, tempo kick drum and
@@ -856,26 +723,26 @@ pub enum Content {
     #[br(pre_assert(header.kind == ContentKind::VBR))]
     VBR(#[br(args(header.clone()))] VBR),
     /// Fixed-width monochrome preview of the track waveform.
-    #[br(pre_assert(header.kind == ContentKind::WaveformBluePreview))]
-    WaveformBluePreview(#[br(args(header.clone()))] WaveformBluePreview),
+    #[br(pre_assert(header.kind == ContentKind::WaveformPreview))]
+    WaveformPreview(#[br(args(header.clone()))] WaveformPreview),
     /// Smaller version of the fixed-width monochrome preview of the track waveform.
-    #[br(pre_assert(header.kind == ContentKind::WaveformBlueTinyPreview))]
-    WaveformBlueTinyPreview(#[br(args(header.clone()))] WaveformBlueTinyPreview),
+    #[br(pre_assert(header.kind == ContentKind::TinyWaveformPreview))]
+    TinyWaveformPreview(#[br(args(header.clone()))] TinyWaveformPreview),
     /// Variable-width large monochrome version of the track waveform.
     ///
     /// Used in `.EXT` files.
-    #[br(pre_assert(header.kind == ContentKind::WaveformBlueDetail))]
-    WaveformBlueDetail(#[br(args(header.clone()))] WaveformBlueDetail),
+    #[br(pre_assert(header.kind == ContentKind::WaveformDetail))]
+    WaveformDetail(#[br(args(header.clone()))] WaveformDetail),
     /// Smaller version of the fixed-width colored preview of the track waveform.
     ///
     /// Used in `.EXT` files.
-    #[br(pre_assert(header.kind == ContentKind::WaveformRGBPreview))]
-    WaveformRGBPreview(#[br(args(header.clone()))] WaveformRGBPreview),
+    #[br(pre_assert(header.kind == ContentKind::WaveformColorPreview))]
+    WaveformColorPreview(#[br(args(header.clone()))] WaveformColorPreview),
     /// Variable-width large colored version of the track waveform.
     ///
     /// Used in `.EXT` files.
-    #[br(pre_assert(header.kind == ContentKind::WaveformRGBDetail))]
-    WaveformRGBDetail(#[br(args(header.clone()))] WaveformRGBDetail),
+    #[br(pre_assert(header.kind == ContentKind::WaveformColorDetail))]
+    WaveformColorDetail(#[br(args(header.clone()))] WaveformColorDetail),
     /// Variable-width large monochrome version of the track waveform.
     ///
     /// Used in `.2EX` files.
@@ -995,7 +862,7 @@ pub struct VBR {
 #[binrw]
 #[derive(Debug, PartialEq, Eq)]
 #[br(import(header: Header))]
-pub struct WaveformBluePreview {
+pub struct WaveformPreview {
     /// Number of preview columns.
     #[br(temp)]
     #[br(assert(len_preview == header.content_size()))]
@@ -1007,14 +874,14 @@ pub struct WaveformBluePreview {
     unknown: u32,
     /// Waveform preview column data.
     #[br(count = len_preview)]
-    pub data: Vec<WaveformBlueColumn>,
+    pub data: Vec<WaveformPreviewColumn>,
 }
 
 /// Smaller version of the fixed-width monochrome preview of the track waveform.
 #[binrw]
 #[derive(Debug, PartialEq, Eq)]
 #[br(import(header: Header))]
-pub struct WaveformBlueTinyPreview {
+pub struct TinyWaveformPreview {
     /// Number of preview columns.
     #[br(temp)]
     #[br(assert(len_preview == header.content_size()))]
@@ -1026,7 +893,7 @@ pub struct WaveformBlueTinyPreview {
     unknown: u32,
     /// Waveform preview column data.
     #[br(count = len_preview)]
-    pub data: Vec<WaveformBlueTinyPreviewColumn>,
+    pub data: Vec<TinyWaveformPreviewColumn>,
 }
 
 /// Variable-width large monochrome version of the track waveform.
@@ -1035,7 +902,7 @@ pub struct WaveformBlueTinyPreview {
 #[binrw]
 #[derive(Debug, PartialEq, Eq)]
 #[br(import(header: Header))]
-pub struct WaveformBlueDetail {
+pub struct WaveformDetail {
     /// Size of a single entry, always 1.
     #[br(temp)]
     #[br(assert(len_entry_bytes == 1))]
@@ -1055,7 +922,7 @@ pub struct WaveformBlueDetail {
     /// Each entry represents one half-frame of audio data, and there are 75 frames per second,
     /// so for each second of track audio there are 150 waveform detail entries.
     #[br(count = len_entries)]
-    pub data: Vec<WaveformBlueColumn>,
+    pub data: Vec<WaveformPreviewColumn>,
 }
 
 /// Smaller version of the fixed-width colored preview of the track waveform.
@@ -1064,7 +931,7 @@ pub struct WaveformBlueDetail {
 #[binrw]
 #[derive(Debug, PartialEq, Eq)]
 #[br(import(header: Header))]
-pub struct WaveformRGBPreview {
+pub struct WaveformColorPreview {
     /// Size of a single entry, always 6.
     #[br(temp)]
     #[br(assert(len_entry_bytes == 6))]
@@ -1081,7 +948,7 @@ pub struct WaveformRGBPreview {
     unknown: u32,
     /// Waveform preview column data.
     #[br(count = len_entries)]
-    pub data: Vec<WaveformRGBPreviewColumn>,
+    pub data: Vec<WaveformColorPreviewColumn>,
 }
 
 /// Variable-width large colored version of the track waveform.
@@ -1090,7 +957,7 @@ pub struct WaveformRGBPreview {
 #[binrw]
 #[derive(Debug, PartialEq, Eq)]
 #[br(import(header: Header))]
-pub struct WaveformRGBDetail {
+pub struct WaveformColorDetail {
     /// Size of a single entry, always 2.
     #[br(temp)]
     #[br(assert(len_entry_bytes == 2))]
@@ -1112,7 +979,7 @@ pub struct WaveformRGBDetail {
     /// Each entry represents one half-frame of audio data, and there are 75 frames per second,
     /// so for each second of track audio there are 150 waveform detail entries.
     #[br(count = len_entries)]
-    pub data: Vec<WaveformRGBDetailColumn>,
+    pub data: Vec<WaveformColorDetailColumn>,
 }
 
 /// Smaller version of the fixed-width 3-band preview of the track waveform.
@@ -1446,37 +1313,24 @@ mod tests {
     }
 
     #[test]
-    fn waveform_rgb_detail_word_uses_expected_bit_layout() {
-        let entry = WaveformRGBDetailColumn::from_packed_word(0x03fc);
-        assert_eq!(entry.red_bass(), 0);
-        assert_eq!(entry.green_mids(), 0);
-        assert_eq!(entry.blue_highs(), 7);
-        assert_eq!(entry.height(), 31);
-        assert_eq!(entry.low_bits(), 0);
-        assert_eq!(entry.fine_height_substep(), 0);
-        assert_eq!(entry.full_height(), 124);
-
-        let rebuilt = WaveformRGBDetailColumn::new()
-            .with_red_bass(5)
-            .with_green_mids(2)
-            .with_blue_highs(3)
-            .with_height(17)
-            .with_low_bits(1);
-        assert_eq!(rebuilt.to_packed_word(), 0xa9c5);
-        assert_eq!(rebuilt.red_bass(), 5);
-        assert_eq!(rebuilt.green_mids(), 2);
-        assert_eq!(rebuilt.blue_highs(), 3);
-        assert_eq!(rebuilt.height(), 17);
-        assert_eq!(rebuilt.low_bits(), 1);
-        assert_eq!(rebuilt.fine_height_substep(), 2);
-        assert_eq!(rebuilt.full_height(), 70);
+    fn waveform_color_detail_column_pins_expected_bit_layout() {
+        // modular-bitfield packs the 16-bit word LSB-first, so the on-disk bytes
+        // [0xd1, 0x48] decode to red=1, green=2, blue=3, height=4, fine_height=1.
+        // Round-tripping those field values must reproduce the same bytes.
+        let entry = WaveformColorDetailColumn::from_bytes([0xd1, 0x48]);
+        assert_eq!(entry.red(), 1);
+        assert_eq!(entry.green(), 2);
+        assert_eq!(entry.blue(), 3);
+        assert_eq!(entry.height(), 4);
+        assert_eq!(entry.fine_height(), 1);
+        assert_eq!(entry.into_bytes(), [0xd1, 0x48]);
     }
 
     #[test]
-    fn tiny_blue_waveform_preview_uses_low_nibble_for_height() {
-        let sample = WaveformBlueTinyPreviewColumn::from_bytes([0x8f]);
+    fn tiny_waveform_preview_uses_low_nibble_for_height() {
+        let sample = TinyWaveformPreviewColumn::from_bytes([0x8f]);
         assert_eq!(sample.height(), 15);
-        assert_eq!(sample.unknown(), 8);
+        assert_eq!(sample.unused(), 8);
 
         let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("data/complete_export/demo_tracks/PIONEER/USBANLZ/P016/0000875E/ANLZ0000.DAT");
@@ -1487,12 +1341,12 @@ mod tests {
             .sections
             .iter()
             .find_map(|section| match &section.content {
-                Content::WaveformBlueTinyPreview(preview) => Some(preview),
+                Content::TinyWaveformPreview(preview) => Some(preview),
                 _ => None,
             })
             .expect("fixture should include PWV2");
 
         assert!(preview.data.iter().any(|entry| entry.height() > 0));
-        assert!(preview.data.iter().all(|entry| entry.unknown() == 0));
+        assert!(preview.data.iter().all(|entry| entry.unused() == 0));
     }
 }

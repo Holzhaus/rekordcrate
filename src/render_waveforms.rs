@@ -1,3 +1,11 @@
+// Copyright (c) 2026 Jan Holthuis <jan.holthuis@rub.de>
+//
+// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy
+// of the MPL was not distributed with this file, You can obtain one at
+// http://mozilla.org/MPL/2.0/.
+//
+// SPDX-License-Identifier: MPL-2.0
+
 use binrw::BinRead;
 use rekordcrate::anlz::{Content, ANLZ};
 use std::fmt::Write as _;
@@ -165,12 +173,12 @@ impl WaveformRenderColumn {
     }
 
     fn rgb_preview(
-        entry: &rekordcrate::anlz::WaveformRGBPreviewColumn,
+        entry: &rekordcrate::anlz::WaveformColorPreviewColumn,
         max_height_sum: u16,
     ) -> Self {
-        let red = u16::from(entry.red_bass);
-        let green = u16::from(entry.green_mids);
-        let blue = u16::from(entry.blue_highs);
+        let red = u16::from(entry.energy_bottom_third_freq);
+        let green = u16::from(entry.energy_mid_third_freq);
+        let blue = u16::from(entry.energy_top_third_freq);
         let height = red + green + blue;
         let scale_channel = |value: u16| -> u8 {
             if height == 0 {
@@ -289,6 +297,7 @@ fn write_svg_path(
     svg.end_element();
 }
 
+#[allow(clippy::too_many_arguments)]
 fn write_svg_rect(
     svg: &mut XmlWriter,
     class_name: Option<&str>,
@@ -312,6 +321,7 @@ fn write_svg_rect(
     svg.end_element();
 }
 
+#[allow(clippy::too_many_arguments)]
 fn write_svg_line(
     svg: &mut XmlWriter,
     class_name: Option<&str>,
@@ -335,6 +345,7 @@ fn write_svg_line(
     svg.end_element();
 }
 
+#[allow(clippy::too_many_arguments)]
 fn write_svg_text(
     svg: &mut XmlWriter,
     class_name: Option<&str>,
@@ -361,6 +372,7 @@ fn write_svg_text(
     svg.end_element();
 }
 
+#[allow(clippy::too_many_arguments)]
 fn render_section_scaffold(
     svg: &mut XmlWriter,
     section: &WaveformSection,
@@ -526,7 +538,7 @@ fn collect_waveform_sections(anlzs: &[ANLZ]) -> Vec<WaveformSection> {
     for anlz in anlzs {
         for section in &anlz.sections {
             match &section.content {
-                Content::WaveformBluePreview(preview) => {
+                Content::WaveformPreview(preview) => {
                     sections.push(WaveformSection::with_color_columns(
                         "PWAV",
                         WaveformVerticalAlignment::Bottom,
@@ -540,7 +552,7 @@ fn collect_waveform_sections(anlzs: &[ANLZ]) -> Vec<WaveformSection> {
                             .collect(),
                     ))
                 }
-                Content::WaveformBlueTinyPreview(preview) => sections.push(WaveformSection::new(
+                Content::TinyWaveformPreview(preview) => sections.push(WaveformSection::new(
                     "PWV2",
                     WaveformRenderStyle::SharedAxis,
                     WaveformVerticalAlignment::Bottom,
@@ -549,7 +561,7 @@ fn collect_waveform_sections(anlzs: &[ANLZ]) -> Vec<WaveformSection> {
                         0x0f,
                     )],
                 )),
-                Content::WaveformBlueDetail(detail) => {
+                Content::WaveformDetail(detail) => {
                     sections.push(WaveformSection::with_color_columns(
                         "PWV3",
                         WaveformVerticalAlignment::Center,
@@ -563,14 +575,14 @@ fn collect_waveform_sections(anlzs: &[ANLZ]) -> Vec<WaveformSection> {
                             .collect(),
                     ))
                 }
-                Content::WaveformRGBPreview(preview) => {
+                Content::WaveformColorPreview(preview) => {
                     let max_height_sum = preview
                         .data
                         .iter()
                         .map(|entry| {
-                            u16::from(entry.red_bass)
-                                + u16::from(entry.green_mids)
-                                + u16::from(entry.blue_highs)
+                            u16::from(entry.energy_bottom_third_freq)
+                                + u16::from(entry.energy_mid_third_freq)
+                                + u16::from(entry.energy_top_third_freq)
                         })
                         .max()
                         .unwrap_or(1);
@@ -585,7 +597,7 @@ fn collect_waveform_sections(anlzs: &[ANLZ]) -> Vec<WaveformSection> {
                             .collect(),
                     ))
                 }
-                Content::WaveformRGBDetail(detail) => {
+                Content::WaveformColorDetail(detail) => {
                     sections.push(WaveformSection::with_color_columns(
                         "PWV5",
                         WaveformVerticalAlignment::Center,
@@ -596,9 +608,9 @@ fn collect_waveform_sections(anlzs: &[ANLZ]) -> Vec<WaveformSection> {
                             .map(|entry| {
                                 WaveformRenderColumn::rgb_detail(
                                     entry.height(),
-                                    entry.red_bass(),
-                                    entry.green_mids(),
-                                    entry.blue_highs(),
+                                    entry.red(),
+                                    entry.green(),
+                                    entry.blue(),
                                 )
                             })
                             .collect(),
@@ -609,9 +621,21 @@ fn collect_waveform_sections(anlzs: &[ANLZ]) -> Vec<WaveformSection> {
                     WaveformRenderStyle::Stacked,
                     WaveformVerticalAlignment::Bottom,
                     three_band_layers(
-                        preview.data.iter().map(|entry| entry.low).collect(),
-                        preview.data.iter().map(|entry| entry.mid).collect(),
-                        preview.data.iter().map(|entry| entry.high).collect(),
+                        preview
+                            .data
+                            .iter()
+                            .map(|entry| entry.energy_bottom_third_freq)
+                            .collect(),
+                        preview
+                            .data
+                            .iter()
+                            .map(|entry| entry.energy_mid_third_freq)
+                            .collect(),
+                        preview
+                            .data
+                            .iter()
+                            .map(|entry| entry.energy_top_third_freq)
+                            .collect(),
                         u8::MAX,
                     ),
                 )),
@@ -620,9 +644,21 @@ fn collect_waveform_sections(anlzs: &[ANLZ]) -> Vec<WaveformSection> {
                     WaveformRenderStyle::SharedAxisBlend,
                     WaveformVerticalAlignment::Center,
                     three_band_layers_with_calibration(
-                        detail.data.iter().map(|entry| entry.low).collect(),
-                        detail.data.iter().map(|entry| entry.mid).collect(),
-                        detail.data.iter().map(|entry| entry.high).collect(),
+                        detail
+                            .data
+                            .iter()
+                            .map(|entry| entry.energy_bottom_third_freq)
+                            .collect(),
+                        detail
+                            .data
+                            .iter()
+                            .map(|entry| entry.energy_mid_third_freq)
+                            .collect(),
+                        detail
+                            .data
+                            .iter()
+                            .map(|entry| entry.energy_top_third_freq)
+                            .collect(),
                         calibration,
                     ),
                 )),
@@ -661,8 +697,8 @@ fn estimate_track_duration_ms(anlzs: &[ANLZ]) -> Option<u32> {
         .iter()
         .flat_map(|anlz| anlz.sections.iter())
         .filter_map(|section| match &section.content {
-            Content::WaveformBlueDetail(detail) => Some(detail.data.len()),
-            Content::WaveformRGBDetail(detail) => Some(detail.data.len()),
+            Content::WaveformDetail(detail) => Some(detail.data.len()),
+            Content::WaveformColorDetail(detail) => Some(detail.data.len()),
             Content::Waveform3BandDetail(detail) => Some(detail.data.len()),
             _ => None,
         })
@@ -703,7 +739,7 @@ fn format_axis_timestamp(ms: u32) -> String {
 }
 
 fn plot_width_for_duration(duration_ms: u32) -> u32 {
-    (((u64::from(duration_ms.max(1)) * u64::from(WAVEFORM_PIXELS_PER_SECOND)) + 999) / 1000) as u32
+    ((u64::from(duration_ms.max(1)) * u64::from(WAVEFORM_PIXELS_PER_SECOND)).div_ceil(1000)) as u32
         + 1
 }
 
@@ -817,6 +853,7 @@ fn waveform_path_data(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn waveform_band_path_data(
     lower_values: &[u16],
     upper_values: &[u16],
