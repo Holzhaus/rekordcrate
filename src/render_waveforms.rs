@@ -205,18 +205,15 @@ impl WaveformRenderColumn {
     }
 
     fn color_detail(entry: &rekordcrate::anlz::WaveformColorDetailColumn) -> Self {
-        // The packed word exposes a 5-bit coarse height plus a 2-bit fine-height
-        // sub-step. The sub-step bits are significant in the opposite order on
-        // disk, so swap them before folding into the 7-bit height.
-        let fine = entry.fine_height();
-        let fine_substep = ((fine & 1) << 1) | ((fine >> 1) & 1);
-        let height = (entry.height() << 2) | fine_substep;
+        // Only the 5-bit coarse height is used; the 2 low-order bits are exposed
+        // on the type as `fine_height` but their meaning is unverified, so we do
+        // not fold them into the rendered height. See the field's doc comment.
         Self {
-            height: u16::from(height),
-            max_value: 0x7f,
-            red: entry.red(),
-            green: entry.green(),
-            blue: entry.blue(),
+            height: u16::from(entry.height),
+            max_value: 0x1f,
+            red: entry.red,
+            green: entry.green,
+            blue: entry.blue,
             color_max_value: 0x07,
             whiteness: 0,
         }

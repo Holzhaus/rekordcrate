@@ -539,31 +539,106 @@ pub struct WaveformColorPreviewColumn {
     pub energy_top_third_freq: u8,
 }
 
+/// Single Column value in a Waveform Color Detail section.
+///
+/// The 16-bit big-endian word packs (per the deepsymmetry documentation):
+/// red (3 bits, MSB), green (3), blue (3), height (5), and 2 low-order bits
+/// whose meaning is unknown. The field order is decoded manually rather than
+/// via `modular-bitfield`, because `modular-bitfield` packs fields LSB-first
+/// which does not match the on-disk MSB-first layout.
+///
+/// See these the documentation for details:
+/// <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#color-detail>
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
+pub struct WaveformColorDetailColumn {
+    /// Red color component.
+    pub red: u8,
+    /// Green color component.
+    pub green: u8,
+    /// Blue color component.
+    pub blue: u8,
+    /// Height of the column.
+    pub height: u8,
+    /// Low-order two bits.
+    ///
+    /// Per the deepsymmetry documentation these "do not seem to be used".
+    /// An earlier exploration by @RobinMcCorkell hypothesized they encode a
+    /// fine-height sub-step, but checking the available fixtures the bit
+    /// distribution does not behave like height data, so we expose the raw
+    /// bits without interpreting them. The renderer ignores this field.
+    pub fine_height: u8,
+}
+
 impl Default for WaveformColorDetailColumn {
     fn default() -> Self {
         Self::new()
     }
 }
 
-/// Single Column value in a Waveform Color Detail section.
-///
-/// See these the documentation for details:
-/// <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#color-detail>
-#[bitfield]
-#[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy)]
-#[br(big, map = Self::from_bytes)]
-#[bw(big, map = |x: &WaveformColorDetailColumn| x.into_bytes())]
-pub struct WaveformColorDetailColumn {
-    /// Red color component.
-    pub red: B3,
-    /// Green color component.
-    pub green: B3,
-    /// Blue color component.
-    pub blue: B3,
-    /// Height of the column.
-    pub height: B5,
-    /// Fine-height sub-step bits that further subdivide the column height.
-    pub fine_height: B2,
+impl BinRead for WaveformColorDetailColumn {
+    type Args<'a> = ();
+
+    fn read_options<R: Read + Seek>(
+        reader: &mut R,
+        endian: Endian,
+        _args: Self::Args<'_>,
+    ) -> BinResult<Self> {
+        let raw_word = u16::read_options(reader, endian, ())?;
+        Ok(Self::from_packed_word(raw_word))
+    }
+}
+
+impl BinWrite for WaveformColorDetailColumn {
+    type Args<'a> = ();
+
+    fn write_options<W: Write + Seek>(
+        &self,
+        writer: &mut W,
+        endian: Endian,
+        _args: Self::Args<'_>,
+    ) -> BinResult<()> {
+        self.to_packed_word().write_options(writer, endian, ())
+    }
+}
+
+impl WaveformColorDetailColumn {
+    const RED_SHIFT: u16 = 13;
+    const GREEN_SHIFT: u16 = 10;
+    const BLUE_SHIFT: u16 = 7;
+    const HEIGHT_SHIFT: u16 = 2;
+    const CHANNEL_MASK: u16 = 0x7;
+    const HEIGHT_MASK: u16 = 0x1f;
+    const FINE_HEIGHT_MASK: u16 = 0x3;
+
+    /// Create an empty color detail column.
+    pub const fn new() -> Self {
+        Self {
+            red: 0,
+            green: 0,
+            blue: 0,
+            height: 0,
+            fine_height: 0,
+        }
+    }
+
+    /// Decode a color detail column from its packed 16-bit big-endian word.
+    pub const fn from_packed_word(raw_word: u16) -> Self {
+        Self {
+            red: ((raw_word >> Self::RED_SHIFT) & Self::CHANNEL_MASK) as u8,
+            green: ((raw_word >> Self::GREEN_SHIFT) & Self::CHANNEL_MASK) as u8,
+            blue: ((raw_word >> Self::BLUE_SHIFT) & Self::CHANNEL_MASK) as u8,
+            height: ((raw_word >> Self::HEIGHT_SHIFT) & Self::HEIGHT_MASK) as u8,
+            fine_height: (raw_word & Self::FINE_HEIGHT_MASK) as u8,
+        }
+    }
+
+    const fn to_packed_word(self) -> u16 {
+        ((self.red as u16 & Self::CHANNEL_MASK) << Self::RED_SHIFT)
+            | ((self.green as u16 & Self::CHANNEL_MASK) << Self::GREEN_SHIFT)
+            | ((self.blue as u16 & Self::CHANNEL_MASK) << Self::BLUE_SHIFT)
+            | ((self.height as u16 & Self::HEIGHT_MASK) << Self::HEIGHT_SHIFT)
+            | (self.fine_height as u16 & Self::FINE_HEIGHT_MASK)
+    }
 }
 
 /// Single Column value in a Waveform 3-Band Preview.
@@ -1314,16 +1389,16 @@ mod tests {
 
     #[test]
     fn waveform_color_detail_column_pins_expected_bit_layout() {
-        // modular-bitfield packs the 16-bit word LSB-first, so the on-disk bytes
-        // [0xd1, 0x48] decode to red=1, green=2, blue=3, height=4, fine_height=1.
-        // Round-tripping those field values must reproduce the same bytes.
-        let entry = WaveformColorDetailColumn::from_bytes([0xd1, 0x48]);
-        assert_eq!(entry.red(), 1);
-        assert_eq!(entry.green(), 2);
-        assert_eq!(entry.blue(), 3);
-        assert_eq!(entry.height(), 4);
-        assert_eq!(entry.fine_height(), 1);
-        assert_eq!(entry.into_bytes(), [0xd1, 0x48]);
+        // The 16-bit word packs MSB-first: red(3) green(3) blue(3) height(5)
+        // fine_height(2). For 0xa9c5 that decodes to red=5, green=2, blue=3,
+        // height=17, fine_height=1, matching the deepsymmetry documentation.
+        let entry = WaveformColorDetailColumn::from_packed_word(0xa9c5);
+        assert_eq!(entry.red, 5);
+        assert_eq!(entry.green, 2);
+        assert_eq!(entry.blue, 3);
+        assert_eq!(entry.height, 17);
+        assert_eq!(entry.fine_height, 1);
+        assert_eq!(entry.to_packed_word(), 0xa9c5);
     }
 
     #[test]
