@@ -67,6 +67,9 @@ enum Commands {
         /// Output SVG file to write.
         #[arg(value_name = "SVG_FILE")]
         output: PathBuf,
+        /// Skip reading the sibling `.DAT` file.
+        #[arg(long)]
+        no_dat: bool,
         /// Skip reading the sibling `.EXT` file.
         #[arg(long)]
         no_ext: bool,
@@ -456,10 +459,18 @@ fn main() -> rekordcrate::Result<()> {
         Commands::RenderWaveforms {
             path,
             output,
+            no_dat,
             no_ext,
             no_2ex,
             section_height,
-        } => render_waveforms::render_waveforms(path, output, *no_ext, *no_2ex, *section_height),
+        } => render_waveforms::render_waveforms(
+            path,
+            output,
+            *no_dat,
+            *no_ext,
+            *no_2ex,
+            *section_height,
+        ),
         Commands::DumpSetting { path, setting_type } => {
             let setting_type = match guess_setting_type(path, setting_type.as_deref()) {
                 Some(setting_type) => setting_type,

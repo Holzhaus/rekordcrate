@@ -238,7 +238,12 @@ fn detect_sibling_path(path: &Path, extension: &str) -> Option<PathBuf> {
     lowercase.exists().then_some(lowercase)
 }
 
-fn collect_related_anlz_paths(path: &Path, no_ext: bool, no_2ex: bool) -> Vec<PathBuf> {
+fn collect_related_anlz_paths(
+    path: &Path,
+    no_dat: bool,
+    no_ext: bool,
+    no_2ex: bool,
+) -> Vec<PathBuf> {
     let mut paths = Vec::new();
     let mut push_unique = |candidate: Option<PathBuf>| {
         if let Some(candidate) = candidate {
@@ -248,7 +253,9 @@ fn collect_related_anlz_paths(path: &Path, no_ext: bool, no_2ex: bool) -> Vec<Pa
         }
     };
 
-    push_unique(detect_sibling_path(path, "DAT"));
+    if !no_dat {
+        push_unique(detect_sibling_path(path, "DAT"));
+    }
     if !no_ext {
         push_unique(detect_sibling_path(path, "EXT"));
     }
@@ -1229,11 +1236,12 @@ fn render_waveform_svg_from_paths(
 pub(crate) fn render_waveforms(
     path: &Path,
     output: &Path,
+    no_dat: bool,
     no_ext: bool,
     no_2ex: bool,
     section_height: u32,
 ) -> rekordcrate::Result<()> {
-    let paths = collect_related_anlz_paths(path, no_ext, no_2ex);
+    let paths = collect_related_anlz_paths(path, no_dat, no_ext, no_2ex);
     let svg = render_waveform_svg_from_paths(&paths, section_height)?;
     std::fs::write(output, svg)?;
     println!("Rendered waveform SVG to {}", output.display());
@@ -1257,7 +1265,7 @@ mod tests {
     #[test]
     fn collects_related_anlz_paths() {
         let dat_path = fixture_dat_path();
-        let paths = collect_related_anlz_paths(&dat_path, false, false);
+        let paths = collect_related_anlz_paths(&dat_path, false, false, false);
 
         assert_eq!(
             paths,
@@ -1273,7 +1281,7 @@ mod tests {
     fn renders_waveforms_to_svg() {
         let dat_path = fixture_dat_path();
         let svg = render_waveform_svg_from_paths(
-            &collect_related_anlz_paths(&dat_path, false, false),
+            &collect_related_anlz_paths(&dat_path, false, false, false),
             48,
         )
         .expect("svg should render");
@@ -1302,7 +1310,7 @@ mod tests {
     #[test]
     fn waveform_sections_use_expected_alignment_and_styles() {
         let dat_path = fixture_dat_path();
-        let anlzs = collect_related_anlz_paths(&dat_path, false, false)
+        let anlzs = collect_related_anlz_paths(&dat_path, false, false, false)
             .into_iter()
             .map(|path| read_anlz(&path).expect("fixture should parse"))
             .collect::<Vec<_>>();
