@@ -7,11 +7,13 @@
 // SPDX-License-Identifier: MPL-2.0
 
 use binrw::BinRead;
+use quick_xml::events::{BytesDecl, BytesEnd, BytesStart, BytesText, Event};
+use quick_xml::Writer;
 use rekordcrate::anlz::{Content, ANLZ};
 use std::fmt::Write as _;
 use std::fs::File;
+use std::io::Write;
 use std::path::{Path, PathBuf};
-use xmlwriter::{Options, XmlWriter};
 
 const WAVEFORM_LABEL_WIDTH: u32 = 72;
 const WAVEFORM_PIXELS_PER_SECOND: u32 = 72;
@@ -172,7 +174,10 @@ impl WaveformRenderColumn {
         }
     }
 
-    fn rgb_preview(
+    /// Map a PWV4 color-preview entry to a render column. The energy bands are
+    /// rendered as RGB channels (low/bass -> red, mid -> green, high -> blue);
+    /// this mapping is a rendering concern, not a property of the on-disk type.
+    fn color_preview(
         entry: &rekordcrate::anlz::WaveformColorPreviewColumn,
         max_height_sum: u16,
     ) -> Self {
@@ -199,13 +204,19 @@ impl WaveformRenderColumn {
         }
     }
 
-    fn rgb_detail(height: u8, red: u8, green: u8, blue: u8) -> Self {
+    fn color_detail(entry: &rekordcrate::anlz::WaveformColorDetailColumn) -> Self {
+        // The packed word exposes a 5-bit coarse height plus a 2-bit fine-height
+        // sub-step. The sub-step bits are significant in the opposite order on
+        // disk, so swap them before folding into the 7-bit height.
+        let fine = entry.fine_height();
+        let fine_substep = ((fine & 1) << 1) | ((fine >> 1) & 1);
+        let height = (entry.height() << 2) | fine_substep;
         Self {
             height: u16::from(height),
-            max_value: 0x1f,
-            red,
-            green,
-            blue,
+            max_value: 0x7f,
+            red: entry.red(),
+            green: entry.green(),
+            blue: entry.blue(),
             color_max_value: 0x07,
             whiteness: 0,
         }
@@ -279,27 +290,33 @@ fn waveform_render_column_fill(column: &WaveformRenderColumn) -> String {
     )
 }
 
-fn write_svg_path(
-    svg: &mut XmlWriter,
+fn write_attribute(start: &mut BytesStart<'_>, name: &str, value: &str) {
+    start.push_attribute((name, value));
+}
+
+fn write_svg_path<W: Write>(
+    svg: &mut Writer<W>,
     class_name: &str,
     path_data: &str,
     fill: &str,
     fill_opacity: f32,
     stroke: &str,
-) {
-    svg.start_element("path");
-    svg.write_attribute("class", class_name);
-    svg.write_attribute("d", path_data);
-    svg.write_attribute("fill", fill);
-    svg.write_attribute("fill-opacity", &format!("{fill_opacity:.2}"));
-    svg.write_attribute("stroke", stroke);
-    svg.write_attribute("stroke-width", "0");
-    svg.end_element();
+) -> rekordcrate::Result<()> {
+    let mut start = BytesStart::new("path");
+    write_attribute(&mut start, "class", class_name);
+    write_attribute(&mut start, "d", path_data);
+    write_attribute(&mut start, "fill", fill);
+    write_attribute(&mut start, "fill-opacity", &format!("{fill_opacity:.2}"));
+    write_attribute(&mut start, "stroke", stroke);
+    write_attribute(&mut start, "stroke-width", "0");
+    svg.write_event(Event::Start(start))?;
+    svg.write_event(Event::End(BytesEnd::new("path")))?;
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
-fn write_svg_rect(
-    svg: &mut XmlWriter,
+fn write_svg_rect<W: Write>(
+    svg: &mut Writer<W>,
     class_name: Option<&str>,
     x: f32,
     y: f32,
@@ -307,23 +324,25 @@ fn write_svg_rect(
     height: f32,
     fill: &str,
     stroke: &str,
-) {
-    svg.start_element("rect");
+) -> rekordcrate::Result<()> {
+    let mut start = BytesStart::new("rect");
     if let Some(class_name) = class_name {
-        svg.write_attribute("class", class_name);
+        write_attribute(&mut start, "class", class_name);
     }
-    svg.write_attribute("x", &format!("{x:.2}"));
-    svg.write_attribute("y", &format!("{y:.2}"));
-    svg.write_attribute("width", &format!("{width:.2}"));
-    svg.write_attribute("height", &format!("{height:.2}"));
-    svg.write_attribute("fill", fill);
-    svg.write_attribute("stroke", stroke);
-    svg.end_element();
+    write_attribute(&mut start, "x", &format!("{x:.2}"));
+    write_attribute(&mut start, "y", &format!("{y:.2}"));
+    write_attribute(&mut start, "width", &format!("{width:.2}"));
+    write_attribute(&mut start, "height", &format!("{height:.2}"));
+    write_attribute(&mut start, "fill", fill);
+    write_attribute(&mut start, "stroke", stroke);
+    svg.write_event(Event::Start(start))?;
+    svg.write_event(Event::End(BytesEnd::new("rect")))?;
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
-fn write_svg_line(
-    svg: &mut XmlWriter,
+fn write_svg_line<W: Write>(
+    svg: &mut Writer<W>,
     class_name: Option<&str>,
     x1: f32,
     y1: f32,
@@ -331,23 +350,25 @@ fn write_svg_line(
     y2: f32,
     stroke: &str,
     stroke_width: &str,
-) {
-    svg.start_element("line");
+) -> rekordcrate::Result<()> {
+    let mut start = BytesStart::new("line");
     if let Some(class_name) = class_name {
-        svg.write_attribute("class", class_name);
+        write_attribute(&mut start, "class", class_name);
     }
-    svg.write_attribute("x1", &format!("{x1:.2}"));
-    svg.write_attribute("y1", &format!("{y1:.2}"));
-    svg.write_attribute("x2", &format!("{x2:.2}"));
-    svg.write_attribute("y2", &format!("{y2:.2}"));
-    svg.write_attribute("stroke", stroke);
-    svg.write_attribute("stroke-width", stroke_width);
-    svg.end_element();
+    write_attribute(&mut start, "x1", &format!("{x1:.2}"));
+    write_attribute(&mut start, "y1", &format!("{y1:.2}"));
+    write_attribute(&mut start, "x2", &format!("{x2:.2}"));
+    write_attribute(&mut start, "y2", &format!("{y2:.2}"));
+    write_attribute(&mut start, "stroke", stroke);
+    write_attribute(&mut start, "stroke-width", stroke_width);
+    svg.write_event(Event::Start(start))?;
+    svg.write_event(Event::End(BytesEnd::new("line")))?;
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
-fn write_svg_text(
-    svg: &mut XmlWriter,
+fn write_svg_text<W: Write>(
+    svg: &mut Writer<W>,
     class_name: Option<&str>,
     x: f32,
     y: f32,
@@ -355,26 +376,28 @@ fn write_svg_text(
     font_size: &str,
     extra_attrs: &[(&str, &str)],
     text: &str,
-) {
-    svg.start_element("text");
+) -> rekordcrate::Result<()> {
+    let mut start = BytesStart::new("text");
     if let Some(class_name) = class_name {
-        svg.write_attribute("class", class_name);
+        write_attribute(&mut start, "class", class_name);
     }
-    svg.write_attribute("x", &format!("{x:.2}"));
-    svg.write_attribute("y", &format!("{y:.2}"));
-    svg.write_attribute("fill", fill);
-    svg.write_attribute("font-family", "monospace");
-    svg.write_attribute("font-size", font_size);
+    write_attribute(&mut start, "x", &format!("{x:.2}"));
+    write_attribute(&mut start, "y", &format!("{y:.2}"));
+    write_attribute(&mut start, "fill", fill);
+    write_attribute(&mut start, "font-family", "monospace");
+    write_attribute(&mut start, "font-size", font_size);
     for &(name, value) in extra_attrs {
-        svg.write_attribute(name, value);
+        write_attribute(&mut start, name, value);
     }
-    svg.write_text(text);
-    svg.end_element();
+    svg.write_event(Event::Start(start))?;
+    svg.write_event(Event::Text(BytesText::new(text)))?;
+    svg.write_event(Event::End(BytesEnd::new("text")))?;
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
-fn render_section_scaffold(
-    svg: &mut XmlWriter,
+fn render_section_scaffold<W: Write>(
+    svg: &mut Writer<W>,
     section: &WaveformSection,
     plot_left: u32,
     plot_width: u32,
@@ -382,7 +405,7 @@ fn render_section_scaffold(
     section_height: u32,
     beat_markers: &[BeatMarker],
     axis_markers: &[BeatMarker],
-) {
+) -> rekordcrate::Result<()> {
     write_svg_rect(
         svg,
         None,
@@ -392,7 +415,7 @@ fn render_section_scaffold(
         section_height as f32,
         "#0a0f18",
         "#1f2937",
-    );
+    )?;
     write_svg_text(
         svg,
         None,
@@ -402,7 +425,7 @@ fn render_section_scaffold(
         "14",
         &[("dominant-baseline", "middle")],
         section.label,
-    );
+    )?;
 
     for beat in beat_markers {
         let x = plot_x_for_time(plot_left, beat.time_ms);
@@ -423,7 +446,7 @@ fn render_section_scaffold(
                 "#1f2937"
             },
             if beat.beat_number == 1 { "1.2" } else { "1.0" },
-        );
+        )?;
     }
 
     for marker in axis_markers {
@@ -437,7 +460,7 @@ fn render_section_scaffold(
             (top + section_height) as f32,
             "#94a3b8",
             "1",
-        );
+        )?;
         write_svg_line(
             svg,
             Some("axis-marker-tick"),
@@ -447,7 +470,7 @@ fn render_section_scaffold(
             (top + section_height + 6) as f32,
             "#cbd5e1",
             "1",
-        );
+        )?;
         write_svg_text(
             svg,
             Some("axis-label"),
@@ -457,8 +480,10 @@ fn render_section_scaffold(
             "11",
             &[("text-anchor", "middle")],
             &format_axis_timestamp(marker.time_ms),
-        );
+        )?;
     }
+
+    Ok(())
 }
 
 fn calibrate_layers(
@@ -593,7 +618,7 @@ fn collect_waveform_sections(anlzs: &[ANLZ]) -> Vec<WaveformSection> {
                         preview
                             .data
                             .iter()
-                            .map(|entry| WaveformRenderColumn::rgb_preview(entry, max_height_sum))
+                            .map(|entry| WaveformRenderColumn::color_preview(entry, max_height_sum))
                             .collect(),
                     ))
                 }
@@ -605,14 +630,7 @@ fn collect_waveform_sections(anlzs: &[ANLZ]) -> Vec<WaveformSection> {
                         detail
                             .data
                             .iter()
-                            .map(|entry| {
-                                WaveformRenderColumn::rgb_detail(
-                                    entry.height(),
-                                    entry.red(),
-                                    entry.green(),
-                                    entry.blue(),
-                                )
-                            })
+                            .map(WaveformRenderColumn::color_detail)
                             .collect(),
                     ))
                 }
@@ -955,13 +973,20 @@ fn render_waveform_svg_from_paths(
         + row_height * u32::try_from(sections.len()).unwrap_or(0)
         + WAVEFORM_SECTION_GAP * u32::try_from(sections.len().saturating_sub(1)).unwrap_or(0);
 
-    let mut svg = XmlWriter::new(Options::default());
-    svg.start_element("svg");
-    svg.write_attribute("xmlns", "http://www.w3.org/2000/svg");
-    svg.write_attribute("width", &total_width.to_string());
-    svg.write_attribute("height", &total_height.to_string());
-    svg.write_attribute("viewBox", &format!("0 0 {total_width} {total_height}"));
-    svg.write_attribute("role", "img");
+    let mut svg = Writer::new(Vec::<u8>::new());
+    svg.write_event(Event::Decl(BytesDecl::new("1.0", Some("UTF-8"), None)))?;
+
+    let mut root = BytesStart::new("svg");
+    write_attribute(&mut root, "xmlns", "http://www.w3.org/2000/svg");
+    write_attribute(&mut root, "width", &total_width.to_string());
+    write_attribute(&mut root, "height", &total_height.to_string());
+    write_attribute(
+        &mut root,
+        "viewBox",
+        &format!("0 0 {total_width} {total_height}"),
+    );
+    write_attribute(&mut root, "role", "img");
+    svg.write_event(Event::Start(root))?;
     write_svg_rect(
         &mut svg,
         None,
@@ -971,7 +996,7 @@ fn render_waveform_svg_from_paths(
         total_height as f32,
         "#05070c",
         "none",
-    );
+    )?;
 
     for (index, section) in sections.iter().enumerate() {
         let top = WAVEFORM_PADDING
@@ -990,7 +1015,7 @@ fn render_waveform_svg_from_paths(
             section_height,
             &beat_markers,
             &axis_markers,
-        );
+        )?;
 
         let resampled_layers = section
             .layers
@@ -1031,7 +1056,7 @@ fn render_waveform_svg_from_paths(
                         bar_height,
                         &fill,
                         "none",
-                    );
+                    )?;
                 }
             }
             WaveformRenderStyle::SharedAxis => {
@@ -1052,7 +1077,7 @@ fn render_waveform_svg_from_paths(
                         layer.fill,
                         f32::from(layer.fill_opacity_percent) / 100.0,
                         layer.stroke,
-                    );
+                    )?;
                 }
             }
             WaveformRenderStyle::SharedAxisBlend => {
@@ -1094,7 +1119,7 @@ fn render_waveform_svg_from_paths(
                         WAVEFORM_OVERLAP_FILL,
                         1.0,
                         WAVEFORM_OVERLAP_FILL,
-                    );
+                    )?;
 
                     let low_path = waveform_band_path_data(
                         &overlap,
@@ -1113,7 +1138,7 @@ fn render_waveform_svg_from_paths(
                         low.0.fill,
                         1.0,
                         low.0.stroke,
-                    );
+                    )?;
 
                     let mid_path = waveform_band_path_data(
                         &overlap,
@@ -1132,7 +1157,7 @@ fn render_waveform_svg_from_paths(
                         mid.0.fill,
                         1.0,
                         mid.0.stroke,
-                    );
+                    )?;
 
                     let high_path = waveform_path_data(
                         &high.1,
@@ -1150,7 +1175,7 @@ fn render_waveform_svg_from_paths(
                         high.0.fill,
                         1.0,
                         high.0.stroke,
-                    );
+                    )?;
                 }
             }
             WaveformRenderStyle::Stacked => {
@@ -1189,15 +1214,16 @@ fn render_waveform_svg_from_paths(
                         layer.fill,
                         f32::from(layer.fill_opacity_percent) / 100.0,
                         layer.stroke,
-                    );
+                    )?;
                     lower = upper;
                 }
             }
         }
     }
 
-    svg.end_element();
-    Ok(svg.end_document())
+    svg.write_event(Event::End(BytesEnd::new("svg")))?;
+    let bytes = svg.into_inner();
+    String::from_utf8(bytes).map_err(|err| std::io::Error::other(err).into())
 }
 
 pub(crate) fn render_waveforms(

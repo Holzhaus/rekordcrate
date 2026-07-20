@@ -18,6 +18,7 @@ use std::collections::BTreeMap;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
+#[cfg(feature = "xml")]
 mod render_waveforms;
 
 #[derive(Parser)]
@@ -58,6 +59,7 @@ enum Commands {
         path: PathBuf,
     },
     /// Render supported waveform sections from Rekordbox analysis files to SVG.
+    #[cfg(feature = "xml")]
     RenderWaveforms {
         /// ANLZ file to parse. Sibling `.DAT`, `.EXT`, and `.2EX` files are auto-detected.
         #[arg(value_name = "ANLZ_FILE")]
@@ -450,6 +452,7 @@ fn main() -> rekordcrate::Result<()> {
             dump_pdb(path, db_type, *parse_unknown_tables)
         }
         Commands::DumpANLZ { path } => dump_anlz(path),
+        #[cfg(feature = "xml")]
         Commands::RenderWaveforms {
             path,
             output,
