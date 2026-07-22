@@ -26,6 +26,8 @@
 
 #![allow(clippy::must_use_candidate)]
 
+pub mod path;
+
 use crate::{util::ColorIndex, xor::XorStream};
 use binrw::{
     binrw,
