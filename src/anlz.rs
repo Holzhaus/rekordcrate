@@ -26,6 +26,8 @@
 
 #![allow(clippy::must_use_candidate)]
 
+pub mod path;
+
 #[cfg(feature = "json")]
 use crate::util::serialize_as_hex;
 use crate::{util::ColorIndex, xor::XorStream};
