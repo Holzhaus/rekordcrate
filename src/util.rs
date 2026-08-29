@@ -13,7 +13,21 @@ use std::io::{Read, Seek, SeekFrom, Write};
 use crate::pdb::string::StringError;
 use crate::pdb::{PageIndex, PageType};
 use binrw::{binrw, file_ptr::IntoSeekFrom, BinRead, BinResult, BinWrite, Endian};
+#[cfg(feature = "json")]
+use serde::{Serialize, Serializer};
 use thiserror::Error;
+
+/// Helper function to serialize a slice of bytes as a hex string.
+#[cfg(feature = "json")]
+pub fn serialize_as_hex<S>(data: &[u8], serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    let mut hex = String::with_capacity(2 + data.len() * 2);
+    hex.push_str("0x");
+    hex.push_str(&faster_hex::hex_string(data));
+    serializer.serialize_str(&hex)
+}
 
 /// Enumerates errors returned by this library.
 #[derive(Error, Debug)]
@@ -63,6 +77,11 @@ pub enum RekordcrateError {
     #[cfg(feature = "xml")]
     #[error(transparent)]
     XmlDeserializationFailed(#[from] quick_xml::DeError),
+
+    /// Represents a `serde_json::Error` from serializing dump output.
+    #[cfg(feature = "json")]
+    #[error(transparent)]
+    JsonSerializationFailed(#[from] serde_json::Error),
 }
 
 /// Type alias for results where the error is a `RekordcrateError`.
@@ -71,6 +90,7 @@ pub type RekordcrateResult<T> = std::result::Result<T, RekordcrateError>;
 /// Wrapper for types which may be automatically calculated if not
 /// provided by the user, or may be explicitly set when parsing existing data.
 #[derive(Debug, PartialEq, Clone, Eq)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 pub enum MaybeCalculated<T> {
     /// Value is calculated from some other value during serialization.
     Calculated,
@@ -91,6 +111,7 @@ impl From<usize> for TableIndex {
 /// Indexed Color identifiers used for memory cues and tracks.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 pub enum ColorIndex {
     /// No color.
     #[brw(magic = 0u8)]
@@ -124,6 +145,7 @@ pub enum ColorIndex {
 /// Track file type.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 pub enum FileType {
     /// Unknown file type.
     #[brw(magic = 0x0u16)]

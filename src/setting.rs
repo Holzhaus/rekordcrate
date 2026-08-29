@@ -22,11 +22,24 @@
 //! The `SettingData` structs implement the `Default` trait and allows you to create objects that
 //! use the same default values as found in Rekordbox 6.6.1.
 
+#[cfg(feature = "json")]
+use crate::util::serialize_as_hex;
 use binrw::{binrw, io::Cursor, BinWrite, Endian, NullString};
 use parse_display::Display;
+#[cfg(feature = "json")]
+use serde::{Serialize, Serializer};
+
+#[cfg(feature = "json")]
+fn serialize_null_string<S>(ns: &NullString, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    serializer.serialize_str(&ns.to_string())
+}
 
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 #[br(import(setting_type: SettingType))]
 #[bw(import(no_checksum: bool))]
@@ -35,6 +48,7 @@ pub struct Setting {
     /// Size of the string data field (should be always 96).
     #[br(temp, assert(len_stringdata == 0x60))]
     #[bw(calc = 0x60)]
+    #[cfg_attr(feature = "json", serde(skip))]
     len_stringdata: u32,
     /// Name of the brand.
     ///
@@ -47,17 +61,21 @@ pub struct Setting {
     /// | `MYSETTING.DAT`    | `PIONEER`    |
     /// | `MYSETTING2.DAT`   | `PIONEER`    |
     #[brw(pad_size_to = 0x20, assert(brand.len() <= (0x20 - 1)))]
+    #[cfg_attr(feature = "json", serde(serialize_with = "serialize_null_string"))]
     pub brand: NullString,
     /// Name of the software ("rekordbox").
     #[brw(pad_size_to = 0x20, assert(software.len() <= (0x20 - 1)))]
+    #[cfg_attr(feature = "json", serde(serialize_with = "serialize_null_string"))]
     pub software: NullString,
     /// Some kind of version number.
     #[brw(pad_size_to = 0x20, assert(version.len() <= (0x20 - 1)))]
+    #[cfg_attr(feature = "json", serde(serialize_with = "serialize_null_string"))]
     pub version: NullString,
     /// Size of the `data` data in bytes.
     #[br(temp)]
     #[bw(calc = data.size())]
     #[br(assert(len_data == setting_type.expected_data_size()))]
+    #[cfg_attr(feature = "json", serde(skip))]
     len_data: u32,
     /// The actual settings data.
     #[br(args(setting_type))]
@@ -70,11 +88,13 @@ pub struct Setting {
     /// details.
     #[br(temp)]
     #[bw(calc = if no_checksum { 0 } else { self.calculate_checksum() })]
+    #[cfg_attr(feature = "json", serde(skip))]
     _checksum: u16,
     /// Unknown field (apparently always `0000`).
     #[br(temp)]
     #[br(assert(unknown == 0))]
     #[bw(calc = 0u16)]
+    #[cfg_attr(feature = "json", serde(skip))]
     unknown: u16,
 }
 
@@ -196,6 +216,7 @@ impl SettingType {
 /// Data section of a `*SETTING.DAT` file.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 #[br(import(setting_type: SettingType))]
 pub enum SettingData {
@@ -263,10 +284,12 @@ impl SettingData {
 /// Payload of a `DEVSETTING.DAT` file (32 bytes).
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct DevSetting {
     /// Unknown field.
     #[br(assert(unknown1 == [0x78, 0x56, 0x34, 0x12, 0x01, 0x00, 0x00, 0x00, 0x01]))]
+    #[cfg_attr(feature = "json", serde(serialize_with = "serialize_as_hex"))]
     unknown1: [u8; 9],
     /// "Type of the overview Waveform" setting.
     pub overview_waveform_type: OverviewWaveformType,
@@ -281,6 +304,7 @@ pub struct DevSetting {
     pub waveform_current_position: WaveformCurrentPosition,
     /// Unknown field.
     #[br(assert(unknown3 == [0x00; 18]))]
+    #[cfg_attr(feature = "json", serde(serialize_with = "serialize_as_hex"))]
     unknown3: [u8; 18],
 }
 
@@ -301,9 +325,11 @@ impl Default for DevSetting {
 /// Payload of a `DJMMYSETTING.DAT` file (52 bytes).
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct DJMMySetting {
     /// Unknown field.
+    #[cfg_attr(feature = "json", serde(serialize_with = "serialize_as_hex"))]
     unknown1: [u8; 12],
     /// "CH FADER CURVE" setting.
     pub channel_fader_curve: ChannelFaderCurve,
@@ -333,6 +359,7 @@ pub struct DJMMySetting {
     pub channel_fader_curve_long_fader: ChannelFaderCurveLongFader,
     /// Unknown field (apparently always 0).
     #[br(assert(unknown2 == [0; 27]))]
+    #[cfg_attr(feature = "json", serde(serialize_with = "serialize_as_hex"))]
     unknown2: [u8; 27],
 }
 
@@ -363,9 +390,11 @@ impl Default for DJMMySetting {
 /// Payload of a `MYSETTING.DAT` file (40 bytes).
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct MySetting {
     /// Unknown field.
+    #[cfg_attr(feature = "json", serde(serialize_with = "serialize_as_hex"))]
     unknown1: [u8; 8],
     /// "ON AIR DISPLAY" setting.
     pub on_air_display: OnAirDisplay,
@@ -386,6 +415,7 @@ pub struct MySetting {
     /// "SLIP FLASHING" setting.
     pub slip_flashing: SlipFlashing,
     /// Unknown field.
+    #[cfg_attr(feature = "json", serde(serialize_with = "serialize_as_hex"))]
     unknown3: [u8; 3],
     /// "DISC SLOT ILLUMINATION" setting.
     pub disc_slot_illumination: DiscSlotIllumination,
@@ -464,6 +494,7 @@ impl Default for MySetting {
 /// Payload of a `MYSETTING2.DAT` file (40 bytes).
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct MySetting2 {
     /// "VINYL SPEED ADJUST" setting.
@@ -478,6 +509,7 @@ pub struct MySetting2 {
     pub waveform_divisions: WaveformDivisions,
     /// Unknown field (apparently always 0).
     #[br(assert(unknown1 == [0; 5]))]
+    #[cfg_attr(feature = "json", serde(serialize_with = "serialize_as_hex"))]
     unknown1: [u8; 5],
     /// "WAVEFORM / PHASE METER" setting.
     pub waveform: Waveform,
@@ -487,6 +519,7 @@ pub struct MySetting2 {
     pub beat_jump_beat_value: BeatJumpBeatValue,
     /// Unknown field (apparently always 0).
     #[br(assert(unknown3 == [0; 27]))]
+    #[cfg_attr(feature = "json", serde(serialize_with = "serialize_as_hex"))]
     unknown3: [u8; 27],
 }
 
@@ -511,6 +544,7 @@ impl Default for MySetting2 {
 /// Rekordbox preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum PlayMode {
     /// Named "CONTINUE / ON" in the Rekordbox preferences.
@@ -526,6 +560,7 @@ pub enum PlayMode {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum EjectLock {
     /// Named "UNLOCK" in the Rekordbox preferences.
@@ -539,6 +574,7 @@ pub enum EjectLock {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum NeedleLock {
     /// Named "UNLOCK" in the Rekordbox preferences.
@@ -552,6 +588,7 @@ pub enum NeedleLock {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum QuantizeBeatValue {
     /// Named "1/8 Beat" in the Rekordbox preferences.
@@ -573,6 +610,7 @@ pub enum QuantizeBeatValue {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum HotCueAutoLoad {
     /// Named "OFF" in the Rekordbox preferences.
@@ -589,6 +627,7 @@ pub enum HotCueAutoLoad {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum HotCueColor {
     /// Named "OFF" in the Rekordbox preferences.
@@ -602,6 +641,7 @@ pub enum HotCueColor {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum AutoCueLevel {
     /// Named "-78dB" in the Rekordbox preferences.
@@ -637,6 +677,7 @@ pub enum AutoCueLevel {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum TimeMode {
     /// Named "Elapsed" in the Rekordbox preferences.
@@ -650,6 +691,7 @@ pub enum TimeMode {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum AutoCue {
     /// Named "OFF" in the Rekordbox preferences.
@@ -663,6 +705,7 @@ pub enum AutoCue {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum JogMode {
     /// Named "VINYL" in the Rekordbox preferences.
@@ -676,6 +719,7 @@ pub enum JogMode {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum TempoRange {
     /// Named "±6" in the Rekordbox preferences.
@@ -696,6 +740,7 @@ pub enum TempoRange {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum MasterTempo {
     /// Named "OFF" in the Rekordbox preferences.
@@ -709,6 +754,7 @@ pub enum MasterTempo {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum Quantize {
     /// Named "OFF" in the Rekordbox preferences.
@@ -722,6 +768,7 @@ pub enum Quantize {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum Sync {
     /// Named "OFF" in the Rekordbox preferences.
@@ -735,6 +782,7 @@ pub enum Sync {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum PhaseMeter {
     /// Named "TYPE 1" in the Rekordbox preferences.
@@ -750,6 +798,7 @@ pub enum PhaseMeter {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum Waveform {
     /// Named "WAVEFORM" in the Rekordbox preferences.
@@ -764,6 +813,7 @@ pub enum Waveform {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum WaveformDivisions {
     /// Named "TIME SCALE" in the Rekordbox preferences.
@@ -778,6 +828,7 @@ pub enum WaveformDivisions {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum VinylSpeedAdjust {
     /// Named "TOUCH & RELEASE" in the Rekordbox preferences.
@@ -794,6 +845,7 @@ pub enum VinylSpeedAdjust {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum BeatJumpBeatValue {
     /// Named "1/2 BEAT" in the Rekordbox preferences.
@@ -827,6 +879,7 @@ pub enum BeatJumpBeatValue {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum Language {
     /// Named "English" in the Rekordbox preferences.
@@ -889,6 +942,7 @@ pub enum Language {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum LCDBrightness {
     /// Named "1" in the Rekordbox preferences.
@@ -913,6 +967,7 @@ pub enum LCDBrightness {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum JogLCDBrightness {
     /// Named "1" in the Rekordbox preferences.
@@ -937,6 +992,7 @@ pub enum JogLCDBrightness {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum JogDisplayMode {
     /// Named "AUTO" in the Rekordbox preferences.
@@ -954,6 +1010,7 @@ pub enum JogDisplayMode {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum SlipFlashing {
     /// Named "OFF" in the Rekordbox preferences.
@@ -967,6 +1024,7 @@ pub enum SlipFlashing {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum OnAirDisplay {
     /// Named "OFF" in the Rekordbox preferences.
@@ -980,6 +1038,7 @@ pub enum OnAirDisplay {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum JogRingBrightness {
     /// Named "OFF" in the Rekordbox preferences.
@@ -997,6 +1056,7 @@ pub enum JogRingBrightness {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum JogRingIndicator {
     /// Named "OFF" in the Rekordbox preferences.
@@ -1010,6 +1070,7 @@ pub enum JogRingIndicator {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum DiscSlotIllumination {
     /// Named "OFF" in the Rekordbox preferences.
@@ -1027,6 +1088,7 @@ pub enum DiscSlotIllumination {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum PadButtonBrightness {
     /// Named "1" in the Rekordbox preferences.
@@ -1048,6 +1110,7 @@ pub enum PadButtonBrightness {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum ChannelFaderCurve {
     /// Steep volume raise when the fader is moved near the top.
@@ -1066,6 +1129,7 @@ pub enum ChannelFaderCurve {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum CrossfaderCurve {
     /// Logarithmic volume raise of the other channel near the edges of the fader.
@@ -1086,6 +1150,7 @@ pub enum CrossfaderCurve {
 /// Rekordbox preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum ChannelFaderCurveLongFader {
     /// Very steep volume raise when the fader is moved the near the top (e.g. y = x⁵).
@@ -1101,6 +1166,7 @@ pub enum ChannelFaderCurveLongFader {
 /// Rekordbox preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum HeadphonesPreEQ {
     /// Named "POST EQ" in the Rekordbox preferences.
@@ -1116,6 +1182,7 @@ pub enum HeadphonesPreEQ {
 /// Rekordbox preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum HeadphonesMonoSplit {
     /// Named "MONO SPLIT" in the Rekordbox preferences.
@@ -1130,6 +1197,7 @@ pub enum HeadphonesMonoSplit {
 /// Rekordbox preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum BeatFXQuantize {
     /// Named "OFF" in the Rekordbox preferences.
@@ -1143,6 +1211,7 @@ pub enum BeatFXQuantize {
 /// Rekordbox preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum MicLowCut {
     /// Named "OFF" in the Rekordbox preferences.
@@ -1156,6 +1225,7 @@ pub enum MicLowCut {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum TalkOverMode {
     /// Named "ADVANCED" in the Rekordbox preferences.
@@ -1169,6 +1239,7 @@ pub enum TalkOverMode {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum TalkOverLevel {
     /// Named "-24dB" in the Rekordbox preferences.
@@ -1190,6 +1261,7 @@ pub enum TalkOverLevel {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum MidiChannel {
     /// Named "1" in the Rekordbox preferences.
@@ -1247,6 +1319,7 @@ pub enum MidiChannel {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum MidiButtonType {
     #[default]
@@ -1260,6 +1333,7 @@ pub enum MidiButtonType {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum MixerDisplayBrightness {
     /// Named "WHITE" in the Rekordbox preferences.
@@ -1286,6 +1360,7 @@ pub enum MixerDisplayBrightness {
 /// preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum MixerIndicatorBrightness {
     /// Named "1" in the Rekordbox preferences.
@@ -1305,6 +1380,7 @@ pub enum MixerIndicatorBrightness {
 /// Found on the "General" page in the Rekordbox preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum WaveformColor {
     /// Named "BLUE" in the Rekordbox preferences.
@@ -1323,6 +1399,7 @@ pub enum WaveformColor {
 /// Found on the "General" page in the Rekordbox preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum WaveformCurrentPosition {
     /// Named "LEFT" in the Rekordbox preferences.
@@ -1337,6 +1414,7 @@ pub enum WaveformCurrentPosition {
 /// Found on the "General" page in the Rekordbox preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum OverviewWaveformType {
     /// Named "Half Waveform" in the Rekordbox preferences.
@@ -1353,6 +1431,7 @@ pub enum OverviewWaveformType {
 /// Found on the "General" page in the Rekordbox preferences.
 #[binrw]
 #[derive(Display, Debug, PartialEq, Eq, Default, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(repr = u8)]
 pub enum KeyDisplayFormat {
     /// Named "Classic" in the Rekordbox preferences.

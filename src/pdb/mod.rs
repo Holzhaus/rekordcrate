@@ -41,6 +41,8 @@ use crate::pdb::offset_array::OffsetSize;
 use crate::pdb::string::DeviceSQLString;
 use crate::util::{parse_at_offsets, write_at_offsets, ColorIndex, FileType, TableIndex};
 use binrw::{binrw, BinRead, BinResult, BinWrite, Endian};
+#[cfg(feature = "json")]
+use serde::Serialize;
 use std::io::{Read, Seek, SeekFrom, Write};
 use thiserror::Error;
 
@@ -58,6 +60,7 @@ pub enum PdbError {
 /// The type of the database were looking at.
 /// This influences the meaning of the the pagetypes found in tables.
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Default)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 pub enum DatabaseType {
     #[default] // use plain by default for use of migration
     /// Standard export.pdb files.
@@ -69,6 +72,7 @@ pub enum DatabaseType {
 /// The type of pages found inside a `Table`.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 #[br(import(db_type: DatabaseType))]
 pub enum PageType {
@@ -85,6 +89,7 @@ pub enum PageType {
 /// The type of pages found inside a `Table` of export.pdb files.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub enum PlainPageType {
     /// Holds rows of track metadata, such as title, artist, genre, artwork ID, playing time, etc.
@@ -151,6 +156,7 @@ pub trait RowVariant {
 /// with the page size (found in the file header).
 #[binrw]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Hash)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct PageIndex(pub(crate) u32);
 
@@ -178,6 +184,7 @@ impl PageIndex {
 /// into groups.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 #[brw(import(db_type: DatabaseType))]
 pub struct Table {
@@ -200,6 +207,7 @@ pub struct Table {
 /// The PDB header structure, including the list of tables.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 #[brw(import(db_type: DatabaseType))]
 pub struct Header {
@@ -250,6 +258,7 @@ impl Header {
 /// An entry in an index page.
 #[binrw]
 #[derive(PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct IndexEntry(u32);
 
@@ -316,6 +325,7 @@ impl fmt::Debug for IndexEntry {
 /// The header of the index-containing part of a page.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 pub struct IndexPageHeader {
     /// Unknown field, usually `0x1fff` or `0x0001`.
     pub unknown_a: u16,
@@ -354,6 +364,7 @@ impl IndexPageHeader {
 /// The content of an index page.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[br(little)]
 #[bw(little, import { page_size: u32 })]
 pub struct IndexPageContent {
@@ -371,6 +382,7 @@ pub struct IndexPageContent {
         Self::total_entries(page_size) - usize::from(header.num_entries)
     ))]
     #[bw(pad_after = 20)]
+    #[cfg_attr(feature = "json", serde(skip))]
     _empty_entries: EmptyIndexEntries,
 }
 
@@ -423,6 +435,7 @@ impl BinWrite for EmptyIndexEntries {
 /// Does not implement `Eq` due to the `Unknown` variant.
 #[binrw]
 #[derive(Debug, PartialEq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[br(little, import { page_size: u32, header: &PageHeader })]
 #[bw(little, import { page_size: u32 })]
 pub enum PageContent {
@@ -497,6 +510,7 @@ impl PageContent {
 /// The header of a page.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 #[br(import(db_type: DatabaseType))]
 pub struct PageHeader {
@@ -549,6 +563,7 @@ impl PageHeader {
 /// offset found in the page footer at the end of the page.
 #[binrw]
 #[derive(Debug, PartialEq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 #[br(import(page_size: u32, db_type: DatabaseType))]
 #[bw(import(page_size: u32))]
@@ -620,6 +635,7 @@ impl Page {
 /// The header of the data-containing part of a page.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 pub struct DataPageHeader {
     /// Unknown field.
     /// Often 1 or 0x1fff; also observed: 8, 27, 22, 17, 2.
@@ -648,6 +664,7 @@ impl DataPageHeader {
 /// The data-containing part of a page.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[br(little, import { page_size: u32, page_header: &PageHeader })]
 #[bw(little, import { page_size: u32 })]
 pub struct DataPageContent {
@@ -668,7 +685,7 @@ pub struct DataPageContent {
     #[br(parse_with = parse_at_offsets(row_groups.iter().flat_map(RowGroup::present_rows_offsets)))]
     // `write_at_offsets` restores the writer position after writing.
     #[bw(write_with = write_at_offsets)]
-    #[br(assert(rows.len() == page_header.packed_row_counts.num_rows_valid().into(), "parsing page {:?}: num_rows_valid {} does not match parsed row count {}", page_header.page_index, page_header.packed_row_counts.num_rows_valid(), rows.len()))]
+    #[br(assert(rows.len() == page_header.packed_row_counts.num_rows_valid() as usize, "parsing page {:?}: num_rows_valid {} does not match parsed row count {}", page_header.page_index, page_header.packed_row_counts.num_rows_valid(), rows.len()))]
     pub rows: BTreeMap<u16, Row>,
 
     // Seek to the end of the data content area.
@@ -737,6 +754,7 @@ impl PageHeapObject for FileType {
 /// table.
 #[binrw]
 #[derive(Debug, Clone, Eq)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 pub struct RowGroup {
     /// An offset which points to a row in the table, whose actual presence is controlled by one of the
     /// bits in `row_present_flags`. This instance allows the row itself to be lazily loaded, unless it
@@ -765,6 +783,7 @@ pub struct RowGroup {
     #[br(temp)]
     #[bw(calc = ())]
     #[brw(seek_before = SeekFrom::Current(-i64::from(Self::BINARY_SIZE)))]
+    #[cfg_attr(feature = "json", serde(skip))]
     _dummy: (),
 }
 
@@ -839,6 +858,7 @@ impl PartialEq for RowGroup {
 /// Carries additional information about a row (if present, always as the first field of a row)
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct Subtype(pub u16);
 
@@ -867,6 +887,7 @@ impl Subtype {
 /// Identifies a track.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct TrackId(pub u32);
 
@@ -880,6 +901,7 @@ impl PageHeapObject for TrackId {
 /// Identifies an artwork item.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct ArtworkId(pub u32);
 
@@ -893,6 +915,7 @@ impl PageHeapObject for ArtworkId {
 /// Identifies an album.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct AlbumId(pub u32);
 
@@ -906,6 +929,7 @@ impl PageHeapObject for AlbumId {
 /// Identifies an artist.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct ArtistId(pub u32);
 
@@ -919,6 +943,7 @@ impl PageHeapObject for ArtistId {
 /// Identifies a genre.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct GenreId(pub u32);
 
@@ -932,6 +957,7 @@ impl PageHeapObject for GenreId {
 /// Identifies a key.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct KeyId(pub u32);
 
@@ -945,6 +971,7 @@ impl PageHeapObject for KeyId {
 /// Identifies a label.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct LabelId(pub u32);
 
@@ -958,6 +985,7 @@ impl PageHeapObject for LabelId {
 /// Identifies a playlist tree node.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct PlaylistTreeNodeId(pub u32);
 
@@ -971,6 +999,7 @@ impl PageHeapObject for PlaylistTreeNodeId {
 /// Identifies a history playlist.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct HistoryPlaylistId(pub u32);
 
@@ -982,6 +1011,7 @@ impl PageHeapObject for HistoryPlaylistId {
 }
 
 #[derive(Debug, PartialEq, Clone, Eq)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 /// Represents a trailing name field at the end of a row, used for album and artist names.
 pub struct TrailingName {
     /// The name a the end of the row this is used in
@@ -1004,6 +1034,7 @@ impl OffsetArrayItems<1> for TrailingName {
 /// Contains the album name, along with an ID of the corresponding artist.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct Album {
     /// Unknown field, usually `80 00`.
@@ -1062,6 +1093,7 @@ impl PageHeapObject for Album {
 /// Contains the artist name and ID.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct Artist {
     /// Determines if the `name` string is located at the 8-bit offset (0x60) or the 16-bit offset (0x64).
@@ -1111,6 +1143,7 @@ impl PageHeapObject for Artist {
 /// Contains the artwork path and ID.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct Artwork {
     /// ID of this row.
@@ -1151,6 +1184,7 @@ impl PageHeapObject for Artwork {
 /// Contains numeric color ID
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct Color {
     /// Unknown field.
@@ -1200,6 +1234,7 @@ impl PageHeapObject for Color {
 /// Represents a musical genre.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct Genre {
     /// ID of this row.
@@ -1240,6 +1275,7 @@ impl PageHeapObject for Genre {
 /// Represents a history playlist.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct HistoryPlaylist {
     /// ID of this row.
@@ -1280,6 +1316,7 @@ impl PageHeapObject for HistoryPlaylist {
 /// Represents a history playlist.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct HistoryEntry {
     /// ID of the track played at this position in the playlist.
@@ -1327,6 +1364,7 @@ impl PageHeapObject for HistoryEntry {
 /// them, so they can be used to track the history of changes to the database.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct History {
     /// Subtype field, in this case usually `80 02` (hex) or `640` (decimal).
@@ -1386,6 +1424,7 @@ impl RowVariant for History {
 /// Represents a musical key.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct Key {
     /// ID of this row.
@@ -1429,6 +1468,7 @@ impl PageHeapObject for Key {
 /// Represents a record label.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct Label {
     /// ID of this row.
@@ -1469,6 +1509,7 @@ impl PageHeapObject for Label {
 /// Represents a node in the playlist tree (either a folder or a playlist).
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct PlaylistTreeNode {
     /// ID of parent row of this row (which means that the parent is a folder).
@@ -1529,6 +1570,7 @@ impl PageHeapObject for PlaylistTreeNode {
 /// Represents a track entry in a playlist.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct PlaylistEntry {
     /// Position within the playlist.
@@ -1573,6 +1615,7 @@ impl PageHeapObject for PlaylistEntry {
 /// on CDJs.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct ColumnEntry {
     // Possibly the primary key, though I don't know if that would
@@ -1623,6 +1666,7 @@ impl PageHeapObject for ColumnEntry {
 }
 
 #[derive(Debug, PartialEq, Clone, Eq)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 /// String fields stored via the offset table in Track rows
 pub struct TrackStrings {
     /// International Standard Recording Code (ISRC), in mangled format.
@@ -1732,6 +1776,7 @@ impl OffsetArrayItems<21> for TrackStrings {
 /// Contains the album name, along with an ID of the corresponding artist.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct Track {
     /// Unknown field, usually `24 00`.
@@ -1865,6 +1910,7 @@ impl PageHeapObject for Track {
 /// Visibility state for a Menu on the CDJ.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub enum MenuVisibility {
     /// The menu is visible.
@@ -1887,6 +1933,7 @@ impl PageHeapObject for MenuVisibility {
 /// This table defines the active menus on the CDJ.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct Menu {
     /// Determines the Label (e.g. "ARTIST").
@@ -1952,6 +1999,7 @@ impl RowVariant for Menu {
 /// A table row contains the actual data.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 #[br(import(page_type: PlainPageType))]
 // The large enum size is unfortunate, but since users of this library will probably use iterators
@@ -2041,6 +2089,7 @@ impl PageHeapObject for PlainRow {
 /// A table row contains the actual data.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 #[br(import(page_type: PageType))]
 // The large enum size is unfortunate, but since users of this library will probably use iterators

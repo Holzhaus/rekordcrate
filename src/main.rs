@@ -7,13 +7,15 @@
 // SPDX-License-Identifier: MPL-2.0
 
 use binrw::BinRead;
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use fallible_iterator::FallibleIterator;
 use rekordcrate::device::get_playlists;
 use rekordcrate::pdb::io::Database;
 use rekordcrate::pdb::*;
 use rekordcrate::setting::{Setting, SettingType};
 use rekordcrate::{anlz::ANLZ, util::TableIndex};
+#[cfg(feature = "json")]
+use serde::Serialize;
 use std::collections::BTreeMap;
 use std::fs::File;
 use std::path::{Path, PathBuf};
@@ -24,6 +26,18 @@ use std::path::{Path, PathBuf};
 struct Cli {
     #[command(subcommand)]
     command: Commands,
+}
+
+/// Output format for the dump commands. The `Json` variant is only available when the
+/// `json` feature is enabled; clap's derive drops it from `--format`'s allowed values when absent.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]
+enum DumpFormat {
+    #[default]
+    #[value(name = "debug")]
+    Debug,
+    #[cfg(feature = "json")]
+    #[value(name = "json")]
+    Json,
 }
 
 #[derive(Subcommand)]
@@ -54,6 +68,9 @@ enum Commands {
         /// File to parse.
         #[arg(value_name = "ANLZ_FILE")]
         path: PathBuf,
+        /// Output format.
+        #[arg(long, short = 'f', value_enum, default_value_t = DumpFormat::Debug)]
+        format: DumpFormat,
     },
     /// Parse and dump a Pioneer Database (`.PDB`) file.
     DumpPDB {
@@ -66,6 +83,9 @@ enum Commands {
         /// Attempt to parse unknown table types instead of skipping them.
         #[arg(long)]
         parse_unknown_tables: bool,
+        /// Output format.
+        #[arg(long, short = 'f', value_enum, default_value_t = DumpFormat::Debug)]
+        format: DumpFormat,
     },
     /// Parse and dump a Pioneer Settings (`*SETTING.DAT`) file.
     DumpSetting {
@@ -75,6 +95,9 @@ enum Commands {
         /// Setting type.
         #[arg(long, value_name = "SETTING_TYPE", value_parser = ["devsetting", "djmmysetting", "mysetting", "mysetting2"])]
         setting_type: Option<String>,
+        /// Output format.
+        #[arg(long, short = 'f', value_enum, default_value_t = DumpFormat::Debug)]
+        format: DumpFormat,
     },
     /// Parse and dump a Pioneer XML (`*.xml`) file.
     #[cfg(feature = "xml")]
@@ -87,7 +110,7 @@ enum Commands {
 
 fn list_playlists(path: &Path) -> rekordcrate::Result<()> {
     use rekordcrate::pdb::{PlaylistTreeNode, PlaylistTreeNodeId};
-    use std::collections::{BTreeMap, HashMap};
+    use std::collections::HashMap;
 
     let reader = File::open(path)?;
     let mut db = Database::open_non_persistent(reader, DatabaseType::Plain)?;
@@ -267,17 +290,72 @@ fn list_settings(path: &Path) -> rekordcrate::Result<()> {
     Ok(())
 }
 
-fn dump_anlz(path: &Path) -> rekordcrate::Result<()> {
+fn dump_anlz(path: &Path, format: DumpFormat) -> rekordcrate::Result<()> {
     let mut reader = File::open(path)?;
     let anlz = ANLZ::read(&mut reader)?;
-    println!("{:#?}", anlz);
+    match format {
+        #[cfg(feature = "json")]
+        DumpFormat::Json => println!("{}", serde_json::to_string_pretty(&anlz)?),
+        DumpFormat::Debug => println!("{:#?}", anlz),
+    }
 
     Ok(())
 }
 
-fn dump_pdb(path: &Path, typ: DatabaseType, parse_unknown_tables: bool) -> rekordcrate::Result<()> {
+/// A table and all of its pages, for JSON serialization.
+#[cfg(feature = "json")]
+#[derive(Serialize)]
+struct TableDump {
+    page_type: PageType,
+    pages: Vec<Page>,
+}
+
+/// The full PDB dump (header + tables), for JSON serialization.
+#[cfg(feature = "json")]
+#[derive(Serialize)]
+struct PdbDump {
+    header: Header,
+    tables: Vec<TableDump>,
+}
+
+fn dump_pdb(
+    path: &Path,
+    typ: DatabaseType,
+    parse_unknown_tables: bool,
+    format: DumpFormat,
+) -> rekordcrate::Result<()> {
     let reader = File::open(path)?;
     let mut db = Database::open_non_persistent(reader, typ)?;
+
+    // `format` is only consulted under the json feature; bind it to avoid an unused-variable
+    // warning when building with `cli` alone.
+    #[cfg(not(feature = "json"))]
+    let _ = format;
+
+    #[cfg(feature = "json")]
+    if matches!(format, DumpFormat::Json) {
+        let header = db.get_header().clone();
+        let mut tables = Vec::new();
+        for (i, table) in header.tables.iter().enumerate() {
+            let id = TableIndex::from(i);
+            // Honor the same skip rule as the debug path so JSON output stays consistent.
+            if matches!(table.page_type, PageType::Unknown(_)) && !parse_unknown_tables {
+                continue;
+            }
+            let mut pages = Vec::new();
+            let mut page_iter = db.iter_pages_for_table(id)?;
+            while let Some(page) = page_iter.next()? {
+                pages.push(page.clone());
+            }
+            tables.push(TableDump {
+                page_type: table.page_type,
+                pages,
+            });
+        }
+        let dump = PdbDump { header, tables };
+        println!("{}", serde_json::to_string_pretty(&dump)?);
+        return Ok(());
+    }
 
     println!("{:#?}", db.get_header());
 
@@ -320,11 +398,19 @@ fn dump_pdb(path: &Path, typ: DatabaseType, parse_unknown_tables: bool) -> rekor
     Ok(())
 }
 
-fn dump_setting(path: &Path, setting_type: SettingType) -> rekordcrate::Result<()> {
+fn dump_setting(
+    path: &Path,
+    setting_type: SettingType,
+    format: DumpFormat,
+) -> rekordcrate::Result<()> {
     let mut reader = File::open(path)?;
     let setting = Setting::read_args(&mut reader, (setting_type,))?;
 
-    println!("{:#04x?}", setting);
+    match format {
+        #[cfg(feature = "json")]
+        DumpFormat::Json => println!("{}", serde_json::to_string_pretty(&setting)?),
+        DumpFormat::Debug => println!("{:#04x?}", setting),
+    }
 
     Ok(())
 }
@@ -422,20 +508,25 @@ fn main() -> rekordcrate::Result<()> {
             path,
             db_type,
             parse_unknown_tables,
+            format,
         } => {
             let db_type = match guess_db_type(path, db_type.as_deref()) {
                 Some(db_type) => db_type,
                 None => return Ok(()), // TODO(Swiftb0y): turn into proper error;
             };
-            dump_pdb(path, db_type, *parse_unknown_tables)
+            dump_pdb(path, db_type, *parse_unknown_tables, *format)
         }
-        Commands::DumpANLZ { path } => dump_anlz(path),
-        Commands::DumpSetting { path, setting_type } => {
+        Commands::DumpANLZ { path, format } => dump_anlz(path, *format),
+        Commands::DumpSetting {
+            path,
+            setting_type,
+            format,
+        } => {
             let setting_type = match guess_setting_type(path, setting_type.as_deref()) {
                 Some(setting_type) => setting_type,
                 None => return Ok(()), // TODO: turn into proper error
             };
-            dump_setting(path, setting_type)
+            dump_setting(path, setting_type, *format)
         }
         #[cfg(feature = "xml")]
         Commands::DumpXML { path } => dump_xml(path),

@@ -14,6 +14,8 @@
 use super::PageHeapObject;
 use crate::pdb::offset_array::OffsetArrayItemAlignment;
 use binrw::binrw;
+#[cfg(feature = "json")]
+use serde::{Serialize, Serializer};
 use std::{convert::TryInto, fmt, str::FromStr};
 use thiserror::Error;
 
@@ -60,6 +62,17 @@ pub enum StringError {
 #[binrw]
 #[brw(little)]
 pub struct DeviceSQLString(DeviceSQLStringImpl);
+
+#[cfg(feature = "json")]
+impl Serialize for DeviceSQLString {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.to_string())
+    }
+}
+
 impl DeviceSQLString {
     /// Initializes a [`DeviceSQLString`] from a plain Rust [`std::string::String`]
     pub fn new(string: &str) -> Result<Self, StringError> {
