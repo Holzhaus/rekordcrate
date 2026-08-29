@@ -1,10 +1,10 @@
 #[test]
 #[allow(non_snake_case)]
 fn setting_{name}() {{
-    println!("Parsing file: {filepath}");
-    let data = include_bytes!("{filepath}").as_slice();
+    println!(r#"Parsing file: {filepath}"#);
+    let data = include_bytes!(r#"{filepath}"#).as_slice();
     let mut reader = Cursor::new(data);
-    let setting_type = SettingType::from_filename("{filepath}").expect("failed to determine settings file type");
+    let setting_type = SettingType::from_filename(r#"{filepath}"#).expect("failed to determine settings file type");
     let setting = Setting::read_args(&mut reader, (setting_type,)).expect("failed to parse setting file");
     println!("Setting file: {{:#?}}", setting);
 

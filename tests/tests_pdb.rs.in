@@ -1,8 +1,8 @@
 #[test]
 #[allow(non_snake_case)]
 fn pdb_{name}() {{
-    println!("Parsing file: {filepath}");
-    let data = include_bytes!("{filepath}").as_slice();
+    println!(r#"Parsing file: {filepath}"#);
+    let data = include_bytes!(r#"{filepath}"#).as_slice();
     let mut reader = Cursor::new(data);
     let mut db = Database::open_non_persistent(&mut reader, DatabaseType::Plain).expect("failed to open database");
     println!("{{:#?}}", db.get_header());
