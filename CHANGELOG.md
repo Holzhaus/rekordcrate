@@ -39,6 +39,7 @@ All notable changes to this project will be documented in this file.
 - xml: Do not error on empty playlist nodes
 - pdb: Align Ucs2le strings to 4 bytes
 - cli: Make DumpFormat impl ValueEnum without the json feature
+- anlz: Correct waveform data structure bugs and add missing PWVC section
 
 ### Documentation
 
