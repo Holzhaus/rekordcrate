@@ -9,6 +9,7 @@
 use binrw::BinRead;
 use clap::{Parser, Subcommand, ValueEnum};
 use fallible_iterator::FallibleIterator;
+use rekordcrate::anlz::{Content, Cue, CueListType, CueType, ExtendedCue};
 use rekordcrate::device::get_playlists;
 use rekordcrate::pdb::io::Database;
 use rekordcrate::pdb::*;
@@ -17,6 +18,7 @@ use rekordcrate::{anlz::ANLZ, util::TableIndex};
 #[cfg(feature = "json")]
 use serde::Serialize;
 use std::collections::BTreeMap;
+use std::fmt::Write as _;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 
@@ -71,6 +73,15 @@ enum Commands {
         /// Output format.
         #[arg(long, short = 'f', value_enum, default_value_t = DumpFormat::Debug)]
         format: DumpFormat,
+    },
+    /// List visible cues from a Rekordbox Analysis (`ANLZXXXX.DAT`) file.
+    ListCues {
+        /// `.DAT` file to parse.
+        #[arg(value_name = "DAT_FILE")]
+        path: PathBuf,
+        /// Skip reading the sibling `.EXT` file.
+        #[arg(long)]
+        no_ext: bool,
     },
     /// Parse and dump a Pioneer Database (`.PDB`) file.
     DumpPDB {
@@ -318,6 +329,256 @@ struct PdbDump {
     tables: Vec<TableDump>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct VisibleCue {
+    hot_cue: Option<u32>,
+    time: u32,
+    loop_time: Option<u32>,
+    color_rgb: Option<(u8, u8, u8)>,
+    palette_index: Option<u8>,
+    comment: Option<String>,
+    quantization: Option<(u16, u16)>,
+}
+
+impl VisibleCue {
+    fn from_dat(cue: &Cue) -> Self {
+        Self {
+            hot_cue: (cue.hot_cue != 0).then_some(cue.hot_cue),
+            time: cue.time,
+            loop_time: matches!(cue.cue_type, CueType::Loop).then_some(cue.loop_time),
+            color_rgb: None,
+            palette_index: None,
+            comment: None,
+            quantization: None,
+        }
+    }
+
+    fn from_ext(cue: &ExtendedCue) -> Self {
+        Self {
+            hot_cue: (cue.hot_cue != 0).then_some(cue.hot_cue),
+            time: cue.time,
+            loop_time: matches!(cue.cue_type, CueType::Loop).then_some(cue.loop_time),
+            color_rgb: (cue.hot_cue_color_rgb != (0, 0, 0)).then_some(cue.hot_cue_color_rgb),
+            palette_index: (cue.hot_cue_color_index != 0).then_some(cue.hot_cue_color_index),
+            comment: {
+                let comment = cue.comment.to_string();
+                (!comment.is_empty()).then_some(comment)
+            },
+            quantization: (cue.loop_numerator != 0 && cue.loop_denominator != 0)
+                .then_some((cue.loop_numerator, cue.loop_denominator)),
+        }
+    }
+
+    fn is_loop(&self) -> bool {
+        self.loop_time.is_some()
+    }
+}
+
+#[derive(Debug, Default, PartialEq, Eq)]
+struct CueCollections {
+    hot_cues: Vec<VisibleCue>,
+    memory_cues: Vec<VisibleCue>,
+}
+
+fn read_anlz(path: &Path) -> rekordcrate::Result<ANLZ> {
+    let mut reader = File::open(path)?;
+    Ok(ANLZ::read(&mut reader)?)
+}
+
+fn collect_cues(anlz: &ANLZ) -> CueCollections {
+    let mut collections = CueCollections::default();
+    for section in &anlz.sections {
+        match &section.content {
+            Content::CueList(list) => match list.list_type {
+                CueListType::HotCues => collections.hot_cues.extend(
+                    list.cues
+                        .iter()
+                        .filter(|cue| cue.hot_cue != 0)
+                        .map(VisibleCue::from_dat),
+                ),
+                CueListType::MemoryCues => collections
+                    .memory_cues
+                    .extend(list.cues.iter().map(VisibleCue::from_dat)),
+            },
+            Content::ExtendedCueList(list) => match list.list_type {
+                CueListType::HotCues => collections.hot_cues.extend(
+                    list.cues
+                        .iter()
+                        .filter(|cue| cue.hot_cue != 0)
+                        .map(VisibleCue::from_ext),
+                ),
+                CueListType::MemoryCues => collections
+                    .memory_cues
+                    .extend(list.cues.iter().map(VisibleCue::from_ext)),
+            },
+            _ => {}
+        }
+    }
+    collections
+}
+
+fn detect_ext_path(dat_path: &Path) -> Option<PathBuf> {
+    let uppercase = dat_path.with_extension("EXT");
+    if uppercase.exists() {
+        return Some(uppercase);
+    }
+
+    let lowercase = dat_path.with_extension("ext");
+    lowercase.exists().then_some(lowercase)
+}
+
+fn format_timestamp(ms: u32) -> String {
+    let total_seconds = ms / 1000;
+    let milliseconds = ms % 1000;
+    let seconds = total_seconds % 60;
+    let minutes = (total_seconds / 60) % 60;
+    let hours = total_seconds / 3600;
+
+    if hours > 0 {
+        format!("{hours:02}:{minutes:02}:{seconds:02}.{milliseconds:03}")
+    } else {
+        format!("{minutes:02}:{seconds:02}.{milliseconds:03}")
+    }
+}
+
+fn hot_cue_label(slot: u32) -> String {
+    if (1..=26).contains(&slot) {
+        char::from_u32(u32::from(b'A') + slot - 1)
+            .map(|c| c.to_string())
+            .unwrap_or_else(|| slot.to_string())
+    } else {
+        slot.to_string()
+    }
+}
+
+fn format_cue_line(label: &str, cue: &VisibleCue) -> String {
+    let timing = match cue.loop_time {
+        Some(loop_time) => format!(
+            "{} -> {}",
+            format_timestamp(cue.time),
+            format_timestamp(loop_time)
+        ),
+        None => format_timestamp(cue.time),
+    };
+    let mut details = vec![if cue.is_loop() { "loop" } else { "point" }.to_string()];
+
+    if let Some(color_rgb) = cue.color_rgb {
+        details.push(format!(
+            "color=#{:02x}{:02x}{:02x}",
+            color_rgb.0, color_rgb.1, color_rgb.2
+        ));
+    }
+    if let Some(palette_index) = cue.palette_index {
+        details.push(format!("palette={palette_index}"));
+    }
+    if let Some((numerator, denominator)) = cue.quantization {
+        details.push(format!("quantized={numerator}/{denominator}"));
+    }
+    if let Some(comment) = &cue.comment {
+        details.push(format!("comment={comment:?}"));
+    }
+
+    format!("  {label:<2} {timing:<29} {}", details.join("  "))
+}
+
+fn merge_cues(
+    dat: CueCollections,
+    ext: Option<CueCollections>,
+) -> (Vec<VisibleCue>, Vec<VisibleCue>) {
+    let Some(ext) = ext else {
+        return (dat.hot_cues, dat.memory_cues);
+    };
+
+    // Extended cue lists carry the complete set when present.  Keep the DAT
+    // values only as a fallback for exports that have no corresponding list.
+    let hot_cues = if ext.hot_cues.is_empty() {
+        dat.hot_cues
+    } else {
+        ext.hot_cues
+    };
+    let memory_cues = if ext.memory_cues.is_empty() {
+        dat.memory_cues
+    } else {
+        ext.memory_cues
+    };
+    (hot_cues, memory_cues)
+}
+
+fn generate_cue_report(dat_path: &Path, ext_path: Option<&Path>) -> rekordcrate::Result<String> {
+    let dat = collect_cues(&read_anlz(dat_path)?);
+    let mut notes = Vec::new();
+    let ext = match ext_path {
+        Some(path) => match read_anlz(path) {
+            Ok(anlz) => Some(collect_cues(&anlz)),
+            Err(_) => {
+                notes.push(format!(
+                    "Skipping sibling .EXT at {} because it could not be parsed.",
+                    path.display()
+                ));
+                None
+            }
+        },
+        None => None,
+    };
+    let loaded_ext = ext.is_some();
+    let (mut hot_cues, memory_cues) = merge_cues(dat, ext);
+    hot_cues.sort_by_key(|cue| cue.hot_cue.unwrap_or(0));
+
+    let mut output = String::new();
+    writeln!(
+        &mut output,
+        "Source: {}{}",
+        dat_path.display(),
+        if loaded_ext { " + sibling .EXT" } else { "" }
+    )
+    .expect("writing to String cannot fail");
+    writeln!(&mut output).expect("writing to String cannot fail");
+    writeln!(&mut output, "Hot cues").expect("writing to String cannot fail");
+    if hot_cues.is_empty() {
+        writeln!(&mut output, "  <none>").expect("writing to String cannot fail");
+    } else {
+        for cue in &hot_cues {
+            let slot = cue.hot_cue.expect("hot cues have a slot");
+            writeln!(
+                &mut output,
+                "{}",
+                format_cue_line(&hot_cue_label(slot), cue)
+            )
+            .expect("writing to String cannot fail");
+        }
+    }
+
+    writeln!(&mut output).expect("writing to String cannot fail");
+    writeln!(&mut output, "Memory cues").expect("writing to String cannot fail");
+    if memory_cues.is_empty() {
+        writeln!(&mut output, "  <none>").expect("writing to String cannot fail");
+    } else {
+        for (index, cue) in memory_cues.iter().enumerate() {
+            writeln!(
+                &mut output,
+                "{}",
+                format_cue_line(&(index + 1).to_string(), cue)
+            )
+            .expect("writing to String cannot fail");
+        }
+    }
+
+    if !notes.is_empty() {
+        writeln!(&mut output).expect("writing to String cannot fail");
+        writeln!(&mut output, "Notes").expect("writing to String cannot fail");
+        for note in notes {
+            writeln!(&mut output, "  - {note}").expect("writing to String cannot fail");
+        }
+    }
+    Ok(output)
+}
+
+fn list_cues(path: &Path, no_ext: bool) -> rekordcrate::Result<()> {
+    let ext_path = if no_ext { None } else { detect_ext_path(path) };
+    print!("{}", generate_cue_report(path, ext_path.as_deref())?);
+    Ok(())
+}
+
 fn dump_pdb(
     path: &Path,
     typ: DatabaseType,
@@ -517,6 +778,7 @@ fn main() -> rekordcrate::Result<()> {
             dump_pdb(path, db_type, *parse_unknown_tables, *format)
         }
         Commands::DumpANLZ { path, format } => dump_anlz(path, *format),
+        Commands::ListCues { path, no_ext } => list_cues(path, *no_ext),
         Commands::DumpSetting {
             path,
             setting_type,
@@ -530,5 +792,74 @@ fn main() -> rekordcrate::Result<()> {
         }
         #[cfg(feature = "xml")]
         Commands::DumpXML { path } => dump_xml(path),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{detect_ext_path, format_timestamp, generate_cue_report};
+    use std::path::PathBuf;
+
+    fn dat_path() -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("data/cues/3-ab-loop-4/USBANLZ/P009/000244B1/ANLZ0000.DAT")
+    }
+
+    #[test]
+    fn detects_sibling_ext_file() {
+        let dat = dat_path();
+        assert_eq!(detect_ext_path(&dat), Some(dat.with_extension("EXT")));
+    }
+
+    #[test]
+    fn lists_dat_hot_cues_and_loop_timing_without_ext_metadata() {
+        let report = generate_cue_report(&dat_path(), None).expect("DAT fixture should parse");
+
+        assert!(report.contains("Hot cues"));
+        assert!(report.contains("  A  00:00.985"));
+        assert!(report.contains("  B  00:02.905 -> 00:04.825"));
+        assert!(report.contains("point"));
+        assert!(report.contains("loop"));
+        assert!(!report.contains("color="));
+        assert!(!report.contains("sibling .EXT"));
+    }
+
+    #[test]
+    fn loads_extended_cue_metadata_from_sibling_ext() {
+        let dat = dat_path();
+        let ext = dat.with_extension("EXT");
+        let report = generate_cue_report(&dat, Some(&ext)).expect("ANLZ fixtures should parse");
+
+        assert!(report.contains("+ sibling .EXT"));
+        assert!(report.contains("color=#4d00ff"));
+        assert!(!report.contains("Notes"));
+    }
+
+    #[test]
+    fn no_ext_mode_keeps_dat_output_even_when_ext_exists() {
+        let dat = dat_path();
+        let without_ext = generate_cue_report(&dat, None).expect("DAT fixture should parse");
+        let with_ext = generate_cue_report(&dat, Some(&dat.with_extension("EXT")))
+            .expect("ANLZ fixtures should parse");
+
+        assert!(!without_ext.contains("color="));
+        assert!(with_ext.contains("color=#4d00ff"));
+    }
+
+    #[test]
+    fn preserves_dat_memory_cues_when_ext_has_no_memory_list() {
+        let dat = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("data/cues/with-memory/USBANLZ/P009/000244B1/ANLZ0000.DAT");
+        let report = generate_cue_report(&dat, Some(&dat.with_extension("EXT")))
+            .expect("ANLZ fixtures should parse");
+
+        assert!(report.contains("  1  00:10.000 -> 00:14.000"));
+        assert!(report.contains("  2  00:20.000 -> 00:24.000"));
+    }
+
+    #[test]
+    fn formats_long_timestamps_and_non_letter_slots() {
+        assert_eq!(format_timestamp(3_661_007), "01:01:01.007");
+        assert_eq!(super::hot_cue_label(27), "27");
     }
 }
