@@ -37,6 +37,7 @@ use binrw::{
 use modular_bitfield::prelude::*;
 #[cfg(feature = "json")]
 use serde::{Serialize, Serializer};
+use std::io::{Error as IoError, ErrorKind};
 
 #[cfg(feature = "json")]
 fn serialize_null_wide_string<S>(nws: &NullWideString, serializer: S) -> Result<S::Ok, S::Error>
@@ -269,21 +270,92 @@ pub struct Cue {
 ///                   <------------------------------>
 ///                            <length> bytes
 /// ```
-/// Used for the `comment` field in the `ExtendedCue` section.
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "json", derive(Serialize))]
 pub struct LenPrefixedWideString(pub String);
+
+fn utf16be_byte_len(value: &str) -> u32 {
+    if value.is_empty() {
+        0
+    } else {
+        (value.encode_utf16().count() as u32 + 1) * 2
+    }
+}
+
+fn read_utf16be_body<R: Read + Seek>(reader: &mut R, len: u32) -> BinResult<String> {
+    let len = len as usize;
+    if len == 0 {
+        return Ok(String::new());
+    }
+    if !len.is_multiple_of(2) {
+        return Err(binrw::Error::Custom {
+            pos: reader.stream_position().unwrap_or(0),
+            err: Box::new(IoError::new(
+                ErrorKind::InvalidData,
+                "UTF-16BE comment length is not even",
+            )),
+        });
+    }
+
+    let mut bytes = vec![0u8; len];
+    reader.read_exact(&mut bytes)?;
+    let code_units: Vec<u16> = bytes
+        .as_chunks::<2>()
+        .0
+        .iter()
+        .map(|c| u16::from_be_bytes([c[0], c[1]]))
+        .collect();
+    if code_units.last() != Some(&0) {
+        return Err(binrw::Error::Custom {
+            pos: reader.stream_position().unwrap_or(0),
+            err: Box::new(IoError::new(
+                ErrorKind::InvalidData,
+                "UTF-16BE comment is missing its NUL terminator",
+            )),
+        });
+    }
+
+    String::from_utf16(&code_units[..code_units.len() - 1]).map_err(|e| binrw::Error::Custom {
+        pos: reader.stream_position().unwrap_or(0),
+        err: Box::new(e),
+    })
+}
+
+fn write_utf16be_body<W: Write + Seek>(value: &str, writer: &mut W, len: u32) -> BinResult<()> {
+    if len != utf16be_byte_len(value) {
+        return Err(binrw::Error::Custom {
+            pos: writer.stream_position().unwrap_or(0),
+            err: Box::new(IoError::new(
+                ErrorKind::InvalidData,
+                "UTF-16BE comment length does not match its contents",
+            )),
+        });
+    }
+    if len == 0 {
+        return Ok(());
+    }
+
+    for code_unit in value.encode_utf16() {
+        writer.write_all(&code_unit.to_be_bytes())?;
+    }
+    writer.write_all(&[0, 0])?;
+    Ok(())
+}
 
 impl LenPrefixedWideString {
     /// Returns the number of bytes required to encode this string as UTF-16BE
     /// with a trailing NUL terminator (excluding the length prefix).
     #[must_use]
     pub fn byte_len(&self) -> u32 {
-        if self.0.is_empty() {
-            0
-        } else {
-            (self.0.encode_utf16().count() as u32 + 1) * 2
-        }
+        utf16be_byte_len(&self.0)
+    }
+
+    fn read_body<R: Read + Seek>(reader: &mut R, len: u32) -> BinResult<Self> {
+        read_utf16be_body(reader, len).map(Self)
+    }
+
+    fn write_body<W: Write + Seek>(&self, writer: &mut W, len: u32) -> BinResult<()> {
+        write_utf16be_body(&self.0, writer, len)
     }
 }
 
@@ -316,25 +388,7 @@ impl BinRead for LenPrefixedWideString {
         _args: Self::Args<'_>,
     ) -> BinResult<Self> {
         let len: u32 = u32::read_options(reader, endian, ())?;
-        let len = len as usize;
-        if len == 0 {
-            return Ok(Self(String::new()));
-        }
-        let mut bytes = vec![0u8; len];
-        reader.read_exact(&mut bytes)?;
-        let code_units: Vec<u16> = bytes
-            .as_chunks::<2>()
-            .0
-            .iter()
-            .map(|c| u16::from_be_bytes([c[0], c[1]]))
-            .collect();
-        let s = String::from_utf16(&code_units)
-            .map(|s| s.trim_end_matches('\0').to_string())
-            .map_err(|e| binrw::Error::Custom {
-                pos: reader.stream_position().unwrap_or(0),
-                err: Box::new(e),
-            })?;
-        Ok(Self(s))
+        Self::read_body(reader, len)
     }
 }
 
@@ -347,17 +401,52 @@ impl BinWrite for LenPrefixedWideString {
         endian: Endian,
         _args: Self::Args<'_>,
     ) -> BinResult<()> {
-        let bl = self.byte_len();
-        bl.write_options(writer, endian, ())?;
-        if bl > 0 {
-            let mut bytes: Vec<u8> = Vec::new();
-            for cu in self.0.encode_utf16() {
-                bytes.extend_from_slice(&cu.to_be_bytes());
-            }
-            bytes.extend_from_slice(&[0, 0]);
-            writer.write_all(&bytes)?;
-        }
-        Ok(())
+        let len = self.byte_len();
+        len.write_options(writer, endian, ())?;
+        self.write_body(writer, len)
+    }
+}
+
+/// A UTF-16BE string body with a trailing NUL terminator.
+///
+/// The length prefix is stored separately by [`ExtendedCue`].
+#[derive(Debug, Default, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
+pub struct Utf16BeString(pub String);
+
+impl Utf16BeString {
+    /// Returns the number of bytes required to encode this string with its trailing NUL.
+    #[must_use]
+    pub fn byte_len(&self) -> u32 {
+        utf16be_byte_len(&self.0)
+    }
+
+    fn read_body<R: Read + Seek>(reader: &mut R, len: u32) -> BinResult<Self> {
+        read_utf16be_body(reader, len).map(Self)
+    }
+
+    fn write_body<W: Write + Seek>(&self, writer: &mut W, len: u32) -> BinResult<()> {
+        write_utf16be_body(&self.0, writer, len)
+    }
+}
+
+impl From<String> for Utf16BeString {
+    fn from(s: String) -> Self {
+        Self(s)
+    }
+}
+
+impl From<&str> for Utf16BeString {
+    fn from(s: &str) -> Self {
+        Self(s.to_string())
+    }
+}
+
+impl std::ops::Deref for Utf16BeString {
+    type Target = str;
+
+    fn deref(&self) -> &str {
+        &self.0
     }
 }
 
@@ -402,9 +491,14 @@ pub struct ExtendedCue {
     pub loop_numerator: u16,
     /// Represents the loop size denominator (if this is a quantized loop).
     pub loop_denominator: u16,
-    /// An UTF-16BE encoded string with a leading `u32` length prefix and a
-    /// trailing NUL (`0x0000`).
-    pub comment: LenPrefixedWideString,
+    /// Length of the comment string in bytes, including its trailing NUL.
+    #[br(temp)]
+    #[bw(calc = comment.byte_len())]
+    len_comment: u32,
+    /// An UTF-16BE encoded string with a trailing NUL (`0x0000`).
+    #[br(args(len_comment), parse_with = Self::read_comment)]
+    #[bw(args(len_comment), write_with = Self::write_comment)]
+    pub comment: Utf16BeString,
     /// Rekordbox hotcue color index.
     ///
     /// | Value  | Color                       |
@@ -493,8 +587,37 @@ pub struct ExtendedCue {
     ///
     /// Per the Kaitai spec, the entry may contain extra data beyond the known fields;
     /// any remaining bytes are captured here.
-    #[br(count = header.total_size.saturating_sub(68 + comment.byte_len()) as usize)]
+    #[br(count = header.total_size.saturating_sub(68 + len_comment) as usize)]
     pub trailing: Vec<u8>,
+}
+
+impl ExtendedCue {
+    /// Total size of an extended cue entry excluding the comment body and trailing bytes.
+    const BASE_TOTAL_SIZE: u32 = 68;
+
+    fn read_comment<R: Read + Seek>(
+        reader: &mut R,
+        _endian: Endian,
+        (len_comment,): (u32,),
+    ) -> BinResult<Utf16BeString> {
+        Utf16BeString::read_body(reader, len_comment)
+    }
+
+    fn write_comment<W: Write + Seek>(
+        comment: &Utf16BeString,
+        writer: &mut W,
+        _endian: Endian,
+        (len_comment,): (u32,),
+    ) -> BinResult<()> {
+        comment.write_body(writer, len_comment)
+    }
+
+    /// Replace the cue comment and keep the serialized entry size in sync.
+    pub fn set_comment<S: Into<String>>(&mut self, comment: S) {
+        self.comment = Utf16BeString::from(comment.into());
+        self.header.total_size =
+            Self::BASE_TOTAL_SIZE + self.comment.byte_len() + self.trailing.len() as u32;
+    }
 }
 
 impl Default for WaveformPreviewColumn {
@@ -1345,7 +1468,7 @@ mod tests {
         // Real ExtendedCue with an empty comment (len_comment=0), extracted
         // from a file provided by @FizzyApple12
         // This would have failed to parse before the fix that replaced
-        // NullWideString with LenPrefixedWideString for the `comment` field.
+        // NullWideString with Utf16BeString for the `comment` field.
         let raw = [
             0x50, 0x43, 0x50, 0x32, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x58, 0x00, 0x00,
             0x00, 0x04, 0x01, 0x00, 0x03, 0xe8, 0x00, 0x04, 0x62, 0xf7, 0xff, 0xff, 0xff, 0xff,
@@ -1374,7 +1497,7 @@ mod tests {
             unknown5: 0,
             loop_numerator: 0,
             loop_denominator: 0,
-            comment: LenPrefixedWideString(String::new()),
+            comment: Utf16BeString(String::new()),
             hot_cue_color_index: 0,
             hot_cue_color_rgb: (0x4d, 0x00, 0xff),
             unknown6: 0,
@@ -1542,5 +1665,57 @@ mod tests {
         assert_eq!(entry.height(), 4);
         assert_eq!(entry.low_bits(), 1);
         assert_eq!(entry.into_bytes(), [0xd1, 0x48]);
+    }
+
+    #[test]
+    fn extended_cue_set_comment_updates_total_size() {
+        // Same fixture as extended_cue_empty_comment_roundtrip.
+        let raw = [
+            0x50, 0x43, 0x50, 0x32, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x58, 0x00, 0x00,
+            0x00, 0x04, 0x01, 0x00, 0x03, 0xe8, 0x00, 0x04, 0x62, 0xf7, 0xff, 0xff, 0xff, 0xff,
+            0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x4d, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0xc1, 0x70, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x30,
+            0x77, 0x61, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x00,
+            0x00, 0x00, 0x00, 0x00,
+        ];
+
+        let mut cue = ExtendedCue::read(&mut binrw::io::Cursor::new(&raw[..])).unwrap();
+        assert_eq!(cue.header.total_size, 88);
+        assert!(cue.comment.is_empty());
+
+        cue.set_comment("Test");
+        // 68 byte base + 10 byte comment ((4 + 1) * 2) + 20 byte trailing.
+        assert_eq!(cue.comment.byte_len(), 10);
+        assert_eq!(cue.header.total_size, 98);
+        assert_eq!(cue.comment.0, "Test");
+
+        let mut writer = binrw::io::Cursor::new(Vec::new());
+        cue.write(&mut writer).unwrap();
+        let encoded = writer.into_inner();
+        assert_eq!(&encoded[40..44], &[0, 0, 0, 10]);
+        let reparsed = ExtendedCue::read(&mut binrw::io::Cursor::new(&encoded[..])).unwrap();
+        assert_eq!(reparsed.header.total_size, 98);
+        assert_eq!(reparsed.comment.0, "Test");
+        assert_eq!(reparsed.trailing, cue.trailing);
+
+        // An astral character takes two UTF-16 code units, unlike its one Rust char.
+        cue.set_comment("😀");
+        assert_eq!(cue.comment.byte_len(), 6);
+        assert_eq!(cue.header.total_size, 94);
+        let mut writer = binrw::io::Cursor::new(Vec::new());
+        cue.write(&mut writer).unwrap();
+        let encoded = writer.into_inner();
+        assert_eq!(&encoded[40..44], &[0, 0, 0, 6]);
+        let reparsed = ExtendedCue::read(&mut binrw::io::Cursor::new(&encoded[..])).unwrap();
+        assert_eq!(reparsed.comment.0, "😀");
+        assert_eq!(reparsed.header.total_size, 94);
+        assert_eq!(reparsed.trailing, cue.trailing);
+
+        cue.set_comment("");
+        assert_eq!(cue.header.total_size, 88);
+        let mut writer = binrw::io::Cursor::new(Vec::new());
+        cue.write(&mut writer).unwrap();
+        assert_eq!(writer.into_inner(), raw);
     }
 }
