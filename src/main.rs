@@ -13,7 +13,7 @@ use rekordcrate::device::get_playlists;
 use rekordcrate::pdb::io::Database;
 use rekordcrate::pdb::*;
 use rekordcrate::setting::{Setting, SettingType};
-use rekordcrate::{anlz::ANLZ, util::TableIndex};
+use rekordcrate::{anlz::ANLZ, util::TableIndex, waveform::WaveformRenderer};
 #[cfg(feature = "json")]
 use serde::Serialize;
 use std::collections::BTreeMap;
@@ -71,6 +71,15 @@ enum Commands {
         /// Output format.
         #[arg(long, short = 'f', value_enum, default_value_t = DumpFormat::Debug)]
         format: DumpFormat,
+    },
+    /// Render the monochrome waveform preview from an ANLZ file to SVG.
+    RenderWaveforms {
+        /// File to parse.
+        #[arg(value_name = "ANLZ_FILE")]
+        path: PathBuf,
+        /// SVG file to write.
+        #[arg(value_name = "SVG_FILE")]
+        output: PathBuf,
     },
     /// Parse and dump a Pioneer Database (`.PDB`) file.
     DumpPDB {
@@ -302,6 +311,15 @@ fn dump_anlz(path: &Path, format: DumpFormat) -> rekordcrate::Result<()> {
     Ok(())
 }
 
+fn render_waveforms(path: &Path, output: &Path) -> rekordcrate::Result<()> {
+    let mut reader = File::open(path)?;
+    let anlz = ANLZ::read(&mut reader)?;
+    let output_file = File::create(output)?;
+    WaveformRenderer::default().render_to(&anlz, output_file)?;
+    println!("Rendered waveform SVG to {}", output.display());
+    Ok(())
+}
+
 /// A table and all of its pages, for JSON serialization.
 #[cfg(feature = "json")]
 #[derive(Serialize)]
@@ -517,6 +535,7 @@ fn main() -> rekordcrate::Result<()> {
             dump_pdb(path, db_type, *parse_unknown_tables, *format)
         }
         Commands::DumpANLZ { path, format } => dump_anlz(path, *format),
+        Commands::RenderWaveforms { path, output } => render_waveforms(path, output),
         Commands::DumpSetting {
             path,
             setting_type,
