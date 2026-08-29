@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ColorIndex","FileType","MaybeCalculated","RekordcrateError"],"fn":["align_by"],"struct":["TableIndex"],"type":["RekordcrateResult"]};
+window.SIDEBAR_ITEMS = {"enum":["ColorIndex","FileType","MaybeCalculated","RekordcrateError"],"fn":["align_by","serialize_as_hex"],"struct":["TableIndex"],"type":["RekordcrateResult"]};
