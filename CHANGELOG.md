@@ -38,6 +38,7 @@ All notable changes to this project will be documented in this file.
 - anlz: Change type of `comment` field and capture trailing bytes
 - xml: Do not error on empty playlist nodes
 - pdb: Align Ucs2le strings to 4 bytes
+- cli: Make DumpFormat impl ValueEnum without the json feature
 
 ### Documentation
 
@@ -74,6 +75,7 @@ All notable changes to this project will be documented in this file.
 - xml: Make fields public
 - xml: Parse ratings
 - xml: Parse position mark colors
+- cli: Add JSON output support for dump cmds
 
 ### Refactor
 
@@ -108,6 +110,7 @@ All notable changes to this project will be documented in this file.
 - main: Improve error handling in dump-pdb
 - xml: Add `xml` feature flag
 - xml: Remove `entries` and rename `tracks` in `Collection`
+- cli: Propagate serde_json errors instead of panicking
 
 ### Testing
 
