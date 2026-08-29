@@ -249,7 +249,7 @@ pub struct HistoryContent {
 
 // Composite-PK tables cannot use #[derive(Identifiable)] for HasTable because
 // diesel's Identifiable derive only supports single-column primary keys.
-// We implement HasTable manually so TableRecord::insert() still works.
+// We implement HasTable manually so TableRecord::all() still works.
 impl HasTable for HistoryContent {
     type Table = schema::history_content::table;
 
@@ -289,6 +289,9 @@ pub struct HotCueBankListCue {
     pub sequence_no: i32,
 }
 
+// Composite-PK tables cannot use #[derive(Identifiable)] for HasTable because
+// diesel's Identifiable derive only supports single-column primary keys.
+// We implement HasTable manually so TableRecord::all() still works.
 impl HasTable for HotCueBankListCue {
     type Table = schema::hot_cue_bank_list_cue::table;
 
@@ -359,6 +362,9 @@ pub struct MyTagContent {
     pub content_id: ContentId,
 }
 
+// Composite-PK tables cannot use #[derive(Identifiable)] for HasTable because
+// diesel's Identifiable derive only supports single-column primary keys.
+// We implement HasTable manually so TableRecord::all() still works.
 impl HasTable for MyTagContent {
     type Table = schema::my_tag_content::table;
 
@@ -394,6 +400,9 @@ pub struct PlaylistContent {
     pub sequence_no: i32,
 }
 
+// Composite-PK tables cannot use #[derive(Identifiable)] for HasTable because
+// diesel's Identifiable derive only supports single-column primary keys.
+// We implement HasTable manually so TableRecord::all() still works.
 impl HasTable for PlaylistContent {
     type Table = schema::playlist_content::table;
 
@@ -415,6 +424,8 @@ pub struct Property {
     pub my_tag_master_dbid: i64,
 }
 
+// `property` has a single-column primary key (`device_name`) that is not named `id`, so
+// #[derive(Identifiable)] cannot be used and we implement HasTable manually.
 impl HasTable for Property {
     type Table = schema::property::table;
 
@@ -438,6 +449,9 @@ pub struct RecommendedLike {
     pub created_date: i32,
 }
 
+// Composite-PK tables cannot use #[derive(Identifiable)] for HasTable because
+// diesel's Identifiable derive only supports single-column primary keys.
+// We implement HasTable manually so TableRecord::all() still works.
 impl HasTable for RecommendedLike {
     type Table = schema::recommended_like::table;
 
