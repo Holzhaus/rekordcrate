@@ -111,6 +111,11 @@ pub enum ContentKind {
     /// Used in `.2EX` files.
     #[brw(magic = b"PWV7")]
     Waveform3BandDetail,
+    /// Per-band gain calibration for the 3-band player waveform.
+    ///
+    /// Used in `.2EX` files.
+    #[brw(magic = b"PWVC")]
+    Waveform3BandCalibration,
     /// Describes the structure of a sond (Intro, Chrous, Verse, etc.).
     ///
     /// Used in `.EXT` files.
@@ -540,10 +545,10 @@ impl Default for TinyWaveformPreviewColumn {
 #[br(big, map = Self::from_bytes)]
 #[bw(big, map = |x: &TinyWaveformPreviewColumn| x.into_bytes())]
 pub struct TinyWaveformPreviewColumn {
-    #[allow(dead_code)]
-    unused: B4,
     /// Height of the Column in pixels.
     pub height: B4,
+    #[allow(dead_code)]
+    unused: B4,
 }
 
 #[cfg(feature = "json")]
@@ -565,7 +570,7 @@ impl Serialize for TinyWaveformPreviewColumn {
 /// See these the documentation for details:
 /// <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#color-preview>
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(big)]
 pub struct WaveformColorPreviewColumn {
@@ -591,7 +596,7 @@ impl Default for WaveformColorDetailColumn {
 
 /// Single Column value in a Waveform Color Detail section.
 ///
-/// See these the documentation for details:
+/// See the documentation for details:
 /// <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#color-detail>
 #[bitfield]
 #[derive(BinRead, BinWrite, Debug, PartialEq, Eq, Clone, Copy)]
@@ -605,11 +610,23 @@ pub struct WaveformColorDetailColumn {
     pub green: B3,
     /// Blue color component.
     pub blue: B3,
-    /// Height of the column.
+    /// Coarse column height.
     pub height: B5,
-    /// Unknown field
-    #[allow(dead_code)]
-    unknown: B2,
+    /// Fine height sub-steps.
+    pub low_bits: B2,
+}
+
+impl WaveformColorDetailColumn {
+    /// Fine height sub-step with the observed significance ordering.
+    pub fn fine_height_substep(&self) -> u8 {
+        let low = self.low_bits();
+        ((low & 1) << 1) | ((low >> 1) & 1)
+    }
+
+    /// Full height formed from the 5-bit coarse height plus the reordered fine-height bits.
+    pub fn full_height(&self) -> u8 {
+        (self.height() << 2) | self.fine_height_substep()
+    }
 }
 
 /// Single Column value in a Waveform 3-Band Preview.
@@ -617,7 +634,7 @@ pub struct WaveformColorDetailColumn {
 /// See these the documentation for details:
 /// <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#three-band-preview>
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(big)]
 pub struct Waveform3BandPreviewColumn {
@@ -634,7 +651,7 @@ pub struct Waveform3BandPreviewColumn {
 /// See these the documentation for details:
 /// <https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/anlz.html#three-band-detail>
 #[binrw]
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(big)]
 pub struct Waveform3BandDetailColumn {
@@ -785,7 +802,7 @@ pub enum Content {
     /// Used in `.EXT` files.
     #[br(pre_assert(header.kind == ContentKind::WaveformDetail))]
     WaveformDetail(#[br(args(header.clone()))] WaveformDetail),
-    /// Smaller version of the fixed-width colored preview of the track waveform.
+    /// Fixed-width colored preview of the track waveform.
     ///
     /// Used in `.EXT` files.
     #[br(pre_assert(header.kind == ContentKind::WaveformColorPreview))]
@@ -805,6 +822,11 @@ pub enum Content {
     /// Used in `.2EX` files.
     #[br(pre_assert(header.kind == ContentKind::Waveform3BandDetail))]
     Waveform3BandDetail(#[br(args(header.clone()))] Waveform3BandDetail),
+    /// Per-band gain calibration for the 3-band player waveform.
+    ///
+    /// Used in `.2EX` files.
+    #[br(pre_assert(header.kind == ContentKind::Waveform3BandCalibration))]
+    Waveform3BandCalibration(#[br(args(header.clone()))] Waveform3BandCalibration),
     /// Describes the structure of a sond (Intro, Chrous, Verse, etc.).
     ///
     /// Used in `.EXT` files.
@@ -1089,6 +1111,7 @@ pub struct Waveform3BandDetail {
     len_entries: u32,
     /// Unknown field (apparently always `0x00960000`)
     #[br(assert(unknown == 0x00960000))]
+    #[bw(calc = 0x00960000u32)]
     unknown: u32,
     /// Waveform detail column data.
     ///
@@ -1096,6 +1119,29 @@ pub struct Waveform3BandDetail {
     /// so for each second of track audio there are 150 waveform detail entries.
     #[br(count = len_entries)]
     pub data: Vec<Waveform3BandDetailColumn>,
+}
+
+/// Per-band gain calibration for the 3-band player waveform.
+///
+/// Used in `.2EX` files.
+#[binrw]
+#[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "json", derive(Serialize))]
+#[br(import(header: Header))]
+pub struct Waveform3BandCalibration {
+    /// Reserved field. Observed Rekordbox exports always set this to `0`.
+    #[br(temp)]
+    #[br(assert(header.remaining_size() == 2))]
+    #[br(assert(reserved == 0))]
+    #[bw(calc = 0u16)]
+    reserved: u16,
+    /// Gain applied to the low / blue waveform band.
+    #[br(assert(header.content_size() == 6))]
+    pub low_gain: u16,
+    /// Gain applied to the mid / yellow waveform band.
+    pub mid_gain: u16,
+    /// Gain applied to the high / white waveform band.
+    pub high_gain: u16,
 }
 
 /// Describes the structure of a song (Intro, Chrous, Verse, etc.).
@@ -1290,6 +1336,7 @@ impl ANLZ {
 mod tests {
     use super::*;
     use crate::util::testing::test_roundtrip;
+    use std::io::Cursor;
 
     #[test]
     fn extended_cue_empty_comment_roundtrip() {
@@ -1340,5 +1387,158 @@ mod tests {
         };
 
         test_roundtrip(&raw, cue);
+    }
+
+    #[test]
+    fn waveform_color_calibration_roundtrips() {
+        let header_data = [0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0];
+        let file_header_size = 12 + header_data.len() as u32;
+        let calibration = Section {
+            header: Header {
+                kind: ContentKind::Waveform3BandCalibration,
+                size: 14,
+                total_size: 20,
+            },
+            content: Content::Waveform3BandCalibration(Waveform3BandCalibration {
+                low_gain: 80,
+                mid_gain: 100,
+                high_gain: 100,
+            }),
+        };
+        let anlz = ANLZ {
+            header: Header {
+                kind: ContentKind::File,
+                size: file_header_size,
+                total_size: file_header_size + calibration.header.total_size,
+            },
+            header_data: header_data.to_vec(),
+            sections: vec![calibration],
+        };
+
+        let mut cursor = Cursor::new(Vec::new());
+        anlz.write(&mut cursor).unwrap();
+        let parsed = ANLZ::read(&mut Cursor::new(cursor.into_inner())).unwrap();
+        let calibration = parsed
+            .sections
+            .iter()
+            .find_map(|section| match &section.content {
+                Content::Waveform3BandCalibration(calibration) => Some(calibration),
+                _ => None,
+            })
+            .unwrap();
+        assert_eq!(
+            (
+                calibration.low_gain,
+                calibration.mid_gain,
+                calibration.high_gain
+            ),
+            (80, 100, 100)
+        );
+    }
+
+    #[test]
+    fn waveform_high_resolution_sections_roundtrip() {
+        let header_data = [0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0];
+        let file_header_size = 12 + header_data.len() as u32;
+        let preview = Section {
+            header: Header {
+                kind: ContentKind::Waveform3BandPreview,
+                size: 20,
+                total_size: 26,
+            },
+            content: Content::Waveform3BandPreview(Waveform3BandPreview {
+                data: vec![
+                    Waveform3BandPreviewColumn {
+                        energy_mid_third_freq: 0x01,
+                        energy_top_third_freq: 0x02,
+                        energy_bottom_third_freq: 0x03,
+                    },
+                    Waveform3BandPreviewColumn {
+                        energy_mid_third_freq: 0x10,
+                        energy_top_third_freq: 0x20,
+                        energy_bottom_third_freq: 0x30,
+                    },
+                ],
+            }),
+        };
+        let detail = Section {
+            header: Header {
+                kind: ContentKind::Waveform3BandDetail,
+                size: 24,
+                total_size: 27,
+            },
+            content: Content::Waveform3BandDetail(Waveform3BandDetail {
+                data: vec![Waveform3BandDetailColumn {
+                    energy_mid_third_freq: 0xaa,
+                    energy_top_third_freq: 0xbb,
+                    energy_bottom_third_freq: 0xcc,
+                }],
+            }),
+        };
+        let anlz = ANLZ {
+            header: Header {
+                kind: ContentKind::File,
+                size: file_header_size,
+                total_size: file_header_size + preview.header.total_size + detail.header.total_size,
+            },
+            header_data: header_data.to_vec(),
+            sections: vec![preview, detail],
+        };
+
+        let mut cursor = Cursor::new(Vec::new());
+        anlz.write(&mut cursor).unwrap();
+        let parsed = ANLZ::read(&mut Cursor::new(cursor.into_inner())).unwrap();
+
+        let preview = parsed
+            .sections
+            .iter()
+            .find_map(|section| match &section.content {
+                Content::Waveform3BandPreview(preview) => Some(preview),
+                _ => None,
+            })
+            .unwrap();
+        assert_eq!(
+            preview.data,
+            vec![
+                Waveform3BandPreviewColumn {
+                    energy_mid_third_freq: 0x01,
+                    energy_top_third_freq: 0x02,
+                    energy_bottom_third_freq: 0x03,
+                },
+                Waveform3BandPreviewColumn {
+                    energy_mid_third_freq: 0x10,
+                    energy_top_third_freq: 0x20,
+                    energy_bottom_third_freq: 0x30,
+                },
+            ]
+        );
+
+        let detail = parsed
+            .sections
+            .iter()
+            .find_map(|section| match &section.content {
+                Content::Waveform3BandDetail(detail) => Some(detail),
+                _ => None,
+            })
+            .unwrap();
+        assert_eq!(
+            detail.data,
+            vec![Waveform3BandDetailColumn {
+                energy_mid_third_freq: 0xaa,
+                energy_top_third_freq: 0xbb,
+                energy_bottom_third_freq: 0xcc,
+            }]
+        );
+    }
+
+    #[test]
+    fn rgb_waveform_detail_column_roundtrips_bytes() {
+        let entry = WaveformColorDetailColumn::from_bytes([0xd1, 0x48]);
+        assert_eq!(entry.red(), 1);
+        assert_eq!(entry.green(), 2);
+        assert_eq!(entry.blue(), 3);
+        assert_eq!(entry.height(), 4);
+        assert_eq!(entry.low_bits(), 1);
+        assert_eq!(entry.into_bytes(), [0xd1, 0x48]);
     }
 }
