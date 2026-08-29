@@ -14,7 +14,7 @@ have breaking API changes in the future.
 
 The included command line tool `rekordcrate` can be used to inspect various files.
 
-By default, it will output `Debug` trait output. pass `--format json` (or `-f json`) to any `dump-*` command to get JSON output instead.
+By default, it will output `Debug` trait output. Pass `--format json` (or `-f json`) to any `dump-*` command to get JSON output instead.
 
 To inspect database exports (i.e. `PIONEER/rekordbox/export.pdb` files):
 
