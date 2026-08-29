@@ -200,5 +200,13 @@ fn read_djmsetting_nonzero_trailing_bytes() {
     data[len - 4..len - 2].copy_from_slice(&checksum.to_le_bytes());
 
     let mut reader = Cursor::new(&data);
-    Setting::read_args(&mut reader, (SettingType::DJMMySetting,)).unwrap();
+    let setting = Setting::read_args(&mut reader, (SettingType::DJMMySetting,)).unwrap();
+
+    // Writing the parsed value must retain the unknown bytes rather than replacing them with
+    // their default zero values.
+    let mut roundtrip = Vec::new();
+    setting
+        .write_args(&mut Cursor::new(&mut roundtrip), (false,))
+        .unwrap();
+    assert_eq!(roundtrip, data);
 }
