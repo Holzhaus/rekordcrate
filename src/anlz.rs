@@ -323,7 +323,9 @@ impl BinRead for LenPrefixedWideString {
         let mut bytes = vec![0u8; len];
         reader.read_exact(&mut bytes)?;
         let code_units: Vec<u16> = bytes
-            .chunks_exact(2)
+            .as_chunks::<2>()
+            .0
+            .iter()
             .map(|c| u16::from_be_bytes([c[0], c[1]]))
             .collect();
         let s = String::from_utf16(&code_units)

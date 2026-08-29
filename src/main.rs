@@ -163,7 +163,7 @@ fn list_playlists(path: &Path) -> rekordcrate::Result<()> {
             None => {
                 println!(
                     "<Artist for {:?} not found> - {}",
-                    &track.artist_id, track.offsets.title
+                    track.artist_id, track.offsets.title
                 );
                 return;
             }
