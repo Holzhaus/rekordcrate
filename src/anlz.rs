@@ -1548,21 +1548,84 @@ mod tests {
     /// repeated three times (stereo, left channel, right channel). This means that at the
     /// beginning of the track, almost all energy is in the high frequency band, while energy
     /// shifts to the mid band around 15% and to the low band around 25% of the track duration.
-    ///
-    /// These checks apply to all waveform preview data structures that encode frequency band
-    /// information (PWV4 and PWV6).
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    enum Band {
+        Low,
+        Mid,
+        High,
+    }
+
+    const SWEEP_EXPECTATIONS: [(f32, Band); 3] =
+        [(0.05, Band::High), (0.15, Band::Mid), (0.25, Band::Low)];
+
+    /// Asserts that the given column encodes the expected dominant frequency band, and that
+    /// the dominant band carries almost all of the column's energy.
+    fn assert_sweep_column_band(
+        fraction: f32,
+        expected_band: Band,
+        section: &str,
+        low: u16,
+        mid: u16,
+        high: u16,
+    ) {
+        let dominant = if low >= mid && low >= high {
+            Band::Low
+        } else if mid >= high {
+            Band::Mid
+        } else {
+            Band::High
+        };
+        assert_eq!(dominant, expected_band, "{section} at {fraction}");
+        let total = low + mid + high;
+        let dominant_energy = match dominant {
+            Band::Low => low,
+            Band::Mid => mid,
+            Band::High => high,
+        };
+        assert!(
+            dominant_energy * 2 > total,
+            "{section} at {fraction}: dominant band carries less than half the energy \
+             (low={low}, mid={mid}, high={high})"
+        );
+    }
+
+    /// The monochrome previews (PWAV and PWV2) in the .DAT file do not encode frequency band
+    /// information, but their structure should parse with the expected number of columns.
     #[test]
-    fn sweep_fixture_frequency_band_mapping() {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-        enum Band {
-            Low,
-            Mid,
-            High,
-        }
+    fn sweep_fixture_dat_monochrome_previews() {
+        let dat_data = std::fs::read(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/data/anlz/sweep/ANLZ0000.DAT"
+        ))
+        .unwrap();
+        let anlz = ANLZ::read(&mut Cursor::new(&dat_data)).unwrap();
 
-        let expectations = [(0.05, Band::High), (0.15, Band::Mid), (0.25, Band::Low)];
+        let preview = anlz
+            .sections
+            .iter()
+            .find_map(|section| match &section.content {
+                Content::WaveformPreview(preview) => Some(preview),
+                _ => None,
+            })
+            .unwrap();
+        assert_eq!(preview.data.len(), 400);
+        assert!(preview.data.iter().any(|column| column.height() > 0));
 
-        // The .EXT file contains the RGB color preview (PWV4).
+        let tiny_preview = anlz
+            .sections
+            .iter()
+            .find_map(|section| match &section.content {
+                Content::TinyWaveformPreview(preview) => Some(preview),
+                _ => None,
+            })
+            .unwrap();
+        assert_eq!(tiny_preview.data.len(), 100);
+        assert!(tiny_preview.data.iter().any(|column| column.height() > 0));
+    }
+
+    /// The .EXT file contains the RGB color preview (PWV4).
+    #[test]
+    fn sweep_fixture_ext_rgb_preview_bands() {
         let ext_data = std::fs::read(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/data/anlz/sweep/ANLZ0000.EXT"
@@ -1579,36 +1642,22 @@ mod tests {
             .unwrap();
         let rgb_columns = &rgb_preview.data;
         assert_eq!(rgb_columns.len(), 1200);
-        for (fraction, expected_band) in expectations {
+        for (fraction, expected_band) in SWEEP_EXPECTATIONS {
             let column = &rgb_columns[(rgb_columns.len() as f32 * fraction) as usize];
-            let (low, mid, high) = (
+            assert_sweep_column_band(
+                fraction,
+                expected_band,
+                "PWV4",
                 u16::from(column.energy_bottom_third_freq),
                 u16::from(column.energy_mid_third_freq),
                 u16::from(column.energy_top_third_freq),
             );
-            let dominant = if low >= mid && low >= high {
-                Band::Low
-            } else if mid >= high {
-                Band::Mid
-            } else {
-                Band::High
-            };
-            assert_eq!(dominant, expected_band, "PWV4 at {fraction}");
-            // The dominant band should carry almost all of the energy.
-            let total = low + mid + high;
-            let dominant_energy = match dominant {
-                Band::Low => low,
-                Band::Mid => mid,
-                Band::High => high,
-            };
-            assert!(
-                dominant_energy * 2 > total,
-                "PWV4 at {fraction}: dominant band carries less than half the energy \
-                 (low={low}, mid={mid}, high={high})"
-            );
         }
+    }
 
-        // The .2EX file contains the 3-band preview (PWV6).
+    /// The .2EX file contains the 3-band preview (PWV6).
+    #[test]
+    fn sweep_fixture_2ex_three_band_preview_bands() {
         let two_ex_data = std::fs::read(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/data/anlz/sweep/ANLZ0000.2EX"
@@ -1625,32 +1674,15 @@ mod tests {
             .unwrap();
         let three_band_columns = &three_band_preview.data;
         assert_eq!(three_band_columns.len(), 1200);
-        for (fraction, expected_band) in expectations {
+        for (fraction, expected_band) in SWEEP_EXPECTATIONS {
             let column = &three_band_columns[(three_band_columns.len() as f32 * fraction) as usize];
-            let (low, mid, high) = (
+            assert_sweep_column_band(
+                fraction,
+                expected_band,
+                "PWV6",
                 u16::from(column.energy_bottom_third_freq),
                 u16::from(column.energy_mid_third_freq),
                 u16::from(column.energy_top_third_freq),
-            );
-            let dominant = if low >= mid && low >= high {
-                Band::Low
-            } else if mid >= high {
-                Band::Mid
-            } else {
-                Band::High
-            };
-            assert_eq!(dominant, expected_band, "PWV6 at {fraction}");
-            // The dominant band should carry almost all of the energy.
-            let total = low + mid + high;
-            let dominant_energy = match dominant {
-                Band::Low => low,
-                Band::Mid => mid,
-                Band::High => high,
-            };
-            assert!(
-                dominant_energy * 2 > total,
-                "PWV6 at {fraction}: dominant band carries less than half the energy \
-                 (low={low}, mid={mid}, high={high})"
             );
         }
     }
