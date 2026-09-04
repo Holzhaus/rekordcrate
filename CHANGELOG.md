@@ -40,6 +40,7 @@ All notable changes to this project will be documented in this file.
 - pdb: Align Ucs2le strings to 4 bytes
 - cli: Make DumpFormat impl ValueEnum without the json feature
 - anlz: Correct waveform data structure bugs and add missing PWVC section
+- Correct frequency band mapping in waveform previews
 
 ### Documentation
 
@@ -134,6 +135,8 @@ All notable changes to this project will be documented in this file.
 - pdb: Add tests for History row
 - anlz: Add roundtrip test for ExtendedCue with empty comment
 - xml: Add empty playlist case to XML test data
+- Add sweep ANLZ fixtures
+- Split sweep fixture test into one test per file
 
 ## [0.3.0] - 2025-01-23
 
