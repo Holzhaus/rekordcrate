@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/anlz.rs`."><title>anlz.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-1ed95124.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="rekordcrate" data-themes="" data-resource-suffix="" data-rustdoc-version="1.98.0 (88d9e12ae 2026-08-18)" data-channel="1.98.0" data-search-js="search-9944d736.js" data-stringdex-js="stringdex-2da4960a.js" data-settings-js="settings-170eb4bf.js" ><script src="../../static.files/storage-41dd4d93.js"></script><script defer src="../../static.files/src-script-813739b1.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-417ebf0a.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-f7c3ffd8.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><a class="skip-main-content" href="#main-content">Skip to main content</a><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><section id="main-content" class="content" tabindex="-1"><div class="main-heading"><h1><div class="sub-heading">rekordcrate/</div>anlz.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-4"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="comment">// Copyright (c) 2026 Jan Holthuis &lt;jan.holthuis@rub.de&gt;
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/anlz.rs`."><title>anlz.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-1ed95124.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="rekordcrate" data-themes="" data-resource-suffix="" data-rustdoc-version="1.98.1 (48a229cea 2026-09-01)" data-channel="1.98.1" data-search-js="search-9944d736.js" data-stringdex-js="stringdex-2da4960a.js" data-settings-js="settings-170eb4bf.js" ><script src="../../static.files/storage-41dd4d93.js"></script><script defer src="../../static.files/src-script-813739b1.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-417ebf0a.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-f7c3ffd8.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><a class="skip-main-content" href="#main-content">Skip to main content</a><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><section id="main-content" class="content" tabindex="-1"><div class="main-heading"><h1><div class="sub-heading">rekordcrate/</div>anlz.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-4"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="comment">// Copyright (c) 2026 Jan Holthuis &lt;jan.holthuis@rub.de&gt;
 <a href=#2 id=2 data-nosnippet>2</a>//
 <a href=#3 id=3 data-nosnippet>3</a>// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy
 <a href=#4 id=4 data-nosnippet>4</a>// of the MPL was not distributed with this file, You can obtain one at
@@ -640,12 +640,12 @@
 <a href=#640 id=640 data-nosnippet>640</a>#[cfg_attr(feature = <span class="string">"json"</span>, derive(Serialize))]
 <a href=#641 id=641 data-nosnippet>641</a>#[brw(big)]
 <a href=#642 id=642 data-nosnippet>642</a></span><span class="kw">pub struct </span>Waveform3BandPreviewColumn {
-<a href=#643 id=643 data-nosnippet>643</a>    <span class="doccomment">/// Sound energy in the mid of the frequency range.
-<a href=#644 id=644 data-nosnippet>644</a>    </span><span class="kw">pub </span>energy_mid_third_freq: u8,
-<a href=#645 id=645 data-nosnippet>645</a>    <span class="doccomment">/// Sound energy in the top of the frequency range.
-<a href=#646 id=646 data-nosnippet>646</a>    </span><span class="kw">pub </span>energy_top_third_freq: u8,
-<a href=#647 id=647 data-nosnippet>647</a>    <span class="doccomment">/// Sound energy in the bottom third of the frequency range.
-<a href=#648 id=648 data-nosnippet>648</a>    </span><span class="kw">pub </span>energy_bottom_third_freq: u8,
+<a href=#643 id=643 data-nosnippet>643</a>    <span class="doccomment">/// Sound energy in the bottom third of the frequency range.
+<a href=#644 id=644 data-nosnippet>644</a>    </span><span class="kw">pub </span>energy_bottom_third_freq: u8,
+<a href=#645 id=645 data-nosnippet>645</a>    <span class="doccomment">/// Sound energy in the mid of the frequency range.
+<a href=#646 id=646 data-nosnippet>646</a>    </span><span class="kw">pub </span>energy_mid_third_freq: u8,
+<a href=#647 id=647 data-nosnippet>647</a>    <span class="doccomment">/// Sound energy in the top of the frequency range.
+<a href=#648 id=648 data-nosnippet>648</a>    </span><span class="kw">pub </span>energy_top_third_freq: u8,
 <a href=#649 id=649 data-nosnippet>649</a>}
 <a href=#650 id=650 data-nosnippet>650</a>
 <a href=#651 id=651 data-nosnippet>651</a><span class="doccomment">/// Single Column value in a Waveform 3-Band Detail section.
@@ -657,12 +657,12 @@
 <a href=#657 id=657 data-nosnippet>657</a>#[cfg_attr(feature = <span class="string">"json"</span>, derive(Serialize))]
 <a href=#658 id=658 data-nosnippet>658</a>#[brw(big)]
 <a href=#659 id=659 data-nosnippet>659</a></span><span class="kw">pub struct </span>Waveform3BandDetailColumn {
-<a href=#660 id=660 data-nosnippet>660</a>    <span class="doccomment">/// Sound energy in the mid of the frequency range.
-<a href=#661 id=661 data-nosnippet>661</a>    </span><span class="kw">pub </span>energy_mid_third_freq: u8,
-<a href=#662 id=662 data-nosnippet>662</a>    <span class="doccomment">/// Sound energy in the top of the frequency range.
-<a href=#663 id=663 data-nosnippet>663</a>    </span><span class="kw">pub </span>energy_top_third_freq: u8,
-<a href=#664 id=664 data-nosnippet>664</a>    <span class="doccomment">/// Sound energy in the bottom third of the frequency range.
-<a href=#665 id=665 data-nosnippet>665</a>    </span><span class="kw">pub </span>energy_bottom_third_freq: u8,
+<a href=#660 id=660 data-nosnippet>660</a>    <span class="doccomment">/// Sound energy in the bottom third of the frequency range.
+<a href=#661 id=661 data-nosnippet>661</a>    </span><span class="kw">pub </span>energy_bottom_third_freq: u8,
+<a href=#662 id=662 data-nosnippet>662</a>    <span class="doccomment">/// Sound energy in the mid of the frequency range.
+<a href=#663 id=663 data-nosnippet>663</a>    </span><span class="kw">pub </span>energy_mid_third_freq: u8,
+<a href=#664 id=664 data-nosnippet>664</a>    <span class="doccomment">/// Sound energy in the top of the frequency range.
+<a href=#665 id=665 data-nosnippet>665</a>    </span><span class="kw">pub </span>energy_top_third_freq: u8,
 <a href=#666 id=666 data-nosnippet>666</a>}
 <a href=#667 id=667 data-nosnippet>667</a>
 <a href=#668 id=668 data-nosnippet>668</a><span class="doccomment">/// Music classification that is used for Lightnight mode and based on rhythm, tempo kick drum and
@@ -1451,14 +1451,14 @@
 <a href=#1451 id=1451 data-nosnippet>1451</a>            content: Content::Waveform3BandPreview(Waveform3BandPreview {
 <a href=#1452 id=1452 data-nosnippet>1452</a>                data: <span class="macro">vec!</span>[
 <a href=#1453 id=1453 data-nosnippet>1453</a>                    Waveform3BandPreviewColumn {
-<a href=#1454 id=1454 data-nosnippet>1454</a>                        energy_mid_third_freq: <span class="number">0x01</span>,
-<a href=#1455 id=1455 data-nosnippet>1455</a>                        energy_top_third_freq: <span class="number">0x02</span>,
-<a href=#1456 id=1456 data-nosnippet>1456</a>                        energy_bottom_third_freq: <span class="number">0x03</span>,
+<a href=#1454 id=1454 data-nosnippet>1454</a>                        energy_bottom_third_freq: <span class="number">0x01</span>,
+<a href=#1455 id=1455 data-nosnippet>1455</a>                        energy_mid_third_freq: <span class="number">0x02</span>,
+<a href=#1456 id=1456 data-nosnippet>1456</a>                        energy_top_third_freq: <span class="number">0x03</span>,
 <a href=#1457 id=1457 data-nosnippet>1457</a>                    },
 <a href=#1458 id=1458 data-nosnippet>1458</a>                    Waveform3BandPreviewColumn {
-<a href=#1459 id=1459 data-nosnippet>1459</a>                        energy_mid_third_freq: <span class="number">0x10</span>,
-<a href=#1460 id=1460 data-nosnippet>1460</a>                        energy_top_third_freq: <span class="number">0x20</span>,
-<a href=#1461 id=1461 data-nosnippet>1461</a>                        energy_bottom_third_freq: <span class="number">0x30</span>,
+<a href=#1459 id=1459 data-nosnippet>1459</a>                        energy_bottom_third_freq: <span class="number">0x10</span>,
+<a href=#1460 id=1460 data-nosnippet>1460</a>                        energy_mid_third_freq: <span class="number">0x20</span>,
+<a href=#1461 id=1461 data-nosnippet>1461</a>                        energy_top_third_freq: <span class="number">0x30</span>,
 <a href=#1462 id=1462 data-nosnippet>1462</a>                    },
 <a href=#1463 id=1463 data-nosnippet>1463</a>                ],
 <a href=#1464 id=1464 data-nosnippet>1464</a>            }),
@@ -1471,9 +1471,9 @@
 <a href=#1471 id=1471 data-nosnippet>1471</a>            },
 <a href=#1472 id=1472 data-nosnippet>1472</a>            content: Content::Waveform3BandDetail(Waveform3BandDetail {
 <a href=#1473 id=1473 data-nosnippet>1473</a>                data: <span class="macro">vec!</span>[Waveform3BandDetailColumn {
-<a href=#1474 id=1474 data-nosnippet>1474</a>                    energy_mid_third_freq: <span class="number">0xaa</span>,
-<a href=#1475 id=1475 data-nosnippet>1475</a>                    energy_top_third_freq: <span class="number">0xbb</span>,
-<a href=#1476 id=1476 data-nosnippet>1476</a>                    energy_bottom_third_freq: <span class="number">0xcc</span>,
+<a href=#1474 id=1474 data-nosnippet>1474</a>                    energy_bottom_third_freq: <span class="number">0xaa</span>,
+<a href=#1475 id=1475 data-nosnippet>1475</a>                    energy_mid_third_freq: <span class="number">0xbb</span>,
+<a href=#1476 id=1476 data-nosnippet>1476</a>                    energy_top_third_freq: <span class="number">0xcc</span>,
 <a href=#1477 id=1477 data-nosnippet>1477</a>                }],
 <a href=#1478 id=1478 data-nosnippet>1478</a>            }),
 <a href=#1479 id=1479 data-nosnippet>1479</a>        };
@@ -1503,14 +1503,14 @@
 <a href=#1503 id=1503 data-nosnippet>1503</a>            preview.data,
 <a href=#1504 id=1504 data-nosnippet>1504</a>            <span class="macro">vec!</span>[
 <a href=#1505 id=1505 data-nosnippet>1505</a>                Waveform3BandPreviewColumn {
-<a href=#1506 id=1506 data-nosnippet>1506</a>                    energy_mid_third_freq: <span class="number">0x01</span>,
-<a href=#1507 id=1507 data-nosnippet>1507</a>                    energy_top_third_freq: <span class="number">0x02</span>,
-<a href=#1508 id=1508 data-nosnippet>1508</a>                    energy_bottom_third_freq: <span class="number">0x03</span>,
+<a href=#1506 id=1506 data-nosnippet>1506</a>                    energy_bottom_third_freq: <span class="number">0x01</span>,
+<a href=#1507 id=1507 data-nosnippet>1507</a>                    energy_mid_third_freq: <span class="number">0x02</span>,
+<a href=#1508 id=1508 data-nosnippet>1508</a>                    energy_top_third_freq: <span class="number">0x03</span>,
 <a href=#1509 id=1509 data-nosnippet>1509</a>                },
 <a href=#1510 id=1510 data-nosnippet>1510</a>                Waveform3BandPreviewColumn {
-<a href=#1511 id=1511 data-nosnippet>1511</a>                    energy_mid_third_freq: <span class="number">0x10</span>,
-<a href=#1512 id=1512 data-nosnippet>1512</a>                    energy_top_third_freq: <span class="number">0x20</span>,
-<a href=#1513 id=1513 data-nosnippet>1513</a>                    energy_bottom_third_freq: <span class="number">0x30</span>,
+<a href=#1511 id=1511 data-nosnippet>1511</a>                    energy_bottom_third_freq: <span class="number">0x10</span>,
+<a href=#1512 id=1512 data-nosnippet>1512</a>                    energy_mid_third_freq: <span class="number">0x20</span>,
+<a href=#1513 id=1513 data-nosnippet>1513</a>                    energy_top_third_freq: <span class="number">0x30</span>,
 <a href=#1514 id=1514 data-nosnippet>1514</a>                },
 <a href=#1515 id=1515 data-nosnippet>1515</a>            ]
 <a href=#1516 id=1516 data-nosnippet>1516</a>        );
@@ -1526,9 +1526,9 @@
 <a href=#1526 id=1526 data-nosnippet>1526</a>        <span class="macro">assert_eq!</span>(
 <a href=#1527 id=1527 data-nosnippet>1527</a>            detail.data,
 <a href=#1528 id=1528 data-nosnippet>1528</a>            <span class="macro">vec!</span>[Waveform3BandDetailColumn {
-<a href=#1529 id=1529 data-nosnippet>1529</a>                energy_mid_third_freq: <span class="number">0xaa</span>,
-<a href=#1530 id=1530 data-nosnippet>1530</a>                energy_top_third_freq: <span class="number">0xbb</span>,
-<a href=#1531 id=1531 data-nosnippet>1531</a>                energy_bottom_third_freq: <span class="number">0xcc</span>,
+<a href=#1529 id=1529 data-nosnippet>1529</a>                energy_bottom_third_freq: <span class="number">0xaa</span>,
+<a href=#1530 id=1530 data-nosnippet>1530</a>                energy_mid_third_freq: <span class="number">0xbb</span>,
+<a href=#1531 id=1531 data-nosnippet>1531</a>                energy_top_third_freq: <span class="number">0xcc</span>,
 <a href=#1532 id=1532 data-nosnippet>1532</a>            }]
 <a href=#1533 id=1533 data-nosnippet>1533</a>        );
 <a href=#1534 id=1534 data-nosnippet>1534</a>    }
@@ -1543,5 +1543,148 @@
 <a href=#1543 id=1543 data-nosnippet>1543</a>        <span class="macro">assert_eq!</span>(entry.low_bits(), <span class="number">1</span>);
 <a href=#1544 id=1544 data-nosnippet>1544</a>        <span class="macro">assert_eq!</span>(entry.into_bytes(), [<span class="number">0xd1</span>, <span class="number">0x48</span>]);
 <a href=#1545 id=1545 data-nosnippet>1545</a>    }
-<a href=#1546 id=1546 data-nosnippet>1546</a>}
+<a href=#1546 id=1546 data-nosnippet>1546</a>
+<a href=#1547 id=1547 data-nosnippet>1547</a>    <span class="doccomment">/// The sweep fixture was generated by analyzing a frequency sweep from 20 kHz down to 20 Hz,
+<a href=#1548 id=1548 data-nosnippet>1548</a>    /// repeated three times (stereo, left channel, right channel). This means that at the
+<a href=#1549 id=1549 data-nosnippet>1549</a>    /// beginning of the track, almost all energy is in the high frequency band, while energy
+<a href=#1550 id=1550 data-nosnippet>1550</a>    /// shifts to the mid band around 15% and to the low band around 25% of the track duration.
+<a href=#1551 id=1551 data-nosnippet>1551</a>    </span><span class="attr">#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+<a href=#1552 id=1552 data-nosnippet>1552</a>    </span><span class="kw">enum </span>Band {
+<a href=#1553 id=1553 data-nosnippet>1553</a>        Low,
+<a href=#1554 id=1554 data-nosnippet>1554</a>        Mid,
+<a href=#1555 id=1555 data-nosnippet>1555</a>        High,
+<a href=#1556 id=1556 data-nosnippet>1556</a>    }
+<a href=#1557 id=1557 data-nosnippet>1557</a>
+<a href=#1558 id=1558 data-nosnippet>1558</a>    <span class="kw">const </span>SWEEP_EXPECTATIONS: [(f32, Band); <span class="number">3</span>] =
+<a href=#1559 id=1559 data-nosnippet>1559</a>        [(<span class="number">0.05</span>, Band::High), (<span class="number">0.15</span>, Band::Mid), (<span class="number">0.25</span>, Band::Low)];
+<a href=#1560 id=1560 data-nosnippet>1560</a>
+<a href=#1561 id=1561 data-nosnippet>1561</a>    <span class="doccomment">/// Asserts that the given column encodes the expected dominant frequency band, and that
+<a href=#1562 id=1562 data-nosnippet>1562</a>    /// the dominant band carries almost all of the column's energy.
+<a href=#1563 id=1563 data-nosnippet>1563</a>    </span><span class="kw">fn </span>assert_sweep_column_band(
+<a href=#1564 id=1564 data-nosnippet>1564</a>        fraction: f32,
+<a href=#1565 id=1565 data-nosnippet>1565</a>        expected_band: Band,
+<a href=#1566 id=1566 data-nosnippet>1566</a>        section: <span class="kw-2">&amp;</span>str,
+<a href=#1567 id=1567 data-nosnippet>1567</a>        low: u16,
+<a href=#1568 id=1568 data-nosnippet>1568</a>        mid: u16,
+<a href=#1569 id=1569 data-nosnippet>1569</a>        high: u16,
+<a href=#1570 id=1570 data-nosnippet>1570</a>    ) {
+<a href=#1571 id=1571 data-nosnippet>1571</a>        <span class="kw">let </span>dominant = <span class="kw">if </span>low &gt;= mid &amp;&amp; low &gt;= high {
+<a href=#1572 id=1572 data-nosnippet>1572</a>            Band::Low
+<a href=#1573 id=1573 data-nosnippet>1573</a>        } <span class="kw">else if </span>mid &gt;= high {
+<a href=#1574 id=1574 data-nosnippet>1574</a>            Band::Mid
+<a href=#1575 id=1575 data-nosnippet>1575</a>        } <span class="kw">else </span>{
+<a href=#1576 id=1576 data-nosnippet>1576</a>            Band::High
+<a href=#1577 id=1577 data-nosnippet>1577</a>        };
+<a href=#1578 id=1578 data-nosnippet>1578</a>        <span class="macro">assert_eq!</span>(dominant, expected_band, <span class="string">"{section} at {fraction}"</span>);
+<a href=#1579 id=1579 data-nosnippet>1579</a>        <span class="kw">let </span>total = low + mid + high;
+<a href=#1580 id=1580 data-nosnippet>1580</a>        <span class="kw">let </span>dominant_energy = <span class="kw">match </span>dominant {
+<a href=#1581 id=1581 data-nosnippet>1581</a>            Band::Low =&gt; low,
+<a href=#1582 id=1582 data-nosnippet>1582</a>            Band::Mid =&gt; mid,
+<a href=#1583 id=1583 data-nosnippet>1583</a>            Band::High =&gt; high,
+<a href=#1584 id=1584 data-nosnippet>1584</a>        };
+<a href=#1585 id=1585 data-nosnippet>1585</a>        <span class="macro">assert!</span>(
+<a href=#1586 id=1586 data-nosnippet>1586</a>            dominant_energy * <span class="number">2 </span>&gt; total,
+<a href=#1587 id=1587 data-nosnippet>1587</a>            <span class="string">"{section} at {fraction}: dominant band carries less than half the energy \
+<a href=#1588 id=1588 data-nosnippet>1588</a>             (low={low}, mid={mid}, high={high})"
+<a href=#1589 id=1589 data-nosnippet>1589</a>        </span>);
+<a href=#1590 id=1590 data-nosnippet>1590</a>    }
+<a href=#1591 id=1591 data-nosnippet>1591</a>
+<a href=#1592 id=1592 data-nosnippet>1592</a>    <span class="doccomment">/// The monochrome previews (PWAV and PWV2) in the .DAT file do not encode frequency band
+<a href=#1593 id=1593 data-nosnippet>1593</a>    /// information, but their structure should parse with the expected number of columns.
+<a href=#1594 id=1594 data-nosnippet>1594</a>    </span><span class="attr">#[test]
+<a href=#1595 id=1595 data-nosnippet>1595</a>    </span><span class="kw">fn </span>sweep_fixture_dat_monochrome_previews() {
+<a href=#1596 id=1596 data-nosnippet>1596</a>        <span class="kw">let </span>dat_data = std::fs::read(<span class="macro">concat!</span>(
+<a href=#1597 id=1597 data-nosnippet>1597</a>            <span class="macro">env!</span>(<span class="string">"CARGO_MANIFEST_DIR"</span>),
+<a href=#1598 id=1598 data-nosnippet>1598</a>            <span class="string">"/data/anlz/sweep/ANLZ0000.DAT"
+<a href=#1599 id=1599 data-nosnippet>1599</a>        </span>))
+<a href=#1600 id=1600 data-nosnippet>1600</a>        .unwrap();
+<a href=#1601 id=1601 data-nosnippet>1601</a>        <span class="kw">let </span>anlz = ANLZ::read(<span class="kw-2">&amp;mut </span>Cursor::new(<span class="kw-2">&amp;</span>dat_data)).unwrap();
+<a href=#1602 id=1602 data-nosnippet>1602</a>
+<a href=#1603 id=1603 data-nosnippet>1603</a>        <span class="kw">let </span>preview = anlz
+<a href=#1604 id=1604 data-nosnippet>1604</a>            .sections
+<a href=#1605 id=1605 data-nosnippet>1605</a>            .iter()
+<a href=#1606 id=1606 data-nosnippet>1606</a>            .find_map(|section| <span class="kw">match </span><span class="kw-2">&amp;</span>section.content {
+<a href=#1607 id=1607 data-nosnippet>1607</a>                Content::WaveformPreview(preview) =&gt; <span class="prelude-val">Some</span>(preview),
+<a href=#1608 id=1608 data-nosnippet>1608</a>                <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+<a href=#1609 id=1609 data-nosnippet>1609</a>            })
+<a href=#1610 id=1610 data-nosnippet>1610</a>            .unwrap();
+<a href=#1611 id=1611 data-nosnippet>1611</a>        <span class="macro">assert_eq!</span>(preview.data.len(), <span class="number">400</span>);
+<a href=#1612 id=1612 data-nosnippet>1612</a>        <span class="macro">assert!</span>(preview.data.iter().any(|column| column.height() &gt; <span class="number">0</span>));
+<a href=#1613 id=1613 data-nosnippet>1613</a>
+<a href=#1614 id=1614 data-nosnippet>1614</a>        <span class="kw">let </span>tiny_preview = anlz
+<a href=#1615 id=1615 data-nosnippet>1615</a>            .sections
+<a href=#1616 id=1616 data-nosnippet>1616</a>            .iter()
+<a href=#1617 id=1617 data-nosnippet>1617</a>            .find_map(|section| <span class="kw">match </span><span class="kw-2">&amp;</span>section.content {
+<a href=#1618 id=1618 data-nosnippet>1618</a>                Content::TinyWaveformPreview(preview) =&gt; <span class="prelude-val">Some</span>(preview),
+<a href=#1619 id=1619 data-nosnippet>1619</a>                <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+<a href=#1620 id=1620 data-nosnippet>1620</a>            })
+<a href=#1621 id=1621 data-nosnippet>1621</a>            .unwrap();
+<a href=#1622 id=1622 data-nosnippet>1622</a>        <span class="macro">assert_eq!</span>(tiny_preview.data.len(), <span class="number">100</span>);
+<a href=#1623 id=1623 data-nosnippet>1623</a>        <span class="macro">assert!</span>(tiny_preview.data.iter().any(|column| column.height() &gt; <span class="number">0</span>));
+<a href=#1624 id=1624 data-nosnippet>1624</a>    }
+<a href=#1625 id=1625 data-nosnippet>1625</a>
+<a href=#1626 id=1626 data-nosnippet>1626</a>    <span class="doccomment">/// The .EXT file contains the RGB color preview (PWV4).
+<a href=#1627 id=1627 data-nosnippet>1627</a>    </span><span class="attr">#[test]
+<a href=#1628 id=1628 data-nosnippet>1628</a>    </span><span class="kw">fn </span>sweep_fixture_ext_rgb_preview_bands() {
+<a href=#1629 id=1629 data-nosnippet>1629</a>        <span class="kw">let </span>ext_data = std::fs::read(<span class="macro">concat!</span>(
+<a href=#1630 id=1630 data-nosnippet>1630</a>            <span class="macro">env!</span>(<span class="string">"CARGO_MANIFEST_DIR"</span>),
+<a href=#1631 id=1631 data-nosnippet>1631</a>            <span class="string">"/data/anlz/sweep/ANLZ0000.EXT"
+<a href=#1632 id=1632 data-nosnippet>1632</a>        </span>))
+<a href=#1633 id=1633 data-nosnippet>1633</a>        .unwrap();
+<a href=#1634 id=1634 data-nosnippet>1634</a>        <span class="kw">let </span>anlz = ANLZ::read(<span class="kw-2">&amp;mut </span>Cursor::new(<span class="kw-2">&amp;</span>ext_data)).unwrap();
+<a href=#1635 id=1635 data-nosnippet>1635</a>        <span class="kw">let </span>rgb_preview = anlz
+<a href=#1636 id=1636 data-nosnippet>1636</a>            .sections
+<a href=#1637 id=1637 data-nosnippet>1637</a>            .iter()
+<a href=#1638 id=1638 data-nosnippet>1638</a>            .find_map(|section| <span class="kw">match </span><span class="kw-2">&amp;</span>section.content {
+<a href=#1639 id=1639 data-nosnippet>1639</a>                Content::WaveformColorPreview(preview) =&gt; <span class="prelude-val">Some</span>(preview),
+<a href=#1640 id=1640 data-nosnippet>1640</a>                <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+<a href=#1641 id=1641 data-nosnippet>1641</a>            })
+<a href=#1642 id=1642 data-nosnippet>1642</a>            .unwrap();
+<a href=#1643 id=1643 data-nosnippet>1643</a>        <span class="kw">let </span>rgb_columns = <span class="kw-2">&amp;</span>rgb_preview.data;
+<a href=#1644 id=1644 data-nosnippet>1644</a>        <span class="macro">assert_eq!</span>(rgb_columns.len(), <span class="number">1200</span>);
+<a href=#1645 id=1645 data-nosnippet>1645</a>        <span class="kw">for </span>(fraction, expected_band) <span class="kw">in </span>SWEEP_EXPECTATIONS {
+<a href=#1646 id=1646 data-nosnippet>1646</a>            <span class="kw">let </span>column = <span class="kw-2">&amp;</span>rgb_columns[(rgb_columns.len() <span class="kw">as </span>f32 * fraction) <span class="kw">as </span>usize];
+<a href=#1647 id=1647 data-nosnippet>1647</a>            assert_sweep_column_band(
+<a href=#1648 id=1648 data-nosnippet>1648</a>                fraction,
+<a href=#1649 id=1649 data-nosnippet>1649</a>                expected_band,
+<a href=#1650 id=1650 data-nosnippet>1650</a>                <span class="string">"PWV4"</span>,
+<a href=#1651 id=1651 data-nosnippet>1651</a>                u16::from(column.energy_bottom_third_freq),
+<a href=#1652 id=1652 data-nosnippet>1652</a>                u16::from(column.energy_mid_third_freq),
+<a href=#1653 id=1653 data-nosnippet>1653</a>                u16::from(column.energy_top_third_freq),
+<a href=#1654 id=1654 data-nosnippet>1654</a>            );
+<a href=#1655 id=1655 data-nosnippet>1655</a>        }
+<a href=#1656 id=1656 data-nosnippet>1656</a>    }
+<a href=#1657 id=1657 data-nosnippet>1657</a>
+<a href=#1658 id=1658 data-nosnippet>1658</a>    <span class="doccomment">/// The .2EX file contains the 3-band preview (PWV6).
+<a href=#1659 id=1659 data-nosnippet>1659</a>    </span><span class="attr">#[test]
+<a href=#1660 id=1660 data-nosnippet>1660</a>    </span><span class="kw">fn </span>sweep_fixture_2ex_three_band_preview_bands() {
+<a href=#1661 id=1661 data-nosnippet>1661</a>        <span class="kw">let </span>two_ex_data = std::fs::read(<span class="macro">concat!</span>(
+<a href=#1662 id=1662 data-nosnippet>1662</a>            <span class="macro">env!</span>(<span class="string">"CARGO_MANIFEST_DIR"</span>),
+<a href=#1663 id=1663 data-nosnippet>1663</a>            <span class="string">"/data/anlz/sweep/ANLZ0000.2EX"
+<a href=#1664 id=1664 data-nosnippet>1664</a>        </span>))
+<a href=#1665 id=1665 data-nosnippet>1665</a>        .unwrap();
+<a href=#1666 id=1666 data-nosnippet>1666</a>        <span class="kw">let </span>anlz = ANLZ::read(<span class="kw-2">&amp;mut </span>Cursor::new(<span class="kw-2">&amp;</span>two_ex_data)).unwrap();
+<a href=#1667 id=1667 data-nosnippet>1667</a>        <span class="kw">let </span>three_band_preview = anlz
+<a href=#1668 id=1668 data-nosnippet>1668</a>            .sections
+<a href=#1669 id=1669 data-nosnippet>1669</a>            .iter()
+<a href=#1670 id=1670 data-nosnippet>1670</a>            .find_map(|section| <span class="kw">match </span><span class="kw-2">&amp;</span>section.content {
+<a href=#1671 id=1671 data-nosnippet>1671</a>                Content::Waveform3BandPreview(preview) =&gt; <span class="prelude-val">Some</span>(preview),
+<a href=#1672 id=1672 data-nosnippet>1672</a>                <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+<a href=#1673 id=1673 data-nosnippet>1673</a>            })
+<a href=#1674 id=1674 data-nosnippet>1674</a>            .unwrap();
+<a href=#1675 id=1675 data-nosnippet>1675</a>        <span class="kw">let </span>three_band_columns = <span class="kw-2">&amp;</span>three_band_preview.data;
+<a href=#1676 id=1676 data-nosnippet>1676</a>        <span class="macro">assert_eq!</span>(three_band_columns.len(), <span class="number">1200</span>);
+<a href=#1677 id=1677 data-nosnippet>1677</a>        <span class="kw">for </span>(fraction, expected_band) <span class="kw">in </span>SWEEP_EXPECTATIONS {
+<a href=#1678 id=1678 data-nosnippet>1678</a>            <span class="kw">let </span>column = <span class="kw-2">&amp;</span>three_band_columns[(three_band_columns.len() <span class="kw">as </span>f32 * fraction) <span class="kw">as </span>usize];
+<a href=#1679 id=1679 data-nosnippet>1679</a>            assert_sweep_column_band(
+<a href=#1680 id=1680 data-nosnippet>1680</a>                fraction,
+<a href=#1681 id=1681 data-nosnippet>1681</a>                expected_band,
+<a href=#1682 id=1682 data-nosnippet>1682</a>                <span class="string">"PWV6"</span>,
+<a href=#1683 id=1683 data-nosnippet>1683</a>                u16::from(column.energy_bottom_third_freq),
+<a href=#1684 id=1684 data-nosnippet>1684</a>                u16::from(column.energy_mid_third_freq),
+<a href=#1685 id=1685 data-nosnippet>1685</a>                u16::from(column.energy_top_third_freq),
+<a href=#1686 id=1686 data-nosnippet>1686</a>            );
+<a href=#1687 id=1687 data-nosnippet>1687</a>        }
+<a href=#1688 id=1688 data-nosnippet>1688</a>    }
+<a href=#1689 id=1689 data-nosnippet>1689</a>}
 </code></pre></div></section></main></body></html>
