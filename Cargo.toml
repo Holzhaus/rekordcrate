@@ -26,6 +26,9 @@ faster-hex = { version = "0.9", optional = true }
 chrono = { version = "0.4", features = ["serde"], optional = true }
 rgb = { version = "0.8", optional = true }
 fallible-iterator = "0.3.0"
+diesel = { version = "2.3.7", features = ["sqlite", "64-column-tables"], optional = true }
+diesel-derive-newtype = { version = "2.1.2", optional = true }
+libsqlite3-sys = { version = "0.36.0", features = ["bundled-sqlcipher"], optional = true }
 
 [build-dependencies]
 glob = "0.3"
@@ -39,6 +42,7 @@ default = ["cli", "xml", "json"]
 cli = ["dep:clap"]
 xml = ["dep:serde", "dep:serde_repr", "dep:quick-xml", "dep:chrono", "dep:rgb"]
 json = ["dep:serde", "dep:serde_json", "dep:faster-hex"]
+device_library_plus = ["dep:diesel", "dep:diesel-derive-newtype", "dep:libsqlite3-sys"]
 
 [[bin]]
 name = "rekordcrate"

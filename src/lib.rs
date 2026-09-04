@@ -25,6 +25,8 @@
 
 pub mod anlz;
 pub mod device;
+#[cfg(feature = "device_library_plus")]
+pub mod device_library_plus;
 pub mod pdb;
 pub mod setting;
 pub mod util;
