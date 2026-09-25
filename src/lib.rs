@@ -28,6 +28,8 @@ pub mod device;
 pub mod pdb;
 pub mod setting;
 pub mod util;
+#[cfg(feature = "cli")]
+pub mod waveform;
 pub mod xml;
 pub(crate) mod xor;
 
