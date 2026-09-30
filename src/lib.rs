@@ -29,6 +29,7 @@ pub mod pdb;
 pub mod setting;
 pub mod util;
 pub mod xml;
+pub mod xml_export;
 pub(crate) mod xor;
 
 pub use crate::device::DeviceExportLoader;

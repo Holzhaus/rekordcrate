@@ -18,6 +18,7 @@ use rekordcrate::{anlz::ANLZ, util::TableIndex};
 use serde::Serialize;
 use std::collections::BTreeMap;
 use std::fs::File;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 use thiserror::Error;
@@ -81,6 +82,16 @@ enum Commands {
         /// Output directory to write M3U files to.
         #[arg(value_name = "OUTPUT_DIR")]
         output_dir: PathBuf,
+    },
+    /// Export a Rekordbox device export to Rekordbox XML.
+    #[cfg(feature = "xml")]
+    ExportXML {
+        /// Path to parse.
+        #[arg(value_name = "EXPORT_PATH")]
+        path: PathBuf,
+        /// Output XML file.
+        #[arg(value_name = "XML_FILE")]
+        output: PathBuf,
     },
     /// Parse and dump a Rekordbox Analysis (`ANLZXXXX.DAT`) file.
     DumpANLZ {
@@ -234,7 +245,6 @@ fn export_playlists(path: &Path, output_dir: &Path) -> rekordcrate::Result<()> {
     use rekordcrate::device::{Playlist, PlaylistNode};
     use rekordcrate::DeviceExportLoader;
     use std::collections::HashMap;
-    use std::io::Write;
 
     let loader = DeviceExportLoader::new(path.into());
     let export_path = loader.get_path();
@@ -294,6 +304,22 @@ fn export_playlists(path: &Path, output_dir: &Path) -> rekordcrate::Result<()> {
             Ok(())
         })
     })?;
+
+    Ok(())
+}
+
+#[cfg(feature = "xml")]
+fn export_xml(path: &Path, output: &Path) -> rekordcrate::Result<()> {
+    use rekordcrate::DeviceExportLoader;
+
+    let loader = DeviceExportLoader::new(path.into());
+    let document = loader.export_xml_document()?;
+    let serialized = quick_xml::se::to_string(&document)
+        .map_err(|err| std::io::Error::new(std::io::ErrorKind::InvalidData, err.to_string()))?;
+
+    let mut file = File::create(output)?;
+    writeln!(file, r#"<?xml version="1.0" encoding="UTF-8"?>"#)?;
+    write!(file, "{serialized}")?;
 
     Ok(())
 }
@@ -519,6 +545,8 @@ fn run() -> CliResult<()> {
         Commands::ListPlaylists { path } => list_playlists(path)?,
         Commands::ListSettings { path } => list_settings(path)?,
         Commands::ExportPlaylists { path, output_dir } => export_playlists(path, output_dir)?,
+        #[cfg(feature = "xml")]
+        Commands::ExportXML { path, output } => export_xml(path, output)?,
         Commands::DumpPDB {
             path,
             db_type,
