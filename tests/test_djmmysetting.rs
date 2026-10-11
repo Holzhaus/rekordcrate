@@ -6,7 +6,7 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-use binrw::{io::Cursor, BinRead};
+use binrw::{io::Cursor, BinRead, BinWrite};
 use rekordcrate::setting::*;
 
 macro_rules! read_djmmysetting {
@@ -179,4 +179,34 @@ fn read_djmsetting_talkover_level_6() {
 fn read_djmsetting_talkover_mode_normal() {
     let data = read_djmmysetting!("../data/djmmysetting/talkover_mode_normal/DJMMYSETTING.DAT");
     assert_eq!(data.talk_over_mode, TalkOverMode::Normal);
+}
+
+#[test]
+fn read_djmsetting_nonzero_trailing_bytes() {
+    let setting = Setting::default_djmmysetting();
+    let mut data = Vec::new();
+    let mut writer = Cursor::new(&mut data);
+    setting.write_args(&mut writer, (false,)).unwrap();
+
+    let len = data.len();
+
+    // The trailing 27 bytes in the payload are an unknown field that is not necessarily zero.
+    let data_start = len - 4 - 27;
+    let data_end = len - 4;
+    data[data_start..data_end].copy_from_slice(&[0xFF; 27]);
+
+    // Update the checksum, which for DJMMYSETTING.DAT covers all preceding bytes.
+    let checksum = crc16::State::<crc16::XMODEM>::calculate(&data[..len - 4]);
+    data[len - 4..len - 2].copy_from_slice(&checksum.to_le_bytes());
+
+    let mut reader = Cursor::new(&data);
+    let setting = Setting::read_args(&mut reader, (SettingType::DJMMySetting,)).unwrap();
+
+    // Writing the parsed value must retain the unknown bytes rather than replacing them with
+    // their default zero values.
+    let mut roundtrip = Vec::new();
+    setting
+        .write_args(&mut Cursor::new(&mut roundtrip), (false,))
+        .unwrap();
+    assert_eq!(roundtrip, data);
 }
