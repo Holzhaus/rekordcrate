@@ -253,12 +253,49 @@ impl<R: Read + Seek> Database<R> {
         Ok(page_index)
     }
 
+    /// Whether the page at `page_index` has never been written.
+    ///
+    /// Rekordbox reserves pages ahead of time by pointing `Table::empty_candidate` at them, and
+    /// such a page is either zeroed or past the end of the database. A page that is in use always
+    /// stores its own non-zero page index, so it can be told apart from a reserved one.
+    fn is_page_unused(&mut self, page_index: PageIndex) -> RekordcrateResult<bool> {
+        let Some(entry) = usize::try_from(page_index.0)
+            .ok()
+            .and_then(|index| index.checked_sub(1))
+            .and_then(|index| self.content.pages.get(index))
+        else {
+            return Ok(false);
+        };
+        // A page that we have already parsed belongs to a table.
+        if let LazyPage::Loaded(_) = entry {
+            return Ok(false);
+        }
+
+        let offset = page_index.offset(self.content.header.page_size);
+        self.io.seek(SeekFrom::Start(offset))?;
+        let mut header = [0u8; 8];
+        let mut bytes_read = 0;
+        while bytes_read < header.len() {
+            match self.io.read(&mut header[bytes_read..])? {
+                // Past the end of the database, so the page cannot be in use.
+                0 => return Ok(true),
+                n => bytes_read += n,
+            }
+        }
+        // The page magic and the page index of a page in use are never both zero.
+        Ok(header == [0u8; 8])
+    }
+
     /// Appends a new, empty data page to the end of a table's page chain.
     ///
-    /// The page is taken from the unused space past the end of the database, which grows the
-    /// database by one page once the changes are flushed. The previous last page of the table is
-    /// linked to the new page, the table's `last_page` is updated to point at it, and the
-    /// database sequence number is incremented.
+    /// The page reserved for the table by `Table::empty_candidate` is used if it is still unused,
+    /// which is how Rekordbox claims the page that follows a table's index page. A fresh page is
+    /// then reserved for the next time the table grows. Otherwise the page is taken from the
+    /// unused space past the end of the database, which grows the database by one page once the
+    /// changes are flushed.
+    ///
+    /// The previous last page of the table is linked to the new page, the table's `last_page` is
+    /// updated to point at it, and the database sequence number is incremented.
     ///
     /// Returns the index of the newly appended page.
     pub fn append_page(&mut self, page_type: PageType) -> RekordcrateResult<PageIndex> {
@@ -268,11 +305,12 @@ impl<R: Read + Seek> Database<R> {
             .find_table(page_type)
             .ok_or(RekordcrateError::TableTypeNotPresent(page_type))?;
         let previous_last_page = table.last_page;
+        let empty_candidate = table.empty_candidate;
 
-        // `next_unused_page` points past the end of the database, so it is the index of the page
-        // we are about to append. Page indices are 1-based, hence the `- 1`.
-        let page_index = self.content.header.next_unused_page;
-        if usize::try_from(page_index.0)
+        // `next_unused_page` points past the end of the database. Page indices are 1-based, hence
+        // the `- 1`.
+        let next_unused_page = self.content.header.next_unused_page;
+        if usize::try_from(next_unused_page.0)
             .ok()
             .and_then(|i| i.checked_sub(1))
             != Some(self.content.pages.len())
@@ -281,40 +319,69 @@ impl<R: Read + Seek> Database<R> {
                 "next_unused_page does not point past the last page of the database",
             ));
         }
-        // Validates that the new indices are in the representable range.
-        let _ = PageIndex::try_from(page_index.0)?;
-        let next_unused_page = PageIndex::try_from(page_index.0 + 1)?;
+        // A page is always reserved for the next time the table grows, so the database gains a
+        // page either way.
+        let new_next_unused_page = PageIndex::try_from(next_unused_page.0 + 1)?;
+
+        let reserved_page = match PageIndex::try_from(empty_candidate) {
+            Ok(candidate) if self.is_page_unused(candidate)? => Some(candidate),
+            _ => None,
+        };
+        // Claiming the reserved page of the table means reserving a fresh one in its place. The
+        // last page of a table points at the page that the table will use next, which is that
+        // reserved page. Where there is nothing to claim, `empty_candidate` is left alone, as it
+        // still describes where the table has free space.
+        let (page_index, next_page, new_empty_candidate) = match reserved_page {
+            Some(candidate) => (candidate, next_unused_page, Some(next_unused_page)),
+            None => (next_unused_page, new_next_unused_page, None),
+        };
 
         let page_size = self.content.header.page_size;
         let sequence = self.content.header.sequence;
-        let page = Page::new_empty_data(
-            page_index,
-            page_type,
-            // The last page of a table points past the end of the file.
-            next_unused_page,
-            page_size,
-            sequence,
-        );
+        let page = Page::new_empty_data(page_index, page_type, next_page, page_size, sequence);
 
         // Link the previous last page of the table to the new page. This has to happen before we
         // commit to the new state, so that a failure to load that page leaves the database
         // unchanged.
-        self.load_page(previous_last_page)?.header.next_page = page_index;
+        let previous_page = self.load_page(previous_last_page)?;
+        previous_page.header.next_page = page_index;
+        if let Some(index_content) = previous_page.content.as_index_mut() {
+            // The page header of an index page points at the page that physically follows it,
+            // while the index content points at the next page of the table.
+            index_content.header.next_page = page_index;
+        }
 
-        self.content.pages.push(LazyPage::Loaded(page));
+        match reserved_page {
+            // The reserved page already has an entry, and the page reserved in its place needs a
+            // new one.
+            Some(_) => {
+                let entry = usize::try_from(page_index.0)
+                    .ok()
+                    .and_then(|index| index.checked_sub(1))
+                    .and_then(|index| self.content.pages.get_mut(index))
+                    .ok_or(RekordcrateError::IntegrityError(
+                        "the page reserved for the table is not one the database holds",
+                    ))?;
+                *entry = LazyPage::Loaded(page);
+                self.content.pages.push(LazyPage::NotLoaded);
+            }
+            None => self.content.pages.push(LazyPage::Loaded(page)),
+        }
 
         let header = &mut self.content.header;
-        header.next_unused_page = next_unused_page;
+        header.next_unused_page = new_next_unused_page;
         header.sequence += 1;
-        header
+        let table = header
             .tables
             .get_mut(table_index.0)
-            .ok_or(RekordcrateError::TableNotPresent(table_index))?
-            .last_page = page_index;
+            .ok_or(RekordcrateError::TableNotPresent(table_index))?;
+        table.last_page = page_index;
+        if let Some(new_empty_candidate) = new_empty_candidate {
+            table.empty_candidate = new_empty_candidate.0;
+        }
 
         Ok(page_index)
     }
-
     /// Returns a reference to the PDB header.
     #[must_use]
     pub fn get_header(&self) -> &Header {
@@ -329,6 +396,92 @@ impl<R: Read + Seek> Database<R> {
 }
 
 impl<RW: Read + Write + Seek> Database<RW> {
+    /// Page size that Rekordbox uses for the databases it writes.
+    pub const DEFAULT_PAGE_SIZE: u32 = 4096;
+
+    /// Creates a new, empty database with the default page size.
+    ///
+    /// See [`Database::create_with_page_size`] for details.
+    pub fn create(io: RW, db_type: DatabaseType) -> RekordcrateResult<Self> {
+        Self::create_with_page_size(io, db_type, Self::DEFAULT_PAGE_SIZE)
+    }
+
+    /// Creates a new, empty database, overwriting whatever the IO contained before.
+    ///
+    /// The database is laid out the way Rekordbox lays out an export it has not put any content
+    /// into yet: a header page, followed by one index page per table at every odd page index,
+    /// with the even page after each of those reserved for the first data page of that table.
+    /// Every table is empty, so [`Database::add_row`] claims those reserved pages as rows are
+    /// added.
+    ///
+    /// Note that this is only the database structure. Players expect some tables to be populated
+    /// with default content, which this does not add.
+    pub fn create_with_page_size(
+        io: RW,
+        db_type: DatabaseType,
+        page_size: u32,
+    ) -> RekordcrateResult<Self> {
+        let page_types = db_type.table_page_types();
+        let mut tables = Vec::with_capacity(page_types.len());
+        let mut pages = Vec::with_capacity(page_types.len() * 2);
+
+        for (table_index, &page_type) in page_types.iter().enumerate() {
+            let index_page = PageIndex::try_from(
+                u32::try_from(table_index)
+                    .map_err(|_| RekordcrateError::IntegrityError("too many tables"))?
+                    * 2
+                    + 1,
+            )?;
+            let reserved_page = PageIndex::try_from(index_page.0 + 1)?;
+
+            tables.push(Table {
+                page_type,
+                empty_candidate: reserved_page.0,
+                first_page: index_page,
+                last_page: index_page,
+            });
+            pages.push(LazyPage::Loaded(Page::new_empty_index(
+                index_page,
+                page_type,
+                reserved_page,
+            )));
+            // The reserved page is left as zeros until a table claims it.
+            pages.push(LazyPage::NotLoaded);
+        }
+
+        let num_tables = u32::try_from(tables.len())
+            .map_err(|_| RekordcrateError::IntegrityError("too many tables"))?;
+        let next_unused_page = PageIndex::try_from(
+            u32::try_from(pages.len())
+                .map_err(|_| RekordcrateError::IntegrityError("too many pages"))?
+                + 1,
+        )?;
+
+        let mut db = Self {
+            io,
+            db_type,
+            content: LazyDatabase {
+                header: Header {
+                    page_size,
+                    num_tables,
+                    next_unused_page,
+                    // Matches the databases written by Rekordbox. Purpose unknown.
+                    unknown: 5,
+                    sequence: 1,
+                    tables,
+                },
+                pages,
+            },
+        };
+
+        db.flush()?;
+        // The reserved page of the last table is all zeros, so nothing is written for it and the
+        // database would otherwise end before it.
+        db.extend_to(next_unused_page.offset(page_size))?;
+
+        Ok(db)
+    }
+
     /// Opens a PDB database for reading and writing.
     pub fn open(mut io: RW, db_type: DatabaseType) -> RekordcrateResult<Self> {
         let endian = Endian::Little;
@@ -346,6 +499,15 @@ impl<RW: Read + Write + Seek> Database<RW> {
         self.io.seek(SeekFrom::Start(0))?;
         self.content.write_options(&mut self.io, endian, ())?;
         self.pad_to_page_boundary()?;
+        Ok(())
+    }
+
+    /// Extends the database with zeros until it is at least `size` bytes long.
+    fn extend_to(&mut self, size: u64) -> RekordcrateResult<()> {
+        let current_size = self.io.seek(SeekFrom::End(0))?;
+        if let Some(missing) = size.checked_sub(current_size).filter(|&m| m > 0) {
+            self.io.write_all(&vec![0u8; missing as usize])?;
+        }
         Ok(())
     }
 
@@ -745,6 +907,198 @@ mod test {
         );
         // The failed insert must not have left an empty page behind in the table.
         assert_eq!(db.get_header(), &header_before);
+    }
+
+    const EMPTY_EXPORT: &[u8] =
+        include_bytes!("../../data/complete_export/empty/PIONEER/rekordbox/export.pdb");
+
+    fn create_in_memory(db_type: DatabaseType) -> Database<Cursor<Vec<u8>>> {
+        Database::create(Cursor::new(Vec::new()), db_type).unwrap()
+    }
+
+    /// A created database has a table per page type, each of them empty.
+    #[test]
+    fn test_create_tables() {
+        for (db_type, num_tables) in [(DatabaseType::Plain, 20), (DatabaseType::Ext, 9)] {
+            let mut db = create_in_memory(db_type);
+            db.flush().unwrap();
+            let data = db.into_inner().into_inner();
+            assert_eq!(
+                data.len() % Database::<Cursor<Vec<u8>>>::DEFAULT_PAGE_SIZE as usize,
+                0
+            );
+
+            // Reopen it to check that what we wrote can be parsed back.
+            let mut db =
+                Database::open_non_persistent(Cursor::new(data.as_slice()), db_type).unwrap();
+            let header = db.get_header();
+            assert_eq!(header.num_tables as usize, num_tables);
+            assert_eq!(header.tables.len(), num_tables);
+            assert_eq!(header.page_size, 4096);
+            assert_eq!(
+                header.next_unused_page,
+                PageIndex::try_from(num_tables as u32 * 2 + 1).unwrap()
+            );
+
+            for (table_index, table) in header.tables.clone().iter().enumerate() {
+                assert_eq!(
+                    table.page_type,
+                    db_type.table_page_types()[table_index],
+                    "unexpected page type for table {table_index}"
+                );
+                // An empty table consists of its index page alone.
+                assert_eq!(table.first_page, table.last_page);
+                let page = db.load_page(table.first_page).unwrap();
+                assert!(page.header.page_flags.is_index_page());
+                assert_eq!(page.content.as_index().unwrap().entries, Vec::new());
+            }
+        }
+    }
+
+    /// The index pages of a created database must match those that Rekordbox itself writes for an
+    /// export it has not put any content into.
+    #[test]
+    fn test_create_matches_rekordbox_layout() {
+        let page_size = Database::<Cursor<Vec<u8>>>::DEFAULT_PAGE_SIZE as usize;
+        let mut db = create_in_memory(DatabaseType::Plain);
+        db.flush().unwrap();
+        let data = db.into_inner().into_inner();
+
+        let reference =
+            Database::open_non_persistent(Cursor::new(EMPTY_EXPORT), DatabaseType::Plain).unwrap();
+        let reference_header = reference.get_header();
+        let header =
+            Database::open_non_persistent(Cursor::new(data.as_slice()), DatabaseType::Plain)
+                .unwrap()
+                .get_header()
+                .clone();
+
+        assert_eq!(header.page_size, reference_header.page_size);
+        assert_eq!(header.num_tables, reference_header.num_tables);
+        assert_eq!(header.unknown, reference_header.unknown);
+
+        for (table, reference_table) in header.tables.iter().zip(&reference_header.tables) {
+            assert_eq!(table.page_type, reference_table.page_type);
+            assert_eq!(table.first_page, reference_table.first_page);
+
+            // Rekordbox populates a handful of tables with default content, and a table that has
+            // claimed its reserved page has a different one reserved in its place, so only the
+            // tables it left empty are comparable.
+            if reference_table.first_page != reference_table.last_page {
+                continue;
+            }
+            assert_eq!(table.last_page, reference_table.last_page);
+            assert_eq!(table.empty_candidate, reference_table.empty_candidate);
+
+            let page_range = |index: PageIndex| {
+                let start = index.offset(page_size as u32) as usize;
+                start..start + page_size
+            };
+            assert_eq!(
+                data[page_range(table.first_page)],
+                EMPTY_EXPORT[page_range(reference_table.first_page)],
+                "index page of table {:?} does not match Rekordbox",
+                table.page_type
+            );
+        }
+    }
+
+    /// Rows can be added to a created database and survive a round-trip.
+    #[test]
+    fn test_create_then_add_rows() {
+        let mut db = create_in_memory(DatabaseType::Plain);
+
+        let page_index = db.add_row(key_row(1, "Amin")).unwrap();
+        db.add_row(key_row(2, "Bmin")).unwrap();
+
+        // The first data page of a table is the one reserved right after its index page.
+        let (_, table) = db
+            .get_header()
+            .find_table(PageType::Plain(PlainPageType::Keys))
+            .unwrap();
+        assert_eq!(
+            page_index,
+            PageIndex::try_from(table.first_page.0 + 1).unwrap()
+        );
+
+        db.flush().unwrap();
+        let data = db.into_inner().into_inner();
+
+        // Set REKORDCRATE_TEST_DUMP_PATH to dump the created database there for inspection.
+        if let Ok(save_dir) = std::env::var("REKORDCRATE_TEST_DUMP_PATH") {
+            let save_dir = std::path::Path::new(&save_dir).join("create_then_add_rows");
+            std::fs::create_dir_all(&save_dir).unwrap();
+            std::fs::write(save_dir.join("export.pdb"), &data).unwrap();
+        }
+
+        let mut db =
+            Database::open_non_persistent(Cursor::new(data.as_slice()), DatabaseType::Plain)
+                .unwrap();
+        assert_eq!(
+            key_names(&mut db),
+            vec!["Amin".to_string(), "Bmin".to_string()]
+        );
+    }
+
+    /// A table claims the page Rekordbox reserved for it before growing the database, and the
+    /// page it reserves in its place must not be handed out twice.
+    #[test]
+    fn test_append_page_claims_reserved_page() {
+        let mut db = create_in_memory(DatabaseType::Plain);
+        let page_type = PageType::Plain(PlainPageType::Keys);
+        let (_, table) = db.get_header().find_table(page_type).unwrap();
+        let (index_page, reserved_page) = (table.first_page, table.empty_candidate);
+        let next_unused_page = db.get_header().next_unused_page;
+
+        let first = db.append_page(page_type).unwrap();
+        let second = db.append_page(page_type).unwrap();
+
+        // The reserved page is claimed first, and is the page right after the index page.
+        assert_eq!(first, PageIndex::try_from(reserved_page).unwrap());
+        assert_eq!(first, PageIndex::try_from(index_page.0 + 1).unwrap());
+        // Claiming it reserved a fresh page, which the second append then claims in turn.
+        assert_eq!(second, next_unused_page);
+        assert_ne!(first, second);
+
+        let (_, table) = db.get_header().find_table(page_type).unwrap();
+        assert_eq!(table.last_page, second);
+        // Another page stands reserved for the next time the table grows.
+        assert_ne!(table.empty_candidate, second.0);
+        assert_eq!(db.iter_pages(page_type).unwrap().count().unwrap(), 3);
+    }
+
+    /// A page that is in use must never be claimed as a reserved page, even when a table points
+    /// `empty_candidate` at it.
+    #[test]
+    fn test_append_page_does_not_claim_used_page() {
+        let file = File::open("data/pdb/num_rows/export.pdb").unwrap();
+        let mut db = Database::open_non_persistent(file, DatabaseType::Plain).unwrap();
+        let page_type = PageType::Plain(PlainPageType::Keys);
+        let next_unused_page = db.get_header().next_unused_page;
+
+        let pages_before: Vec<PageIndex> = db
+            .iter_pages(page_type)
+            .unwrap()
+            .map(|page| Ok(page.header.page_index))
+            .collect()
+            .unwrap();
+        // Point the table at a page of its own that holds rows. Databases written by Rekordbox
+        // always reserve an unused page instead, but a page in use must not be handed out even if
+        // one of them ever did this.
+        let used_page = *pages_before.last().unwrap();
+        let (_, table) = db.get_header_mut().find_table_mut(page_type).unwrap();
+        table.empty_candidate = used_page.0;
+
+        let page_index = db.append_page(page_type).unwrap();
+
+        assert_eq!(page_index, next_unused_page);
+        let (_, table) = db.get_header().find_table(page_type).unwrap();
+        assert_eq!(
+            table.empty_candidate, used_page.0,
+            "empty_candidate of a table we did not claim from must not be moved"
+        );
+        // The rows of the page that was pointed at are still readable.
+        assert_eq!(key_names(&mut db).len(), 67);
     }
 
     /// The whole page heap of a newly appended page must be accounted for as free space.

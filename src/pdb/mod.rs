@@ -69,6 +69,53 @@ pub enum DatabaseType {
     Ext,
 }
 
+impl DatabaseType {
+    /// The tables that Rekordbox lays out in a newly created database of this type, in order.
+    ///
+    /// Some of the table types are not understood yet, but players appear to expect the full set,
+    /// so empty tables are created for them as well.
+    #[must_use]
+    pub(crate) fn table_page_types(self) -> &'static [PageType] {
+        const PLAIN: &[PageType] = &[
+            PageType::Plain(PlainPageType::Tracks),
+            PageType::Plain(PlainPageType::Genres),
+            PageType::Plain(PlainPageType::Artists),
+            PageType::Plain(PlainPageType::Albums),
+            PageType::Plain(PlainPageType::Labels),
+            PageType::Plain(PlainPageType::Keys),
+            PageType::Plain(PlainPageType::Colors),
+            PageType::Plain(PlainPageType::PlaylistTree),
+            PageType::Plain(PlainPageType::PlaylistEntries),
+            PageType::Unknown(9),
+            PageType::Unknown(10),
+            PageType::Plain(PlainPageType::HistoryPlaylists),
+            PageType::Plain(PlainPageType::HistoryEntries),
+            PageType::Plain(PlainPageType::Artwork),
+            PageType::Unknown(14),
+            PageType::Unknown(15),
+            PageType::Plain(PlainPageType::Columns),
+            PageType::Plain(PlainPageType::Menu),
+            PageType::Unknown(18),
+            PageType::Plain(PlainPageType::History),
+        ];
+        const EXT: &[PageType] = &[
+            PageType::Unknown(0),
+            PageType::Unknown(1),
+            PageType::Unknown(2),
+            PageType::Ext(ExtPageType::Tag),
+            PageType::Ext(ExtPageType::TrackTag),
+            PageType::Unknown(5),
+            PageType::Unknown(6),
+            PageType::Unknown(7),
+            PageType::Unknown(8),
+        ];
+        match self {
+            DatabaseType::Plain => PLAIN,
+            DatabaseType::Ext => EXT,
+        }
+    }
+}
+
 /// The type of pages found inside a `Table`.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
@@ -175,6 +222,12 @@ impl TryFrom<u32> for PageIndex {
 }
 
 impl PageIndex {
+    /// Sentinel value used in place of a page index where there is no page to point at.
+    ///
+    /// This is the largest representable page index, which always points past the end of the
+    /// database. It is used by index pages of empty tables and by empty index entries.
+    pub const NONE: Self = Self(0x03FF_FFFF);
+
     /// Calculate the absolute file offset of the page in the PDB file for the given `page_size`.
     #[must_use]
     pub fn offset(&self, page_size: u32) -> u64 {
@@ -642,6 +695,45 @@ impl Page {
     /// only be filled as far as it is able to record.
     pub(crate) fn empty_page_heap_size(page_size: u32) -> u16 {
         u16::try_from(DataPageContent::page_heap_size(page_size)).unwrap_or(u16::MAX)
+    }
+
+    /// Create the index page of an empty table.
+    ///
+    /// Every table starts with an index page, which holds no rows itself. `next_page` should
+    /// point at the page that follows this one in the database, which Rekordbox reserves for the
+    /// first data page of the table.
+    #[must_use]
+    pub fn new_empty_index(
+        page_index: PageIndex,
+        page_type: PageType,
+        next_page: PageIndex,
+    ) -> Self {
+        Self {
+            header: PageHeader {
+                page_index,
+                page_type,
+                next_page,
+                unknown1: 1,
+                unknown2: 0,
+                packed_row_counts: PackedRowCounts::from_all_valid(0),
+                page_flags: PageFlags::new_index_page(),
+                free_size: 0,
+                used_size: 0,
+            },
+            content: PageContent::Index(IndexPageContent {
+                header: IndexPageHeader {
+                    unknown_a: 0x1fff,
+                    unknown_b: 0x1fff,
+                    next_offset: 0,
+                    page_index,
+                    // The table is empty, so there is no page holding deleted rows to point at.
+                    next_page: PageIndex::NONE,
+                    num_entries: 0,
+                    first_empty: 0x1fff,
+                },
+                entries: Vec::new(),
+            }),
+        }
     }
 
     /// Allocate space for a new row in the page heap and return the index the row takes within
