@@ -193,6 +193,54 @@ impl<R: Read + Seek> Database<R> {
             .map(|row| Ok(row.as_variant_mut().expect("unexpected row type"))))
     }
 
+    /// Adds a row to its table, allocating a new page if the table has no room for it.
+    ///
+    /// The row is appended to the last page of the table if it fits there, otherwise a new page
+    /// is appended to the table via [`Database::append_page`] and the row is stored in that. Free
+    /// space in earlier pages of the table is not reused.
+    ///
+    /// Returns the index of the page that the row was stored in.
+    pub fn add_row<RowT: RowVariant>(&mut self, row: RowT) -> RekordcrateResult<PageIndex> {
+        let page_type = RowT::PAGE_TYPE;
+        let row = row.into_row();
+        let bytes_required = row.heap_bytes_required(());
+
+        // Checked up front so that a row that can never be stored does not leave an empty page
+        // behind in the table.
+        let required = Page::heap_bytes_for_row(bytes_required);
+        let available = Page::empty_page_heap_size(self.content.header.page_size);
+        if required > available {
+            return Err(RekordcrateError::RowTooLarge {
+                required,
+                available,
+            });
+        }
+
+        let (_, table) = self
+            .content
+            .header
+            .find_table(page_type)
+            .ok_or(RekordcrateError::TableTypeNotPresent(page_type))?;
+        let last_page = table.last_page;
+
+        // The last page of a table is an index page while the table is still empty, in which case
+        // the allocation fails here and we fall through to appending a data page below.
+        let page = self.load_page(last_page)?;
+        if let Some(insert) = page.allocate_row(bytes_required) {
+            insert(row);
+            return Ok(last_page);
+        }
+
+        let page_index = self.append_page(page_type)?;
+        let page = self.load_page(page_index)?;
+        let insert = page.allocate_row(bytes_required).ok_or(
+            // Unreachable: we checked above that the row fits in an empty page.
+            RekordcrateError::IntegrityError("freshly appended page cannot hold the row"),
+        )?;
+        insert(row);
+        Ok(page_index)
+    }
+
     /// Appends a new, empty data page to the end of a table's page chain.
     ///
     /// The page is taken from the unused space past the end of the database, which grows the
@@ -449,6 +497,122 @@ mod test {
         for (_, name) in new_keys {
             assert!(names.contains(&name.to_string()), "{names:?}");
         }
+    }
+
+    fn key_row(id: u32, name: &str) -> Key {
+        Key {
+            id: KeyId(id),
+            id2: id,
+            name: name.parse().unwrap(),
+        }
+    }
+
+    fn key_names(db: &mut Database<impl Read + Seek>) -> Vec<String> {
+        db.iter_rows::<Key>()
+            .unwrap()
+            .map(|key| Ok(key.name.clone().into_string().unwrap()))
+            .collect()
+            .unwrap()
+    }
+
+    /// A row that fits in the last page of its table is stored there, without growing the table.
+    #[test]
+    fn test_add_row_reuses_last_page() {
+        let file = File::open("data/pdb/num_rows/export.pdb").unwrap();
+        let mut db = Database::open_non_persistent(file, DatabaseType::Plain).unwrap();
+        let next_unused_page = db.get_header().next_unused_page;
+        let (_, table) = db
+            .get_header()
+            .find_table(PageType::Plain(PlainPageType::Keys))
+            .unwrap();
+        let last_page = table.last_page;
+
+        let page_index = db.add_row(key_row(1000, "Amin")).unwrap();
+
+        assert_eq!(page_index, last_page);
+        assert_eq!(db.get_header().next_unused_page, next_unused_page);
+        assert_eq!(key_names(&mut db).len(), 68);
+    }
+
+    /// Adding a row to an empty table has to allocate a data page, because the only page of an
+    /// empty table is an index page that cannot hold rows.
+    #[test]
+    fn test_add_row_to_empty_table() {
+        let file = File::open("data/complete_export/empty/PIONEER/rekordbox/export.pdb").unwrap();
+        let mut db = Database::open_non_persistent(file, DatabaseType::Plain).unwrap();
+        let (_, table) = db
+            .get_header()
+            .find_table(PageType::Plain(PlainPageType::Keys))
+            .unwrap();
+        let (first_page, last_page) = (table.first_page, table.last_page);
+        assert_eq!(key_names(&mut db).len(), 0, "fixture should have no keys");
+
+        let page_index = db.add_row(key_row(1, "Amin")).unwrap();
+
+        assert_ne!(page_index, first_page);
+        assert_ne!(page_index, last_page);
+        assert_eq!(key_names(&mut db), vec!["Amin".to_string()]);
+    }
+
+    /// Adding more rows than fit in a single page grows the table across pages, and all of the
+    /// rows survive a round-trip through serialization.
+    #[test]
+    fn test_add_row_spills_into_new_pages() {
+        let data = Vec::from(include_bytes!(
+            "../../data/complete_export/empty/PIONEER/rekordbox/export.pdb"
+        ));
+        let mut db = Database::open(Cursor::new(data), DatabaseType::Plain).unwrap();
+
+        const NUM_KEYS: u32 = 500;
+        let mut pages = Vec::new();
+        for id in 0..NUM_KEYS {
+            pages.push(db.add_row(key_row(id, &format!("key{id}"))).unwrap());
+        }
+        pages.dedup();
+        assert!(
+            pages.len() > 1,
+            "{NUM_KEYS} keys should not fit in a single page, used pages: {pages:?}"
+        );
+
+        db.flush().unwrap();
+        let data = db.into_inner().into_inner();
+
+        // Set REKORDCRATE_TEST_DUMP_PATH to dump the grown database there for inspection.
+        if let Ok(save_dir) = std::env::var("REKORDCRATE_TEST_DUMP_PATH") {
+            let save_dir = std::path::Path::new(&save_dir).join("add_row_spills_into_new_pages");
+            std::fs::create_dir_all(&save_dir).unwrap();
+            std::fs::write(save_dir.join("export.pdb"), &data).unwrap();
+        }
+
+        let mut db =
+            Database::open_non_persistent(Cursor::new(data.as_slice()), DatabaseType::Plain)
+                .unwrap();
+
+        let names = key_names(&mut db);
+        assert_eq!(names.len(), NUM_KEYS as usize);
+        for id in 0..NUM_KEYS {
+            assert!(names.contains(&format!("key{id}")), "key{id} is missing");
+        }
+    }
+
+    /// A row too large for an empty page cannot be stored anywhere.
+    #[test]
+    fn test_add_row_too_large() {
+        let file = File::open("data/pdb/num_rows/export.pdb").unwrap();
+        let mut db = Database::open_non_persistent(file, DatabaseType::Plain).unwrap();
+        let page_size = db.get_header().page_size;
+
+        let header_before = db.get_header().clone();
+
+        let name = "a".repeat(page_size as usize);
+        let result = db.add_row(key_row(1000, &name));
+
+        assert!(
+            matches!(result, Err(RekordcrateError::RowTooLarge { .. })),
+            "unexpected result: {result:?}"
+        );
+        // The failed insert must not have left an empty page behind in the table.
+        assert_eq!(db.get_header(), &header_before);
     }
 
     /// The whole page heap of a newly appended page must be accounted for as free space.

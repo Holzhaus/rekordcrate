@@ -69,6 +69,17 @@ pub enum RekordcrateError {
     #[error("Page not present in database: {0:?}")]
     PageNotPresent(PageIndex),
 
+    /// Represents a row that cannot be stored because it does not fit in a single page.
+    #[error(
+        "row requires {required} bytes of page heap, but an empty page only holds {available}"
+    )]
+    RowTooLarge {
+        /// Page heap space required by the row.
+        required: u16,
+        /// Page heap space available in an empty page.
+        available: u16,
+    },
+
     /// Represents a breach of the expectation that the pages do not form a cycle.
     #[error("Page list contains a cycle at page: {0:?}")]
     PageOrderViolation(PageIndex),
