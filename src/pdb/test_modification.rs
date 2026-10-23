@@ -55,7 +55,8 @@ fn allocate_row_empty_page() {
         let row_groups = vec![RowGroup {
             row_offsets: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x0000],
             row_presence_flags: 0x0001,
-            unknown: 0x0000,
+            // The row was written by this write.
+            unknown: 0x0001,
         }];
 
         let rows: BTreeMap<u16, Row> = vec![(
@@ -87,7 +88,7 @@ fn allocate_row_empty_page() {
             },
             content: PageContent::Data(DataPageContent {
                 header: DataPageHeader {
-                    unknown5: 0,
+                    unknown5: 1,
                     unknown_not_num_rows_large: 0,
                     unknown6: 0,
                     unknown7: 0,
@@ -163,7 +164,8 @@ fn allocate_row_existing_row_group() {
         let row_groups = vec![RowGroup {
             row_offsets: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x0010, 0x0000],
             row_presence_flags: 0x0003,
-            unknown: 0x0000,
+            // Only the second row was written by this write.
+            unknown: 0x0002,
         }];
 
         let rows: BTreeMap<u16, Row> = vec![
@@ -205,7 +207,7 @@ fn allocate_row_existing_row_group() {
             },
             content: PageContent::Data(DataPageContent {
                 header: DataPageHeader {
-                    unknown5: 0,
+                    unknown5: 1,
                     unknown_not_num_rows_large: 0,
                     unknown6: 0,
                     unknown7: 0,
@@ -278,6 +280,7 @@ fn allocate_row_interrupted() {
         let row_groups = vec![RowGroup {
             row_offsets: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x0010, 0x0000],
             row_presence_flags: 0x0001,
+            // The row was allocated but never inserted, so no row was written.
             unknown: 0x0000,
         }];
 
@@ -312,7 +315,7 @@ fn allocate_row_interrupted() {
             },
             content: PageContent::Data(DataPageContent {
                 header: DataPageHeader {
-                    unknown5: 0,
+                    unknown5: 1,
                     unknown_not_num_rows_large: 0,
                     unknown6: 0,
                     unknown7: 0,
@@ -517,12 +520,14 @@ fn allocate_row_full_row_group() {
                     0x0048, 0x003c, 0x002c, 0x0020, 0x0010, 0x0000,
                 ],
                 row_presence_flags: 0xffff,
+                // This group was already full before this write.
                 unknown: 0x0000,
             },
             RowGroup {
                 row_offsets: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x00ec],
                 row_presence_flags: 0x0001,
-                unknown: 0x0000,
+                // The row was written by this write.
+                unknown: 0x0001,
             },
         ];
 
@@ -683,7 +688,7 @@ fn allocate_row_full_row_group() {
             },
             content: PageContent::Data(DataPageContent {
                 header: DataPageHeader {
-                    unknown5: 0,
+                    unknown5: 1,
                     unknown_not_num_rows_large: 0,
                     unknown6: 0,
                     unknown7: 0,
