@@ -530,8 +530,14 @@ pub struct PageHeader {
     /// If this page is the last one of that type, the page index stored in the field will point
     /// past the end of the file.
     pub next_page: PageIndex,
-    /// Unknown field.
-    /// Appears to be a number between 1 and ~2500.
+    /// The sequence number the database held when the page was last written, as far as the
+    /// exports we have show.
+    ///
+    /// In the export Rekordbox writes for a device holding no tracks, the five data pages hold 1
+    /// to 5 while the database header holds 9, in the order the pages were written. In a library
+    /// edited over time, every page holds a value at or below the sequence of the header, most of
+    /// them just below it, and an index page holds 1 unless it has been written again since the
+    /// table was created.
     pub unknown1: u32,
     /// Unknown field.
     /// Appears to always be zero.
@@ -579,6 +585,47 @@ pub struct Page {
 }
 
 impl Page {
+    /// Create an empty data page that can hold rows of the given page type.
+    ///
+    /// The whole page heap is marked as free, so the page is ready to have rows
+    /// allocated into it via [`Page::allocate_row`].
+    ///
+    /// `next_page` should point at the following page in the table's page chain,
+    /// or past the end of the file if this page is the last one of its table.
+    /// `sequence` is the database sequence number at the time the page is created.
+    #[must_use]
+    pub fn new_empty_data(
+        page_index: PageIndex,
+        page_type: PageType,
+        next_page: PageIndex,
+        page_size: u32,
+        sequence: u32,
+    ) -> Self {
+        Self {
+            header: PageHeader {
+                page_index,
+                page_type,
+                next_page,
+                unknown1: sequence,
+                unknown2: 0,
+                packed_row_counts: PackedRowCounts::from_all_valid(0),
+                page_flags: PageFlags::new_data_page(),
+                free_size: DataPageContent::page_heap_size(page_size) as u16,
+                used_size: 0,
+            },
+            content: PageContent::Data(DataPageContent {
+                header: DataPageHeader {
+                    unknown5: 0,
+                    unknown_not_num_rows_large: 0,
+                    unknown6: 0,
+                    unknown7: 0,
+                },
+                row_groups: Vec::new(),
+                rows: BTreeMap::new(),
+            }),
+        }
+    }
+
     /// Allocate space for a new row in the page heap and return a function to
     /// insert the row at the allocated offset. Returns `None` if there is
     /// insufficient free space in the page.

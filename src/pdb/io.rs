@@ -87,6 +87,15 @@ pub struct Database<IO> {
     content: LazyDatabase,
 }
 
+impl<IO> Database<IO> {
+    /// Consumes the database and returns the underlying IO.
+    ///
+    /// Note that any unflushed changes are discarded.
+    pub fn into_inner(self) -> IO {
+        self.io
+    }
+}
+
 impl<R: Read + Seek> Database<R> {
     /// Opens a PDB database without writing back to disk.
     /// Still allows modifying data in memory.
@@ -184,6 +193,68 @@ impl<R: Read + Seek> Database<R> {
             .map(|row| Ok(row.as_variant_mut().expect("unexpected row type"))))
     }
 
+    /// Appends a new, empty data page to the end of a table's page chain.
+    ///
+    /// The page is taken from the unused space past the end of the database, which grows the
+    /// database by one page once the changes are flushed. The previous last page of the table is
+    /// linked to the new page, the table's `last_page` is updated to point at it, and the
+    /// database sequence number is incremented.
+    ///
+    /// Returns the index of the newly appended page.
+    pub fn append_page(&mut self, page_type: PageType) -> RekordcrateResult<PageIndex> {
+        let (table_index, table) = self
+            .content
+            .header
+            .find_table(page_type)
+            .ok_or(RekordcrateError::TableTypeNotPresent(page_type))?;
+        let previous_last_page = table.last_page;
+
+        // `next_unused_page` points past the end of the database, so it is the index of the page
+        // we are about to append. Page indices are 1-based, hence the `- 1`.
+        let page_index = self.content.header.next_unused_page;
+        if usize::try_from(page_index.0)
+            .ok()
+            .and_then(|i| i.checked_sub(1))
+            != Some(self.content.pages.len())
+        {
+            return Err(RekordcrateError::IntegrityError(
+                "next_unused_page does not point past the last page of the database",
+            ));
+        }
+        // Validates that the new indices are in the representable range.
+        let _ = PageIndex::try_from(page_index.0)?;
+        let next_unused_page = PageIndex::try_from(page_index.0 + 1)?;
+
+        let page_size = self.content.header.page_size;
+        let sequence = self.content.header.sequence;
+        let page = Page::new_empty_data(
+            page_index,
+            page_type,
+            // The last page of a table points past the end of the file.
+            next_unused_page,
+            page_size,
+            sequence,
+        );
+
+        // Link the previous last page of the table to the new page. This has to happen before we
+        // commit to the new state, so that a failure to load that page leaves the database
+        // unchanged.
+        self.load_page(previous_last_page)?.header.next_page = page_index;
+
+        self.content.pages.push(LazyPage::Loaded(page));
+
+        let header = &mut self.content.header;
+        header.next_unused_page = next_unused_page;
+        header.sequence += 1;
+        header
+            .tables
+            .get_mut(table_index.0)
+            .ok_or(RekordcrateError::TableNotPresent(table_index))?
+            .last_page = page_index;
+
+        Ok(page_index)
+    }
+
     /// Returns a reference to the PDB header.
     #[must_use]
     pub fn get_header(&self) -> &Header {
@@ -214,6 +285,26 @@ impl<RW: Read + Write + Seek> Database<RW> {
         let endian = Endian::Little;
         self.io.seek(SeekFrom::Start(0))?;
         self.content.write_options(&mut self.io, endian, ())?;
+        self.pad_to_page_boundary()?;
+        Ok(())
+    }
+
+    /// Pads the database with zeros so that it contains a whole number of pages.
+    ///
+    /// The unused tail of a page heap is never written out, it is skipped over with a seek. That
+    /// is fine for a page that is already backed by bytes in the database, but a page appended
+    /// past the previous end of the database would be left truncated, because seeking past the
+    /// end of a file does not extend it.
+    fn pad_to_page_boundary(&mut self) -> RekordcrateResult<()> {
+        let page_size = u64::from(self.content.header.page_size);
+        let size = self.io.seek(SeekFrom::End(0))?;
+        let padding = (page_size - size % page_size) % page_size;
+        if padding > 0 {
+            let padding = usize::try_from(padding).map_err(|_| {
+                RekordcrateError::IntegrityError("a page of padding does not fit in memory")
+            })?;
+            self.io.write_all(&vec![0u8; padding])?;
+        }
         Ok(())
     }
 
@@ -314,6 +405,70 @@ impl<'db, R: Read + Seek> FallibleIterator for PageIterator<'db, R> {
 mod test {
     use super::*;
     use std::fs::File;
+    use std::io::Cursor;
+
+    /// Appends a page to the keys table, fills it with rows, and checks that the rows survive a
+    /// round-trip through serialization.
+    #[test]
+    fn test_append_page_with_rows() {
+        let data = Vec::from(include_bytes!("../../data/pdb/num_rows/export.pdb"));
+        let mut db = Database::open(Cursor::new(data), DatabaseType::Plain).unwrap();
+
+        let page_type = PageType::Plain(PlainPageType::Keys);
+        let page_index = db.append_page(page_type).unwrap();
+        let page = db.load_page(page_index).unwrap();
+
+        let new_keys = [(1000u32, "Amin"), (1001, "Bmin")];
+        for (id, name) in new_keys {
+            let row = Row::Plain(PlainRow::Key(Key {
+                id: KeyId(id),
+                id2: id,
+                name: name.parse().unwrap(),
+            }));
+            let insert = page.allocate_row(row.heap_bytes_required(())).unwrap();
+            insert(row);
+        }
+        assert_eq!(
+            page.header.packed_row_counts.num_rows(),
+            new_keys.len() as u16
+        );
+
+        db.flush().unwrap();
+        let data = db.into_inner().into_inner();
+
+        let mut db =
+            Database::open_non_persistent(Cursor::new(data.as_slice()), DatabaseType::Plain)
+                .unwrap();
+        let names: Vec<String> = db
+            .iter_rows::<Key>()
+            .unwrap()
+            .map(|key| Ok(key.name.clone().into_string().unwrap()))
+            .collect()
+            .unwrap();
+        assert_eq!(names.len(), 67 + new_keys.len());
+        for (_, name) in new_keys {
+            assert!(names.contains(&name.to_string()), "{names:?}");
+        }
+    }
+
+    /// The whole page heap of a newly appended page must be accounted for as free space.
+    #[test]
+    fn test_appended_page_free_size() {
+        let file = File::open("data/pdb/num_rows/export.pdb").unwrap();
+        let mut db = Database::open_non_persistent(file, DatabaseType::Plain).unwrap();
+        let page_size = db.get_header().page_size;
+
+        let page_index = db
+            .append_page(PageType::Plain(PlainPageType::Keys))
+            .unwrap();
+        let page = db.load_page(page_index).unwrap();
+
+        assert_eq!(page.header.used_size, 0);
+        assert_eq!(
+            u32::from(page.header.free_size),
+            page_size - PageHeader::BINARY_SIZE - DataPageHeader::BINARY_SIZE
+        );
+    }
 
     #[test]
     fn test_pageiterator_safety() {
