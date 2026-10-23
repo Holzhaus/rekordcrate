@@ -412,7 +412,8 @@ impl<RW: Read + Write + Seek> Database<RW> {
     /// into yet: a header page, followed by one index page per table at every odd page index,
     /// with the even page after each of those reserved for the first data page of that table.
     /// Every table is empty, so [`Database::add_row`] claims those reserved pages as rows are
-    /// added.
+    /// added. The page reserved by the last table is past the end of the database until it is
+    /// claimed, which is how Rekordbox leaves pages it has reserved but not used yet.
     ///
     /// Note that this is only the database structure. Players expect some tables to be populated
     /// with default content, which this does not add.
@@ -475,9 +476,6 @@ impl<RW: Read + Write + Seek> Database<RW> {
         };
 
         db.flush()?;
-        // The reserved page of the last table is all zeros, so nothing is written for it and the
-        // database would otherwise end before it.
-        db.extend_to(next_unused_page.offset(page_size))?;
 
         Ok(db)
     }
@@ -499,15 +497,6 @@ impl<RW: Read + Write + Seek> Database<RW> {
         self.io.seek(SeekFrom::Start(0))?;
         self.content.write_options(&mut self.io, endian, ())?;
         self.pad_to_page_boundary()?;
-        Ok(())
-    }
-
-    /// Extends the database with zeros until it is at least `size` bytes long.
-    fn extend_to(&mut self, size: u64) -> RekordcrateResult<()> {
-        let current_size = self.io.seek(SeekFrom::End(0))?;
-        if let Some(missing) = size.checked_sub(current_size).filter(|&m| m > 0) {
-            self.io.write_all(&vec![0u8; missing as usize])?;
-        }
         Ok(())
     }
 
@@ -955,51 +944,32 @@ mod test {
         }
     }
 
-    /// The index pages of a created database must match those that Rekordbox itself writes for an
-    /// export it has not put any content into.
+    /// A created database reserves a page for every table to grow into, the way Rekordbox does.
+    ///
+    /// The bytes of the pages themselves are compared against the databases that Rekordbox
+    /// writes in `tests/test_pdb_create.rs`.
     #[test]
-    fn test_create_matches_rekordbox_layout() {
-        let page_size = Database::<Cursor<Vec<u8>>>::DEFAULT_PAGE_SIZE as usize;
-        let mut db = create_in_memory(DatabaseType::Plain);
-        db.flush().unwrap();
-        let data = db.into_inner().into_inner();
-
+    fn test_create_reserves_pages_like_rekordbox() {
+        let db = create_in_memory(DatabaseType::Plain);
         let reference =
             Database::open_non_persistent(Cursor::new(EMPTY_EXPORT), DatabaseType::Plain).unwrap();
-        let reference_header = reference.get_header();
-        let header =
-            Database::open_non_persistent(Cursor::new(data.as_slice()), DatabaseType::Plain)
-                .unwrap()
-                .get_header()
-                .clone();
 
-        assert_eq!(header.page_size, reference_header.page_size);
-        assert_eq!(header.num_tables, reference_header.num_tables);
-        assert_eq!(header.unknown, reference_header.unknown);
-
-        for (table, reference_table) in header.tables.iter().zip(&reference_header.tables) {
+        for (table, reference_table) in db
+            .get_header()
+            .tables
+            .iter()
+            .zip(&reference.get_header().tables)
+        {
             assert_eq!(table.page_type, reference_table.page_type);
-            assert_eq!(table.first_page, reference_table.first_page);
-
-            // Rekordbox populates a handful of tables with default content, and a table that has
-            // claimed its reserved page has a different one reserved in its place, so only the
-            // tables it left empty are comparable.
-            if reference_table.first_page != reference_table.last_page {
-                continue;
+            // A table that has claimed its reserved page has a different one reserved in its
+            // place, so only the tables Rekordbox left empty are comparable.
+            if reference_table.first_page == reference_table.last_page {
+                assert_eq!(
+                    table.empty_candidate, reference_table.empty_candidate,
+                    "unexpected reserved page for table {:?}",
+                    table.page_type
+                );
             }
-            assert_eq!(table.last_page, reference_table.last_page);
-            assert_eq!(table.empty_candidate, reference_table.empty_candidate);
-
-            let page_range = |index: PageIndex| {
-                let start = index.offset(page_size as u32) as usize;
-                start..start + page_size
-            };
-            assert_eq!(
-                data[page_range(table.first_page)],
-                EMPTY_EXPORT[page_range(reference_table.first_page)],
-                "index page of table {:?} does not match Rekordbox",
-                table.page_type
-            );
         }
     }
 
