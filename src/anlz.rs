@@ -32,6 +32,7 @@ use crate::{util::ColorIndex, xor::XorStream};
 use binrw::{
     binrw,
     io::{Read, Seek, Write},
+    meta::{EndianKind, ReadEndian, WriteEndian},
     BinRead, BinResult, BinWrite, Endian, NullWideString,
 };
 use modular_bitfield::prelude::*;
@@ -362,10 +363,13 @@ impl BinWrite for LenPrefixedWideString {
 }
 
 /// A memory or hot cue (or loop).
-#[binrw]
+///
+/// The colour block is optional. An entry that carries neither a comment nor a colour ends after
+/// forty-four bytes, and exports taken from rekordbox 7.2 contain ten of those in one section.
+/// Reading the colour unconditionally made the parser consume bytes that belong to the next entry,
+/// which is where "unexpected value for enum" came from: the field it read was never a cue field.
 #[derive(Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "json", derive(Serialize))]
-#[brw(big)]
 pub struct ExtendedCue {
     /// Cue entry header.
     pub header: Header,
@@ -491,10 +495,147 @@ pub struct ExtendedCue {
     unknown10: u32,
     /// Trailing unknown bytes after `unknown10` to the end of the entry.
     ///
-    /// Per the Kaitai spec, the entry may contain extra data beyond the known fields;
-    /// any remaining bytes are captured here.
-    #[br(count = header.total_size.saturating_sub(68 + comment.byte_len()) as usize)]
+    /// Per the Kaitai spec, the entry may contain extra data beyond the known fields; any remaining
+    /// bytes are captured here. When an entry carries neither a colour nor the five unknown words,
+    /// everything after the comment lands here, which is what keeps a short entry in one piece.
     pub trailing: Vec<u8>,
+}
+
+/// Bytes a [`ExtendedCue`] spends before its comment: the header and the fixed fields.
+const EXTENDED_CUE_HEAD: usize = 44;
+
+/// Bytes that follow the comment when the entry carries a colour: four of colour, then five
+/// unnamed words.
+const EXTENDED_CUE_COLOR_AND_TAIL: usize = 24;
+
+impl ExtendedCue {
+    /// Bytes left in this entry after its comment.
+    ///
+    /// The length comes from the section header rather than from counting fields, because that is the
+    /// only number the deck wrote down. An entry with no comment and no colour leaves zero here.
+    fn bytes_after_comment(header: &Header, comment: &LenPrefixedWideString) -> usize {
+        (header.total_size as usize).saturating_sub(EXTENDED_CUE_HEAD + comment.byte_len() as usize)
+    }
+
+    /// Whether a colour block follows the comment.
+    fn has_color(header: &Header, comment: &LenPrefixedWideString) -> bool {
+        Self::bytes_after_comment(header, comment) >= EXTENDED_CUE_COLOR_AND_TAIL
+    }
+}
+
+impl BinRead for ExtendedCue {
+    type Args<'a> = ();
+
+    fn read_options<R: Read + Seek>(
+        reader: &mut R,
+        _endian: Endian,
+        _args: Self::Args<'_>,
+    ) -> BinResult<Self> {
+        let endian = Endian::Big;
+        let header = Header::read_options(reader, endian, ())?;
+        let hot_cue = u32::read_options(reader, endian, ())?;
+        let cue_type = CueType::read_options(reader, endian, ())?;
+        let unknown1 = u8::read_options(reader, endian, ())?;
+        let unknown2 = u16::read_options(reader, endian, ())?;
+        let time = u32::read_options(reader, endian, ())?;
+        let loop_time = u32::read_options(reader, endian, ())?;
+        let color = ColorIndex::read_options(reader, endian, ())?;
+        let unknown3 = u8::read_options(reader, endian, ())?;
+        let unknown4 = u16::read_options(reader, endian, ())?;
+        let unknown5 = u32::read_options(reader, endian, ())?;
+        let loop_numerator = u16::read_options(reader, endian, ())?;
+        let loop_denominator = u16::read_options(reader, endian, ())?;
+        let comment = LenPrefixedWideString::read_options(reader, endian, ())?;
+
+        let mut remaining = Self::bytes_after_comment(&header, &comment);
+        let mut hot_cue_color_index = 0u8;
+        let mut hot_cue_color_rgb = (0u8, 0u8, 0u8);
+        let (mut unknown6, mut unknown7, mut unknown8, mut unknown9, mut unknown10) =
+            (0u32, 0u32, 0u32, 0u32, 0u32);
+        if remaining >= EXTENDED_CUE_COLOR_AND_TAIL {
+            hot_cue_color_index = u8::read_options(reader, endian, ())?;
+            hot_cue_color_rgb = <(u8, u8, u8)>::read_options(reader, endian, ())?;
+            unknown6 = u32::read_options(reader, endian, ())?;
+            unknown7 = u32::read_options(reader, endian, ())?;
+            unknown8 = u32::read_options(reader, endian, ())?;
+            unknown9 = u32::read_options(reader, endian, ())?;
+            unknown10 = u32::read_options(reader, endian, ())?;
+            remaining -= EXTENDED_CUE_COLOR_AND_TAIL;
+        }
+        let mut trailing = vec![0u8; remaining];
+        reader.read_exact(&mut trailing)?;
+
+        Ok(Self {
+            header,
+            hot_cue,
+            cue_type,
+            unknown1,
+            unknown2,
+            time,
+            loop_time,
+            color,
+            unknown3,
+            unknown4,
+            unknown5,
+            loop_numerator,
+            loop_denominator,
+            comment,
+            hot_cue_color_index,
+            hot_cue_color_rgb,
+            unknown6,
+            unknown7,
+            unknown8,
+            unknown9,
+            unknown10,
+            trailing,
+        })
+    }
+}
+
+impl BinWrite for ExtendedCue {
+    type Args<'a> = ();
+
+    fn write_options<W: Write + Seek>(
+        &self,
+        writer: &mut W,
+        _endian: Endian,
+        _args: Self::Args<'_>,
+    ) -> BinResult<()> {
+        let endian = Endian::Big;
+        self.header.write_options(writer, endian, ())?;
+        self.hot_cue.write_options(writer, endian, ())?;
+        self.cue_type.write_options(writer, endian, ())?;
+        self.unknown1.write_options(writer, endian, ())?;
+        self.unknown2.write_options(writer, endian, ())?;
+        self.time.write_options(writer, endian, ())?;
+        self.loop_time.write_options(writer, endian, ())?;
+        self.color.write_options(writer, endian, ())?;
+        self.unknown3.write_options(writer, endian, ())?;
+        self.unknown4.write_options(writer, endian, ())?;
+        self.unknown5.write_options(writer, endian, ())?;
+        self.loop_numerator.write_options(writer, endian, ())?;
+        self.loop_denominator.write_options(writer, endian, ())?;
+        self.comment.write_options(writer, endian, ())?;
+
+        if Self::has_color(&self.header, &self.comment) {
+            self.hot_cue_color_index.write_options(writer, endian, ())?;
+            self.hot_cue_color_rgb.write_options(writer, endian, ())?;
+            self.unknown6.write_options(writer, endian, ())?;
+            self.unknown7.write_options(writer, endian, ())?;
+            self.unknown8.write_options(writer, endian, ())?;
+            self.unknown9.write_options(writer, endian, ())?;
+            self.unknown10.write_options(writer, endian, ())?;
+        }
+        self.trailing.write_options(writer, endian, ())
+    }
+}
+
+impl ReadEndian for ExtendedCue {
+    const ENDIAN: EndianKind = EndianKind::Endian(Endian::Big);
+}
+
+impl WriteEndian for ExtendedCue {
+    const ENDIAN: EndianKind = EndianKind::Endian(Endian::Big);
 }
 
 impl Default for WaveformPreviewColumn {
@@ -687,13 +828,16 @@ pub enum Mood {
 }
 
 /// Stylistic track bank for Lightning mode.
-#[binrw]
+///
+/// This list does not cover every value rekordbox writes. Exports taken from rekordbox 7.2 carry
+/// `254` and `239` next to a song structure that parses cleanly, entry for entry, so those are real
+/// values of the field and not corrupt data. Rejecting them threw away the whole file because of one
+/// byte, so a value without a name is kept as [`Bank::Unknown`].
 #[derive(Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "json", derive(Serialize))]
-#[brw(repr = u8)]
 pub enum Bank {
     /// Default bank variant, treated as `Cool`.
-    Default = 0,
+    Default,
     /// "Cool" bank variant.
     Cool,
     /// "Natural" bank variant.
@@ -710,6 +854,69 @@ pub enum Bank {
     Club1,
     /// "Club 2" bank variant.
     Club2,
+    /// A value this crate has no name for, kept as it was read.
+    Unknown(u8),
+}
+
+impl BinRead for Bank {
+    type Args<'a> = ();
+
+    fn read_options<R: Read + Seek>(
+        reader: &mut R,
+        _endian: Endian,
+        _args: Self::Args<'_>,
+    ) -> BinResult<Self> {
+        // The section is written big-endian; a single byte reads the same either way, but the rest of
+        // the entry does not, so the endianness is pinned here as it is for every other section field.
+        let endian = Endian::Big;
+        let raw = u8::read_options(reader, endian, ())?;
+        Ok(match raw {
+            0 => Self::Default,
+            1 => Self::Cool,
+            2 => Self::Natural,
+            3 => Self::Hot,
+            4 => Self::Subtle,
+            5 => Self::Warm,
+            6 => Self::Vivid,
+            7 => Self::Club1,
+            8 => Self::Club2,
+            other => Self::Unknown(other),
+        })
+    }
+}
+
+impl BinWrite for Bank {
+    type Args<'a> = ();
+
+    fn write_options<W: Write + Seek>(
+        &self,
+        writer: &mut W,
+        _endian: Endian,
+        _args: Self::Args<'_>,
+    ) -> BinResult<()> {
+        let endian = Endian::Big;
+        let raw = match self {
+            Self::Default => 0u8,
+            Self::Cool => 1,
+            Self::Natural => 2,
+            Self::Hot => 3,
+            Self::Subtle => 4,
+            Self::Warm => 5,
+            Self::Vivid => 6,
+            Self::Club1 => 7,
+            Self::Club2 => 8,
+            Self::Unknown(value) => *value,
+        };
+        raw.write_options(writer, endian, ())
+    }
+}
+
+impl ReadEndian for Bank {
+    const ENDIAN: EndianKind = EndianKind::Endian(Endian::Big);
+}
+
+impl WriteEndian for Bank {
+    const ENDIAN: EndianKind = EndianKind::Endian(Endian::Big);
 }
 
 /// A song structure entry that represents a phrase in the track.
@@ -1685,5 +1892,81 @@ mod tests {
                 u16::from(column.energy_top_third_freq),
             );
         }
+    }
+
+    #[test]
+    fn extended_cue_without_color_roundtrip() {
+        // A memory cue that carries neither a comment nor a colour, taken from a rekordbox 7.2
+        // export: ten of these sit in one section and every one of them ends after 44 bytes. Reading
+        // the colour block unconditionally ran into the next entry and failed on a value that was
+        // never a cue field.
+        let raw = [
+            0x50, 0x43, 0x50, 0x32, // "PCP2"
+            0x00, 0x00, 0x00, 0x10, // len_header 16
+            0x00, 0x00, 0x00, 0x2c, // len_entry 44
+            0x00, 0x00, 0x00, 0x00, // hot cue 0
+            0x01, // cue type: point
+            0x00, // unknown
+            0x03, 0xe8, // 1000
+            0x00, 0x00, 0x00, 0x00, // time
+            0xff, 0xff, 0xff, 0xff, // loop time: none
+            0x00, // color: none
+            0x00, // unknown
+            0x00, 0x00, // unknown
+            0x00, 0x00, 0x00, 0x00, // unknown
+            0x00, 0x00, // loop numerator
+            0x00, 0x00, // loop denominator
+            0x00, 0x00, 0x00, 0x00, // comment length 0
+        ];
+
+        let cue = ExtendedCue {
+            header: Header {
+                kind: ContentKind::ExtendedCue,
+                size: 16,
+                total_size: 44,
+            },
+            hot_cue: 0,
+            cue_type: CueType::Point,
+            unknown1: 0,
+            unknown2: 1000,
+            time: 0,
+            loop_time: u32::MAX,
+            color: ColorIndex::None,
+            unknown3: 0,
+            unknown4: 0,
+            unknown5: 0,
+            loop_numerator: 0,
+            loop_denominator: 0,
+            comment: LenPrefixedWideString(String::new()),
+            hot_cue_color_index: 0,
+            hot_cue_color_rgb: (0, 0, 0),
+            unknown6: 0,
+            unknown7: 0,
+            unknown8: 0,
+            unknown9: 0,
+            unknown10: 0,
+            trailing: Vec::new(),
+        };
+
+        assert!(!ExtendedCue::has_color(&cue.header, &cue.comment));
+        test_roundtrip(&raw, cue);
+    }
+
+    #[test]
+    fn bank_keeps_a_value_it_has_no_name_for() {
+        // A rekordbox 7.2 export carries 254 here next to a song structure whose entries all parse,
+        // so the value is real and the old closed enum threw the whole file away because of it.
+        for raw in [0xfe_u8, 0xef, 0x00, 0x08] {
+            let bytes = [raw];
+            let mut reader = Cursor::new(bytes.as_slice());
+            let bank = Bank::read(&mut reader).expect("an unnamed bank is not a parse error");
+            let mut written = Vec::new();
+            bank.write(&mut Cursor::new(&mut written))
+                .expect("bank writes back");
+            assert_eq!(written, vec![raw]);
+        }
+        let bytes = [0xfe_u8];
+        let mut reader = Cursor::new(bytes.as_slice());
+        assert_eq!(Bank::read(&mut reader).unwrap(), Bank::Unknown(254));
     }
 }
