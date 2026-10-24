@@ -121,11 +121,12 @@ impl From<usize> for TableIndex {
 
 /// Indexed Color identifiers used for memory cues and tracks.
 #[binrw]
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, Default, PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "json", derive(Serialize))]
 pub enum ColorIndex {
     /// No color.
     #[brw(magic = 0u8)]
+    #[default]
     None,
     /// Pink color.
     #[brw(magic = 1u8)]
@@ -155,11 +156,12 @@ pub enum ColorIndex {
 
 /// Track file type.
 #[binrw]
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, Default, PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "json", derive(Serialize))]
 pub enum FileType {
     /// Unknown file type.
     #[brw(magic = 0x0u16)]
+    #[default]
     Unknown,
     /// MP3.
     #[brw(magic = 0x1u16)]
