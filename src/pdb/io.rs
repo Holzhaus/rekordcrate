@@ -213,9 +213,26 @@ impl<R: Read + Seek> Database<R> {
     ///
     /// Returns the index of the page that the row was stored in.
     pub fn add_row<RowT: RowVariant>(&mut self, row: RowT) -> RekordcrateResult<PageIndex> {
+        self.add_row_with_slack(row, 0)
+    }
+
+    /// Adds a row to its table, leaving `slack_bytes` of unused page heap after it.
+    ///
+    /// Rekordbox leaves spare space after the rows of some tables, which the row itself does not
+    /// use. The rule behind it is not known, but the amount can be read off the exports it
+    /// writes: eight bytes for the rows of the history and tag tables, and more for track rows.
+    /// Players have been reported to depend on rows being given a certain amount of space, so
+    /// this is not only a matter of writing the same bytes as Rekordbox.
+    ///
+    /// Returns the index of the page that the row was stored in.
+    pub fn add_row_with_slack<RowT: RowVariant>(
+        &mut self,
+        row: RowT,
+        slack_bytes: u16,
+    ) -> RekordcrateResult<PageIndex> {
         let page_type = RowT::PAGE_TYPE;
         let row = row.into_row();
-        let bytes_required = row.heap_bytes_required(());
+        let bytes_required = row.heap_bytes_required(()).saturating_add(slack_bytes);
 
         // Checked up front so that a row that can never be stored does not leave an empty page
         // behind in the table.

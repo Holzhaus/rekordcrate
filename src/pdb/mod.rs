@@ -19,6 +19,7 @@
 //! - <https://github.com/flesniak/python-prodj-link/tree/master/prodj/pdblib>
 
 pub mod bitfields;
+pub mod defaults;
 pub mod ext;
 pub mod io;
 pub mod offset_array;
@@ -95,7 +96,7 @@ impl DatabaseType {
             PageType::Unknown(15),
             PageType::Plain(PlainPageType::Columns),
             PageType::Plain(PlainPageType::Menu),
-            PageType::Unknown(18),
+            PageType::Plain(PlainPageType::Unknown18),
             PageType::Plain(PlainPageType::History),
         ];
         const EXT: &[PageType] = &[
@@ -106,7 +107,7 @@ impl DatabaseType {
             PageType::Ext(ExtPageType::TrackTag),
             PageType::Unknown(5),
             PageType::Unknown(6),
-            PageType::Unknown(7),
+            PageType::Ext(ExtPageType::Unknown7),
             PageType::Unknown(8),
         ];
         match self {
@@ -183,6 +184,9 @@ pub enum PlainPageType {
     /// Manages the active menus on the CDJ.
     #[brw(magic = 17u32)]
     Menu,
+    /// Holds a second set of menu entries, whose purpose is not understood yet.
+    #[brw(magic = 18u32)]
+    Unknown18,
     /// Holds information about synchronization of the USB with Rekordbox or a device.
     #[brw(magic = 19u32)]
     History,
@@ -2193,6 +2197,65 @@ impl PageHeapObject for Menu {
     }
 }
 
+/// A row of the table that holds a second set of menu entries.
+///
+/// Its purpose is not understood, but the rows have the same shape as the rows of the menu table
+/// and behave like them: in every known export the entries that are hidden have no sort order,
+/// while the visible ones are numbered consecutively. It is kept as its own row type rather than
+/// reusing [`Menu`], because the byte that [`Menu`] holds an unknown value in is a sort order
+/// here, so the two are not interchangeable.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
+#[brw(little)]
+pub struct Unknown18 {
+    /// Determines the label of the entry, matching the ids in the columns table.
+    pub category_id: u16,
+    /// Points to the data source of the entry.
+    pub content_pointer: u16,
+    /// Visibility state of the entry.
+    pub visibility: MenuVisibility,
+    /// Visual position of the entry in the list, which is zero for hidden entries.
+    pub sort_order: u8,
+    /// Unknown field, always zero in the exports we have seen.
+    pub unknown: u16,
+}
+
+impl PageHeapObject for Unknown18 {
+    type Args<'a> = ();
+    fn heap_bytes_required(&self, _: ()) -> u16 {
+        [
+            self.category_id.heap_bytes_required(()),
+            self.content_pointer.heap_bytes_required(()),
+            self.visibility.heap_bytes_required(()),
+            self.sort_order.heap_bytes_required(()),
+            self.unknown.heap_bytes_required(()),
+        ]
+        .iter()
+        .sum()
+    }
+}
+
+impl RowVariant for Unknown18 {
+    const PAGE_TYPE: PageType = PageType::Plain(PlainPageType::Unknown18);
+
+    fn from_row(row: &Row) -> Option<&Self> {
+        match row {
+            Row::Plain(PlainRow::Unknown18(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn from_row_mut(row: &mut Row) -> Option<&mut Self> {
+        match row {
+            Row::Plain(PlainRow::Unknown18(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn into_row(self) -> Row {
+        Row::Plain(PlainRow::Unknown18(self))
+    }
+}
+
 impl RowVariant for Menu {
     const PAGE_TYPE: PageType = PageType::Plain(PlainPageType::Menu);
 
@@ -2276,6 +2339,9 @@ pub enum PlainRow {
     // presumably to allow edits on DJ gear.
     #[br(pre_assert(page_type == PlainPageType::Tracks))]
     Track(Track),
+    /// An entry of the second set of menu entries.
+    #[br(pre_assert(page_type == PlainPageType::Unknown18))]
+    Unknown18(Unknown18),
 }
 
 impl PageHeapObject for PlainRow {
@@ -2299,6 +2365,7 @@ impl PageHeapObject for PlainRow {
             PlainRow::ColumnEntry(column_entry) => column_entry.heap_bytes_required(()),
             PlainRow::Menu(menu) => menu.heap_bytes_required(()),
             PlainRow::Track(track) => track.heap_bytes_required(()),
+            PlainRow::Unknown18(row) => row.heap_bytes_required(()),
         }
     }
 }

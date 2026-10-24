@@ -20,8 +20,8 @@
 //! - <https://github.com/flesniak/python-prodj-link/tree/master/prodj/pdblib>
 
 use crate::pdb::{
-    offset_array::OffsetArrayItems, DeviceSQLString, OffsetArrayContainer, PageHeapObject, Subtype,
-    TrackId,
+    offset_array::OffsetArrayItems, DeviceSQLString, OffsetArrayContainer, PageHeapObject,
+    PageType, Row, RowVariant, Subtype, TrackId,
 };
 use binrw::binrw;
 #[cfg(feature = "json")]
@@ -140,6 +140,26 @@ impl PageHeapObject for TagOrCategory {
     }
 }
 
+impl RowVariant for TagOrCategory {
+    const PAGE_TYPE: PageType = PageType::Ext(ExtPageType::Tag);
+
+    fn from_row(row: &Row) -> Option<&Self> {
+        match row {
+            Row::Ext(ExtRow::Tag(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn from_row_mut(row: &mut Row) -> Option<&mut Self> {
+        match row {
+            Row::Ext(ExtRow::Tag(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn into_row(self) -> Row {
+        Row::Ext(ExtRow::Tag(self))
+    }
+}
+
 // https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/exports.html#tag-track-rows
 /// M*N junction table between tags and tracks.
 #[binrw]
@@ -176,6 +196,9 @@ impl PageHeapObject for TrackTag {
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 #[cfg_attr(feature = "json", derive(Serialize))]
 pub enum ExtPageType {
+    /// Holds a single row whose purpose is not understood yet.
+    #[brw(magic = 7u32)]
+    Unknown7,
     /// can be assigned to tracks for the purpose of categorization.
     #[brw(magic = 3u32)]
     Tag,
@@ -202,6 +225,29 @@ pub enum ExtRow {
     /// Contains the artist name and ID.
     #[br(pre_assert(page_type == ExtPageType::TrackTag))]
     TrackTag(TrackTag),
+    /// A row of the table whose purpose is not understood yet.
+    #[br(pre_assert(page_type == ExtPageType::Unknown7))]
+    Unknown7(Unknown7),
+}
+
+impl RowVariant for TrackTag {
+    const PAGE_TYPE: PageType = PageType::Ext(ExtPageType::TrackTag);
+
+    fn from_row(row: &Row) -> Option<&Self> {
+        match row {
+            Row::Ext(ExtRow::TrackTag(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn from_row_mut(row: &mut Row) -> Option<&mut Self> {
+        match row {
+            Row::Ext(ExtRow::TrackTag(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn into_row(self) -> Row {
+        Row::Ext(ExtRow::TrackTag(self))
+    }
 }
 
 impl ExtRow {
@@ -210,7 +256,7 @@ impl ExtRow {
     pub(crate) fn set_index_shift(&mut self, index_shift: u16) {
         match self {
             ExtRow::Tag(row) => row.index_shift = index_shift,
-            ExtRow::TrackTag(_) => (),
+            ExtRow::TrackTag(_) | ExtRow::Unknown7(_) => (),
         }
     }
 }
@@ -221,6 +267,57 @@ impl PageHeapObject for ExtRow {
         match self {
             ExtRow::Tag(tag_or_category) => tag_or_category.heap_bytes_required(()),
             ExtRow::TrackTag(track_tag) => track_tag.heap_bytes_required(()),
+            ExtRow::Unknown7(row) => row.heap_bytes_required(()),
         }
+    }
+}
+
+/// A row of the ext table whose purpose is not understood yet.
+///
+/// Every known `exportExt.pdb` holds exactly one of these rows, with the same content, and no
+/// part of it has been worked out. It is kept as the bytes it consists of so that it can be
+/// reproduced, which is what building an export needs.
+#[binrw]
+#[derive(Debug, PartialEq, Eq, Clone)]
+#[cfg_attr(feature = "json", derive(Serialize))]
+#[brw(little)]
+pub struct Unknown7 {
+    /// The bytes of the row.
+    #[cfg_attr(
+        feature = "json",
+        serde(serialize_with = "crate::util::serialize_as_hex")
+    )]
+    pub bytes: [u8; Self::BINARY_SIZE as usize],
+}
+
+impl Unknown7 {
+    /// Size of the row in bytes, which is the same in every known export.
+    pub const BINARY_SIZE: u16 = 60;
+}
+
+impl PageHeapObject for Unknown7 {
+    type Args<'a> = ();
+    fn heap_bytes_required(&self, _: ()) -> u16 {
+        Self::BINARY_SIZE
+    }
+}
+
+impl RowVariant for Unknown7 {
+    const PAGE_TYPE: PageType = PageType::Ext(ExtPageType::Unknown7);
+
+    fn from_row(row: &Row) -> Option<&Self> {
+        match row {
+            Row::Ext(ExtRow::Unknown7(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn from_row_mut(row: &mut Row) -> Option<&mut Self> {
+        match row {
+            Row::Ext(ExtRow::Unknown7(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn into_row(self) -> Row {
+        Row::Ext(ExtRow::Unknown7(self))
     }
 }

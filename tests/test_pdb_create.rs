@@ -14,6 +14,7 @@
 //! by comparing against a fixture of our own output instead.
 
 use fallible_iterator::FallibleIterator;
+use rekordcrate::pdb::defaults;
 use rekordcrate::pdb::io::Database;
 use rekordcrate::pdb::*;
 use rekordcrate::util::TableIndex;
@@ -23,6 +24,9 @@ use std::path::Path;
 /// Set `REKORDCRATE_UPDATE_FIXTURES=1` to rewrite the fixtures in `data/pdb/created` instead of
 /// comparing against them.
 const UPDATE_FIXTURES_VAR: &str = "REKORDCRATE_UPDATE_FIXTURES";
+
+/// Offset of the sequence number in the database header.
+const SEQUENCE_OFFSET: usize = 0x14;
 
 struct Fixture {
     db_type: DatabaseType,
@@ -174,6 +178,92 @@ fn assert_readable_and_empty(fixture: &Fixture) {
             table.page_type
         );
     }
+}
+
+/// A created database with the default content added must be the export that Rekordbox writes
+/// for a database without content, down to the byte.
+///
+/// The one field that cannot match is the sequence number in the header, which counts the edits
+/// made to the database and so records how Rekordbox arrived at the export rather than what the
+/// export holds.
+#[test]
+fn test_defaults_match_rekordbox() {
+    let mut db = Database::create(Cursor::new(Vec::new()), DatabaseType::Plain)
+        .expect("failed to create database");
+    // The date of the export that the fixture was taken from.
+    defaults::insert_defaults(&mut db, "2022-02-02", 0).expect("failed to insert defaults");
+    db.flush().expect("failed to flush database");
+    let data = db.into_inner().into_inner();
+
+    // Set REKORDCRATE_TEST_DUMP_PATH to dump the database there for inspection.
+    if let Ok(save_dir) = std::env::var("REKORDCRATE_TEST_DUMP_PATH") {
+        let save_dir = Path::new(&save_dir).join("defaults");
+        std::fs::create_dir_all(&save_dir).expect("failed to create dump directory");
+        std::fs::write(save_dir.join("export.pdb"), &data).expect("failed to dump database");
+    }
+
+    assert_eq!(
+        data.len(),
+        PLAIN.reference.len(),
+        "database is {} bytes instead of {}",
+        data.len(),
+        PLAIN.reference.len()
+    );
+
+    let page_size = Database::<Cursor<Vec<u8>>>::DEFAULT_PAGE_SIZE as usize;
+    let differing_bytes: Vec<usize> = data
+        .iter()
+        .zip(PLAIN.reference)
+        .enumerate()
+        .filter(|(_, (ours, reference))| ours != reference)
+        .map(|(offset, _)| offset)
+        .collect();
+    assert_eq!(
+        differing_bytes,
+        vec![SEQUENCE_OFFSET],
+        "expected only the sequence number to differ, but these pages do: {:?}",
+        differing_bytes
+            .iter()
+            .map(|offset| offset / page_size)
+            .collect::<std::collections::BTreeSet<_>>()
+    );
+}
+
+/// A created ext database with the default content added must be the one Rekordbox writes for a
+/// database without content, down to the sequence number.
+#[test]
+fn test_ext_defaults_match_rekordbox() {
+    let mut db = Database::create(Cursor::new(Vec::new()), DatabaseType::Ext)
+        .expect("failed to create database");
+    defaults::insert_ext_defaults(&mut db).expect("failed to insert defaults");
+    db.flush().expect("failed to flush database");
+    let data = db.into_inner().into_inner();
+
+    assert_eq!(
+        data.len(),
+        EXT.reference.len(),
+        "database is {} bytes instead of {}",
+        data.len(),
+        EXT.reference.len()
+    );
+
+    let page_size = Database::<Cursor<Vec<u8>>>::DEFAULT_PAGE_SIZE as usize;
+    let differing_bytes: Vec<usize> = data
+        .iter()
+        .zip(EXT.reference)
+        .enumerate()
+        .filter(|(_, (ours, reference))| ours != reference)
+        .map(|(offset, _)| offset)
+        .collect();
+    assert_eq!(
+        differing_bytes,
+        vec![SEQUENCE_OFFSET],
+        "expected only the sequence number to differ, but these pages do: {:?}",
+        differing_bytes
+            .iter()
+            .map(|offset| offset / page_size)
+            .collect::<std::collections::BTreeSet<_>>()
+    );
 }
 
 #[test]
