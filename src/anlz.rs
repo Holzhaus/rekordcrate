@@ -38,6 +38,7 @@ use binrw::{
 use modular_bitfield::prelude::*;
 #[cfg(feature = "json")]
 use serde::{Serialize, Serializer};
+use std::io::Cursor;
 
 #[cfg(feature = "json")]
 fn serialize_null_wide_string<S>(nws: &NullWideString, serializer: S) -> Result<S::Ok, S::Error>
@@ -499,6 +500,12 @@ pub struct ExtendedCue {
     /// bytes are captured here. When an entry carries neither a colour nor the five unknown words,
     /// everything after the comment lands here, which is what keeps a short entry in one piece.
     pub trailing: Vec<u8>,
+    /// Whether the entry carries the colour block and the five unnamed words at all.
+    ///
+    /// This cannot be recomputed from `header.total_size` once a comment grows: the stored length
+    /// would then describe a shorter entry and the colour would silently disappear on the next write.
+    /// It is a property of the entry as it was read.
+    has_color: bool,
 }
 
 /// Bytes a [`ExtendedCue`] spends before its comment: the header and the fixed fields.
@@ -515,11 +522,6 @@ impl ExtendedCue {
     /// only number the deck wrote down. An entry with no comment and no colour leaves zero here.
     fn bytes_after_comment(header: &Header, comment: &LenPrefixedWideString) -> usize {
         (header.total_size as usize).saturating_sub(EXTENDED_CUE_HEAD + comment.byte_len() as usize)
-    }
-
-    /// Whether a colour block follows the comment.
-    fn has_color(header: &Header, comment: &LenPrefixedWideString) -> bool {
-        Self::bytes_after_comment(header, comment) >= EXTENDED_CUE_COLOR_AND_TAIL
     }
 }
 
@@ -552,7 +554,8 @@ impl BinRead for ExtendedCue {
         let mut hot_cue_color_rgb = (0u8, 0u8, 0u8);
         let (mut unknown6, mut unknown7, mut unknown8, mut unknown9, mut unknown10) =
             (0u32, 0u32, 0u32, 0u32, 0u32);
-        if remaining >= EXTENDED_CUE_COLOR_AND_TAIL {
+        let has_color = remaining >= EXTENDED_CUE_COLOR_AND_TAIL;
+        if has_color {
             hot_cue_color_index = u8::read_options(reader, endian, ())?;
             hot_cue_color_rgb = <(u8, u8, u8)>::read_options(reader, endian, ())?;
             unknown6 = u32::read_options(reader, endian, ())?;
@@ -588,6 +591,7 @@ impl BinRead for ExtendedCue {
             unknown9,
             unknown10,
             trailing,
+            has_color,
         })
     }
 }
@@ -602,7 +606,19 @@ impl BinWrite for ExtendedCue {
         _args: Self::Args<'_>,
     ) -> BinResult<()> {
         let endian = Endian::Big;
-        self.header.write_options(writer, endian, ())?;
+        // The entry states its own length, and it has to describe the bytes below: a comment that
+        // grew makes the stored value wrong, and a reader that trusts it lands in the next entry.
+        let total_size = EXTENDED_CUE_HEAD as u32
+            + self.comment.byte_len()
+            + if self.has_color {
+                EXTENDED_CUE_COLOR_AND_TAIL as u32
+            } else {
+                0
+            }
+            + self.trailing.len() as u32;
+        self.header.kind.write_options(writer, endian, ())?;
+        self.header.size.write_options(writer, endian, ())?;
+        total_size.write_options(writer, endian, ())?;
         self.hot_cue.write_options(writer, endian, ())?;
         self.cue_type.write_options(writer, endian, ())?;
         self.unknown1.write_options(writer, endian, ())?;
@@ -617,7 +633,7 @@ impl BinWrite for ExtendedCue {
         self.loop_denominator.write_options(writer, endian, ())?;
         self.comment.write_options(writer, endian, ())?;
 
-        if Self::has_color(&self.header, &self.comment) {
+        if self.has_color {
             self.hot_cue_color_index.write_options(writer, endian, ())?;
             self.hot_cue_color_rgb.write_options(writer, endian, ())?;
             self.unknown6.write_options(writer, endian, ())?;
@@ -1505,10 +1521,14 @@ pub struct Section {
 ///
 /// The actual contents are not part of this struct and can parsed on-the-fly by iterating over the
 /// `ANLZ::sections()` method.
-#[binrw]
-#[derive(Debug, PartialEq, Eq)]
+///
+/// Writing recomputes the lengths: a section states its own size and the file states the size of
+/// everything, and both numbers have to describe the bytes that were just written. Keeping the stored
+/// numbers works for an unchanged file and quietly produces a file no reader can open as soon as a
+/// string grows.
+#[derive(BinRead, Debug, PartialEq, Eq)]
 #[cfg_attr(feature = "json", derive(Serialize))]
-#[brw(big)]
+#[br(big)]
 pub struct ANLZ {
     /// The file header.
     #[br(assert(header.kind == ContentKind::File))]
@@ -1520,6 +1540,68 @@ pub struct ANLZ {
     /// The content sections.
     #[br(parse_with = Self::parse_sections, args(header.content_size()))]
     pub sections: Vec<Section>,
+}
+
+impl BinWrite for ANLZ {
+    type Args<'a> = ();
+
+    /// Write the file, computing every length from the bytes that go into it.
+    ///
+    /// A section header carries its own size and the total size of the section, and the file header
+    /// carries the total size of the file. All three are derived here rather than copied from the
+    /// parsed struct, so a section whose content changed size still produces a file that reads back.
+    fn write_options<W: Write + Seek>(
+        &self,
+        writer: &mut W,
+        _endian: Endian,
+        _args: Self::Args<'_>,
+    ) -> BinResult<()> {
+        let endian = Endian::Big;
+
+        // The bodies come first: a length can only be written once the bytes it counts exist.
+        let mut encoded: Vec<(ContentKind, u32, u32, Vec<u8>)> =
+            Vec::with_capacity(self.sections.len());
+        for section in &self.sections {
+            let mut body = Vec::new();
+            section
+                .content
+                .write_options(&mut Cursor::new(&mut body), endian, ())?;
+            // Every content struct models the whole section body, including the extra header bytes
+            // that `size` counts beyond the common twelve. Measured on the captures: the serialized
+            // body of a section is always its stored `total_size` minus twelve.
+            let total_size = 12 + body.len() as u32;
+            encoded.push((
+                section.header.kind.clone(),
+                section.header.size,
+                total_size,
+                body,
+            ));
+        }
+
+        let header_size = 12 + self.header_data.len() as u32;
+        let total_size = header_size
+            + encoded
+                .iter()
+                .map(|(_, _, total_size, _)| *total_size)
+                .sum::<u32>();
+
+        self.header.kind.write_options(writer, endian, ())?;
+        header_size.write_options(writer, endian, ())?;
+        total_size.write_options(writer, endian, ())?;
+        self.header_data.write_options(writer, endian, ())?;
+
+        for (kind, size, total_size, body) in encoded {
+            kind.write_options(writer, endian, ())?;
+            size.write_options(writer, endian, ())?;
+            total_size.write_options(writer, endian, ())?;
+            writer.write_all(&body)?;
+        }
+        Ok(())
+    }
+}
+
+impl WriteEndian for ANLZ {
+    const ENDIAN: EndianKind = EndianKind::Endian(Endian::Big);
 }
 
 impl ANLZ {
@@ -1589,6 +1671,7 @@ mod tests {
             unknown8: 0,
             unknown9: 0,
             unknown10: 0,
+            has_color: true,
             trailing: vec![
                 0x02, 0x30, 0x77, 0x61, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                 0x10, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -1945,10 +2028,11 @@ mod tests {
             unknown8: 0,
             unknown9: 0,
             unknown10: 0,
+            has_color: false,
             trailing: Vec::new(),
         };
 
-        assert!(!ExtendedCue::has_color(&cue.header, &cue.comment));
+        assert!(!cue.has_color);
         test_roundtrip(&raw, cue);
     }
 
@@ -1968,5 +2052,91 @@ mod tests {
         let bytes = [0xfe_u8];
         let mut reader = Cursor::new(bytes.as_slice());
         assert_eq!(Bank::read(&mut reader).unwrap(), Bank::Unknown(254));
+    }
+
+    /// The measured 44 byte entry: a memory cue with neither comment nor colour.
+    fn short_entry_bytes() -> [u8; 44] {
+        [
+            0x50, 0x43, 0x50, 0x32, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x2c, 0x00, 0x00,
+            0x00, 0x00, 0x01, 0x00, 0x03, 0xe8, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00,
+        ]
+    }
+
+    #[test]
+    fn a_grown_comment_rewrites_the_entry_length() {
+        let raw = short_entry_bytes();
+        let mut cue = <ExtendedCue as BinRead>::read(&mut Cursor::new(raw.as_slice())).unwrap();
+        cue.comment = LenPrefixedWideString::from("AB");
+
+        let mut out = Vec::new();
+        cue.write(&mut Cursor::new(&mut out)).unwrap();
+
+        assert_eq!(out.len(), 44 + 6, "two characters plus their terminator");
+        let stated = u32::from_be_bytes([out[8], out[9], out[10], out[11]]);
+        assert_eq!(
+            stated as usize,
+            out.len(),
+            "the entry has to state the length of what was written"
+        );
+
+        let reread = <ExtendedCue as BinRead>::read(&mut Cursor::new(out.as_slice())).unwrap();
+        assert_eq!(reread.comment.0, "AB");
+        assert!(!reread.has_color, "the entry still carries no colour block");
+    }
+
+    #[test]
+    fn a_grown_comment_rewrites_the_section_and_file_lengths() {
+        let cue = <ExtendedCue as BinRead>::read(&mut Cursor::new(short_entry_bytes().as_slice()))
+            .unwrap();
+        let header_data = [0u8; 16];
+        let mut anlz = ANLZ {
+            header: Header {
+                kind: ContentKind::File,
+                size: 0,
+                total_size: 0,
+            },
+            header_data: header_data.to_vec(),
+            sections: vec![Section {
+                header: Header {
+                    kind: ContentKind::ExtendedCueList,
+                    size: 16,
+                    total_size: 0,
+                },
+                content: Content::ExtendedCueList(ExtendedCueList {
+                    list_type: CueListType::MemoryCues,
+                    unknown: 0,
+                    cues: vec![cue],
+                }),
+            }],
+        };
+
+        if let Content::ExtendedCueList(list) = &mut anlz.sections[0].content {
+            list.cues[0].comment = LenPrefixedWideString::from("AB");
+        }
+
+        let mut out = Vec::new();
+        anlz.write(&mut Cursor::new(&mut out)).unwrap();
+
+        let file_total = u32::from_be_bytes([out[8], out[9], out[10], out[11]]);
+        assert_eq!(
+            file_total as usize,
+            out.len(),
+            "the file states its own size"
+        );
+        let section_total =
+            u32::from_be_bytes([out[28 + 8], out[28 + 9], out[28 + 10], out[28 + 11]]);
+        assert_eq!(
+            section_total as usize,
+            out.len() - 28,
+            "the section states its own size"
+        );
+
+        let reread = <ANLZ as BinRead>::read(&mut Cursor::new(out.as_slice())).unwrap();
+        match &reread.sections[0].content {
+            Content::ExtendedCueList(list) => assert_eq!(list.cues[0].comment.0, "AB"),
+            other => panic!("unexpected content after a round trip: {other:?}"),
+        }
     }
 }
