@@ -9,17 +9,77 @@
 //! High-level API for working with Rekordbox device exports.
 
 use crate::{
+    pdb::defaults,
     pdb::io::Database,
     pdb::{DatabaseType, PlaylistTreeNode, PlaylistTreeNodeId},
     setting,
     setting::{Setting, SettingType},
 };
-use binrw::BinRead;
+use binrw::{BinRead, BinWrite};
 use fallible_iterator::FallibleIterator;
 use std::collections::HashMap;
 use std::fmt;
+use std::fs::File;
 use std::io::{Read, Seek};
 use std::path::{Path, PathBuf};
+
+/// The paths that make up a Rekordbox device export.
+///
+/// The export is just a directory tree, so this knows nothing about the device the tree is on and
+/// works the same for a mounted USB drive and a directory to collect an export in before copying
+/// it to one.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExportLayout(PathBuf);
+
+impl ExportLayout {
+    /// Lay out an export in the given directory, which is the root of the device.
+    #[must_use]
+    pub fn new(root: impl Into<PathBuf>) -> Self {
+        Self(root.into())
+    }
+
+    /// The root of the device, which holds the `PIONEER` directory.
+    #[must_use]
+    pub fn root(&self) -> &Path {
+        &self.0
+    }
+
+    /// The directory holding the databases, the settings and the analysis files.
+    #[must_use]
+    pub fn pioneer_dir(&self) -> PathBuf {
+        self.0.join("PIONEER")
+    }
+
+    /// The directory holding the databases.
+    #[must_use]
+    pub fn rekordbox_dir(&self) -> PathBuf {
+        self.pioneer_dir().join("rekordbox")
+    }
+
+    /// The database holding the tracks, playlists and the metadata they are browsed by.
+    #[must_use]
+    pub fn export_pdb(&self) -> PathBuf {
+        self.rekordbox_dir().join("export.pdb")
+    }
+
+    /// The database holding the extended track information, which only newer players read.
+    #[must_use]
+    pub fn export_ext_pdb(&self) -> PathBuf {
+        self.rekordbox_dir().join("exportExt.pdb")
+    }
+
+    /// The directory holding the analysis files of the tracks.
+    #[must_use]
+    pub fn usbanlz_dir(&self) -> PathBuf {
+        self.pioneer_dir().join("USBANLZ")
+    }
+
+    /// The file holding settings of the given type.
+    #[must_use]
+    pub fn setting_file(&self, setting_type: SettingType) -> PathBuf {
+        self.pioneer_dir().join(setting_type.filename())
+    }
+}
 
 /// Represents a Rekordbox device export.
 #[derive(Debug, PartialEq)]
@@ -46,14 +106,20 @@ impl DeviceExportLoader {
         Ok(setting)
     }
 
+    /// The paths of the export.
+    #[must_use]
+    pub fn layout(&self) -> ExportLayout {
+        ExportLayout::new(self.0.clone())
+    }
+
     /// Load setting files. If a file is missing or cannot be read,
     /// a warning will be printed.
     #[must_use]
     pub fn load_settings(&self) -> Settings {
-        let path = self.0.join("PIONEER");
+        let layout = self.layout();
 
-        let load_setting = |filename: &str, setting_type: SettingType| -> Option<Setting> {
-            let file_path = path.join(filename);
+        let load_setting = |setting_type: SettingType| -> Option<Setting> {
+            let file_path = layout.setting_file(setting_type);
             match Self::read_setting_file(&file_path, setting_type) {
                 Ok(setting) => Some(setting),
                 Err(e) => {
@@ -64,16 +130,16 @@ impl DeviceExportLoader {
         };
 
         let mut settings = Settings::default();
-        if let Some(devsetting) = load_setting("DEVSETTING.DAT", SettingType::DevSetting) {
+        if let Some(devsetting) = load_setting(SettingType::DevSetting) {
             settings.set_devsetting(devsetting.data.as_dev_setting().unwrap());
         }
-        if let Some(djmmysetting) = load_setting("DJMMYSETTING.DAT", SettingType::DJMMySetting) {
+        if let Some(djmmysetting) = load_setting(SettingType::DJMMySetting) {
             settings.set_djmmysetting(djmmysetting.data.as_djm_my_setting().unwrap());
         }
-        if let Some(mysetting) = load_setting("MYSETTING.DAT", SettingType::MySetting) {
+        if let Some(mysetting) = load_setting(SettingType::MySetting) {
             settings.set_mysetting(mysetting.data.as_my_setting().unwrap());
         }
-        if let Some(mysetting2) = load_setting("MYSETTING2.DAT", SettingType::MySetting2) {
+        if let Some(mysetting2) = load_setting(SettingType::MySetting2) {
             settings.set_mysetting2(mysetting2.data.as_my_setting2().unwrap());
         }
 
@@ -82,10 +148,108 @@ impl DeviceExportLoader {
 
     /// Open a PDB database without persistence back to disk.
     /// Still allows modifying data in memory.
-    pub fn open_pdb_non_persistent(&self) -> crate::Result<Database<std::fs::File>> {
-        let path = self.0.join("PIONEER").join("rekordbox").join("export.pdb");
-        Database::open_non_persistent(std::fs::File::open(path)?, DatabaseType::Plain)
+    pub fn open_pdb_non_persistent(&self) -> crate::Result<Database<File>> {
+        let path = self.layout().export_pdb();
+        Database::open_non_persistent(File::open(path)?, DatabaseType::Plain)
     }
+}
+
+/// The setting types that an export holds a file for.
+const SETTING_TYPES: [SettingType; 4] = [
+    SettingType::DevSetting,
+    SettingType::DJMMySetting,
+    SettingType::MySetting,
+    SettingType::MySetting2,
+];
+
+/// Writes a device export.
+///
+/// Creating one lays out the files that every export has: the two databases, holding the content
+/// that Rekordbox puts in every export, and the four settings files, holding the default
+/// settings. The databases stay open so that content can be added to them, and are written back
+/// to the device by [`DeviceExportWriter::close`].
+#[derive(Debug)]
+pub struct DeviceExportWriter {
+    layout: ExportLayout,
+    plain: Database<File>,
+    ext: Database<File>,
+}
+
+impl DeviceExportWriter {
+    /// Creates the files of an export in the given directory.
+    ///
+    /// `date` is the date the export is written, in the `YYYY-MM-DD` form that Rekordbox records
+    /// it in. Fails without writing anything if the directory already holds an export, so that an
+    /// export that took a long time to collect cannot be destroyed by accident.
+    pub fn create(root: impl Into<PathBuf>, date: &str) -> crate::Result<Self> {
+        let layout = ExportLayout::new(root);
+        std::fs::create_dir_all(layout.rekordbox_dir())?;
+
+        for setting_type in SETTING_TYPES {
+            let setting = match setting_type {
+                SettingType::DevSetting => Setting::default_devsetting(),
+                SettingType::DJMMySetting => Setting::default_djmmysetting(),
+                SettingType::MySetting => Setting::default_mysetting(),
+                SettingType::MySetting2 => Setting::default_mysetting2(),
+            };
+            write_setting_file(&layout.setting_file(setting_type), &setting)?;
+        }
+
+        let mut plain = create_database(&layout.export_pdb(), DatabaseType::Plain)?;
+        defaults::insert_defaults(&mut plain, date, 0)?;
+        let mut ext = create_database(&layout.export_ext_pdb(), DatabaseType::Ext)?;
+        defaults::insert_ext_defaults(&mut ext)?;
+
+        Ok(Self { layout, plain, ext })
+    }
+
+    /// The paths of the export being written.
+    #[must_use]
+    pub fn layout(&self) -> &ExportLayout {
+        &self.layout
+    }
+
+    /// The database holding the tracks, playlists and the metadata they are browsed by.
+    pub fn plain_database(&mut self) -> &mut Database<File> {
+        &mut self.plain
+    }
+
+    /// The database holding the extended track information.
+    pub fn ext_database(&mut self) -> &mut Database<File> {
+        &mut self.ext
+    }
+
+    /// Writes the databases to the device and makes sure everything written has reached it.
+    ///
+    /// Call this before the device is unmounted, as nothing guarantees that the export has been
+    /// written otherwise.
+    pub fn close(mut self) -> crate::Result<()> {
+        self.plain.flush()?;
+        self.ext.flush()?;
+        // The databases point at the analysis and audio files, so they are the last thing that
+        // should reach the device.
+        self.ext.into_inner().sync_all()?;
+        self.plain.into_inner().sync_all()?;
+        Ok(())
+    }
+}
+
+/// Creates a database file and an empty database in it.
+fn create_database(path: &Path, db_type: DatabaseType) -> crate::Result<Database<File>> {
+    let file = File::options()
+        .read(true)
+        .write(true)
+        .create_new(true)
+        .open(path)?;
+    Database::create(file, db_type)
+}
+
+/// Writes a settings file and makes sure it has reached the device.
+fn write_setting_file(path: &Path, setting: &Setting) -> crate::Result<()> {
+    let mut file = File::options().write(true).create_new(true).open(path)?;
+    setting.write(&mut file)?;
+    file.sync_all()?;
+    Ok(())
 }
 
 /// Settings object containing for all device settings.

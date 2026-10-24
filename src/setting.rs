@@ -201,6 +201,17 @@ impl SettingType {
         }
     }
 
+    /// Get the name of the file that holds settings of this type in a device export.
+    #[must_use]
+    pub fn filename(&self) -> &'static str {
+        match self {
+            Self::DevSetting => "DEVSETTING.DAT",
+            Self::DJMMySetting => "DJMMYSETTING.DAT",
+            Self::MySetting => "MYSETTING.DAT",
+            Self::MySetting2 => "MYSETTING2.DAT",
+        }
+    }
+
     /// Get the expected size of the data section for this setting type.
     #[must_use]
     pub fn expected_data_size(&self) -> u32 {
