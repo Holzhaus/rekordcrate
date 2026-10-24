@@ -125,6 +125,13 @@ enum Commands {
         #[arg(value_name = "XML_FILE")]
         path: PathBuf,
     },
+    /// Parse and dump a Device Library Plus (`exportLibrary.db`) database.
+    #[cfg(feature = "device_library_plus")]
+    DumpDLP {
+        /// File to parse.
+        #[arg(value_name = "DLP_FILE")]
+        path: PathBuf,
+    },
 }
 
 fn list_playlists(path: &Path) -> rekordcrate::Result<()> {
@@ -444,6 +451,50 @@ fn dump_xml(path: &Path) -> rekordcrate::Result<()> {
     Ok(())
 }
 
+#[cfg(feature = "device_library_plus")]
+fn dump_dlp(path: &Path) -> rekordcrate::Result<()> {
+    use rekordcrate::device_library_plus::{
+        Album, Artist, Category, Color, Content as DlpContent, Cue, Genre, History, HistoryContent,
+        HotCueBankList, HotCueBankListCue, Image, Key, Label, MenuItem, MyTag, MyTagContent,
+        Playlist, PlaylistContent, Property, RecommendedLike, Sort, TableRecord,
+    };
+
+    let mut db = rekordcrate::device_library_plus::Database::open(path)?;
+    let conn = db.connection_mut();
+
+    macro_rules! dump_table {
+        ($ty:ty) => {{
+            let rows = <$ty>::all(conn)?;
+            println!("{} ({} rows): {:#?}", stringify!($ty), rows.len(), rows);
+        }};
+    }
+
+    dump_table!(Album);
+    dump_table!(Artist);
+    dump_table!(Category);
+    dump_table!(Color);
+    dump_table!(DlpContent);
+    dump_table!(Cue);
+    dump_table!(Genre);
+    dump_table!(History);
+    dump_table!(HistoryContent);
+    dump_table!(HotCueBankList);
+    dump_table!(HotCueBankListCue);
+    dump_table!(Image);
+    dump_table!(Key);
+    dump_table!(Label);
+    dump_table!(MenuItem);
+    dump_table!(MyTag);
+    dump_table!(MyTagContent);
+    dump_table!(Playlist);
+    dump_table!(PlaylistContent);
+    dump_table!(Property);
+    dump_table!(RecommendedLike);
+    dump_table!(Sort);
+
+    Ok(())
+}
+
 fn guess_db_type(path: &Path, db_type: Option<&str>) -> CliResult<DatabaseType> {
     let db_type_cli = db_type.map(|str| match str {
         "plain" => DatabaseType::Plain,
@@ -539,6 +590,8 @@ fn run() -> CliResult<()> {
         }
         #[cfg(feature = "xml")]
         Commands::DumpXML { path } => dump_xml(path)?,
+        #[cfg(feature = "device_library_plus")]
+        Commands::DumpDLP { path } => dump_dlp(path)?,
     }
     Ok(())
 }

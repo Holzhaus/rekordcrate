@@ -57,6 +57,16 @@ pub enum RekordcrateError {
     #[error(transparent)]
     PdbError(#[from] crate::pdb::PdbError),
 
+    /// Represents a failure to connect to or configure a Diesel database.
+    #[cfg(feature = "device_library_plus")]
+    #[error(transparent)]
+    DieselConnectionError(#[from] diesel::ConnectionError),
+
+    /// Represents a Diesel query or execution failure.
+    #[cfg(feature = "device_library_plus")]
+    #[error(transparent)]
+    DieselError(#[from] diesel::result::Error),
+
     /// Represents a failure to locate a table.
     #[error("Table not present in database: {0:?}")]
     TableNotPresent(TableIndex),
