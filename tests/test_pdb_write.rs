@@ -6,10 +6,13 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
+use binrw::{BinWrite, Endian};
 use fallible_iterator::FallibleIterator;
+use rekordcrate::pdb::bitfields::{PackedRowCounts, PageFlags};
 use rekordcrate::pdb::io::Database;
 use rekordcrate::pdb::*;
-use std::{io::Cursor, path::PathBuf};
+use rekordcrate::util::TableIndex;
+use std::{collections::BTreeMap, io::Cursor, path::PathBuf};
 
 // Set REKORDCRATE_TEST_DUMP_PATH to dump modified databases to that directory for inspection.
 
@@ -55,6 +58,109 @@ fn assert_pdb_modify_verify(
 
     println!("Verifying database");
     verify(&mut db);
+}
+
+#[test]
+fn test_data_page_write_reaches_page_size_with_vec_writer() {
+    const PAGE_SIZE: u32 = 4096;
+    let page = Page {
+        header: PageHeader {
+            page_index: PageIndex::try_from(1).unwrap(),
+            page_type: PageType::Plain(PlainPageType::Tracks),
+            next_page: PageIndex::try_from(2).unwrap(),
+            unknown1: 0,
+            unknown2: 0,
+            packed_row_counts: PackedRowCounts::default(),
+            page_flags: PageFlags::new_data_page(),
+            free_size: (PAGE_SIZE - PageHeader::BINARY_SIZE - DataPageHeader::BINARY_SIZE) as u16,
+            used_size: 0,
+        },
+        content: PageContent::Data(DataPageContent {
+            header: DataPageHeader {
+                unknown5: 0,
+                unknown_not_num_rows_large: 0,
+                unknown6: 0,
+                unknown7: 0,
+            },
+            row_groups: vec![],
+            rows: BTreeMap::new(),
+        }),
+    };
+
+    let mut writer = Cursor::new(Vec::new());
+    page.write_options(&mut writer, Endian::Little, (PAGE_SIZE,))
+        .expect("failed to serialize page");
+
+    assert_eq!(
+        writer.into_inner().len(),
+        PAGE_SIZE as usize,
+        "an empty final data page must still occupy a full page"
+    );
+}
+
+#[test]
+fn test_pdb_page_chain_metadata() {
+    assert_eq!(
+        PageIndex::try_from(0x03FF_FFFF).unwrap(),
+        PageIndex::SENTINEL
+    );
+    assert!(PageIndex::try_from(0x0400_0000).is_err());
+
+    let data = include_bytes!("../data/pdb/num_rows/export.pdb");
+    let mut db = Database::open_non_persistent(Cursor::new(data.as_slice()), DatabaseType::Plain)
+        .expect("failed to open database");
+    let tables = db.get_header().tables.clone();
+
+    for (table_index, table) in tables.iter().enumerate() {
+        let mut pages = db
+            .iter_pages_for_table(TableIndex::from(table_index))
+            .expect("failed to get page iterator");
+        let (first_index, first_next, inner_next) = {
+            let first = pages
+                .next()
+                .expect("page iterator error")
+                .expect("table chain must have a first page");
+            let index_content = first
+                .content
+                .as_index()
+                .expect("the first page must be a free-space/index page");
+            (
+                first.header.page_index,
+                first.header.next_page,
+                index_content.header.next_page,
+            )
+        };
+
+        assert_eq!(first_index, table.first_page);
+        assert_eq!(
+            inner_next,
+            if table.first_page == table.last_page {
+                PageIndex::SENTINEL
+            } else {
+                first_next
+            },
+            "table {table_index}: inner free-space pointer has the wrong empty/non-empty meaning"
+        );
+
+        let mut last_index = first_index;
+        let mut last_next = first_next;
+        while let Some(page) = pages.next().expect("page iterator error") {
+            assert!(
+                page.content.as_data().is_some(),
+                "table {table_index}: pages after the free-space page must contain rows"
+            );
+            last_index = page.header.page_index;
+            last_next = page.header.next_page;
+        }
+
+        assert_eq!(last_index, table.last_page);
+        assert_eq!(
+            last_next,
+            PageIndex::try_from(table.empty_candidate)
+                .expect("empty_candidate must be a valid page index"),
+            "table {table_index}: the chain's final page must point to empty_candidate"
+        );
+    }
 }
 
 #[test]

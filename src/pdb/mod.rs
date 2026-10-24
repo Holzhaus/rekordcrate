@@ -164,7 +164,7 @@ impl TryFrom<u32> for PageIndex {
     type Error = PdbError;
 
     fn try_from(value: u32) -> Result<Self, Self::Error> {
-        if value < 0x03FF_FFFF {
+        if value <= Self::SENTINEL.0 {
             Ok(Self(value))
         } else {
             Err(PdbError::InvalidPageIndex(value))
@@ -173,6 +173,9 @@ impl TryFrom<u32> for PageIndex {
 }
 
 impl PageIndex {
+    /// The value used in an index page to indicate that an empty table has no data page.
+    pub const SENTINEL: Self = Self(0x03FF_FFFF);
+
     /// Calculate the absolute file offset of the page in the PDB file for the given `page_size`.
     #[must_use]
     pub fn offset(&self, page_size: u32) -> u64 {
@@ -182,6 +185,11 @@ impl PageIndex {
 
 /// Tables are linked lists of pages containing rows of a single type, which are organized
 /// into groups.
+///
+/// The first page in a table is a free-space/index page. For an empty table, `last_page` is the
+/// same page and the data page named by `empty_candidate` is reserved but not part of the chain.
+/// Once a table has rows, `last_page` is the final data page and its `next_page` still points at
+/// the reserved `empty_candidate` page.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "json", derive(Serialize))]
@@ -191,16 +199,16 @@ pub struct Table {
     /// Identifies the type of rows that this table contains.
     #[br(args(db_type))]
     pub page_type: PageType,
-    /// Unknown field, maybe links to a chain of empty pages if the database is ever garbage
-    /// collected (?).
-    #[allow(dead_code)]
-    empty_candidate: u32,
-    /// Index of the first page that belongs to this table.
+    /// Index of the reserved, currently empty data page after the table's page chain.
     ///
-    /// *Note:* The first page apparently does not contain any rows. If the table is non-empty, the
-    /// actual row data can be found in the pages after.
+    /// For an empty table this page is named by the first page's `PageHeader.next_page`. For a
+    /// non-empty table it is named by the last data page's `PageHeader.next_page`.
+    pub empty_candidate: u32,
+    /// Index of the first page in this table's chain. This is a free-space/index page and does not
+    /// contain table rows.
     pub first_page: PageIndex,
-    /// Index of the last page that belongs to this table.
+    /// Index of the last page in this table's chain. This equals `first_page` for an empty table;
+    /// otherwise it is the final data page.
     pub last_page: PageIndex,
 }
 
@@ -255,7 +263,10 @@ impl Header {
     }
 }
 
-/// An entry in an index page.
+/// An entry in a free-space/index page.
+///
+/// Despite the historical `IndexEntry` name, these entries point to data pages with reclaimable
+/// space (for example, space left by deleted rows).
 #[binrw]
 #[derive(PartialEq, Eq, Clone, Copy)]
 #[cfg_attr(feature = "json", derive(Serialize))]
@@ -322,7 +333,7 @@ impl fmt::Debug for IndexEntry {
     }
 }
 
-/// The header of the index-containing part of a page.
+/// The header of the free-space/index part of a page.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "json", derive(Serialize))]
@@ -340,7 +351,11 @@ pub struct IndexPageHeader {
     pub next_offset: u16,
     /// Redundant page index.
     pub page_index: PageIndex,
-    /// Redundant next page index.
+    /// The first data page in the table, or [`PageIndex::SENTINEL`] when the table is empty.
+    ///
+    /// This is the free-space page's inner pointer and is distinct from the enclosing
+    /// [`PageHeader::next_page`], which points to the next page in the on-disk chain (or the
+    /// reserved `empty_candidate`).
     pub next_page: PageIndex,
     // Magic value `0x0000000003ffffff`.
     #[brw(magic = 0x0000_0000_03ff_ffffu64)]
@@ -361,7 +376,7 @@ impl IndexPageHeader {
     pub const BINARY_SIZE: u32 = 28;
 }
 
-/// The content of an index page.
+/// The content of a free-space/index page.
 #[binrw]
 #[derive(Debug, PartialEq, Eq, Clone)]
 #[cfg_attr(feature = "json", derive(Serialize))]
@@ -393,6 +408,40 @@ impl IndexPageContent {
         (entries_space / IndexEntry::BINARY_SIZE)
             .try_into()
             .unwrap()
+    }
+}
+
+/// Helper struct to write N zero bytes while reading nothing.
+///
+/// The explicit write is needed because seeking over the page heap does not extend writers backed
+/// by a `Vec<u8>`. Without it, an otherwise empty final data page is truncated.
+struct Zeros(u32);
+
+impl BinRead for Zeros {
+    type Args<'a> = ();
+
+    fn read_options<Reader>(_: &mut Reader, _: Endian, (): Self::Args<'_>) -> BinResult<Self>
+    where
+        Reader: Read + Seek,
+    {
+        Ok(Self(0))
+    }
+}
+
+impl BinWrite for Zeros {
+    type Args<'a> = ();
+
+    fn write_options<Writer>(
+        &self,
+        writer: &mut Writer,
+        _: Endian,
+        (): Self::Args<'_>,
+    ) -> BinResult<()>
+    where
+        Writer: Write + Seek,
+    {
+        writer.write_all(&vec![0u8; self.0 as usize])?;
+        Ok(())
     }
 }
 
@@ -446,7 +495,7 @@ pub enum PageContent {
         #[bw(args { page_size })]
         DataPageContent,
     ),
-    /// The page is an index page.
+    /// The page is a free-space/index page.
     #[br(pre_assert(header.page_flags.is_index_page()))]
     Index(#[bw(args { page_size })] IndexPageContent),
 }
@@ -525,10 +574,12 @@ pub struct PageHeader {
     /// Should match the page type of the table that this page belongs to.
     #[br(args(db_type))]
     pub page_type: PageType,
-    /// Index of the next page with the same page type.
+    /// Index of the next page in this table's chain.
     ///
-    /// If this page is the last one of that type, the page index stored in the field will point
-    /// past the end of the file.
+    /// On the first free-space/index page this points to the first data page, or to the reserved
+    /// `empty_candidate` when the table is empty. On the final data page it points to the reserved
+    /// `empty_candidate`; the table's `last_page` field, rather than a sentinel in this field,
+    /// marks the end of the readable chain.
     pub next_page: PageIndex,
     /// Unknown field.
     /// Appears to be a number between 1 and ~2500.
@@ -670,6 +721,13 @@ impl DataPageHeader {
 pub struct DataPageContent {
     /// The header of the data page.
     pub header: DataPageHeader,
+
+    // Pre-fill the heap area before writing row groups and rows. A seek alone does not extend a
+    // `Vec<u8>`-backed writer, which truncates an empty final page.
+    #[br(temp)]
+    #[bw(calc = Zeros(Self::page_heap_size(page_size)))]
+    #[brw(restore_position)]
+    _heap_zeros: Zeros,
 
     /// Row groups at the end of the page.
     // Seek to the end of the page as we read/write row groups backwards,
