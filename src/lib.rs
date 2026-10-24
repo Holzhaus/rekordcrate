@@ -1,12 +1,5 @@
-// Copyright (c) 2026 Jan Holthuis <jan.holthuis@rub.de>
-//
-// This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy
-// of the MPL was not distributed with this file, You can obtain one at
-// http://mozilla.org/MPL/2.0/.
-//
+// Copyright (c) 2026
 // SPDX-License-Identifier: MPL-2.0
-
-//! This library provides access to device libraries exported from Pioneer's Rekordbox DJ software.
 
 #![warn(unsafe_code)]
 #![warn(missing_docs)]
@@ -20,17 +13,16 @@
 #![deny(clippy::explicit_into_iter_loop)]
 #![deny(clippy::explicit_iter_loop)]
 #![deny(clippy::must_use_candidate)]
-#![cfg_attr(not(test), deny(clippy::panic_in_result_fn))]
-#![cfg_attr(not(debug_assertions), deny(clippy::used_underscore_binding))]
 
 pub mod anlz;
-pub mod device;
 pub mod pdb;
 pub mod setting;
 pub mod util;
+
+#[cfg(feature = "xml")]
 pub mod xml;
+
 pub(crate) mod xor;
 
-pub use crate::device::DeviceExportLoader;
 pub use crate::util::RekordcrateError as Error;
 pub use crate::util::RekordcrateResult as Result;
