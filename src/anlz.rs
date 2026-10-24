@@ -37,6 +37,77 @@ use binrw::{
 use modular_bitfield::prelude::*;
 #[cfg(feature = "json")]
 use serde::{Serialize, Serializer};
+use std::path::PathBuf;
+
+/// Where a player looks for the analysis files of a track.
+///
+/// Players have been found to work this out from the path of the audio file rather than reading
+/// the path that the track row of the database holds, so the analysis files of a track have to be
+/// placed where this says even though the database names them separately.
+///
+/// ## References
+///
+/// - <https://github.com/AnnoyingTechnology/rhythmbox-to-pioneer-xdj-exporter/blob/master/posterity/WAVEFORMS.md>
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct AnalysisPath {
+    /// Hash of the path of the audio file, which names the directory holding the files.
+    hash: u32,
+    /// Value gathered from the bits of the hash, which names the directory holding that one.
+    group: u16,
+}
+
+impl AnalysisPath {
+    /// Name of the analysis files of a track, without the extension.
+    pub const FILE_STEM: &'static str = "ANLZ0000";
+
+    /// The hash is reduced into this range, which keeps it to eight hex digits.
+    const HASH_MODULUS: u32 = 0x0003_0D43;
+
+    /// Bits of the hash that the group is gathered from, least significant first.
+    const GROUP_BITS: [u32; 7] = [0, 2, 6, 7, 9, 13, 16];
+
+    /// Works out where the analysis files of the track with the given audio file belong.
+    ///
+    /// The path is the path of the audio file on the device, as the track row holds it, e.g.
+    /// `/Contents/Artist/Album/Track.mp3`.
+    #[must_use]
+    pub fn for_audio_path(device_audio_path: &str) -> Self {
+        let hash = Self::hash(device_audio_path);
+        let group = Self::GROUP_BITS
+            .into_iter()
+            .enumerate()
+            .map(|(index, bit)| u16::try_from((hash >> bit) & 1).unwrap_or(0) << index)
+            .sum();
+        Self { hash, group }
+    }
+
+    /// Hashes the path of an audio file, treating it as UTF-16 the way the players do.
+    fn hash(device_audio_path: &str) -> u32 {
+        device_audio_path.encode_utf16().fold(0u32, |hash, unit| {
+            let unit = u32::from(unit);
+            let hash = hash.wrapping_mul(0x5bc9).wrapping_add(unit);
+            hash.wrapping_mul(0x93b5).wrapping_add(unit)
+        }) % Self::HASH_MODULUS
+    }
+
+    /// The hash of the path of the audio file, which names the directory holding the files.
+    #[must_use]
+    pub fn hash_value(&self) -> u32 {
+        self.hash
+    }
+
+    /// The value that names the directory holding the one the files are in.
+    #[must_use]
+    pub fn group(&self) -> u16 {
+        self.group
+    }
+
+    /// The directory holding the analysis files, relative to `PIONEER/USBANLZ`.
+    #[must_use]
+    pub fn relative_dir(&self) -> PathBuf {
+        PathBuf::from(format!("P{:03X}", self.group)).join(format!("{:08X}", self.hash))
+    }
+}
 
 #[cfg(feature = "json")]
 fn serialize_null_wide_string<S>(nws: &NullWideString, serializer: S) -> Result<S::Ok, S::Error>

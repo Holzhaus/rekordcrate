@@ -9,6 +9,7 @@
 //! High-level API for working with Rekordbox device exports.
 
 use crate::{
+    anlz::AnalysisPath,
     pdb::defaults,
     pdb::io::Database,
     pdb::offset_array::OffsetArrayContainer,
@@ -78,6 +79,25 @@ impl ExportLayout {
     #[must_use]
     pub fn usbanlz_dir(&self) -> PathBuf {
         self.pioneer_dir().join("USBANLZ")
+    }
+
+    /// The directory holding the analysis files of the track with the given audio file.
+    ///
+    /// The path is the path of the audio file on the device, as the track row holds it, e.g.
+    /// `/Contents/Artist/Album/Track.mp3`.
+    #[must_use]
+    pub fn anlz_dir_for_audio(&self, device_audio_path: &str) -> PathBuf {
+        self.usbanlz_dir()
+            .join(AnalysisPath::for_audio_path(device_audio_path).relative_dir())
+    }
+
+    /// The analysis file with the given extension of the track with the given audio file.
+    ///
+    /// The extension is one of `DAT`, `EXT` or `2EX`.
+    #[must_use]
+    pub fn anlz_file_for_audio(&self, device_audio_path: &str, extension: &str) -> PathBuf {
+        self.anlz_dir_for_audio(device_audio_path)
+            .join(format!("{}.{extension}", AnalysisPath::FILE_STEM))
     }
 
     /// The file holding settings of the given type.
