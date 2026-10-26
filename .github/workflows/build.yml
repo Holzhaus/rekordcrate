@@ -60,7 +60,7 @@ jobs:
                   persist-credentials: false
             - name: Authenticate with registry
               id: auth
-              uses: rust-lang/crates-io-auth-action@b7e9a28eded4986ec6b1fa40eeee8f8f165559ec
+              uses: rust-lang/crates-io-auth-action@3268eb413133e2960fa4ae0e963ca76380c54cd9
             - name: Publish Package
               run: cargo publish --locked
               env:
