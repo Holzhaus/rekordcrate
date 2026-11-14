@@ -45,7 +45,7 @@ fn allocate_row_empty_page() {
             name: "Emin".parse().unwrap(),
         }));
         let bytes_required = row.heap_bytes_required(());
-        let insert = page.allocate_row(bytes_required).unwrap();
+        let (_, insert) = page.allocate_row(bytes_required).unwrap();
         insert(row);
 
         page
@@ -154,7 +154,7 @@ fn allocate_row_existing_row_group() {
             name: "Fmaj".parse().unwrap(),
         }));
         let bytes_required = row.heap_bytes_required(());
-        let insert = page.allocate_row(bytes_required).unwrap();
+        let (_, insert) = page.allocate_row(bytes_required).unwrap();
         insert(row);
 
         page
@@ -268,7 +268,7 @@ fn allocate_row_interrupted() {
         };
 
         let bytes_required = 16;
-        let insert = page.allocate_row(bytes_required).unwrap();
+        let (_, insert) = page.allocate_row(bytes_required).unwrap();
         drop(insert);
 
         page
@@ -506,7 +506,7 @@ fn allocate_row_full_row_group() {
             name: "Amaj".parse().unwrap(),
         }));
         let bytes_required = new_row.heap_bytes_required(());
-        let insert = page.allocate_row(bytes_required).unwrap();
+        let (_, insert) = page.allocate_row(bytes_required).unwrap();
         insert(new_row);
 
         page

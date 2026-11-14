@@ -204,6 +204,17 @@ pub enum ExtRow {
     TrackTag(TrackTag),
 }
 
+impl ExtRow {
+    /// Records the place the row takes in its page, as described for
+    /// [`Row::set_index_shift`](crate::pdb::Row::set_index_shift).
+    pub(crate) fn set_index_shift(&mut self, index_shift: u16) {
+        match self {
+            ExtRow::Tag(row) => row.index_shift = index_shift,
+            ExtRow::TrackTag(_) => (),
+        }
+    }
+}
+
 impl PageHeapObject for ExtRow {
     type Args<'a> = ();
     fn heap_bytes_required(&self, _: ()) -> u16 {

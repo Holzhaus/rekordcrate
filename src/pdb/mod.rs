@@ -644,13 +644,13 @@ impl Page {
         u16::try_from(DataPageContent::page_heap_size(page_size)).unwrap_or(u16::MAX)
     }
 
-    /// Allocate space for a new row in the page heap and return a function to
-    /// insert the row at the allocated offset. Returns `None` if there is
-    /// insufficient free space in the page.
+    /// Allocate space for a new row in the page heap and return the index the row takes within
+    /// the page along with a function to insert the row at the allocated offset. Returns `None`
+    /// if there is insufficient free space in the page.
     ///
     /// We do this allocate-then-insert dance so that we only take ownership of
     /// the Row once we know we can insert it, avoiding unnecessary copies.
-    pub fn allocate_row<'a>(&'a mut self, bytes: u16) -> Option<impl FnOnce(Row) + 'a> {
+    pub fn allocate_row<'a>(&'a mut self, bytes: u16) -> Option<(u16, impl FnOnce(Row) + 'a)> {
         match self.content {
             PageContent::Index(_) => None,
             PageContent::Data(ref mut dpc) => {
@@ -667,6 +667,9 @@ impl Page {
                 self.header.free_size -= bytes;
                 let row_counts = &mut self.header.packed_row_counts;
                 row_counts.increment_num_rows();
+                // The row takes the last place in the page, which is where its own fields that
+                // refer to that place are taken from.
+                let index_in_page = row_counts.num_rows().saturating_sub(1);
                 // Count the row as written by the write that is in progress, which keeps the sum
                 // of the two counters equal to the number of rows in the page.
                 dpc.header.unknown5 += 1;
@@ -683,7 +686,7 @@ impl Page {
 
                 let rows = &mut dpc.rows;
 
-                Some(move |row: Row| {
+                Some((index_in_page, move |row: Row| {
                     let prev_entry = rows.insert(offset, row);
                     if let Some(prev_entry) = prev_entry {
                         panic!(
@@ -693,7 +696,7 @@ impl Page {
                     }
                     row_group.mark_offset_present(row_subindex);
                     row_counts.increment_num_rows_valid();
-                })
+                }))
             }
         }
     }
@@ -2246,6 +2249,38 @@ pub enum Row {
     /// The row format (and also its size) is unknown, which means it can't be parsed.
     #[br(pre_assert(matches!(page_type, PageType::Unknown(_))))]
     Unknown,
+}
+
+/// Step by which the `index_shift` field of a row grows from one row of a page to the next.
+pub(crate) const INDEX_SHIFT_STEP: u16 = 0x20;
+
+impl Row {
+    /// Records the place the row takes in its page, in the field that holds it.
+    ///
+    /// Rows of several tables carry an `index_shift` field that refers to the place the row takes
+    /// within its own page, rather than within its table: in every data page of every export
+    /// known to us the field holds [`INDEX_SHIFT_STEP`] times that place, restarting from zero in
+    /// each page of the table. A row type that has no such field is left alone.
+    pub(crate) fn set_index_shift(&mut self, index_shift: u16) {
+        match self {
+            Row::Plain(row) => row.set_index_shift(index_shift),
+            Row::Ext(row) => row.set_index_shift(index_shift),
+            Row::Unknown => (),
+        }
+    }
+}
+
+impl PlainRow {
+    /// Records the place the row takes in its page, as described for [`Row::set_index_shift`].
+    fn set_index_shift(&mut self, index_shift: u16) {
+        match self {
+            PlainRow::Album(row) => row.index_shift = index_shift,
+            PlainRow::Artist(row) => row.index_shift = index_shift,
+            PlainRow::History(row) => row.index_shift = index_shift,
+            PlainRow::Track(row) => row.index_shift = index_shift,
+            _ => (),
+        }
+    }
 }
 
 impl Row {

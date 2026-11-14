@@ -79,6 +79,18 @@ fn read_page<IO: Read + Seek>(
     Ok(page)
 }
 
+/// Records in a row the place it takes in its page, which some of its fields refer to.
+fn index_shift_for(mut row: Row, index_in_page: u16) -> RekordcrateResult<Row> {
+    let index_shift =
+        index_in_page
+            .checked_mul(INDEX_SHIFT_STEP)
+            .ok_or(RekordcrateError::IntegrityError(
+                "page holds too many rows to give one an index shift",
+            ))?;
+    row.set_index_shift(index_shift);
+    Ok(row)
+}
+
 /// A PDB database opened for reading or writing.
 #[derive(Debug)]
 pub struct Database<IO> {
@@ -226,18 +238,18 @@ impl<R: Read + Seek> Database<R> {
         // The last page of a table is an index page while the table is still empty, in which case
         // the allocation fails here and we fall through to appending a data page below.
         let page = self.load_page(last_page)?;
-        if let Some(insert) = page.allocate_row(bytes_required) {
-            insert(row);
+        if let Some((index_in_page, insert)) = page.allocate_row(bytes_required) {
+            insert(index_shift_for(row, index_in_page)?);
             return Ok(last_page);
         }
 
         let page_index = self.append_page(page_type)?;
         let page = self.load_page(page_index)?;
-        let insert = page.allocate_row(bytes_required).ok_or(
+        let (index_in_page, insert) = page.allocate_row(bytes_required).ok_or(
             // Unreachable: we checked above that the row fits in an empty page.
             RekordcrateError::IntegrityError("freshly appended page cannot hold the row"),
         )?;
-        insert(row);
+        insert(index_shift_for(row, index_in_page)?);
         Ok(page_index)
     }
 
@@ -452,6 +464,7 @@ impl<'db, R: Read + Seek> FallibleIterator for PageIterator<'db, R> {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::util::MaybeCalculated;
     use std::fs::File;
     use std::io::Cursor;
 
@@ -473,7 +486,7 @@ mod test {
                 id2: id,
                 name: name.parse().unwrap(),
             }));
-            let insert = page.allocate_row(row.heap_bytes_required(())).unwrap();
+            let (_, insert) = page.allocate_row(row.heap_bytes_required(())).unwrap();
             insert(row);
         }
         assert_eq!(
@@ -496,6 +509,125 @@ mod test {
         assert_eq!(names.len(), 67 + new_keys.len());
         for (_, name) in new_keys {
             assert!(names.contains(&name.to_string()), "{names:?}");
+        }
+    }
+
+    fn artist_row(id: u32) -> Artist {
+        Artist {
+            subtype: Subtype(0x60),
+            // Overwritten when the row is stored, from the place it takes in its page.
+            index_shift: 0,
+            id: ArtistId(id),
+            offsets: OffsetArrayContainer {
+                offsets: MaybeCalculated::Calculated,
+                inner: TrailingName {
+                    name: format!("Artist {id}").parse().unwrap(),
+                },
+            },
+        }
+    }
+
+    /// The `index_shift` of a row refers to the place the row takes in its own page, not in its
+    /// table: in the exports Rekordbox wrote it is `INDEX_SHIFT_STEP` times that place and it
+    /// restarts from zero in every page of a table.
+    #[test]
+    fn test_index_shift_counts_within_the_page() {
+        let file = File::open("data/pdb/num_rows/export.pdb").unwrap();
+        let mut db = Database::open_non_persistent(file, DatabaseType::Plain).unwrap();
+        let mut pages = db
+            .iter_pages(PageType::Plain(PlainPageType::Artists))
+            .unwrap();
+
+        let mut data_pages = 0;
+        while let Some(page) = pages.next().unwrap() {
+            let Some(content) = page.content.as_data() else {
+                continue;
+            };
+            let shifts: Vec<u16> = content
+                .rows
+                .values()
+                .filter_map(|row| match row {
+                    Row::Plain(PlainRow::Artist(artist)) => Some(artist.index_shift),
+                    _ => None,
+                })
+                .collect();
+            if shifts.is_empty() {
+                continue;
+            }
+            data_pages += 1;
+
+            // Every page starts over at zero, which is the whole point.
+            assert_eq!(
+                Some(0),
+                shifts.iter().copied().min(),
+                "page {:?} does not start at zero: {shifts:?}",
+                page.header.page_index
+            );
+            for shift in &shifts {
+                assert_eq!(
+                    0,
+                    shift % INDEX_SHIFT_STEP,
+                    "page {:?} holds {shift}, which is not a multiple of the step",
+                    page.header.page_index
+                );
+            }
+            // A page records a place for every row ever allocated in it, so the largest place a
+            // row refers to is the last of those, even where a row has since been superseded.
+            let allocated = page.header.packed_row_counts.num_rows();
+            let largest = shifts.iter().copied().max().unwrap();
+            assert!(
+                largest <= (allocated - 1) * INDEX_SHIFT_STEP,
+                "page {:?} holds {largest} for {allocated} allocated rows",
+                page.header.page_index
+            );
+        }
+        assert!(data_pages > 1, "fixture holds only {data_pages} data pages");
+    }
+
+    /// A table takes more rows than `INDEX_SHIFT_STEP` times a table-wide row index would fit in
+    /// the `u16` the field is stored in, because the place it refers to is within the page.
+    #[test]
+    fn test_add_row_past_a_table_wide_index_shift() {
+        let file = File::open("data/pdb/num_rows/export.pdb").unwrap();
+        let mut db = Database::open_non_persistent(file, DatabaseType::Plain).unwrap();
+
+        // One more than the number of rows that a table-wide `index_shift` could number.
+        let rows = u32::from(u16::MAX / INDEX_SHIFT_STEP) + 2;
+        for id in 0..rows {
+            db.add_row(artist_row(10_000 + id))
+                .unwrap_or_else(|error| panic!("row {id} of {rows} was refused: {error}"));
+        }
+
+        let mut pages = db
+            .iter_pages(PageType::Plain(PlainPageType::Artists))
+            .unwrap();
+        while let Some(page) = pages.next().unwrap() {
+            let Some(content) = page.content.as_data() else {
+                continue;
+            };
+            // A page the fixture already held can carry a superseded row, whose place is still
+            // taken, so the places are only known to grow by whole steps rather than by one.
+            let mut previous = None;
+            for row in content.rows.values() {
+                let Row::Plain(PlainRow::Artist(artist)) = row else {
+                    continue;
+                };
+                let shift = artist.index_shift;
+                assert_eq!(
+                    0,
+                    shift % INDEX_SHIFT_STEP,
+                    "page {:?} holds {shift}, which is not a multiple of the step",
+                    page.header.page_index
+                );
+                if let Some(previous) = previous {
+                    assert!(
+                        shift > previous,
+                        "page {:?} holds {shift} after {previous}",
+                        page.header.page_index
+                    );
+                }
+                previous = Some(shift);
+            }
         }
     }
 
