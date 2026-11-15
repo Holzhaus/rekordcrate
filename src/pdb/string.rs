@@ -234,7 +234,10 @@ enum DeviceSQLStringImpl {
         // first byte (`header` here, `flags` in Long). If its set, the
         // string being parsed is a of the ShortASCII kind, if its not, its
         // the Long form.
-        #[br(temp, assert(header & 0b1 == 1))]
+        // The length the header holds counts itself, so a header claiming no bytes at all
+        // describes no string: bytes that are not one must fail to parse rather than wrap
+        // around the length.
+        #[br(temp, assert(header & 0b1 == 1 && header >> 1 >= 1))]
         #[bw(calc = (((content.len() + 1) << 1) | 1) as u8)]
         header: u8,
 
@@ -248,7 +251,9 @@ enum DeviceSQLStringImpl {
         #[bw(calc = content.flags())]
         flags: u8,
 
-        #[br(temp)]
+        // The length counts the flags, itself and the padding that follow, so a length below
+        // those four bytes describes no string.
+        #[br(temp, assert(length >= 4))]
         #[bw(calc = content.byte_count().unwrap() + 4)]
         length: u16,
 
@@ -305,6 +310,29 @@ impl Default for DeviceSQLString {
 mod test {
     use super::*;
     use crate::util::testing::test_roundtrip;
+    use binrw::BinRead;
+
+    /// Bytes that claim a shorter string than the length byte itself takes are not a string, and
+    /// must fail to parse rather than wrap the length around.
+    #[test]
+    fn short_ascii_string_of_no_length() {
+        let mut cursor = binrw::io::Cursor::new([0x01u8, 0x66, 0x6f, 0x6f]);
+        assert!(DeviceSQLString::read_le(&mut cursor).is_err());
+    }
+
+    /// A long string whose length does not even cover the flags, the length and the padding is
+    /// not a string either.
+    #[test]
+    fn long_string_of_no_length() {
+        for length in 0u16..4 {
+            let [low, high] = length.to_le_bytes();
+            let mut cursor = binrw::io::Cursor::new([0x40u8, low, high, 0x00, 0x66, 0x6f, 0x6f]);
+            assert!(
+                DeviceSQLString::read_le(&mut cursor).is_err(),
+                "a length of {length} was accepted"
+            );
+        }
+    }
 
     #[test]
     fn default_string() -> Result<(), StringError> {
