@@ -785,7 +785,7 @@ impl DataPageContent {
     }
 }
 
-trait PageHeapObject {
+pub(crate) trait PageHeapObject {
     type Args<'a>;
 
     /// Required page heap space in bytes to store the object.

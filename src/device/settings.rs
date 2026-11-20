@@ -6,97 +6,14 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-//! Read-side access to a Rekordbox device export: a thin handle that exposes the setting files
-//! and the PDB database.
-//!
-//! See [`crate::device::layout`].
+//! The player settings of a device export, merged from its `*SETTING.DAT` files.
 
 use crate::device::layout::{Layout, DAT_FILES};
-use crate::pdb::io::Database;
-use crate::pdb::{DatabaseType, PlaylistTreeNode, PlaylistTreeNodeId};
 use crate::setting;
 use crate::setting::{Setting, SettingType};
 use binrw::BinRead;
-use fallible_iterator::FallibleIterator;
-use std::collections::HashMap;
 use std::fmt;
-use std::io::{Read, Seek};
-use std::path::{Path, PathBuf};
-
-/// A read-side handle to a Rekordbox device export on disk.
-#[derive(Debug, PartialEq)]
-pub struct DeviceExportReader(Layout);
-
-impl DeviceExportReader {
-    /// Point a reader at a device export on disk (a directory containing `PIONEER`).
-    #[must_use]
-    pub fn new(path: PathBuf) -> Self {
-        Self(Layout::new(path))
-    }
-
-    /// The device root path.
-    #[must_use]
-    pub fn get_path(&self) -> &Path {
-        self.0.root()
-    }
-
-    fn read_setting_file(path: &Path, setting_type: SettingType) -> crate::Result<Setting> {
-        let mut reader = std::fs::File::open(path)?;
-        let setting = Setting::read_args(&mut reader, (setting_type,))?;
-        Ok(setting)
-    }
-
-    /// Load setting files. A missing or unreadable file is printed as a warning and skipped.
-    #[must_use]
-    pub fn load_settings(&self) -> Settings {
-        let load_setting = |filename: &str, setting_type: SettingType| -> Option<Setting> {
-            let file_path = self.0.dat_path(filename);
-            match Self::read_setting_file(&file_path, setting_type) {
-                Ok(setting) => Some(setting),
-                Err(e) => {
-                    eprintln!("Warning: Could not load {}: {}", file_path.display(), e);
-                    None
-                }
-            }
-        };
-
-        let mut settings = Settings::default();
-        for &(filename, setting_type) in DAT_FILES {
-            match setting_type {
-                SettingType::DevSetting => {
-                    if let Some(devsetting) = load_setting(filename, setting_type) {
-                        settings.set_devsetting(devsetting.data.as_dev_setting().unwrap());
-                    }
-                }
-                SettingType::DJMMySetting => {
-                    if let Some(djmmysetting) = load_setting(filename, setting_type) {
-                        settings.set_djmmysetting(djmmysetting.data.as_djm_my_setting().unwrap());
-                    }
-                }
-                SettingType::MySetting => {
-                    if let Some(mysetting) = load_setting(filename, setting_type) {
-                        settings.set_mysetting(mysetting.data.as_my_setting().unwrap());
-                    }
-                }
-                SettingType::MySetting2 => {
-                    if let Some(mysetting2) = load_setting(filename, setting_type) {
-                        settings.set_mysetting2(mysetting2.data.as_my_setting2().unwrap());
-                    }
-                }
-            }
-        }
-
-        settings
-    }
-
-    /// Open the PDB database in memory (changes are not written back to disk).
-    pub fn open_pdb_non_persistent(&self) -> crate::Result<Database<std::fs::File>> {
-        Database::open_non_persistent(
-            std::fs::File::open(self.0.export_pdb())?,
-            DatabaseType::Plain,
-        )
-    }
-}
+use std::path::Path;
 
 /// Settings object containing for all device settings.
 #[derive(Debug, Default, PartialEq, Eq, Clone)]
@@ -203,6 +120,51 @@ pub struct Settings {
 }
 
 impl Settings {
+    /// Load the settings from the `*SETTING.DAT` files of the export described by `layout`. A
+    /// missing or unreadable file is printed as a warning and skipped, leaving its fields `None`.
+    #[must_use]
+    pub fn load(layout: &Layout) -> Self {
+        fn read_setting_file(path: &Path, setting_type: SettingType) -> crate::Result<Setting> {
+            let mut reader = std::fs::File::open(path)?;
+            let setting = Setting::read_args(&mut reader, (setting_type,))?;
+            Ok(setting)
+        }
+
+        let load_setting = |filename: &str, setting_type: SettingType| -> Option<Setting> {
+            let file_path = layout.dat_path(filename);
+            match read_setting_file(&file_path, setting_type) {
+                Ok(setting) => Some(setting),
+                Err(e) => {
+                    eprintln!("Warning: Could not load {}: {}", file_path.display(), e);
+                    None
+                }
+            }
+        };
+
+        let mut settings = Settings::default();
+        for &(filename, setting_type) in DAT_FILES {
+            let Some(loaded) = load_setting(filename, setting_type) else {
+                continue;
+            };
+            match setting_type {
+                SettingType::DevSetting => {
+                    settings.set_devsetting(loaded.data.as_dev_setting().unwrap());
+                }
+                SettingType::DJMMySetting => {
+                    settings.set_djmmysetting(loaded.data.as_djm_my_setting().unwrap());
+                }
+                SettingType::MySetting => {
+                    settings.set_mysetting(loaded.data.as_my_setting().unwrap());
+                }
+                SettingType::MySetting2 => {
+                    settings.set_mysetting2(loaded.data.as_my_setting2().unwrap());
+                }
+            }
+        }
+
+        settings
+    }
+
     fn set_mysetting(&mut self, data: &setting::MySetting) {
         self.on_air_display = data.on_air_display.into();
         self.lcd_brightness = data.lcd_brightness.into();
@@ -500,76 +462,4 @@ impl fmt::Display for Settings {
             format_option(self.waveform_current_position)
         )
     }
-}
-
-/// Either a playlist folder or a playlist.
-#[derive(Debug, PartialEq)]
-pub enum PlaylistNode {
-    /// A folder containing child [`PlaylistNode`]s.
-    Folder(PlaylistFolder),
-    /// A playlist (leaf).
-    Playlist(Playlist),
-}
-
-/// A playlist folder.
-#[derive(Debug, PartialEq)]
-pub struct PlaylistFolder {
-    /// ID of this node in the playlist tree.
-    pub id: PlaylistTreeNodeId,
-    /// Name of the playlist folder.
-    pub name: String,
-    /// Child nodes of the playlist folder.
-    pub children: Vec<PlaylistNode>,
-}
-
-/// A playlist.
-#[derive(Debug, PartialEq, Eq)]
-pub struct Playlist {
-    /// ID of this node in the playlist tree.
-    pub id: PlaylistTreeNodeId,
-    /// Name of the playlist.
-    pub name: String,
-}
-
-/// Build the playlist tree from the PDB database.
-pub fn get_playlists<R: Read + Seek>(db: &mut Database<R>) -> crate::Result<Vec<PlaylistNode>> {
-    let mut playlists: HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>> = HashMap::new();
-
-    db.iter_rows::<PlaylistTreeNode>()?.for_each(|node| {
-        playlists
-            .entry(node.parent_id)
-            .or_default()
-            .push(node.clone());
-        Ok(())
-    })?;
-
-    fn get_child_nodes(
-        playlists: &HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>>,
-        id: PlaylistTreeNodeId,
-    ) -> impl Iterator<Item = crate::Result<PlaylistNode>> + '_ {
-        playlists
-            .get(&id)
-            .into_iter()
-            .flat_map(|nodes| nodes.iter())
-            .map(|node| -> crate::Result<PlaylistNode> {
-                let child_node = if node.is_folder() {
-                    let folder = PlaylistFolder {
-                        id: node.id,
-                        name: node.name.clone().into_string()?,
-                        children: get_child_nodes(playlists, node.id)
-                            .collect::<crate::Result<Vec<PlaylistNode>>>()?,
-                    };
-                    PlaylistNode::Folder(folder)
-                } else {
-                    let playlist = Playlist {
-                        id: node.id,
-                        name: node.name.clone().into_string()?,
-                    };
-                    PlaylistNode::Playlist(playlist)
-                };
-                Ok(child_node)
-            })
-    }
-
-    get_child_nodes(&playlists, PlaylistTreeNodeId(0)).collect::<crate::Result<Vec<PlaylistNode>>>()
 }

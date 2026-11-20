@@ -59,19 +59,6 @@ pub enum RekordcrateError {
     #[error("failed integrity constraint: {0}")]
     IntegrityError(&'static str),
 
-    /// Track row allocation is too small for robust CDJ compatibility.
-    #[error(
-        "track row id={track_id} allocates {allocated} bytes, minimum supported is {minimum} bytes"
-    )]
-    TrackRowTooSmall {
-        /// Track ID of the invalid row.
-        track_id: u32,
-        /// Allocated row size in bytes (4-byte aligned).
-        allocated: u16,
-        /// Minimum supported row size in bytes.
-        minimum: u16,
-    },
-
     /// Represents an `std::io::Error`.
     #[error(transparent)]
     IOError(#[from] std::io::Error),
@@ -157,11 +144,12 @@ impl From<usize> for TableIndex {
 
 /// Indexed Color identifiers used for memory cues and tracks.
 #[binrw]
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Default)]
 #[cfg_attr(feature = "json", derive(Serialize))]
 pub enum ColorIndex {
     /// No color.
     #[brw(magic = 0u8)]
+    #[default]
     None,
     /// Pink color.
     #[brw(magic = 1u8)]
@@ -191,11 +179,12 @@ pub enum ColorIndex {
 
 /// Track file type.
 #[binrw]
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone, Default)]
 #[cfg_attr(feature = "json", derive(Serialize))]
 pub enum FileType {
     /// Unknown file type.
     #[brw(magic = 0x0u16)]
+    #[default]
     Unknown,
     /// MP3.
     #[brw(magic = 0x1u16)]

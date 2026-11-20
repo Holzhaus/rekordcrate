@@ -6,9 +6,33 @@
 //
 // SPDX-License-Identifier: MPL-2.0
 
-//! Builds a Rekordbox USB export from scratch or adds tracks to an existing one. A high-level
-//! builder that does most of the work for you and deals with the quirks of the underlying
+//! [`DeviceExport`]: one handle to read a Rekordbox USB export, build one from scratch, or add to
+//! an existing one. It does most of the work for you and deals with the quirks of the underlying
 //! database format.
+//!
+//! The handle works in memory. [`DeviceExport::create`] and every mutating method leave the disk
+//! alone; [`DeviceExport::save`] is the only call that writes, and dropping the handle discards
+//! whatever was never saved.
+//!
+//! ```no_run
+//! use rekordcrate::{DeviceExport, PlaylistTreeNodeId, Track};
+//!
+//! let mut export = DeviceExport::create("/mnt/usb")?;
+//! let track = export.add_track(&Track {
+//!     title: "Song".into(),
+//!     artist: "Artist".into(),
+//!     file_path: "/Contents/Artist - Song.mp3".into(),
+//!     ..Track::default()
+//! })?;
+//! let playlist = export.create_playlist("Warmup", PlaylistTreeNodeId::root())?;
+//! export.add_track_to_playlist(playlist, track.id)?;
+//! export.save()?;
+//!
+//! for (id, track) in export.tracks()? {
+//!     println!("{id:?}: {} - {}", track.artist, track.title);
+//! }
+//! # Ok::<(), rekordcrate::Error>(())
+//! ```
 //!
 //! This module never copies audio files into `Contents` or generates `PIONEER/USBANLZ` analysis
 //! files (`ANLZ.*`). Also, the API is append-only, existing rows cannot be updated or deleted.
@@ -16,16 +40,19 @@
 //! `pdb::io::Database::open` (and thus deal with the format intricacies yourself) or re-add via
 //! a fresh export instead.
 //!
-//! Per-track artwork: with the `artwork` feature, `Track::artwork_source` is a host-side path
-//! the writer decodes, resizes (80×80 + 240×240), and copies into `PIONEER/Artwork/{folder}/`.
-//! Without it, `Track::artwork_device_path` is stored in the `Artwork` row verbatim and the
-//! caller owns placing the image files.
+//! Per-track artwork: [`Track::artwork_path`] is a device path stored verbatim in the `Artwork`
+//! row, and the caller owns placing the image files it names. The `artwork` feature adds
+//! `DeviceExport::import_artwork`, which decodes and resizes a host-side image (80×80 + 240×240)
+//! into `PIONEER/Artwork/{folder}/` and returns the device path to put in that field.
 //!
 //! See [`crate::device::layout`].
 
 #[cfg(feature = "artwork")]
 use crate::device::layout::artwork_folder;
 use crate::device::layout::{Layout, DAT_FILES};
+use crate::device::playlist::{get_playlists, PlaylistNode};
+use crate::device::settings::Settings;
+use crate::device::track::{canonical_key_name, Track, ON};
 use crate::pdb::ext::{
     ExtPageType, ExtRow, ParentId, TagId, TagOrCategory, TagOrCategoryStrings, TrackTag,
 };
@@ -35,165 +62,27 @@ use crate::pdb::string::DeviceSQLString;
 use crate::pdb::Artwork;
 use crate::pdb::{
     AlbumId, ArtistId, ArtworkId, DatabaseType, GenreId, KeyId, LabelId, PageType, PlainPageType,
-    PlainRow, PlaylistEntry, PlaylistTreeNode, PlaylistTreeNodeId, Row, Subtype, Track as PdbTrack,
-    TrackId, TrackStrings,
+    PlainRow, PlaylistEntry, PlaylistTreeNode, PlaylistTreeNodeId, Row, RowVariant, Subtype,
+    Track as PdbTrack, TrackId,
 };
 use crate::setting::{Setting, SettingType};
-use crate::util::{ColorIndex, FileType, MaybeCalculated, Rating};
+use crate::util::{MaybeCalculated, Rating};
 use crate::{Error, Result};
 use binrw::BinWrite;
 use fallible_iterator::FallibleIterator;
 use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::io::Cursor;
+use std::io::{Cursor, Write};
 use std::num::NonZero;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// Re-export of [`crate::util::ForeignKeyKind`], for callers reaching it via this module.
 pub use crate::util::ForeignKeyKind;
 
-/// A track as a user thinks of it: plain `String` fields, no foreign-key IDs. Input to
-/// [`crate::DeviceExportWriter::add_track`], which resolves artists/albums/genres/keys/labels/artwork
-/// into deduplicated PDB rows and handles format quirks (the 221-byte minimum row size, centi-BPM
-/// tempo). Experts needing fields not exposed here should drive a `pdb::Track` row directly via
-/// [`crate::pdb::io::Database`].
-///
-/// `rating` is a typed [`Rating`] (0–5 stars); the writer encodes it to the raw PDB byte
-/// (`0..=5`, confirmed against a real Rekordbox export — not the XML's
-/// `0/51/102/153/204/255`).
-#[derive(Debug, Clone)]
-pub struct Track {
-    /// Track title.
-    pub title: String,
-    /// Performing artist name.
-    pub artist: String,
-    /// Album name.
-    pub album: String,
-    /// Genre name.
-    pub genre: String,
-    /// Musical key name (e.g. "Cmaj", "D\u{266d}min"). Folded to a canonical form for dedup.
-    pub key: String,
-    /// Record label name.
-    pub label: String,
-    /// Composer name.
-    pub composer: String,
-    /// Remixer name.
-    pub remixer: String,
-    /// Original performer, distinct from `artist` (covers/reworks).
-    pub orig_artist: String,
-    /// Free-text comment; also the auto-pad target when the row falls under the 221-byte minimum.
-    pub comment: String,
-    /// ISRC, in rekordbox's mangled format.
-    pub isrc: String,
-    /// Lyricist name.
-    pub lyricist: String,
-    /// Remix/mix name.
-    pub mix_name: String,
-    /// Free text. Rekordbox itself writes strict `YYYY-MM-DD` or empty here, but this field is
-    /// passed through verbatim so callers can probe hardware behavior with arbitrary strings.
-    pub release_date: String,
-    /// Free text, commonly `YYYY-MM-DD` (see [`Self::release_date`]).
-    pub date_added: String,
-    /// Device-relative file path (e.g. `/Contents/Artist - Title.mp3`). Dedup key when non-empty.
-    pub file_path: String,
-    /// File name without path.
-    pub filename: String,
-    #[cfg(feature = "artwork")]
-    /// Host-side source path. Writer decodes, resizes, copies into `PIONEER/Artwork/`. Empty = none.
-    pub artwork_source: String,
-    #[cfg(not(feature = "artwork"))]
-    /// Device path stored verbatim in the `Artwork` row. Caller owns the files. Empty = none.
-    pub artwork_device_path: String,
-    /// Track "message" field shown in Rekordbox.
-    pub message: String,
-    /// Tempo in BPM; encoded to centi-BPM (× 100) in the PDB.
-    pub tempo: f32,
-    /// Bitrate in kbps.
-    pub bitrate: u32,
-    /// Sample rate in Hz.
-    pub sample_rate: u32,
-    /// Bits per sample of the audio file.
-    pub sample_depth: u16,
-    /// Playback duration in seconds. PDB field is `u16` (ceiling ~18.2 h).
-    pub duration_secs: u16,
-    /// File size in bytes.
-    pub file_size: u32,
-    /// Track number within the album.
-    pub track_number: u32,
-    /// Disc number.
-    pub disc_number: u16,
-    /// Release year.
-    pub year: u16,
-    /// Number of times the track was played.
-    pub play_count: u16,
-    /// Star rating (0–5); see the struct docs.
-    pub rating: Rating,
-    /// Color label.
-    pub color: ColorIndex,
-    /// Audio file format.
-    pub file_type: FileType,
-    /// Whether stored hotcues auto-load on a CDJ. Maps to the PDB string `"ON"` / empty.
-    pub autoload_hotcues: bool,
-}
+/// A PDB database held entirely in memory; [`DeviceExport::save`] writes its image out.
+type MemoryDatabase = Database<Cursor<Vec<u8>>>;
 
-impl Track {
-    /// The active artwork field: `artwork_source` with the feature, `artwork_device_path` without.
-    fn artwork_input(&self) -> &str {
-        #[cfg(feature = "artwork")]
-        {
-            &self.artwork_source
-        }
-        #[cfg(not(feature = "artwork"))]
-        {
-            &self.artwork_device_path
-        }
-    }
-}
-
-impl Default for Track {
-    fn default() -> Self {
-        Self {
-            title: String::new(),
-            artist: String::new(),
-            album: String::new(),
-            genre: String::new(),
-            key: String::new(),
-            label: String::new(),
-            composer: String::new(),
-            remixer: String::new(),
-            orig_artist: String::new(),
-            comment: String::new(),
-            isrc: String::new(),
-            lyricist: String::new(),
-            mix_name: String::new(),
-            release_date: String::new(),
-            date_added: String::new(),
-            file_path: String::new(),
-            filename: String::new(),
-            #[cfg(feature = "artwork")]
-            artwork_source: String::new(),
-            #[cfg(not(feature = "artwork"))]
-            artwork_device_path: String::new(),
-            message: String::new(),
-            tempo: 0.0,
-            bitrate: 0,
-            sample_rate: 0,
-            sample_depth: 0,
-            duration_secs: 0,
-            file_size: 0,
-            track_number: 0,
-            disc_number: 0,
-            year: 0,
-            play_count: 0,
-            rating: Rating::Zero,
-            color: ColorIndex::None,
-            file_type: FileType::Unknown,
-            autoload_hotcues: false,
-        }
-    }
-}
-
-/// The outcome of [`DeviceExportWriter::add_track`]: either a freshly inserted track or an
+/// The outcome of [`DeviceExport::add_track`]: either a freshly inserted track or an
 /// existing one returned because its `file_path` already existed.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AddTrackOutcome {
@@ -203,18 +92,29 @@ pub struct AddTrackOutcome {
     pub is_new: bool,
 }
 
-/// Opaque id of a tag category created by [`DeviceExportWriter::create_tag_category`]. Pass it to
-/// [`DeviceExportWriter::add_tags_to_track`] to group leaf tags under the category.
+/// Opaque id of a tag category created by [`DeviceExport::create_tag_category`]. Pass it to
+/// [`DeviceExport::add_tags_to_track`] to group leaf tags under the category.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct TagCategoryId(pub u32);
 
-/// Builder for a Rekordbox device export: PDB database, setting files, directory structure.
+/// A handle to a Rekordbox device export: PDB database, setting files, directory structure.
+///
+/// [`open`](Self::open) loads an existing export into memory, [`create`](Self::create) starts an
+/// empty one. Either way every change stays in memory until [`save`](Self::save); dropping the
+/// handle without saving leaves the disk as it was.
 #[derive(Debug)]
-pub struct DeviceExportWriter {
-    db: Option<Database<fs::File>>,
-    ext_db: Option<Database<fs::File>>,
-    #[allow(dead_code)]
+pub struct DeviceExport {
     layout: Layout,
+    db: MemoryDatabase,
+    /// `exportExt.pdb`, when the export carries one or a tag call created it.
+    ext_db: Option<MemoryDatabase>,
+    /// Whether `ext_db` has changes [`save`](Self::save) has not written yet.
+    ext_dirty: bool,
+    /// Set by [`create`](Self::create): the next [`save`](Self::save) also lays down the default
+    /// directory tree and setting files.
+    scaffold_pending: bool,
+    /// Files other than the databases waiting for [`save`](Self::save) (imported artwork).
+    pending_files: Vec<(PathBuf, Vec<u8>)>,
     next_track_id: u32,
     next_artist_id: u32,
     next_album_id: u32,
@@ -245,73 +145,17 @@ pub struct DeviceExportWriter {
     tags_by_key: HashMap<(u32, String), u32>,
     /// `category_id -> next leaf position` (dense from 0 within a category).
     tag_leaf_counts: HashMap<u32, u32>,
+    /// `Artwork.path -> id`.
     artwork_by_path: HashMap<String, u32>,
-}
-
-/// Fold a key name to a canonical form for dedup (`C Major`/`Cmaj`/`C MAJOR`/`Cmajor` → `Cmaj`),
-/// so they share one PDB Key row. The note letter keeps its case.
-///
-/// String-equality only: enharmonic equivalents (`B♭m` ≠ `A#m`), Camelot, and Open Key notation
-/// are not resolved — different spellings of the same pitch still create distinct rows.
-fn canonical_key_name(name: &str) -> String {
-    let trimmed = name.trim();
-    let lower = trimmed.to_lowercase();
-    let mut out = String::with_capacity(trimmed.len());
-    let mut i = 0;
-    while i < lower.len() {
-        let rest = &lower[i..];
-        // Order matters: longest tokens first. Each folds a mode/accidental word to its short form.
-        let folded = [
-            ("major", "maj"),
-            ("minor", "min"),
-            ("flat", "b"),
-            ("sharp", "#"),
-            ("maj", "maj"),
-            ("min", "min"),
-        ]
-        .into_iter()
-        .find_map(|(tok, emit)| rest.starts_with(tok).then_some((emit, tok.len())));
-        if let Some((emit, skip)) = folded {
-            out.push_str(emit);
-            i += skip;
-        } else {
-            // Not a recognized token: copy one original char through (preserves note case + any
-            // unicode like ♭/♯ fixed in the second pass below).
-            let ch = trimmed[i..].chars().next().expect("aligned with lower");
-            out.push(ch);
-            i += ch.len_utf8();
-        }
-    }
-
-    // Bare trailing 'm' is minor (e.g. "Cm" → "Cmin"). Only at end-of-string, and only if we
-    // didn't already end in maj/min.
-    if out.ends_with('m') && !out.ends_with("min") && !out.ends_with("maj") {
-        out.push_str("in");
-    }
-
-    // Fold unicode accidentals.
-    out.replace('\u{266d}', "b")
-        .replace('\u{266f}', "#")
-        .replace(' ', "")
+    /// Host-side source -> device path, so importing the same image twice reuses one artwork.
+    #[cfg(feature = "artwork")]
+    artwork_by_source: HashMap<PathBuf, String>,
 }
 
 /// Id-derived `Artwork.path`: `/PIONEER/Artwork/{folder}/a{id}.jpg` (thumbnail; `_m` not tracked).
 #[cfg(feature = "artwork")]
 fn artwork_device_path(id: u32) -> String {
     format!("/PIONEER/Artwork/{}/a{id}.jpg", artwork_folder(id))
-}
-
-impl Drop for DeviceExportWriter {
-    /// Best-effort flush if `close` wasn't called. Cannot surface errors — call
-    /// [`DeviceExportWriter::close`] for a clean shutdown.
-    fn drop(&mut self) {
-        if let Some(db) = self.db.as_mut() {
-            let _ = db.flush();
-        }
-        if let Some(ext_db) = self.ext_db.as_mut() {
-            let _ = ext_db.flush();
-        }
-    }
 }
 
 /// Default `Setting` for a type. The `SettingType`→`default_*` mapping lives here (not in
@@ -325,29 +169,19 @@ fn default_setting(setting_type: SettingType) -> Setting {
     }
 }
 
-impl DeviceExportWriter {
-    /// Borrows the live `Database`. `db` is `Some` until `close()` (which consumes `self`), so
-    /// no method observes a `None`.
-    fn db(&mut self) -> &mut Database<fs::File> {
-        self.db
-            .as_mut()
-            .expect("DeviceExportWriter.db always Some until close")
-    }
-    /// Create a new device export at `device_root`.
+impl DeviceExport {
+    /// Start a new, empty device export rooted at `device_root`.
     ///
-    /// Creates the `PIONEER`, `PIONEER/USBANLZ`, and `Contents` directories, an empty PDB
-    /// database, and the default setting files. Audio files and `ANLZ.*` analysis files are never
-    /// produced; artwork is copied only under the `artwork` feature (see the module docs).
+    /// Nothing is written yet. The first [`save`](Self::save) creates the `PIONEER`,
+    /// `PIONEER/USBANLZ`, and `Contents` directories, the PDB database, and the default setting
+    /// files — replacing the database and setting files of an export already at `device_root`.
+    /// Audio files and `ANLZ.*` analysis files are never produced (see the module docs).
     ///
     /// # Errors
     ///
-    /// If directory creation, PDB creation, or setting file writing fails.
+    /// If the empty PDB database cannot be built.
     pub fn create(device_root: impl AsRef<Path>) -> Result<Self> {
         let layout = Layout::new(device_root.as_ref().to_path_buf());
-
-        fs::create_dir_all(layout.rekordbox_dir())?;
-        fs::create_dir_all(layout.usbanlz_dir())?;
-        fs::create_dir_all(layout.contents_dir())?;
 
         // PDB table layout, in the fixed index order Rekordbox expects on a device export. Each
         // entry occupies one table index (0=Tracks, 1=Genres, …). The `Unknown(N)` entries are
@@ -375,69 +209,50 @@ impl DeviceExportWriter {
             PageType::Plain(PlainPageType::History),
         ];
 
-        let file = fs::File::create(layout.export_pdb())?;
-        let mut db = Database::create(file, DatabaseType::Plain, table_page_types)?;
+        let mut db = Database::create(
+            Cursor::new(Vec::new()),
+            DatabaseType::Plain,
+            table_page_types,
+        )?;
 
         crate::pdb::defaults::insert_default_colors(&mut db)?;
         crate::pdb::defaults::insert_default_columns(&mut db)?;
         crate::pdb::defaults::insert_default_menus(&mut db)?;
 
-        for &(filename, setting_type) in DAT_FILES {
-            write_setting_file(&layout.dat_path(filename), &default_setting(setting_type))?;
-        }
-
-        Ok(Self {
-            db: Some(db),
-            ext_db: None,
-            layout,
-            // Counters start at 1: id 0 is the null/empty foreign key (returned by the empty-name
-            // branches of get_or_create_* and used for unset composer/orig-artist/remixer ids), so
-            // the first real row must be 1. Do not change to 0.
-            next_track_id: 1,
-            next_artist_id: 1,
-            next_album_id: 1,
-            next_genre_id: 1,
-            next_key_id: 1,
-            next_label_id: 1,
-            next_artwork_id: 1,
-            next_playlist_node_id: 1,
-            next_tag_id: 1,
-            next_category_position: 0,
-            next_tag_row_index: 0,
-            track_ids: HashSet::new(),
-            playlist_nodes: HashMap::new(),
-            tracks_by_path: HashMap::new(),
-            playlist_entry_counts: HashMap::new(),
-            artists_by_name: HashMap::new(),
-            albums_by_artist_and_name: HashMap::new(),
-            genres_by_name: HashMap::new(),
-            keys_by_canonical: HashMap::new(),
-            labels_by_name: HashMap::new(),
-            tag_categories: HashSet::new(),
-            tags_by_key: HashMap::new(),
-            tag_leaf_counts: HashMap::new(),
-            artwork_by_path: HashMap::new(),
-        })
+        let mut export = Self::from_databases(layout, db, None)?;
+        export.scaffold_pending = true;
+        Ok(export)
     }
 
-    /// Open an existing device export at the given path.
+    /// Open an existing device export at the given path, loading its databases into memory.
     ///
-    /// Opens the existing PDB database and scans for the highest IDs in each table category to
-    /// continue adding rows with non-conflicting IDs. Tag categories/leaves are recovered from
-    /// `exportExt.pdb` the same way (appending to it on later tag calls); if that file is absent
-    /// it is created lazily on the first tag call, as in [`create`](Self::create).
+    /// Scans for the highest IDs in each table category to continue adding rows with
+    /// non-conflicting IDs. Tag categories/leaves are recovered from `exportExt.pdb` the same
+    /// way; if that file is absent it is created on the first tag call, as in
+    /// [`create`](Self::create).
     ///
     /// # Errors
     ///
-    /// If the PDB cannot be opened or the table scanning fails.
+    /// If the PDB cannot be read or the table scanning fails.
     pub fn open(device_root: impl AsRef<Path>) -> Result<Self> {
         let layout = Layout::new(device_root.as_ref().to_path_buf());
-        let file = fs::OpenOptions::new()
-            .read(true)
-            .write(true)
-            .open(layout.export_pdb())?;
-        let mut db = Database::open(file, DatabaseType::Plain)?;
+        let db = read_database(&layout.export_pdb(), DatabaseType::Plain)?;
+        let ext_path = layout.export_ext_pdb();
+        let ext_db = if ext_path.exists() {
+            Some(read_database(&ext_path, DatabaseType::Ext)?)
+        } else {
+            None
+        };
+        Self::from_databases(layout, db, ext_db)
+    }
 
+    /// Build the handle around loaded (or freshly created) databases, scanning them for the
+    /// next free ids and the dedup indices.
+    fn from_databases(
+        layout: Layout,
+        mut db: MemoryDatabase,
+        mut ext_db: Option<MemoryDatabase>,
+    ) -> Result<Self> {
         // Each table's next free ID is one past the highest existing ID (0 when empty). We also
         // rebuild the in-memory dedup/index maps so add_track stays O(1) per lookup.
         let mut track_ids = HashSet::new();
@@ -526,23 +341,17 @@ impl DeviceExportWriter {
             Ok(())
         })?;
 
-        // Recover tag state from the ext PDB so later tag calls append instead of truncating it.
-        // If the file is absent (no tags were ever written), the maps stay empty and `ext_db`
-        // stays `None`, so the first tag call creates it fresh — same as `create()`.
+        // Recover tag state from the ext PDB so later tag calls append to it. Without one the
+        // maps stay empty and the first tag call creates it.
         let mut tag_categories = HashSet::new();
         let mut tags_by_key = HashMap::new();
         let mut tag_leaf_counts = HashMap::new();
         let mut next_category_position = 0u32;
         let mut next_tag_id = 1u32;
         let mut next_tag_row_index = 0u32;
-        let ext_db = if layout.export_ext_pdb().exists() {
-            let ext_file = fs::OpenOptions::new()
-                .read(true)
-                .write(true)
-                .open(layout.export_ext_pdb())?;
-            let mut ext_db = Database::open(ext_file, DatabaseType::Ext)?;
+        if let Some(ext_db) = ext_db.as_mut() {
             scan_ext_tags(
-                &mut ext_db,
+                ext_db,
                 &mut tag_categories,
                 &mut tags_by_key,
                 &mut tag_leaf_counts,
@@ -550,15 +359,15 @@ impl DeviceExportWriter {
                 &mut next_tag_id,
                 &mut next_tag_row_index,
             )?;
-            Some(ext_db)
-        } else {
-            None
-        };
+        }
 
         Ok(Self {
-            db: Some(db),
-            ext_db,
             layout,
+            db,
+            ext_db,
+            ext_dirty: false,
+            scaffold_pending: false,
+            pending_files: Vec::new(),
             next_track_id,
             next_artist_id,
             next_album_id,
@@ -583,10 +392,175 @@ impl DeviceExportWriter {
             tags_by_key,
             tag_leaf_counts,
             artwork_by_path,
+            #[cfg(feature = "artwork")]
+            artwork_by_source: HashMap::new(),
         })
     }
 
-    /// Add a track to the export from a domain [`Track`].
+    /// Write the export to disk. This is the only method that writes.
+    ///
+    /// Every file is written to a temporary sibling and renamed into place, and `export.pdb`
+    /// goes last, so an interrupted save leaves the previous `export.pdb` in place rather than a
+    /// half-written one. The handle stays usable: keep adding and save again, or retry a failed
+    /// save.
+    ///
+    /// # Errors
+    ///
+    /// If a directory or file cannot be written.
+    pub fn save(&mut self) -> Result<()> {
+        fs::create_dir_all(self.layout.rekordbox_dir())?;
+
+        if self.scaffold_pending {
+            fs::create_dir_all(self.layout.usbanlz_dir())?;
+            fs::create_dir_all(self.layout.contents_dir())?;
+            for &(filename, setting_type) in DAT_FILES {
+                write_atomic(
+                    &self.layout.dat_path(filename),
+                    &setting_bytes(&default_setting(setting_type))?,
+                )?;
+            }
+        }
+
+        for (path, bytes) in &self.pending_files {
+            if let Some(parent) = path.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            write_atomic(path, bytes)?;
+        }
+
+        if self.ext_dirty {
+            if let Some(ext_db) = self.ext_db.as_mut() {
+                write_database(ext_db, &self.layout.export_ext_pdb())?;
+            }
+        }
+
+        write_database(&mut self.db, &self.layout.export_pdb())?;
+
+        // Cleared only once everything landed, so a failed save can be retried as a whole.
+        self.scaffold_pending = false;
+        self.pending_files.clear();
+        self.ext_dirty = false;
+        Ok(())
+    }
+
+    /// The device root directory.
+    #[must_use]
+    pub fn root(&self) -> &Path {
+        self.layout.root()
+    }
+
+    /// Where the export's files live on disk, for callers that want to reach them directly.
+    #[must_use]
+    pub fn layout(&self) -> &Layout {
+        &self.layout
+    }
+
+    /// Load the setting files from disk; see [`Settings::load`]. A [`create`](Self::create)d
+    /// export has none until its first [`save`](Self::save).
+    #[must_use]
+    pub fn load_settings(&self) -> Settings {
+        Settings::load(&self.layout)
+    }
+
+    /// All tracks of the export, with their foreign keys resolved to names — the same [`Track`]
+    /// shape [`add_track`](Self::add_track) takes. A foreign key naming no row reads as empty.
+    ///
+    /// # Errors
+    ///
+    /// If a page cannot be parsed or a string cannot be decoded.
+    pub fn tracks(&mut self) -> Result<Vec<(TrackId, Track)>> {
+        use crate::pdb::{Album, Artist, Genre, Key, Label};
+
+        let db = &mut self.db;
+        let artists = names_by_id::<Artist>(db, |r| (r.id.0, &r.offsets.name))?;
+        let albums = names_by_id::<Album>(db, |r| (r.id.0, &r.offsets.name))?;
+        let genres = names_by_id::<Genre>(db, |r| (r.id.0, &r.name))?;
+        let keys = names_by_id::<Key>(db, |r| (r.id.0, &r.name))?;
+        let labels = names_by_id::<Label>(db, |r| (r.id.0, &r.name))?;
+        let artwork = names_by_id::<Artwork>(db, |r| (r.id.0, &r.path))?;
+
+        let name = |names: &HashMap<u32, String>, id: u32| -> String {
+            names.get(&id).cloned().unwrap_or_default()
+        };
+
+        db.iter_rows::<PdbTrack>()?
+            .map(|row| {
+                let text = |string: &DeviceSQLString| string.clone().into_string();
+                let strings = &row.offsets.inner;
+                let track = Track {
+                    title: text(&strings.title)?,
+                    artist: name(&artists, row.artist_id.0),
+                    album: name(&albums, row.album_id.0),
+                    genre: name(&genres, row.genre_id.0),
+                    key: name(&keys, row.key_id.0),
+                    label: name(&labels, row.label_id.0),
+                    composer: name(&artists, row.composer_id.0),
+                    remixer: name(&artists, row.remixer_id.0),
+                    orig_artist: name(&artists, row.orig_artist_id.0),
+                    // Undo the minimum-row-size padding `add_track` may have appended.
+                    comment: text(&strings.comment)?.trim_end_matches(' ').to_string(),
+                    isrc: text(&strings.isrc)?,
+                    lyricist: text(&strings.lyricist)?,
+                    mix_name: text(&strings.mix_name)?,
+                    release_date: text(&strings.release_date)?,
+                    date_added: text(&strings.date_added)?,
+                    file_path: text(&strings.file_path)?,
+                    filename: text(&strings.filename)?,
+                    artwork_path: name(&artwork, row.artwork_id.0),
+                    message: text(&strings.message)?,
+                    tempo: row.tempo as f32 / 100.0,
+                    bitrate: row.bitrate,
+                    sample_rate: row.sample_rate,
+                    sample_depth: row.sample_depth,
+                    duration_secs: row.duration,
+                    file_size: row.file_size,
+                    track_number: row.track_number,
+                    disc_number: row.disc_number,
+                    year: row.year,
+                    play_count: row.play_count,
+                    rating: Rating::from(row.rating),
+                    color: row.color.clone(),
+                    file_type: row.file_type.clone(),
+                    autoload_hotcues: text(&strings.autoload_hotcues)? == ON,
+                };
+                Ok((row.id, track))
+            })
+            .collect()
+    }
+
+    /// The playlist tree: the root's folders and playlists, folders carrying their children.
+    ///
+    /// # Errors
+    ///
+    /// If a page cannot be parsed or a name cannot be decoded.
+    pub fn playlists(&mut self) -> Result<Vec<PlaylistNode>> {
+        get_playlists(&mut self.db)
+    }
+
+    /// The tracks of a playlist, in playlist order.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::UnknownForeignKey`] if `playlist_id` isn't an existing *playlist* (folders hold
+    /// no tracks), or if a page cannot be parsed.
+    pub fn playlist_tracks(&mut self, playlist_id: PlaylistTreeNodeId) -> Result<Vec<TrackId>> {
+        if self.playlist_nodes.get(&playlist_id.0) != Some(&false) {
+            return Err(Error::UnknownForeignKey {
+                kind: ForeignKeyKind::PlaylistNode,
+                id: playlist_id.0,
+            });
+        }
+        let mut entries: Vec<(u32, TrackId)> = self
+            .db
+            .iter_rows::<PlaylistEntry>()?
+            .filter(|entry| Ok(entry.playlist_id == playlist_id))
+            .map(|entry| Ok((entry.entry_index, entry.track_id)))
+            .collect()?;
+        entries.sort_by_key(|&(index, _)| index);
+        Ok(entries.into_iter().map(|(_, track_id)| track_id).collect())
+    }
+
+    /// Add a track to the export.
     ///
     /// Resolves (creating where needed) the Artist, Album, Genre, Key, Label, and Artwork rows,
     /// then inserts a Track row pointing at them by ID.
@@ -602,9 +576,8 @@ impl DeviceExportWriter {
     ///
     /// If any of the track's strings cannot be encoded.
     ///
-    /// String encoding and row building happen before any IDs are allocated or rows inserted, so
-    /// a bad string leaves the export untouched. A mid-write IO failure can leave orphaned
-    /// dimension rows on an `open()`-ed device; this is not recovered automatically.
+    /// The track's own strings are encoded before any IDs are allocated or rows inserted, so a
+    /// bad one leaves the export untouched.
     pub fn add_track(&mut self, track: &Track) -> Result<AddTrackOutcome> {
         if !track.file_path.is_empty() {
             if let Some(&id) = self.tracks_by_path.get(&track.file_path) {
@@ -615,14 +588,14 @@ impl DeviceExportWriter {
             }
         }
 
-        let (mut pdb_track, comment) = self.build_pdb_track(track)?;
+        let mut pdb_track = track.to_row()?;
 
         let artist_id = self.get_or_create_artist(&track.artist)?;
         let album_id = self.get_or_create_album(&track.album, artist_id)?;
         let genre_id = self.get_or_create_genre(&track.genre)?;
         let key_id = self.get_or_create_key(&track.key)?;
         let label_id = self.get_or_create_label(&track.label)?;
-        let artwork_id = self.get_or_create_artwork(track.artwork_input())?;
+        let artwork_id = self.get_or_create_artwork(&track.artwork_path)?;
 
         let composer_id = if track.composer.is_empty() {
             0
@@ -654,7 +627,7 @@ impl DeviceExportWriter {
         pdb_track.orig_artist_id = ArtistId(orig_artist_id);
         pdb_track.remixer_id = ArtistId(remixer_id);
 
-        self.db().add_row(Row::Plain(PlainRow::Track(pdb_track)))?;
+        self.db.add_row(Row::Plain(PlainRow::Track(pdb_track)))?;
 
         self.track_ids.insert(track_id);
         if !track.file_path.is_empty() {
@@ -662,107 +635,10 @@ impl DeviceExportWriter {
                 .insert(track.file_path.clone(), track_id);
         }
 
-        // `comment` isn't observable after insertion; kept for the dedicated auto-pad test.
-        let _ = comment;
-
         Ok(AddTrackOutcome {
             id: TrackId(track_id),
             is_new: true,
         })
-    }
-
-    /// Encode all strings, set scalar fields, grow `comment` past the 221-byte minimum. Allocates
-    /// no IDs, inserts nothing.
-    fn build_pdb_track(&self, track: &Track) -> Result<(crate::pdb::Track, String)> {
-        // Only `comment` grows below; hoist the rest so they're encoded once.
-        let isrc = DeviceSQLString::new(&track.isrc)?;
-        let lyricist = DeviceSQLString::new(&track.lyricist)?;
-        let message = DeviceSQLString::new(&track.message)?;
-        let mix_name = DeviceSQLString::new(&track.mix_name)?;
-        let release_date = DeviceSQLString::new(&track.release_date)?;
-        let date_added = DeviceSQLString::new(&track.date_added)?;
-        let title = DeviceSQLString::new(&track.title)?;
-        let filename = DeviceSQLString::new(&track.filename)?;
-        let file_path = DeviceSQLString::new(&track.file_path)?;
-        let autoload_hotcues = if track.autoload_hotcues {
-            DeviceSQLString::new("ON")?
-        } else {
-            DeviceSQLString::empty()
-        };
-
-        let mut pdb_track = PdbTrack {
-            // Reverse-engineered constants observed on fresh Rekordbox track rows.
-            subtype: Subtype(0x24),
-            index_shift: 0,
-            bitmask: 788_224,
-            unknown5: 41,
-            sample_rate: track.sample_rate,
-            sample_depth: track.sample_depth,
-            bitrate: track.bitrate,
-            duration: track.duration_secs,
-            file_size: track.file_size,
-            // PDB tempo is centi-BPM (BPM × 100).
-            tempo: (track.tempo * 100.0).round() as u32,
-            file_type: track.file_type.clone(),
-            track_number: track.track_number,
-            disc_number: track.disc_number,
-            year: track.year,
-            play_count: track.play_count,
-            rating: track.rating.to_byte(),
-            color: track.color.clone(),
-            composer_id: ArtistId(0),
-            artwork_id: ArtworkId(0),
-            key_id: KeyId(0),
-            orig_artist_id: ArtistId(0),
-            label_id: LabelId(0),
-            remixer_id: ArtistId(0),
-            genre_id: GenreId(0),
-            album_id: AlbumId(0),
-            artist_id: ArtistId(0),
-            id: TrackId(0),
-            unknown2: 0,
-            unknown3: 0,
-            unknown4: 0,
-            offsets: OffsetArrayContainer {
-                offsets: MaybeCalculated::Calculated,
-                inner: TrackStrings {
-                    isrc,
-                    lyricist,
-                    unknown_string2: DeviceSQLString::new("1")?,
-                    unknown_string3: DeviceSQLString::new("1")?,
-                    unknown_string4: DeviceSQLString::empty(),
-                    message,
-                    publish_track_information: DeviceSQLString::new("ON")?,
-                    autoload_hotcues,
-                    unknown_string5: DeviceSQLString::empty(),
-                    unknown_string6: DeviceSQLString::empty(),
-                    date_added,
-                    release_date,
-                    mix_name,
-                    unknown_string7: DeviceSQLString::empty(),
-                    analyze_path: DeviceSQLString::empty(),
-                    analyze_date: DeviceSQLString::empty(),
-                    comment: DeviceSQLString::empty(),
-                    title,
-                    unknown_string8: DeviceSQLString::empty(),
-                    filename,
-                    file_path,
-                },
-            },
-        };
-
-        // Grow `comment` with trailing spaces (semantically harmless free text) until the row
-        // meets the 221-byte minimum. Only `comment` is re-encoded each pass.
-        let mut comment = track.comment.clone();
-        loop {
-            pdb_track.offsets.inner.comment = DeviceSQLString::new(&comment)?;
-            if Database::<fs::File>::validate_track_row_size(&pdb_track).is_ok() {
-                break;
-            }
-            comment.push(' ');
-        }
-
-        Ok((pdb_track, comment))
     }
 
     /// Create a playlist folder and return its node ID.
@@ -828,7 +704,7 @@ impl DeviceExportWriter {
             0,
         );
 
-        self.db()
+        self.db
             .add_row(Row::Plain(PlainRow::PlaylistTreeNode(node)))?;
 
         self.playlist_nodes.insert(id, is_folder);
@@ -878,7 +754,7 @@ impl DeviceExportWriter {
             playlist_id,
         };
 
-        self.db()
+        self.db
             .add_row(Row::Plain(PlainRow::PlaylistEntry(entry)))?;
 
         self.playlist_entry_counts
@@ -889,7 +765,7 @@ impl DeviceExportWriter {
 
     /// Create a top-level tag category (e.g. "Genre", "My Tags") in `exportExt.pdb` and return its
     /// id. Leaf tags are grouped under a category via [`add_tags_to_track`](Self::add_tags_to_track).
-    /// The ext PDB is created lazily on first use.
+    /// The ext PDB is created lazily on first use, and written by [`save`](Self::save).
     ///
     /// # Errors
     ///
@@ -918,7 +794,7 @@ impl DeviceExportWriter {
     /// Associate `tags` with `track_id` under `category` in `exportExt.pdb`. Empty labels are
     /// dropped; duplicate labels (within this call or already existing under the same category)
     /// collapse to one leaf row, so each `(category, label)` pair produces at most one junction
-    /// row per track. The ext PDB is created lazily on first use.
+    /// row per track. The ext PDB is created lazily on first use, and written by [`save`](Self::save).
     ///
     /// # Errors
     ///
@@ -993,21 +869,20 @@ impl DeviceExportWriter {
         Ok(id)
     }
 
-    fn ext_db_mut(&mut self) -> Result<&mut Database<fs::File>> {
+    /// The in-memory `exportExt.pdb`, for a mutation: created empty if the export has none, and
+    /// marked for the next [`save`](Self::save).
+    fn ext_db_mut(&mut self) -> Result<&mut MemoryDatabase> {
+        self.ext_dirty = true;
         if self.ext_db.is_none() {
-            let ext_path = self.layout.export_ext_pdb();
-            if let Some(parent) = ext_path.parent() {
-                let _ = fs::create_dir_all(parent);
-            }
-            // Reached only when the file did not exist at `open()` time (or after `create()`), so
-            // truncation cannot destroy prior tags — `open()` would otherwise have opened it.
-            let file = fs::File::create(&ext_path)?;
             let table_page_types = [
                 PageType::Ext(ExtPageType::Tag),
                 PageType::Ext(ExtPageType::TrackTag),
             ];
-            let ext_db = Database::create(file, DatabaseType::Ext, &table_page_types)?;
-            self.ext_db = Some(ext_db);
+            self.ext_db = Some(Database::create(
+                Cursor::new(Vec::new()),
+                DatabaseType::Ext,
+                &table_page_types,
+            )?);
         }
         Ok(self
             .ext_db
@@ -1015,25 +890,8 @@ impl DeviceExportWriter {
             .expect("ext_db was just initialized above"))
     }
 
-    /// Flush pending writes and close the PDB. Prefer this over relying on `Drop`, which can't
-    /// surface errors.
-    ///
-    /// # Errors
-    ///
-    /// If the flush or close fails.
-    pub fn close(mut self) -> Result<()> {
-        self.db
-            .take()
-            .expect("DeviceExportWriter.db always Some until close")
-            .close()?;
-        if let Some(ext_db) = self.ext_db.take() {
-            ext_db.close()?;
-        }
-        Ok(())
-    }
-
     fn get_or_create<K, RowFn>(
-        db: &mut Database<fs::File>,
+        db: &mut MemoryDatabase,
         map: &mut HashMap<K, u32>,
         next_id: &mut u32,
         key: K,
@@ -1061,9 +919,7 @@ impl DeviceExportWriter {
 
     fn get_or_create_artist(&mut self, name: &str) -> Result<u32> {
         Self::get_or_create(
-            self.db
-                .as_mut()
-                .expect("DeviceExportWriter.db always Some until close"),
+            &mut self.db,
             &mut self.artists_by_name,
             &mut self.next_artist_id,
             name.to_string(),
@@ -1086,9 +942,7 @@ impl DeviceExportWriter {
 
     fn get_or_create_album(&mut self, name: &str, artist_id: u32) -> Result<u32> {
         Self::get_or_create(
-            self.db
-                .as_mut()
-                .expect("DeviceExportWriter.db always Some until close"),
+            &mut self.db,
             &mut self.albums_by_artist_and_name,
             &mut self.next_album_id,
             (artist_id, name.to_string()),
@@ -1114,9 +968,7 @@ impl DeviceExportWriter {
 
     fn get_or_create_genre(&mut self, name: &str) -> Result<u32> {
         Self::get_or_create(
-            self.db
-                .as_mut()
-                .expect("DeviceExportWriter.db always Some until close"),
+            &mut self.db,
             &mut self.genres_by_name,
             &mut self.next_genre_id,
             name.to_string(),
@@ -1133,9 +985,7 @@ impl DeviceExportWriter {
     fn get_or_create_key(&mut self, name: &str) -> Result<u32> {
         let canonical = canonical_key_name(name);
         Self::get_or_create(
-            self.db
-                .as_mut()
-                .expect("DeviceExportWriter.db always Some until close"),
+            &mut self.db,
             &mut self.keys_by_canonical,
             &mut self.next_key_id,
             canonical.clone(),
@@ -1158,9 +1008,7 @@ impl DeviceExportWriter {
 
     fn get_or_create_label(&mut self, name: &str) -> Result<u32> {
         Self::get_or_create(
-            self.db
-                .as_mut()
-                .expect("DeviceExportWriter.db always Some until close"),
+            &mut self.db,
             &mut self.labels_by_name,
             &mut self.next_label_id,
             name.to_string(),
@@ -1174,6 +1022,7 @@ impl DeviceExportWriter {
         )
     }
 
+    /// Resolve an `Artwork.path` to its row id, inserting the row on first use.
     fn get_or_create_artwork(&mut self, path: &str) -> Result<u32> {
         if path.is_empty() {
             return Ok(0);
@@ -1182,78 +1031,70 @@ impl DeviceExportWriter {
             return Ok(id);
         }
 
-        let id = self.next_artwork_id;
-        #[cfg(feature = "artwork")]
-        {
-            self.copy_artwork_file(path, id)?;
-        }
-        // Bump only after the copy succeeds, so a failure leaves no id gap.
-        self.next_artwork_id += 1;
-
-        let device_path = {
-            #[cfg(feature = "artwork")]
-            {
-                artwork_device_path(id)
-            }
-            #[cfg(not(feature = "artwork"))]
-            {
-                path.to_string()
-            }
-        };
         let row = Row::Plain(PlainRow::Artwork(Artwork {
-            id: ArtworkId(id),
-            path: DeviceSQLString::new(&device_path)?,
+            id: ArtworkId(self.next_artwork_id),
+            path: DeviceSQLString::new(path)?,
         }));
-        self.db().add_row(row)?;
+        self.db.add_row(row)?;
 
+        let id = self.next_artwork_id;
+        self.next_artwork_id += 1;
         self.artwork_by_path.insert(path.to_string(), id);
         Ok(id)
     }
 
-    /// Decode `source`, resize to the 80×80 thumbnail and 240×240 medium, and write both as JPEG
-    /// under their id-derived shard paths. Creates the shard directory. Decode/encode/IO errors
-    /// propagate to the caller.
+    /// Import a host-side image as track artwork and return the device path to put in
+    /// [`Track::artwork_path`].
+    ///
+    /// The image is decoded and resized right away into the 80×80 thumbnail and the 240×240
+    /// medium Rekordbox uses; both are written as JPEG under `PIONEER/Artwork/` by the next
+    /// [`save`](Self::save). Importing the same `source` again returns the same path, so tracks
+    /// sharing a cover share one artwork.
+    ///
+    /// # Errors
+    ///
+    /// [`Error::ArtworkError`] if the image cannot be read, decoded, or encoded.
     #[cfg(feature = "artwork")]
-    fn copy_artwork_file(&self, source: &str, id: u32) -> Result<()> {
+    pub fn import_artwork(&mut self, source: impl AsRef<Path>) -> Result<String> {
         use image::imageops::FilterType;
-        use image::ImageReader;
-        use std::path::PathBuf;
+        use image::{DynamicImage, ImageFormat, ImageReader};
 
-        let source_path = PathBuf::from(source);
-        let img = ImageReader::open(&source_path)
-            .map_err(|e| Error::ArtworkError {
-                path: source_path.clone(),
-                message: e.to_string(),
-            })?
+        let source = source.as_ref();
+        if let Some(device_path) = self.artwork_by_source.get(source) {
+            return Ok(device_path.clone());
+        }
+
+        let artwork_error = |e: image::ImageError| Error::ArtworkError {
+            path: source.to_path_buf(),
+            message: e.to_string(),
+        };
+        let img = ImageReader::open(source)
+            .map_err(|e| artwork_error(e.into()))?
             .decode()
-            .map_err(|e| Error::ArtworkError {
-                path: source_path.clone(),
-                message: e.to_string(),
-            })?;
+            .map_err(artwork_error)?;
+        let encode = |img: &DynamicImage, size: u32| -> Result<Vec<u8>> {
+            let mut bytes = Vec::new();
+            img.resize_to_fill(size, size, FilterType::Lanczos3)
+                .to_rgb8()
+                .write_to(&mut Cursor::new(&mut bytes), ImageFormat::Jpeg)
+                .map_err(artwork_error)?;
+            Ok(bytes)
+        };
+        let thumbnail = encode(&img, 80)?;
+        let medium = encode(&img, 240)?;
 
-        let dest = self.layout.artwork_file(id);
-        fs::create_dir_all(dest.parent().expect("artwork path always has a folder"))?;
+        let id = self.next_artwork_id;
+        let device_path = artwork_device_path(id);
+        let row_id = self.get_or_create_artwork(&device_path)?;
+        debug_assert_eq!(row_id, id, "a fresh artwork path allocates the next id");
 
-        let thumb = img.resize_to_fill(80, 80, FilterType::Lanczos3);
-        thumb
-            .to_rgb8()
-            .save(&dest)
-            .map_err(|e| Error::ArtworkError {
-                path: dest.clone(),
-                message: e.to_string(),
-            })?;
-
-        let medium_dest = self.layout.artwork_m_file(id);
-        let medium = img.resize_to_fill(240, 240, FilterType::Lanczos3);
-        medium
-            .to_rgb8()
-            .save(&medium_dest)
-            .map_err(|e| Error::ArtworkError {
-                path: medium_dest.clone(),
-                message: e.to_string(),
-            })?;
-
-        Ok(())
+        self.pending_files
+            .push((self.layout.artwork_file(id), thumbnail));
+        self.pending_files
+            .push((self.layout.artwork_m_file(id), medium));
+        self.artwork_by_source
+            .insert(source.to_path_buf(), device_path.clone());
+        Ok(device_path)
     }
 }
 
@@ -1264,7 +1105,7 @@ impl DeviceExportWriter {
 /// TrackTag junction rows carry no state the writer tracks (their ids reference tag rows already
 /// counted here), so they are not scanned.
 fn scan_ext_tags(
-    ext_db: &mut Database<fs::File>,
+    ext_db: &mut MemoryDatabase,
     tag_categories: &mut HashSet<u32>,
     tags_by_key: &mut HashMap<(u32, String), u32>,
     tag_leaf_counts: &mut HashMap<u32, u32>,
@@ -1299,13 +1140,60 @@ fn scan_ext_tags(
     Ok(())
 }
 
-fn write_setting_file(path: &Path, setting: &Setting) -> Result<()> {
+/// Serialize a setting file.
+fn setting_bytes(setting: &Setting) -> Result<Vec<u8>> {
     let mut buf = Cursor::new(Vec::new());
     setting
         .write_options(&mut buf, binrw::Endian::Little, (false,))
         .map_err(Error::BinrwError)?;
-    fs::write(path, buf.into_inner())?;
+    Ok(buf.into_inner())
+}
+
+/// Write `bytes` to `path` without ever exposing a half-written file under that name: the bytes
+/// go to a sibling temporary file, which is synced and then renamed over `path`.
+fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
+    let mut tmp_name = path
+        .file_name()
+        .expect("export files always have a file name")
+        .to_os_string();
+    tmp_name.push(".tmp");
+    let tmp_path = path.with_file_name(tmp_name);
+
+    let write = || -> std::io::Result<()> {
+        let mut file = fs::File::create(&tmp_path)?;
+        file.write_all(bytes)?;
+        file.sync_all()?;
+        drop(file);
+        fs::rename(&tmp_path, path)
+    };
+    write().inspect_err(|_| {
+        let _ = fs::remove_file(&tmp_path);
+    })?;
     Ok(())
+}
+
+/// Read a whole PDB file into memory and open it.
+fn read_database(path: &Path, db_type: DatabaseType) -> Result<MemoryDatabase> {
+    Database::open(Cursor::new(fs::read(path)?), db_type)
+}
+
+/// Serialize an in-memory PDB and write it to `path` atomically.
+fn write_database(db: &mut MemoryDatabase, path: &Path) -> Result<()> {
+    db.flush()?;
+    write_atomic(path, db.get_ref().get_ref())
+}
+
+/// Collect `id -> name` for one dimension table.
+fn names_by_id<RowT: RowVariant>(
+    db: &mut MemoryDatabase,
+    entry: impl Fn(&RowT) -> (u32, &DeviceSQLString),
+) -> Result<HashMap<u32, String>> {
+    db.iter_rows::<RowT>()?
+        .map(|row| {
+            let (id, name) = entry(row);
+            Ok((id, name.clone().into_string()?))
+        })
+        .collect()
 }
 
 /// Build a category or leaf tag row. `is_category` selects the `raw_is_category` flag
@@ -1344,40 +1232,196 @@ fn tag_row(
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_canonical_key_name_major_forms() {
-        assert_eq!(canonical_key_name("C Major"), "Cmaj");
-        assert_eq!(canonical_key_name("Cmaj"), "Cmaj");
-        assert_eq!(canonical_key_name("C MAJOR"), "Cmaj");
-        assert_eq!(canonical_key_name("Cmajor"), "Cmaj");
-        // The note letter's case is preserved as given.
-        assert_eq!(canonical_key_name("c MAJOR"), "cmaj");
+    fn test_dir(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!(
+            "rekordcrate-export-{name}-test-{}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&dir);
+        dir
     }
 
+    // Nothing reaches the disk before save(), and dropping an unsaved handle discards it.
     #[test]
-    fn test_canonical_key_name_minor_forms() {
-        assert_eq!(canonical_key_name("A Minor"), "Amin");
-        assert_eq!(canonical_key_name("Amin"), "Amin");
-        assert_eq!(canonical_key_name("A MINOR"), "Amin");
-        // Bare 'm' suffix is minor.
-        assert_eq!(canonical_key_name("Am"), "Amin");
+    fn nothing_is_written_before_save() {
+        let dir = test_dir("unsaved");
+
+        let mut dev = DeviceExport::create(&dir).unwrap();
+        dev.add_track(&Track {
+            title: "song".into(),
+            file_path: "/Contents/song.mp3".into(),
+            ..Default::default()
+        })
+        .unwrap();
+        let cat = dev.create_tag_category("Mood").unwrap();
+        assert_eq!(cat, TagCategoryId(1));
+        drop(dev);
+
+        assert!(!dir.exists(), "an unsaved export must not touch the disk");
     }
 
+    // save() lays down the whole export, leaves no temporary files, and can be called again.
     #[test]
-    fn test_canonical_key_name_accidentals() {
-        // Unicode ♭/♯ and the words flat/sharp all collapse to ascii.
-        assert_eq!(canonical_key_name("B\u{266d}m"), "Bbmin");
-        assert_eq!(canonical_key_name("B flat minor"), "Bbmin");
-        assert_eq!(canonical_key_name("F\u{266f}m"), "F#min");
-        assert_eq!(canonical_key_name("F sharp Minor"), "F#min");
+    fn save_writes_the_export_and_can_repeat() {
+        let dir = test_dir("save");
+
+        let mut dev = DeviceExport::create(&dir).unwrap();
+        let mk = |n: usize| Track {
+            title: format!("song{n}"),
+            file_path: format!("/Contents/song{n}.mp3"),
+            ..Default::default()
+        };
+        dev.add_track(&mk(0)).unwrap();
+        dev.save().unwrap();
+
+        for path in [
+            "PIONEER/rekordbox/export.pdb",
+            "PIONEER/USBANLZ",
+            "Contents",
+            "PIONEER/DEVSETTING.DAT",
+            "PIONEER/DJMMYSETTING.DAT",
+            "PIONEER/MYSETTING.DAT",
+            "PIONEER/MYSETTING2.DAT",
+        ] {
+            assert!(dir.join(path).exists(), "{path} must exist after save()");
+        }
+        assert_eq!(
+            dev.load_settings(),
+            Settings::load(&Layout::new(dir.clone()))
+        );
+        assert!(dev.load_settings().quantize.is_some());
+
+        // The same handle keeps working after a save.
+        dev.add_track(&mk(1)).unwrap();
+        dev.save().unwrap();
+
+        let leftovers: Vec<_> = ["PIONEER", "PIONEER/rekordbox"]
+            .iter()
+            .flat_map(|sub| std::fs::read_dir(dir.join(sub)).unwrap())
+            .map(|entry| entry.unwrap().file_name().into_string().unwrap())
+            .filter(|name| name.ends_with(".tmp"))
+            .collect();
+        assert!(leftovers.is_empty(), "temporary files left: {leftovers:?}");
+
+        let mut dev = DeviceExport::open(&dir).unwrap();
+        assert_eq!(dev.tracks().unwrap().len(), 2);
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
+    // tracks() hands back what add_track() was given, before and after a save/open round trip.
     #[test]
-    fn test_canonical_key_name_dedup_equivalence() {
-        // The whole point: these must all collide so they share one PDB Key row.
-        let a = canonical_key_name("D Major");
-        let b = canonical_key_name("Dmaj");
-        assert_eq!(a, b);
+    fn tracks_read_back_what_was_added() {
+        let dir = test_dir("readback");
+
+        let full = Track {
+            title: "Title".into(),
+            artist: "Artist".into(),
+            album: "Album".into(),
+            genre: "Genre".into(),
+            key: "Amin".into(),
+            label: "Label".into(),
+            composer: "Composer".into(),
+            remixer: "Remixer".into(),
+            orig_artist: "Original".into(),
+            comment: "A comment".into(),
+            isrc: "USRC17607839".into(),
+            lyricist: "Lyricist".into(),
+            mix_name: "Extended Mix".into(),
+            release_date: "2024-01-02".into(),
+            date_added: "2024-03-04".into(),
+            file_path: "/Contents/Artist/Title.mp3".into(),
+            filename: "Title.mp3".into(),
+            artwork_path: "/PIONEER/Artwork/00001/a1.jpg".into(),
+            message: "Message".into(),
+            tempo: 126.5,
+            bitrate: 320,
+            sample_rate: 44_100,
+            sample_depth: 16,
+            duration_secs: 301,
+            file_size: 12_345_678,
+            track_number: 3,
+            disc_number: 1,
+            year: 2024,
+            play_count: 7,
+            rating: Rating::Four,
+            color: crate::util::ColorIndex::Green,
+            file_type: crate::util::FileType::Mp3,
+            autoload_hotcues: true,
+        };
+        // Short enough to need the minimum-row-size padding, which must not leak into `comment`.
+        let tiny = Track {
+            title: "tiny".into(),
+            file_path: "/Contents/tiny.mp3".into(),
+            ..Default::default()
+        };
+
+        let mut dev = DeviceExport::create(&dir).unwrap();
+        let full_id = dev.add_track(&full).unwrap().id;
+        let tiny_id = dev.add_track(&tiny).unwrap().id;
+        let expected = vec![(full_id, full), (tiny_id, tiny)];
+        assert_eq!(dev.tracks().unwrap(), expected);
+
+        dev.save().unwrap();
+        let mut dev = DeviceExport::open(&dir).unwrap();
+        assert_eq!(dev.tracks().unwrap(), expected);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    // playlists() and playlist_tracks() read back the tree and its entries in playlist order.
+    #[test]
+    fn playlists_read_back() {
+        use crate::device::playlist::{Playlist, PlaylistFolder};
+
+        let dir = test_dir("playlist-readback");
+
+        let mut dev = DeviceExport::create(&dir).unwrap();
+        let ids: Vec<TrackId> = (0..3)
+            .map(|n| {
+                dev.add_track(&Track {
+                    title: format!("song{n}"),
+                    file_path: format!("/Contents/song{n}.mp3"),
+                    ..Default::default()
+                })
+                .unwrap()
+                .id
+            })
+            .collect();
+        let folder = dev
+            .create_playlist_folder("Folder", PlaylistTreeNodeId::root())
+            .unwrap();
+        let playlist = dev.create_playlist("Playlist", folder).unwrap();
+        for &id in &[ids[2], ids[0], ids[1]] {
+            dev.add_track_to_playlist(playlist, id).unwrap();
+        }
+        dev.save().unwrap();
+
+        let mut dev = DeviceExport::open(&dir).unwrap();
+        assert_eq!(
+            dev.playlists().unwrap(),
+            vec![PlaylistNode::Folder(PlaylistFolder {
+                id: folder,
+                name: "Folder".into(),
+                children: vec![PlaylistNode::Playlist(Playlist {
+                    id: playlist,
+                    name: "Playlist".into(),
+                })],
+            })]
+        );
+        assert_eq!(
+            dev.playlist_tracks(playlist).unwrap(),
+            vec![ids[2], ids[0], ids[1]]
+        );
+        assert!(matches!(
+            dev.playlist_tracks(folder),
+            Err(Error::UnknownForeignKey {
+                kind: ForeignKeyKind::PlaylistNode,
+                ..
+            })
+        ));
+
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     // open() must reuse an existing named row instead of duplicating it.
@@ -1397,18 +1441,18 @@ mod tests {
             ..Default::default()
         };
 
-        let mut dev = DeviceExportWriter::create(&dir).unwrap();
+        let mut dev = DeviceExport::create(&dir).unwrap();
         dev.add_track(&t).unwrap();
-        dev.close().unwrap();
+        dev.save().unwrap();
 
-        let mut dev = DeviceExportWriter::open(&dir).unwrap();
+        let mut dev = DeviceExport::open(&dir).unwrap();
         dev.add_track(&t).unwrap();
-        dev.close().unwrap();
+        dev.save().unwrap();
 
         // Dedup must survive to disk: exactly one "Dup Artist".
-        let mut dev = DeviceExportWriter::open(&dir).unwrap();
+        let mut dev = DeviceExport::open(&dir).unwrap();
         let count = dev
-            .db()
+            .db
             .iter_rows::<crate::pdb::Artist>()
             .unwrap()
             .filter(|row| Ok(row.offsets.name.clone().into_string().unwrap() == "Dup Artist"))
@@ -1435,7 +1479,7 @@ mod tests {
             ..Default::default()
         };
 
-        let mut dev = DeviceExportWriter::create(&dir).unwrap();
+        let mut dev = DeviceExport::create(&dir).unwrap();
         let first = dev.add_track(&t).unwrap();
         let second = dev.add_track(&t).unwrap();
         assert_eq!(
@@ -1444,21 +1488,21 @@ mod tests {
         );
         assert!(first.is_new, "the first add must be flagged new");
         assert!(!second.is_new, "the duplicate add must be flagged not new");
-        dev.close().unwrap();
+        dev.save().unwrap();
 
         // Across open(): the path is read back, so re-adding still dedups.
-        let mut dev = DeviceExportWriter::open(&dir).unwrap();
+        let mut dev = DeviceExport::open(&dir).unwrap();
         let third = dev.add_track(&t).unwrap();
         assert_eq!(
             first.id, third.id,
             "re-adding after open() must return the existing id"
         );
         assert!(!third.is_new, "the post-reopen add must be flagged not new");
-        dev.close().unwrap();
+        dev.save().unwrap();
 
-        let mut dev = DeviceExportWriter::open(&dir).unwrap();
+        let mut dev = DeviceExport::open(&dir).unwrap();
         let count = dev
-            .db()
+            .db
             .iter_rows::<crate::pdb::Track>()
             .unwrap()
             .count()
@@ -1475,7 +1519,7 @@ mod tests {
             std::env::temp_dir().join(format!("rekordcrate-export-fk-test-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
 
-        let mut dev = DeviceExportWriter::create(&dir).unwrap();
+        let mut dev = DeviceExport::create(&dir).unwrap();
 
         // parent_id root() is the tree root and always valid.
         let folder = dev
@@ -1535,7 +1579,7 @@ mod tests {
         ));
         let _ = std::fs::remove_dir_all(&dir);
 
-        let mut dev = DeviceExportWriter::create(&dir).unwrap();
+        let mut dev = DeviceExport::create(&dir).unwrap();
         let folder = dev
             .create_playlist_folder("Folder", PlaylistTreeNodeId::root())
             .unwrap();
@@ -1582,7 +1626,7 @@ mod tests {
             ..Default::default()
         };
 
-        let mut dev = DeviceExportWriter::create(&dir).unwrap();
+        let mut dev = DeviceExport::create(&dir).unwrap();
         let playlist = dev
             .create_playlist("P", PlaylistTreeNodeId::root())
             .unwrap();
@@ -1592,17 +1636,17 @@ mod tests {
         dev.add_track_to_playlist(playlist, t0).unwrap();
         dev.add_track_to_playlist(playlist, t1).unwrap();
         dev.add_track_to_playlist(playlist, t2).unwrap();
-        dev.close().unwrap();
+        dev.save().unwrap();
 
         // After open() the counter is rebuilt, so one more append lands at index 3.
-        let mut dev = DeviceExportWriter::open(&dir).unwrap();
+        let mut dev = DeviceExport::open(&dir).unwrap();
         let t3 = dev.add_track(&mk(3)).unwrap().id;
         dev.add_track_to_playlist(playlist, t3).unwrap();
-        dev.close().unwrap();
+        dev.save().unwrap();
 
-        let mut dev = DeviceExportWriter::open(&dir).unwrap();
+        let mut dev = DeviceExport::open(&dir).unwrap();
         let mut indices: Vec<u32> = dev
-            .db()
+            .db
             .iter_rows::<crate::pdb::PlaylistEntry>()
             .unwrap()
             .map(|e| Ok(e.entry_index))
@@ -1634,14 +1678,14 @@ mod tests {
             ..Default::default()
         };
 
-        let mut dev = DeviceExportWriter::create(&dir).unwrap();
+        let mut dev = DeviceExport::create(&dir).unwrap();
         let outcome = dev.add_track(&t).unwrap();
         assert!(outcome.is_new, "a fresh track must be flagged new");
 
-        dev.close().unwrap();
-        let mut dev = DeviceExportWriter::open(&dir).unwrap();
+        dev.save().unwrap();
+        let mut dev = DeviceExport::open(&dir).unwrap();
         let row = dev
-            .db()
+            .db
             .iter_rows::<crate::pdb::Track>()
             .unwrap()
             .find(|row| Ok(row.id == outcome.id))
@@ -1686,8 +1730,8 @@ mod tests {
         img.save(path).unwrap();
     }
 
-    // Under the artwork feature, add_track copies the source into the sharded dir under both the
-    // 80×80 thumbnail name and the 240×240 medium name, and stores the thumbnail path in the PDB.
+    // import_artwork queues the source for the sharded dir under both the 80×80 thumbnail name and
+    // the 240×240 medium name, written by save(), and returns the thumbnail path the PDB stores.
     #[cfg(feature = "artwork")]
     #[test]
     fn add_track_copies_artwork() {
@@ -1700,26 +1744,28 @@ mod tests {
         let src = dir.join("src.png");
         write_test_jpeg(&src, 200, 200);
 
+        let mut dev = DeviceExport::create(&dir).unwrap();
+        let artwork_path = dev.import_artwork(&src).unwrap();
+
         let t = Track {
             title: "song".into(),
             filename: "song.mp3".into(),
             file_path: "/Contents/song.mp3".into(),
-            artwork_source: src.to_string_lossy().into_owned(),
+            artwork_path: artwork_path.clone(),
             ..Default::default()
         };
 
-        let mut dev = DeviceExportWriter::create(&dir).unwrap();
         dev.add_track(&t).unwrap();
-        dev.close().unwrap();
+        dev.save().unwrap();
 
         let thumb = dir.join("PIONEER/Artwork/00001/a1.jpg");
         let medium = dir.join("PIONEER/Artwork/00001/a1_m.jpg");
         assert!(thumb.exists(), "thumbnail must be written at {thumb:?}");
         assert!(medium.exists(), "medium must be written at {medium:?}");
 
-        let mut dev = DeviceExportWriter::open(&dir).unwrap();
+        let mut dev = DeviceExport::open(&dir).unwrap();
         let row = dev
-            .db()
+            .db
             .iter_rows::<crate::pdb::Artwork>()
             .unwrap()
             .find(|_| Ok(true))
@@ -1748,18 +1794,22 @@ mod tests {
         let src = dir.join("cover.png");
         write_test_jpeg(&src, 100, 100);
 
+        let mut dev = DeviceExport::create(&dir).unwrap();
+        let artwork_path = dev.import_artwork(&src).unwrap();
+
         let mk = |n: usize| Track {
             title: format!("song{n}"),
             filename: format!("song{n}.mp3"),
             file_path: format!("/Contents/song{n}.mp3"),
-            artwork_source: src.to_string_lossy().into_owned(),
+            artwork_path: artwork_path.clone(),
             ..Default::default()
         };
 
-        let mut dev = DeviceExportWriter::create(&dir).unwrap();
         dev.add_track(&mk(0)).unwrap();
         dev.add_track(&mk(1)).unwrap();
-        dev.close().unwrap();
+        // Importing the same source again reuses the artwork.
+        assert_eq!(dev.import_artwork(&src).unwrap(), artwork_path);
+        dev.save().unwrap();
 
         // One shard folder, one thumbnail, one medium.
         let shard = dir.join("PIONEER/Artwork/00001");
@@ -1773,9 +1823,9 @@ mod tests {
             "expected exactly thumbnail + medium in {shard:?}"
         );
 
-        let mut dev = DeviceExportWriter::open(&dir).unwrap();
+        let mut dev = DeviceExport::open(&dir).unwrap();
         let count = dev
-            .db()
+            .db
             .iter_rows::<crate::pdb::Artwork>()
             .unwrap()
             .count()
@@ -1800,17 +1850,19 @@ mod tests {
         let src = dir.join("cover.png");
         write_test_jpeg(&src, 200, 200);
 
+        let mut dev = DeviceExport::create(&dir).unwrap();
+        let artwork_path = dev.import_artwork(&src).unwrap();
+
         let t = Track {
             title: "song".into(),
             filename: "song.mp3".into(),
             file_path: "/Contents/song.mp3".into(),
-            artwork_source: src.to_string_lossy().into_owned(),
+            artwork_path: artwork_path.clone(),
             ..Default::default()
         };
 
-        let mut dev = DeviceExportWriter::create(&dir).unwrap();
         dev.add_track(&t).unwrap();
-        dev.close().unwrap();
+        dev.save().unwrap();
 
         let thumb = ImageReader::open(dir.join("PIONEER/Artwork/00001/a1.jpg"))
             .unwrap()
@@ -1827,10 +1879,9 @@ mod tests {
         let _ = std::fs::remove_dir_all(&dir);
     }
 
-    // Without the feature, the caller's device path is stored verbatim; no files are written.
-    #[cfg(not(feature = "artwork"))]
+    // A caller-supplied artwork_path is stored verbatim; no files are written.
     #[test]
-    fn artwork_stores_caller_path_without_copy() {
+    fn artwork_path_is_stored_verbatim_without_copy() {
         let dir = std::env::temp_dir().join(format!(
             "rekordcrate-export-artwork-nofeat-test-{}",
             std::process::id()
@@ -1842,26 +1893,26 @@ mod tests {
             title: "song".into(),
             filename: "song.mp3".into(),
             file_path: "/Contents/song.mp3".into(),
-            artwork_device_path: caller_path.into(),
+            artwork_path: caller_path.into(),
             ..Default::default()
         };
 
-        let mut dev = DeviceExportWriter::create(&dir).unwrap();
+        let mut dev = DeviceExport::create(&dir).unwrap();
         let outcome = dev.add_track(&t).unwrap();
-        dev.close().unwrap();
+        dev.save().unwrap();
 
-        // No image files written — the caller's responsibility without the feature.
+        // No image files written — they are the caller's responsibility.
         assert!(
             !dir.join("PIONEER/Artwork").exists(),
-            "no artwork dir/files must be created without the feature"
+            "no artwork dir/files must be created for a caller-supplied path"
         );
 
-        let mut dev = DeviceExportWriter::open(&dir).unwrap();
+        let mut dev = DeviceExport::open(&dir).unwrap();
 
         // The track references the allocated artwork id (not 0). Copy out to end the borrow.
         let _artwork_id = {
             let track_row = dev
-                .db()
+                .db
                 .iter_rows::<crate::pdb::Track>()
                 .unwrap()
                 .find(|row| Ok(row.id == outcome.id))
@@ -1876,7 +1927,7 @@ mod tests {
 
         // One Artwork row; path is the caller's string verbatim.
         let artwork_rows: Vec<_> = dev
-            .db()
+            .db
             .iter_rows::<crate::pdb::Artwork>()
             .unwrap()
             .collect::<Vec<_>>()
@@ -1892,7 +1943,7 @@ mod tests {
     }
 
     fn collect_ext_rows(
-        ext_db: &mut Database<std::fs::File>,
+        ext_db: &mut Database<impl std::io::Read + std::io::Seek>,
     ) -> (Vec<TagOrCategory>, Vec<crate::pdb::ext::TrackTag>) {
         use crate::pdb::ext::{ExtPageType, ExtRow};
         use fallible_iterator::FallibleIterator;
@@ -1936,7 +1987,7 @@ mod tests {
         ));
         let _ = std::fs::remove_dir_all(&dir);
 
-        let mut dev = DeviceExportWriter::create(&dir).unwrap();
+        let mut dev = DeviceExport::create(&dir).unwrap();
         let t = Track {
             title: "song".into(),
             filename: "song.mp3".into(),
@@ -1944,7 +1995,7 @@ mod tests {
             ..Default::default()
         };
         dev.add_track(&t).unwrap();
-        dev.close().unwrap();
+        dev.save().unwrap();
 
         assert!(
             !dir.join("PIONEER/rekordbox/exportExt.pdb").exists(),
@@ -1962,7 +2013,7 @@ mod tests {
         ));
         let _ = std::fs::remove_dir_all(&dir);
 
-        let mut dev = DeviceExportWriter::create(&dir).unwrap();
+        let mut dev = DeviceExport::create(&dir).unwrap();
         let t1 = Track {
             title: "a".into(),
             filename: "a.mp3".into(),
@@ -1983,7 +2034,7 @@ mod tests {
             .unwrap();
         dev.add_tags_to_track(id2, cat, &["Dub".into(), "House".into()])
             .unwrap();
-        dev.close().unwrap();
+        dev.save().unwrap();
 
         let mut ext_db = Database::open(
             std::fs::File::open(dir.join("PIONEER/rekordbox/exportExt.pdb")).unwrap(),
@@ -2060,7 +2111,7 @@ mod tests {
         ));
         let _ = std::fs::remove_dir_all(&dir);
 
-        let mut dev = DeviceExportWriter::create(&dir).unwrap();
+        let mut dev = DeviceExport::create(&dir).unwrap();
         let cat = dev.create_tag_category("My Tags").unwrap();
         let err = dev
             .add_tags_to_track(TrackId(999), cat, &["x".into()])
@@ -2081,7 +2132,7 @@ mod tests {
         ));
         let _ = std::fs::remove_dir_all(&dir);
 
-        let mut dev = DeviceExportWriter::create(&dir).unwrap();
+        let mut dev = DeviceExport::create(&dir).unwrap();
         let t = Track {
             title: "a".into(),
             filename: "a.mp3".into(),
@@ -2117,7 +2168,7 @@ mod tests {
         ));
         let _ = std::fs::remove_dir_all(&dir);
 
-        let mut dev = DeviceExportWriter::create(&dir).unwrap();
+        let mut dev = DeviceExport::create(&dir).unwrap();
         let t = Track {
             title: "a".into(),
             filename: "a.mp3".into(),
@@ -2132,7 +2183,7 @@ mod tests {
             .unwrap();
         // The category write already created exportExt.pdb; count its rows instead of asserting
         // absence.
-        dev.close().unwrap();
+        dev.save().unwrap();
         let mut ext_db = Database::open(
             std::fs::File::open(dir.join("PIONEER/rekordbox/exportExt.pdb")).unwrap(),
             DatabaseType::Ext,
@@ -2156,7 +2207,7 @@ mod tests {
         ));
         let _ = std::fs::remove_dir_all(&dir);
 
-        let mut dev = DeviceExportWriter::create(&dir).unwrap();
+        let mut dev = DeviceExport::create(&dir).unwrap();
         let t = Track {
             title: "a".into(),
             filename: "a.mp3".into(),
@@ -2167,14 +2218,14 @@ mod tests {
         let cat = dev.create_tag_category("My Tags").unwrap();
         dev.add_tags_to_track(id, cat, &["Techno".into(), "Dub".into()])
             .unwrap();
-        dev.close().unwrap();
+        dev.save().unwrap();
 
         // Reopen and append a new leaf under the existing category plus a brand-new category.
-        let mut dev = DeviceExportWriter::open(&dir).unwrap();
+        let mut dev = DeviceExport::open(&dir).unwrap();
         dev.add_tags_to_track(id, cat, &["House".into()]).unwrap();
         let cat2 = dev.create_tag_category("Mood").unwrap();
         dev.add_tags_to_track(id, cat2, &["Dark".into()]).unwrap();
-        dev.close().unwrap();
+        dev.save().unwrap();
 
         let mut ext_db = Database::open(
             std::fs::File::open(dir.join("PIONEER/rekordbox/exportExt.pdb")).unwrap(),

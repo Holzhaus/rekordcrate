@@ -8,11 +8,14 @@
 
 //! High-level API for Rekordbox device exports.
 
+pub mod export;
 pub mod layout;
-pub mod reader;
-pub mod writer;
+pub mod playlist;
+pub mod settings;
+pub mod track;
 
-pub use crate::device::reader::DeviceExportReader;
-pub use crate::device::writer::{AddTrackOutcome, DeviceExportWriter, TagCategoryId, Track};
-
-pub use crate::device::reader::{get_playlists, Playlist, PlaylistFolder, PlaylistNode};
+pub use crate::device::export::{AddTrackOutcome, DeviceExport, TagCategoryId};
+pub use crate::device::layout::Layout;
+pub use crate::device::playlist::{get_playlists, Playlist, PlaylistFolder, PlaylistNode};
+pub use crate::device::settings::Settings;
+pub use crate::device::track::Track;

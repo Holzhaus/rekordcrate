@@ -8,8 +8,7 @@
 
 //! On-disk layout of a Rekordbox device export: where `export.pdb`, `exportExt.pdb`, the
 //! `SETTING.DAT` files and the `PIONEER`/`USBANLZ`/`Contents` directories live relative
-//! to the device root. Shared by [`crate::device::DeviceExportReader`] and
-//! [`crate::device::DeviceExportWriter`].
+//! to the device root. Used by [`crate::device::DeviceExport`].
 
 use crate::setting::SettingType;
 use std::path::{Path, PathBuf};
@@ -26,7 +25,7 @@ pub const DAT_FILES: &[(&str, SettingType)] = &[
 ///
 /// Exposed so expert callers can locate [`Self::export_pdb`] / [`Self::export_ext_pdb`] and the
 /// surrounding `PIONEER` / `Contents` directories directly, for manual inspection or modification
-/// outside the high-level reader/writer.
+/// outside the high-level [`crate::device::DeviceExport`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct Layout {
     root: PathBuf,
