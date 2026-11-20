@@ -26,6 +26,7 @@ faster-hex = { version = "0.9", optional = true }
 chrono = { version = "0.4", features = ["serde"], optional = true }
 rgb = { version = "0.8", optional = true }
 fallible-iterator = "0.3.0"
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "gif", "webp"], optional = true }
 
 [build-dependencies]
 glob = "0.3"
@@ -39,6 +40,7 @@ default = ["cli", "xml", "json"]
 cli = ["dep:clap"]
 xml = ["dep:serde", "dep:serde_repr", "dep:quick-xml", "dep:chrono", "dep:rgb"]
 json = ["dep:serde", "dep:serde_json", "dep:faster-hex"]
+artwork = ["dep:image"]
 
 [[bin]]
 name = "rekordcrate"
