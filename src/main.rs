@@ -9,7 +9,8 @@
 use binrw::BinRead;
 use clap::{Parser, Subcommand, ValueEnum};
 use fallible_iterator::FallibleIterator;
-use rekordcrate::device::get_playlists;
+use rekordcrate::device::{get_playlists, DeviceExportWriter, Track as DeviceTrack};
+use rekordcrate::edb::Library;
 use rekordcrate::pdb::io::Database;
 use rekordcrate::pdb::*;
 use rekordcrate::setting::{Setting, SettingType};
@@ -55,6 +56,15 @@ enum CliError {
 
     #[error("no SETTING_TYPE supplied nor could it be guessed for {0}!")]
     CouldNotInferSettingType(PathBuf),
+
+    #[error(transparent)]
+    IO(#[from] std::io::Error),
+
+    #[error("missing {0}")]
+    MissingArgument(&'static str),
+
+    #[error("the library holds no single playlist named {0:?}")]
+    NoSuchPlaylist(String),
 }
 
 type CliResult<T> = Result<T, CliError>;
@@ -117,6 +127,21 @@ enum Commands {
         /// Output format.
         #[arg(long, short = 'f', value_enum, default_value_t = DumpFormat::Debug)]
         format: DumpFormat,
+    },
+    /// List the playlists of a Rekordbox 5 library, or write a device export holding some of them.
+    Library {
+        /// Directory holding the library, i.e. the one with `datafile.edb` in it.
+        #[arg(value_name = "LIBRARY_DIR")]
+        path: PathBuf,
+        /// List the playlists of the library instead of writing an export.
+        #[arg(short = 'l', long)]
+        list: bool,
+        /// Playlist to put on the export. May be given more than once.
+        #[arg(short = 'p', long = "playlist", value_name = "NAME")]
+        playlists: Vec<String>,
+        /// Directory to write the export to, which must not hold one yet.
+        #[arg(value_name = "OUTPUT_DIR")]
+        output: Option<PathBuf>,
     },
     /// Parse and dump a Pioneer XML (`*.xml`) file.
     #[cfg(feature = "xml")]
@@ -512,11 +537,179 @@ fn guess_setting_type(path: &Path, setting_type: Option<&str>) -> CliResult<Sett
     Ok(setting_type)
 }
 
+/// Today's date, in the `YYYY-MM-DD` form that an export records.
+fn today() -> String {
+    let days = i64::try_from(
+        std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|since| since.as_secs() / 86_400)
+            .unwrap_or(0),
+    )
+    .unwrap_or(0);
+    // Days since the epoch to a date, shifting the year to start in March so that the leap day
+    // falls at the end of it.
+    let era_days = days + 719_468;
+    let era = era_days.div_euclid(146_097);
+    let day_of_era = era_days.rem_euclid(146_097);
+    let year_of_era =
+        (day_of_era - day_of_era / 1460 + day_of_era / 36_524 - day_of_era / 146_096) / 365;
+    let day_of_year = day_of_era - (365 * year_of_era + year_of_era / 4 - year_of_era / 100);
+    let shifted_month = (5 * day_of_year + 2) / 153;
+    let day = day_of_year - (153 * shifted_month + 2) / 5 + 1;
+    let month = if shifted_month < 10 {
+        shifted_month + 3
+    } else {
+        shifted_month - 9
+    };
+    let year = year_of_era + era * 400 + i64::from(month <= 2);
+    format!("{year:04}-{month:02}-{day:02}")
+}
+
+/// Lists the playlists of a library, or writes an export holding the named ones.
+fn library(
+    path: &Path,
+    list: bool,
+    playlist_names: &[String],
+    output: Option<&Path>,
+) -> CliResult<()> {
+    let library = Library::open(path)?;
+
+    if list {
+        print_playlists(&library, 0, 0);
+        return Ok(());
+    }
+
+    let Some(output) = output else {
+        return Err(CliError::MissingArgument(
+            "an output directory, or --list to see the playlists",
+        ));
+    };
+    if playlist_names.is_empty() {
+        return Err(CliError::MissingArgument("at least one --playlist"));
+    }
+
+    // Resolve the names first, so that nothing is written if one of them is wrong.
+    let mut selected = Vec::new();
+    for name in playlist_names {
+        let playlist = library
+            .find_playlist(name)
+            .ok_or_else(|| CliError::NoSuchPlaylist(name.clone()))?;
+        selected.push(playlist.clone());
+    }
+
+    let mut writer = DeviceExportWriter::create(output, &today())?;
+    let layout = writer.layout().clone();
+    let contents = layout.root().join("Contents");
+    std::fs::create_dir_all(&contents)?;
+
+    let mut missing_audio = 0usize;
+    let mut without_analysis = 0usize;
+    for playlist in &selected {
+        let tracks = library.playlist_tracks(playlist.id);
+        println!("{}: {} tracks", playlist.name, tracks.len());
+        let playlist_id = writer.create_playlist(None, &playlist.name)?;
+
+        for track in tracks {
+            let source = Path::new(&track.file_path);
+            if !source.is_file() {
+                missing_audio += 1;
+                eprintln!("  warning: no audio file at {}", track.file_path);
+                continue;
+            }
+
+            // The path the track has on the device, which is also what decides where its
+            // analysis files belong.
+            let device_path = format!("/Contents/{}", track.filename);
+            std::fs::copy(source, contents.join(&track.filename))?;
+
+            let analysis = library.analysis_files(track);
+            if analysis.is_empty() {
+                without_analysis += 1;
+            }
+            for file in analysis {
+                let extension = file
+                    .extension()
+                    .and_then(|extension| extension.to_str())
+                    .unwrap_or("DAT");
+                let destination = layout.anlz_file_for_audio(&device_path, extension);
+                if let Some(dir) = destination.parent() {
+                    std::fs::create_dir_all(dir)?;
+                }
+                std::fs::copy(&file, destination)?;
+            }
+
+            let track_id = writer.add_track(&DeviceTrack {
+                file_path: device_path.clone(),
+                title: track.title.clone(),
+                comment: track.comment.clone(),
+                date_added: track.date_added.clone(),
+                analyze_date: track.analyze_date.clone(),
+                analyze_path: layout
+                    .anlz_file_for_audio(&device_path, "DAT")
+                    .strip_prefix(layout.root())
+                    .map(|path| format!("/{}", path.display()))
+                    .unwrap_or_default(),
+                tempo: track.tempo_bpm(),
+                duration: track.duration,
+                bitrate: track.bitrate,
+                sample_rate: track.sample_rate,
+                sample_depth: track.sample_depth,
+                file_size: track.file_size,
+                track_number: track.track_number,
+                disc_number: track.disc_number,
+                year: track.year,
+                rating: track.rating,
+                color: track.color.clone(),
+                file_type: track.file_type.clone(),
+                ..Default::default()
+            })?;
+            writer.add_track_to_playlist(playlist_id, track_id)?;
+        }
+    }
+    writer.close()?;
+
+    println!("wrote an export to {}", output.display());
+    if missing_audio > 0 {
+        println!("{missing_audio} tracks were left out, as their audio file was not there");
+    }
+    if without_analysis > 0 {
+        println!("{without_analysis} tracks have no analysis files in the library");
+    }
+    Ok(())
+}
+
+/// Prints the playlists of a library as the tree they form.
+fn print_playlists(library: &Library, parent_id: u32, depth: usize) {
+    let mut nodes: Vec<_> = library
+        .playlists()
+        .iter()
+        .filter(|node| node.parent_id == parent_id)
+        .collect();
+    nodes.sort_by_key(|node| (node.sort_order, node.id));
+
+    for node in nodes {
+        let indent = "  ".repeat(depth);
+        if node.is_folder() {
+            println!("{indent}{}/", node.name);
+        } else {
+            let count = library.playlist_tracks(node.id).len();
+            println!("{indent}{} ({count} tracks)", node.name);
+        }
+        print_playlists(library, node.id, depth + 1);
+    }
+}
+
 fn run() -> CliResult<()> {
     let cli = Cli::parse();
 
     match &cli.command {
         Commands::ListPlaylists { path } => list_playlists(path)?,
+        Commands::Library {
+            path,
+            list,
+            playlists,
+            output,
+        } => library(path, *list, playlists, output.as_deref())?,
         Commands::ListSettings { path } => list_settings(path)?,
         Commands::ExportPlaylists { path, output_dir } => export_playlists(path, output_dir)?,
         Commands::DumpPDB {

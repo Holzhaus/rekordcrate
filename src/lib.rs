@@ -25,6 +25,7 @@
 
 pub mod anlz;
 pub mod device;
+pub mod edb;
 pub mod pdb;
 pub mod setting;
 pub mod util;
