@@ -1995,10 +1995,11 @@ impl Default for TrackStrings {
         Self {
             isrc: DeviceSQLString::empty(),
             lyricist: DeviceSQLString::empty(),
-            // Rekordbox writes a number here that appears to count how often the track was
-            // exported or modified.
-            unknown_string2: string("3"),
-            unknown_string3: string("3"),
+            // Rekordbox writes the play count of the track plus one here, which a writer with
+            // a count to hand fills in instead.
+            unknown_string2: string("1"),
+            // Holds a small number, which is one for most of the tracks of the exports we have.
+            unknown_string3: string("\u{1}"),
             unknown_string4: DeviceSQLString::empty(),
             message: DeviceSQLString::empty(),
             publish_track_information: DeviceSQLString::empty(),
@@ -2183,7 +2184,9 @@ impl Default for Track {
             // first 256 bytes of it.
             subtype: Subtype(0x24),
             index_shift: 0,
-            bitmask: 0x000C_0700,
+            // The value that the current Rekordbox writes. The two older exports we have hold
+            // 0x000c0700 instead, so this differs between versions rather than between tracks.
+            bitmask: 0x0700,
             sample_rate: 0,
             composer_id: ArtistId(0),
             file_size: 0,
