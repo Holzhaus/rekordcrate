@@ -120,6 +120,23 @@ pub struct TagOrCategory {
     pub offsets: OffsetArrayContainer<TagOrCategoryStrings, 2>,
 }
 
+impl TagOrCategory {
+    /// Subtype that Rekordbox writes for a tag row, which selects 8-bit string offsets.
+    pub const SUBTYPE: u16 = 1664;
+
+    /// Value marking a row as holding a category rather than a tag.
+    pub const IS_CATEGORY: u32 = 0x0100_0000;
+
+    /// Unused page heap space that Rekordbox leaves after a tag row.
+    pub const SLACK_BYTES: u16 = 8;
+
+    /// Whether the row holds a category rather than a tag.
+    #[must_use]
+    pub fn is_category(&self) -> bool {
+        self.raw_is_category != 0
+    }
+}
+
 impl PageHeapObject for TagOrCategory {
     type Args<'a> = ();
     fn heap_bytes_required(&self, _: ()) -> u16 {
@@ -174,6 +191,11 @@ pub struct TrackTag {
     pub tag_id: TagId,
     /// Unknown purpose, seems to be always 3.
     pub unknown_const: u32, // always 3?
+}
+
+impl TrackTag {
+    /// Value that the last field of the row holds in every export we have seen.
+    pub const UNKNOWN_CONST: u32 = 3;
 }
 
 impl PageHeapObject for TrackTag {

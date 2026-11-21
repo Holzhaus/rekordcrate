@@ -161,12 +161,6 @@ const TAGS: [(Option<u32>, u32, u32, bool, &str); 28] = [
     (Some(4), 0, 701802348, false, "My Comment"),
 ];
 
-/// Subtype of the tag rows that Rekordbox writes, which selects 8-bit string offsets.
-const TAG_SUBTYPE: u16 = 1664;
-
-/// Value of the field that marks a tag row as holding a category.
-const TAG_IS_CATEGORY: u32 = 0x0100_0000;
-
 /// The single row of the not understood ext table, which is the same in every known export.
 const UNKNOWN7: [u8; Unknown7::BINARY_SIZE as usize] = [
     0x00, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -292,7 +286,7 @@ pub fn insert_default_tags<IO: Read + Seek>(db: &mut Database<IO>) -> Rekordcrat
     for (parent, position, id, is_category, name) in TAGS {
         db.add_row_with_slack(
             TagOrCategory {
-                subtype: Subtype(TAG_SUBTYPE),
+                subtype: Subtype(TagOrCategory::SUBTYPE),
                 // Recorded when the row is stored, from the place it takes in its page.
                 index_shift: 0,
                 unknown1: 0,
@@ -300,7 +294,11 @@ pub fn insert_default_tags<IO: Read + Seek>(db: &mut Database<IO>) -> Rekordcrat
                 parent_id: ParentId(parent.and_then(NonZero::new)),
                 position,
                 id: TagId(id),
-                raw_is_category: if is_category { TAG_IS_CATEGORY } else { 0 },
+                raw_is_category: if is_category {
+                    TagOrCategory::IS_CATEGORY
+                } else {
+                    0
+                },
                 offsets: OffsetArrayContainer {
                     offsets: MaybeCalculated::Calculated,
                     inner: TagOrCategoryStrings {
