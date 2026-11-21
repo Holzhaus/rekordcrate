@@ -637,9 +637,6 @@ fn library(
                 continue;
             }
 
-            // The path the track has on the device, which is also what decides where its
-            // analysis files belong.
-            let device_path = format!("/Contents/{}", track.filename);
             let destination = contents.join(&track.filename);
             // A file that is already on the device is left alone, which is what makes adding to
             // an export cheap.
@@ -652,6 +649,11 @@ fn library(
                 );
             }
 
+            // The path the track has on the device, which is also what decides where its
+            // analysis files belong. The name is taken from the device rather than from the
+            // library, as a file system does not always store a name as it was given.
+            let device_path = format!("/Contents/{}", stored_name(&destination)?);
+
             // The artwork keeps the place it has in the library, so that the path recorded for
             // it is the one the player finds it at.
             let artwork_path = copy_artwork(&library, track, &layout)?;
@@ -660,12 +662,16 @@ fn library(
             if analysis.is_empty() {
                 without_analysis += 1;
             }
+            // The paths of two tracks can lead to the same directory, so the name within it is
+            // chosen rather than assumed.
+            let analysis_dir = layout.anlz_dir_for_audio(&device_path);
+            let stem = choose_analysis_stem(&analysis_dir, &device_path)?;
             for file in analysis {
                 let extension = file
                     .extension()
                     .and_then(|extension| extension.to_str())
                     .unwrap_or("DAT");
-                let destination = layout.anlz_file_for_audio(&device_path, extension);
+                let destination = analysis_dir.join(format!("{stem}.{extension}"));
                 copy_analysis_file(&file, &destination, &device_path)?;
             }
 
@@ -680,8 +686,8 @@ fn library(
                 date_added: track.date_added.clone(),
                 analyze_date: track.analyze_date.clone(),
                 artwork_path,
-                analyze_path: layout
-                    .anlz_file_for_audio(&device_path, "DAT")
+                analyze_path: analysis_dir
+                    .join(format!("{stem}.DAT"))
                     .strip_prefix(layout.root())
                     .map(|path| format!("/{}", path.display()))
                     .unwrap_or_default(),
@@ -720,6 +726,43 @@ fn library(
         println!("{without_analysis} tracks have no analysis files in the library");
     }
     Ok(())
+}
+
+/// The name that the device holds a file under, which is not always the name it was given.
+///
+/// A name holding a character outside ASCII can be stored in more than one form, and a file
+/// system is free to pick one: macOS writes the decomposed form to a FAT file system, so a file
+/// given a name holding "ö" is stored under a name holding "o" followed by a combining mark
+/// instead. Both forms find the file again from the machine that wrote it, but a player compares
+/// the name in the directory against the path the database holds, and those have to be the same.
+///
+/// The name is found by looking for the file the path leads to in the directory holding it, so
+/// that whatever the file system stored is what the export records.
+fn stored_name(path: &Path) -> CliResult<String> {
+    let given = || {
+        path.file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or_default()
+            .to_owned()
+    };
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        let Some(parent) = path.parent() else {
+            return Ok(given());
+        };
+        let inode = path.metadata()?.ino();
+        for entry in std::fs::read_dir(parent)? {
+            let entry = entry?;
+            if entry.metadata().is_ok_and(|data| data.ino() == inode) {
+                if let Some(name) = entry.file_name().to_str() {
+                    return Ok(name.to_owned());
+                }
+            }
+        }
+    }
+    Ok(given())
 }
 
 /// Copies a file to a device unless the device already holds it, and says whether it copied.
@@ -807,6 +850,44 @@ fn copy_artwork(
     }
 
     Ok(format!("/PIONEER/Artwork/{}", below_artwork.1))
+}
+
+/// The name to give the analysis files of a track in the directory they belong in.
+///
+/// The directory follows from the path of the audio file, and the paths of two tracks can lead to
+/// the same one, which Rekordbox handles by counting the name up. A name already holding the
+/// analysis of this track is used again, so that writing the same track twice does not leave a
+/// second copy of it.
+fn choose_analysis_stem(dir: &Path, audio_path: &str) -> CliResult<String> {
+    for number in 0..10_000 {
+        let stem = format!("ANLZ{number:04}");
+        let candidate = dir.join(format!("{stem}.DAT"));
+        if !candidate.is_file() {
+            return Ok(stem);
+        }
+        // A file naming this track is the analysis of this track.
+        if analysis_names(&candidate)?.as_deref() == Some(audio_path) {
+            return Ok(stem);
+        }
+    }
+    Err(CliError::MissingArgument(
+        "a free name for the analysis files, as the directory is full",
+    ))
+}
+
+/// The audio file that an analysis file names, if it names one.
+fn analysis_names(path: &Path) -> CliResult<Option<String>> {
+    let data = std::fs::read(path)?;
+    let Ok(anlz) = ANLZ::read(&mut std::io::Cursor::new(data.as_slice())) else {
+        return Ok(None);
+    };
+    Ok(anlz
+        .sections
+        .iter()
+        .find_map(|section| match &section.content {
+            rekordcrate::anlz::Content::Path(content) => Some(content.path.to_string()),
+            _ => None,
+        }))
 }
 
 /// Copies an analysis file to a device, naming the path the audio file has there.

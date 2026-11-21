@@ -19,7 +19,6 @@
 //! well, and a row whose type is not known is not found at all. Neither keeps a library from
 //! being read, but it does mean the counts here can exceed what Rekordbox shows.
 
-use crate::anlz::AnalysisPath;
 use crate::pdb::{
     Album, Artist, Artwork, Genre, Label, PageType, PlainPageType, PlaylistTreeNode, Row,
     Track as TrackRow,
@@ -96,6 +95,8 @@ pub struct LibraryTrack {
     pub date_added: String,
     /// Date the track was analyzed.
     pub analyze_date: String,
+    /// Path of the analysis file of the track on the machine the library belongs to.
+    pub analyze_path: String,
     /// Tempo in hundredths of a beat per minute.
     pub tempo: u32,
     /// Playback duration in seconds.
@@ -242,18 +243,21 @@ impl Library {
 
     /// The analysis files that the library holds for a track, if they are there.
     ///
-    /// The library keeps them under its own `PIONEER/USBANLZ` directory, in the place that
-    /// follows from the path of the audio file.
+    /// The track names the one holding the beat grid and the cues, and the others sit beside it
+    /// under the same name. The name is not always the first one: where the paths of two tracks
+    /// lead to the same directory, which happens, Rekordbox counts the name up, so the name has
+    /// to be taken from the track rather than assumed.
+    ///
+    /// The path the track names is a path on the machine the library belongs to, so the file is
+    /// looked for in the library itself.
     #[must_use]
     pub fn analysis_files(&self, track: &LibraryTrack) -> Vec<PathBuf> {
-        let dir = self
-            .root
-            .join("PIONEER")
-            .join("USBANLZ")
-            .join(AnalysisPath::for_audio_path(&track.file_path).relative_dir());
+        let Some(named) = self.file_below_pioneer(&track.analyze_path) else {
+            return Vec::new();
+        };
         ["DAT", "EXT", "2EX"]
             .into_iter()
-            .map(|extension| dir.join(format!("{}.{extension}", AnalysisPath::FILE_STEM)))
+            .map(|extension| named.with_extension(extension))
             .filter(|path| path.is_file())
             .collect()
     }
@@ -415,6 +419,7 @@ fn read_tracks(data: &[u8], names: &Names) -> BTreeMap<u32, LibraryTrack> {
                 comment: string(&row.offsets.comment),
                 date_added: string(&row.offsets.date_added),
                 analyze_date: string(&row.offsets.analyze_date),
+                analyze_path: string(&row.offsets.analyze_path),
                 tempo: row.tempo,
                 duration: row.duration,
                 bitrate: row.bitrate,
