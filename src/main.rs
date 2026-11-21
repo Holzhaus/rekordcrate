@@ -647,6 +647,12 @@ fn library(
     };
     let layout = writer.layout().clone();
 
+    // Rekordbox carries the profile of the DJ over to a device, so an export from a library
+    // holding one carries it as well.
+    if let Some(profile) = library.profile_file() {
+        copy_unless_present(&profile, &layout.dj_profile())?;
+    }
+
     let mut missing_audio = 0usize;
     let mut without_analysis = 0usize;
     let mut added = 0usize;

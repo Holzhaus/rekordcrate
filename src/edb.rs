@@ -32,6 +32,9 @@ use std::path::{Path, PathBuf};
 /// Name of the file holding the library.
 const LIBRARY_FILE: &str = "datafile.edb";
 
+/// Name of the file holding the profile of the DJ, which an export carries a copy of.
+const PROFILE_FILE: &str = "djprofile.nxs";
+
 /// Tag that a track row is preceded by.
 const TRACK_TAG: [u8; 2] = [0xc4, 0x02];
 
@@ -231,6 +234,17 @@ impl Library {
             .get(&playlist_id)
             .map(|ids| ids.iter().filter_map(|id| self.tracks.get(id)).collect())
             .unwrap_or_default()
+    }
+
+    /// The profile of the DJ, if the library holds one.
+    ///
+    /// Rekordbox puts a copy of this file in an export. What it holds beyond the name of the DJ
+    /// is not worked out, and it names ids of the installation it came from, so it is carried
+    /// over as it is rather than written.
+    #[must_use]
+    pub fn profile_file(&self) -> Option<PathBuf> {
+        let path = self.root.join(PROFILE_FILE);
+        path.is_file().then_some(path)
     }
 
     /// The file that the library holds at a path it recorded, if it is there.
@@ -527,4 +541,33 @@ fn read_entries(
         .into_iter()
         .map(|(playlist_id, tracks)| (playlist_id, tracks.into_values().collect()))
         .collect()
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    /// A directory holding nothing but the file that makes it a library.
+    fn empty_library(name: &str) -> PathBuf {
+        let path =
+            std::env::temp_dir().join(format!("rekordcrate-library-{}-{name}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&path);
+        std::fs::create_dir_all(&path).unwrap();
+        std::fs::write(path.join(LIBRARY_FILE), []).unwrap();
+        path
+    }
+
+    /// The profile of the DJ is found in the library, and is only reported when it is there.
+    #[test]
+    fn test_profile_file() {
+        let root = empty_library("profile");
+        let library = Library::open(&root).unwrap();
+        assert_eq!(library.profile_file(), None);
+
+        std::fs::write(root.join(PROFILE_FILE), b"a profile").unwrap();
+        let library = Library::open(&root).unwrap();
+        assert_eq!(library.profile_file(), Some(root.join(PROFILE_FILE)));
+
+        let _ = std::fs::remove_dir_all(&root);
+    }
 }
