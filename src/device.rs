@@ -327,12 +327,11 @@ pub struct Track {
 }
 
 /// The setting types that an export holds a file for.
-const SETTING_TYPES: [SettingType; 4] = [
-    SettingType::DevSetting,
-    SettingType::DJMMySetting,
-    SettingType::MySetting,
-    SettingType::MySetting2,
-];
+///
+/// Only the settings of the device are written. The other three files hold the settings of a
+/// player, which Rekordbox copies to a stick when they are changed rather than when an export is
+/// written, so an export it writes holds this one alone.
+const SETTING_TYPES: [SettingType; 1] = [SettingType::DevSetting];
 
 /// Writes a device export.
 ///
