@@ -6,7 +6,8 @@ Here's a quick overview of the most important things to keep in mind:
 - Be polite and respectful to each other.
 - Work in feature branches, and make sure to base your work on the appropriate base branch. If you started from the wrong branch, please rebase and change the PR target.
 - Use our [pre-commit](#using-pre-commit-hooks) hooks.
-- Write [meaningful commit messages](https://cbea.ms/git-commit/) and use [conventional commit messages](#conventional-commits).
+- Comments should give a brief and precise explanation *why* something is done in a certain way, not paraphrase what the code does. They should only be added if additional context is needed. Verbose descriptions that only state what is already obvious from the code do not add value and should be omitted.
+- Write [meaningful commit messages](https://cbea.ms/git-commit/) and use [conventional commit messages](#conventional-commits). The same provisions as for comments apply, so keep the commit message rather short if no detailed description is needed for the changes.
 - Open a [draft PR](https://github.blog/2019-02-14-introducing-draft-pull-requests/) to get early feedback.
 - Ensure that every commit builds. Please fix broken commits by rebasing.
 - Run `cargo test` before committing to ensure that all tests pass.
