@@ -288,9 +288,10 @@ pub struct DeviceExportWriter {
     genre_ids: HashMap<String, GenreId>,
     label_ids: HashMap<String, LabelId>,
     key_ids: HashMap<String, KeyId>,
-    /// The nodes of the playlist tree by name, so that a playlist that is already in the export
-    /// is added to rather than added again.
-    playlist_ids: HashMap<String, PlaylistTreeNodeId>,
+    /// The nodes of the playlist tree by the folder holding them and their name, so that a
+    /// playlist that is already in the export is added to rather than added again. Two playlists
+    /// in different folders may have the same name, which is why the folder is part of the key.
+    playlist_ids: HashMap<(PlaylistTreeNodeId, String), PlaylistTreeNodeId>,
     /// The position of the last entry of a playlist, by its id.
     playlist_lengths: HashMap<PlaylistTreeNodeId, u32>,
     /// The tracks a playlist already holds, so that one is not put in it twice.
@@ -448,10 +449,10 @@ impl DeviceExportWriter {
             .iter_rows::<Artwork>()?
             .map(|row| Ok((row.path.clone().into_string()?, row.id)))
             .collect()?;
-        let playlists: Vec<(String, PlaylistTreeNodeId)> = self
+        let playlists: Vec<(PlaylistTreeNodeId, String, PlaylistTreeNodeId)> = self
             .plain
             .iter_rows::<PlaylistTreeNode>()?
-            .map(|row| Ok((row.name.clone().into_string()?, row.id)))
+            .map(|row| Ok((row.parent_id, row.name.clone().into_string()?, row.id)))
             .collect()?;
         let entries: Vec<(PlaylistTreeNodeId, u32, TrackId)> = self
             .plain
@@ -467,7 +468,7 @@ impl DeviceExportWriter {
         self.next_ids.label = next_after(labels.iter().map(|(_, id)| id.0));
         self.next_ids.key = next_after(keys.iter().map(|(_, id)| id.0));
         self.next_ids.artwork = next_after(artwork.iter().map(|(_, id)| id.0));
-        self.next_ids.playlist = next_after(playlists.iter().map(|(_, id)| id.0));
+        self.next_ids.playlist = next_after(playlists.iter().map(|(_, _, id)| id.0));
 
         self.track_ids = tracks.into_iter().collect();
         self.artist_ids = artists.into_iter().collect();
@@ -478,9 +479,9 @@ impl DeviceExportWriter {
         self.artwork_ids = artwork.into_iter().collect();
         self.playlist_ids = playlists
             .iter()
-            .map(|(name, id)| (name.clone(), *id))
+            .map(|(parent, name, id)| ((*parent, name.clone()), *id))
             .collect();
-        for (_, id) in playlists {
+        for (_, _, id) in playlists {
             self.playlist_lengths.entry(id).or_insert(0);
             self.playlist_members.entry(id).or_default();
         }
@@ -631,10 +632,17 @@ impl DeviceExportWriter {
         Ok(true)
     }
 
-    /// The playlist of the export with the given name, if it holds one.
+    /// The node of the playlist tree with the given name, in the given folder or at the root of
+    /// the tree, if the export holds one.
     #[must_use]
-    pub fn playlist_by_name(&self, name: &str) -> Option<PlaylistTreeNodeId> {
-        self.playlist_ids.get(name).copied()
+    pub fn playlist_by_name(
+        &self,
+        parent: Option<PlaylistTreeNodeId>,
+        name: &str,
+    ) -> Option<PlaylistTreeNodeId> {
+        self.playlist_ids
+            .get(&(parent.unwrap_or(PlaylistTreeNodeId(0)), name.to_owned()))
+            .copied()
     }
 
     /// Adds a node to the playlist tree, which is either a folder or a playlist.
@@ -665,7 +673,10 @@ impl DeviceExportWriter {
             ..Default::default()
         })?;
 
-        self.playlist_ids.insert(name.to_owned(), id);
+        self.playlist_ids.insert(
+            (parent.unwrap_or(PlaylistTreeNodeId(0)), name.to_owned()),
+            id,
+        );
         self.playlist_lengths.insert(id, 0);
         self.playlist_members.entry(id).or_default();
         Ok(id)
