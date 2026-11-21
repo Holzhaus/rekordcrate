@@ -642,6 +642,10 @@ fn library(
             let track_id = writer.add_track(&DeviceTrack {
                 file_path: device_path.clone(),
                 title: track.title.clone(),
+                artist: track.artist.clone(),
+                album: track.album.clone(),
+                genre: track.genre.clone(),
+                label: track.label.clone(),
                 comment: track.comment.clone(),
                 date_added: track.date_added.clone(),
                 analyze_date: track.analyze_date.clone(),

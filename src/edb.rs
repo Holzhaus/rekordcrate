@@ -20,7 +20,9 @@
 //! being read, but it does mean the counts here can exceed what Rekordbox shows.
 
 use crate::anlz::AnalysisPath;
-use crate::pdb::{PageType, PlainPageType, PlaylistTreeNode, Row, Track as TrackRow};
+use crate::pdb::{
+    Album, Artist, Genre, Label, PageType, PlainPageType, PlaylistTreeNode, Row, Track as TrackRow,
+};
 use crate::util::{ColorIndex, FileType, RekordcrateResult};
 use binrw::BinRead;
 use std::collections::{BTreeMap, BTreeSet};
@@ -38,6 +40,12 @@ const PLAYLIST_TAG: [u8; 2] = [0xa0, 0x03];
 
 /// Tag that an entry of a playlist is preceded by.
 const ENTRY_TAG: [u8; 2] = [0xc0, 0x03];
+
+/// Tags of the rows holding the names that a track refers to by id.
+const ARTIST_TAG: [u8; 2] = [0x00, 0x03];
+const ALBUM_TAG: [u8; 2] = [0x20, 0x03];
+const GENRE_TAG: [u8; 2] = [0xe0, 0x02];
+const LABEL_TAG: [u8; 2] = [0x40, 0x03];
 
 /// Length of a tag and the index following it.
 ///
@@ -57,15 +65,20 @@ const MAX_ROW_SIZE: usize = 8192;
 const ENTRY_SIZE: usize = 12;
 
 /// A track of a Rekordbox 5 library.
-///
-/// The fields a track row holds as ids of other rows, such as its artist, are left out, because
-/// the rows they refer to have not been worked out yet.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct LibraryTrack {
     /// Id of the track, which playlists refer to it by.
     pub id: u32,
     /// Title of the track.
     pub title: String,
+    /// Name of the artist, or empty if the track names none.
+    pub artist: String,
+    /// Name of the album, or empty if the track names none.
+    pub album: String,
+    /// Name of the genre, or empty if the track names none.
+    pub genre: String,
+    /// Name of the record label, or empty if the track names none.
+    pub label: String,
     /// Path of the audio file on the machine the library belongs to.
     pub file_path: String,
     /// Name of the audio file.
@@ -150,7 +163,8 @@ impl Library {
         let root = root.into();
         let data = std::fs::read(root.join(LIBRARY_FILE))?;
 
-        let tracks = read_tracks(&data);
+        let names = read_names(&data);
+        let tracks = read_tracks(&data, &names);
         let playlists = read_playlists(&data);
         let entries = read_entries(
             &data,
@@ -241,8 +255,65 @@ fn tagged_rows(data: &[u8], tag: [u8; 2]) -> impl Iterator<Item = usize> + '_ {
     })
 }
 
+/// The names that tracks refer to by id, by the kind of row holding them.
+#[derive(Debug, Default)]
+struct Names {
+    artists: BTreeMap<u32, String>,
+    albums: BTreeMap<u32, String>,
+    genres: BTreeMap<u32, String>,
+    labels: BTreeMap<u32, String>,
+}
+
+/// Reads the rows holding the names that a track refers to by id.
+fn read_names(data: &[u8]) -> Names {
+    let mut names = Names::default();
+    for (tag, page_type) in [
+        (ARTIST_TAG, PlainPageType::Artists),
+        (ALBUM_TAG, PlainPageType::Albums),
+        (GENRE_TAG, PlainPageType::Genres),
+        (LABEL_TAG, PlainPageType::Labels),
+    ] {
+        for offset in tagged_rows(data, tag) {
+            let Some(row) = read_row_at(data, offset, PageType::Plain(page_type)) else {
+                continue;
+            };
+            let named = match page_type {
+                PlainPageType::Artists => row
+                    .as_variant::<Artist>()
+                    .map(|row| (row.id.0, row.offsets.name.clone())),
+                PlainPageType::Albums => row
+                    .as_variant::<Album>()
+                    .map(|row| (row.id.0, row.offsets.name.clone())),
+                PlainPageType::Genres => row
+                    .as_variant::<Genre>()
+                    .map(|row| (row.id.0, row.name.clone())),
+                PlainPageType::Labels => row
+                    .as_variant::<Label>()
+                    .map(|row| (row.id.0, row.name.clone())),
+                _ => None,
+            };
+            let Some((id, name)) = named else { continue };
+            let Ok(name) = name.into_string() else {
+                continue;
+            };
+            // A tag can appear by chance, so a row is only kept if it names something.
+            if id == 0 || name.is_empty() || name.chars().any(char::is_control) {
+                continue;
+            }
+            let table = match page_type {
+                PlainPageType::Artists => &mut names.artists,
+                PlainPageType::Albums => &mut names.albums,
+                PlainPageType::Genres => &mut names.genres,
+                _ => &mut names.labels,
+            };
+            table.insert(id, name);
+        }
+    }
+    names
+}
+
 /// Reads the tracks of the library.
-fn read_tracks(data: &[u8]) -> BTreeMap<u32, LibraryTrack> {
+fn read_tracks(data: &[u8], names: &Names) -> BTreeMap<u32, LibraryTrack> {
     let mut tracks = BTreeMap::new();
     for offset in tagged_rows(data, TRACK_TAG) {
         // A track row holds a table of the offsets of its strings, which starts with the same
@@ -276,6 +347,26 @@ fn read_tracks(data: &[u8]) -> BTreeMap<u32, LibraryTrack> {
             LibraryTrack {
                 id: row.id.0,
                 title: string(&row.offsets.title),
+                artist: names
+                    .artists
+                    .get(&row.artist_id.0)
+                    .cloned()
+                    .unwrap_or_default(),
+                album: names
+                    .albums
+                    .get(&row.album_id.0)
+                    .cloned()
+                    .unwrap_or_default(),
+                genre: names
+                    .genres
+                    .get(&row.genre_id.0)
+                    .cloned()
+                    .unwrap_or_default(),
+                label: names
+                    .labels
+                    .get(&row.label_id.0)
+                    .cloned()
+                    .unwrap_or_default(),
                 file_path,
                 filename: string(&row.offsets.filename),
                 comment: string(&row.offsets.comment),
