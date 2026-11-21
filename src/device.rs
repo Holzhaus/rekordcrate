@@ -212,6 +212,9 @@ pub struct Track {
     pub artist: String,
     /// Name of the album, which is added to the albums of the export if it is new.
     pub album: String,
+    /// Name of the artist of the album, which an album names rather than naming the artist of a
+    /// track on it. Falls back to the artist of the track when empty.
+    pub album_artist: String,
     /// Name of the genre, which is added to the genres of the export if it is new.
     pub genre: String,
     /// Name of the record label, which is added to the labels of the export if it is new.
@@ -527,7 +530,14 @@ impl DeviceExportWriter {
         }
 
         let artist_id = self.add_artist(&track.artist)?;
-        let album_id = self.add_album(&track.album, artist_id)?;
+        // An album names its own artist, which is the artist of the track where the track names
+        // none of its own.
+        let album_artist_id = if track.album_artist.is_empty() {
+            artist_id
+        } else {
+            self.add_artist(&track.album_artist)?
+        };
+        let album_id = self.add_album(&track.album, album_artist_id)?;
         let genre_id = self.add_genre(&track.genre)?;
         let label_id = self.add_label(&track.label)?;
         let key_id = self.add_key(&track.key)?;

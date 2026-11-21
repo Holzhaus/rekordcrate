@@ -688,3 +688,50 @@ fn test_add_track_writes_the_fields_rekordbox_fixes() {
         .expect("failed to read tracks");
     assert_eq!(rows, vec![(0x0700, 41, "\u{1}".to_string())]);
 }
+
+/// An album must name its own artist, which is not always the artist of a track on it.
+///
+/// An export written by Rekordbox holds sixty-one artists for fifty-three tracks: every one of
+/// its forty-six albums names an artist, and eight of those are named by no track.
+#[test]
+fn test_add_track_writes_the_artist_of_an_album() {
+    let dir = TempDir::new("album-artist");
+    let mut writer =
+        DeviceExportWriter::create(dir.path(), REFERENCE_DATE).expect("failed to create export");
+    writer
+        .add_track(&Track {
+            artist: "A Remixer".to_owned(),
+            album: "A Compilation".to_owned(),
+            album_artist: "Various Artists".to_owned(),
+            ..demo_track("/Contents/One.mp3", "One")
+        })
+        .expect("failed to add track");
+    writer.close().expect("failed to close export");
+
+    let mut db = DeviceExportLoader::new(dir.path().to_path_buf())
+        .open_pdb_non_persistent()
+        .expect("failed to open database");
+    let artists: Vec<(u32, String)> = db
+        .iter_rows::<Artist>()
+        .expect("failed to load artists")
+        .map(|row| Ok((row.id.0, row.offsets.name.clone().into_string()?)))
+        .collect()
+        .expect("failed to read artists");
+    let albums: Vec<(String, u32)> = db
+        .iter_rows::<Album>()
+        .expect("failed to load albums")
+        .map(|row| Ok((row.offsets.name.clone().into_string()?, row.artist_id.0)))
+        .collect()
+        .expect("failed to read albums");
+
+    // The artist of the track and the artist of the album are both held, as separate rows.
+    let mut names: Vec<&String> = artists.iter().map(|(_, name)| name).collect();
+    names.sort();
+    assert_eq!(names, vec!["A Remixer", "Various Artists"]);
+    // The album names its own artist rather than the artist of the track.
+    let album_artist = artists
+        .iter()
+        .find(|(_, name)| name == "Various Artists")
+        .expect("the artist of the album should be in the export");
+    assert_eq!(albums, vec![("A Compilation".to_string(), album_artist.0)]);
+}
