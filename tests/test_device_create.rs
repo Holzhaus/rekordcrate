@@ -954,3 +954,13 @@ fn test_tags_are_written_as_rekordbox_writes_them() {
         .expect("failed to read the tags of tracks");
     assert_eq!(links, vec![(track.0, dark.0, 3)]);
 }
+
+/// An export must hold the profile of the DJ where Rekordbox holds it.
+#[test]
+fn test_the_dj_profile_is_held_where_rekordbox_holds_it() {
+    let layout = ExportLayout::new(PathBuf::from("/device"));
+    assert_eq!(
+        layout.dj_profile(),
+        PathBuf::from("/device/PIONEER/djprofile.nxs")
+    );
+}

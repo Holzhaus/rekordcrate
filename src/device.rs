@@ -145,6 +145,12 @@ impl ExportLayout {
             .join(format!("{}.{extension}", AnalysisPath::FILE_STEM))
     }
 
+    /// The profile of the DJ, which an export carries a copy of.
+    #[must_use]
+    pub fn dj_profile(&self) -> PathBuf {
+        self.pioneer_dir().join("djprofile.nxs")
+    }
+
     /// The file holding settings of the given type.
     #[must_use]
     pub fn setting_file(&self, setting_type: SettingType) -> PathBuf {
