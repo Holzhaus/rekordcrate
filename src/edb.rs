@@ -21,7 +21,8 @@
 
 use crate::anlz::AnalysisPath;
 use crate::pdb::{
-    Album, Artist, Genre, Label, PageType, PlainPageType, PlaylistTreeNode, Row, Track as TrackRow,
+    Album, Artist, Artwork, Genre, Label, PageType, PlainPageType, PlaylistTreeNode, Row,
+    Track as TrackRow,
 };
 use crate::util::{ColorIndex, FileType, RekordcrateResult};
 use binrw::BinRead;
@@ -46,6 +47,9 @@ const ARTIST_TAG: [u8; 2] = [0x00, 0x03];
 const ALBUM_TAG: [u8; 2] = [0x20, 0x03];
 const GENRE_TAG: [u8; 2] = [0xe0, 0x02];
 const LABEL_TAG: [u8; 2] = [0x40, 0x03];
+
+/// Tag of the rows naming the image files that hold the artwork of a track.
+const ARTWORK_TAG: [u8; 2] = [0x20, 0x04];
 
 /// Length of a tag and the index following it.
 ///
@@ -79,6 +83,9 @@ pub struct LibraryTrack {
     pub genre: String,
     /// Name of the record label, or empty if the track names none.
     pub label: String,
+    /// Path of the image file holding the artwork of the track on the machine the library
+    /// belongs to, or empty if the track names none.
+    pub artwork_path: String,
     /// Path of the audio file on the machine the library belongs to.
     pub file_path: String,
     /// Name of the audio file.
@@ -215,6 +222,18 @@ impl Library {
             .unwrap_or_default()
     }
 
+    /// The file that the library holds at a path it recorded, if it is there.
+    ///
+    /// The paths in a library are absolute paths on the machine it belongs to, which a copy of
+    /// the library is not at, so the part below `PIONEER` is taken and looked for in the library
+    /// itself.
+    #[must_use]
+    pub fn file_below_pioneer(&self, recorded_path: &str) -> Option<PathBuf> {
+        let below = recorded_path.split_once("PIONEER/").map(|(_, rest)| rest)?;
+        let path = self.root.join("PIONEER").join(below);
+        path.is_file().then_some(path)
+    }
+
     /// The analysis files that the library holds for a track, if they are there.
     ///
     /// The library keeps them under its own `PIONEER/USBANLZ` directory, in the place that
@@ -262,6 +281,7 @@ struct Names {
     albums: BTreeMap<u32, String>,
     genres: BTreeMap<u32, String>,
     labels: BTreeMap<u32, String>,
+    artwork: BTreeMap<u32, String>,
 }
 
 /// Reads the rows holding the names that a track refers to by id.
@@ -272,8 +292,16 @@ fn read_names(data: &[u8]) -> Names {
         (ALBUM_TAG, PlainPageType::Albums),
         (GENRE_TAG, PlainPageType::Genres),
         (LABEL_TAG, PlainPageType::Labels),
+        (ARTWORK_TAG, PlainPageType::Artwork),
     ] {
-        for offset in tagged_rows(data, tag) {
+        // An artist or album row holds the tag as its first two fields, while the others start
+        // after it.
+        let skip_tag = matches!(
+            page_type,
+            PlainPageType::Genres | PlainPageType::Labels | PlainPageType::Artwork
+        );
+        for tagged in tagged_rows(data, tag) {
+            let offset = if skip_tag { tagged + TAG_SIZE } else { tagged };
             let Some(row) = read_row_at(data, offset, PageType::Plain(page_type)) else {
                 continue;
             };
@@ -290,6 +318,9 @@ fn read_names(data: &[u8]) -> Names {
                 PlainPageType::Labels => row
                     .as_variant::<Label>()
                     .map(|row| (row.id.0, row.name.clone())),
+                PlainPageType::Artwork => row
+                    .as_variant::<Artwork>()
+                    .map(|row| (row.id.0, row.path.clone())),
                 _ => None,
             };
             let Some((id, name)) = named else { continue };
@@ -304,6 +335,7 @@ fn read_names(data: &[u8]) -> Names {
                 PlainPageType::Artists => &mut names.artists,
                 PlainPageType::Albums => &mut names.albums,
                 PlainPageType::Genres => &mut names.genres,
+                PlainPageType::Artwork => &mut names.artwork,
                 _ => &mut names.labels,
             };
             table.insert(id, name);
@@ -365,6 +397,11 @@ fn read_tracks(data: &[u8], names: &Names) -> BTreeMap<u32, LibraryTrack> {
                 label: names
                     .labels
                     .get(&row.label_id.0)
+                    .cloned()
+                    .unwrap_or_default(),
+                artwork_path: names
+                    .artwork
+                    .get(&row.artwork_id.0)
                     .cloned()
                     .unwrap_or_default(),
                 file_path,

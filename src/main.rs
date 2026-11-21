@@ -10,7 +10,7 @@ use binrw::BinRead;
 use binrw::BinWrite;
 use clap::{Parser, Subcommand, ValueEnum};
 use fallible_iterator::FallibleIterator;
-use rekordcrate::device::{get_playlists, DeviceExportWriter, Track as DeviceTrack};
+use rekordcrate::device::{get_playlists, DeviceExportWriter, ExportLayout, Track as DeviceTrack};
 use rekordcrate::edb::Library;
 use rekordcrate::pdb::io::Database;
 use rekordcrate::pdb::*;
@@ -623,6 +623,10 @@ fn library(
             let device_path = format!("/Contents/{}", track.filename);
             std::fs::copy(source, contents.join(&track.filename))?;
 
+            // The artwork keeps the place it has in the library, so that the path recorded for
+            // it is the one the player finds it at.
+            let artwork_path = copy_artwork(&library, track, &layout)?;
+
             let analysis = library.analysis_files(track);
             if analysis.is_empty() {
                 without_analysis += 1;
@@ -649,6 +653,7 @@ fn library(
                 comment: track.comment.clone(),
                 date_added: track.date_added.clone(),
                 analyze_date: track.analyze_date.clone(),
+                artwork_path,
                 analyze_path: layout
                     .anlz_file_for_audio(&device_path, "DAT")
                     .strip_prefix(layout.root())
@@ -681,6 +686,46 @@ fn library(
         println!("{without_analysis} tracks have no analysis files in the library");
     }
     Ok(())
+}
+
+/// Copies the artwork of a track to a device, and returns the path it has there.
+///
+/// Players look for the artwork of a track at the path the database records, alongside which they
+/// expect the larger version that Rekordbox writes beside it, so both are copied to the place
+/// below `PIONEER/Artwork` that they have in the library.
+fn copy_artwork(
+    library: &Library,
+    track: &rekordcrate::edb::LibraryTrack,
+    layout: &ExportLayout,
+) -> CliResult<String> {
+    let Some(source) = library.file_below_pioneer(&track.artwork_path) else {
+        return Ok(String::new());
+    };
+    let Some(below_artwork) = track.artwork_path.split_once("PIONEER/Artwork/") else {
+        return Ok(String::new());
+    };
+    let destination = layout.artwork_dir().join(below_artwork.1);
+    if let Some(dir) = destination.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+    std::fs::copy(&source, &destination)?;
+
+    // Rekordbox keeps further versions of the same image beside it, which players look for by
+    // name rather than through the database.
+    for suffix in ["_m", "_s"] {
+        let beside = |path: &Path| -> Option<PathBuf> {
+            let stem = path.file_stem()?.to_str()?;
+            let extension = path.extension()?.to_str()?;
+            Some(path.with_file_name(format!("{stem}{suffix}.{extension}")))
+        };
+        if let (Some(from), Some(to)) = (beside(&source), beside(&destination)) {
+            if from.is_file() {
+                std::fs::copy(from, to)?;
+            }
+        }
+    }
+
+    Ok(format!("/PIONEER/Artwork/{}", below_artwork.1))
 }
 
 /// Copies an analysis file to a device, naming the path the audio file has there.
