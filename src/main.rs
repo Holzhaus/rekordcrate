@@ -617,6 +617,7 @@ fn library(
     let mut without_analysis = 0usize;
     let mut added = 0usize;
     let mut already_there = 0usize;
+    let mut replaced = 0usize;
     for playlist in &selected {
         let tracks = library.playlist_tracks(playlist.id);
         // The folders the playlist sits in are put on the device as well, so that it is found
@@ -642,8 +643,13 @@ fn library(
             let destination = contents.join(&track.filename);
             // A file that is already on the device is left alone, which is what makes adding to
             // an export cheap.
-            if !destination.is_file() {
-                std::fs::copy(source, destination)?;
+            let was_there = destination.is_file();
+            if copy_unless_present(source, &destination)? && was_there {
+                replaced += 1;
+                eprintln!(
+                    "  warning: copied {} again, as the file on the device had another size",
+                    track.filename
+                );
             }
 
             // The artwork keeps the place it has in the library, so that the path recorded for
@@ -660,12 +666,6 @@ fn library(
                     .and_then(|extension| extension.to_str())
                     .unwrap_or("DAT");
                 let destination = layout.anlz_file_for_audio(&device_path, extension);
-                if destination.is_file() {
-                    continue;
-                }
-                if let Some(dir) = destination.parent() {
-                    std::fs::create_dir_all(dir)?;
-                }
                 copy_analysis_file(&file, &destination, &device_path)?;
             }
 
@@ -710,6 +710,9 @@ fn library(
 
     println!("wrote an export to {}", output.display());
     println!("{added} tracks added, {already_there} already on the device");
+    if replaced > 0 {
+        println!("{replaced} audio files were copied again, as the ones on the device differed");
+    }
     if missing_audio > 0 {
         println!("{missing_audio} tracks were left out, as their audio file was not there");
     }
@@ -717,6 +720,25 @@ fn library(
         println!("{without_analysis} tracks have no analysis files in the library");
     }
     Ok(())
+}
+
+/// Copies a file to a device unless the device already holds it, and says whether it copied.
+///
+/// A file of the same size is taken to be the same file. Nothing in a library holds a checksum of
+/// an audio file, so size is as far as this can go, but it does catch the case that matters: a
+/// file left half written by a copy that was interrupted is copied again rather than left as it
+/// is.
+fn copy_unless_present(source: &Path, destination: &Path) -> CliResult<bool> {
+    if let (Ok(source_data), Ok(destination_data)) = (source.metadata(), destination.metadata()) {
+        if source_data.len() == destination_data.len() {
+            return Ok(false);
+        }
+    }
+    if let Some(dir) = destination.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+    std::fs::copy(source, destination)?;
+    Ok(true)
 }
 
 /// Puts the folders that hold a playlist in the library on the device, and returns the one the
@@ -767,13 +789,7 @@ fn copy_artwork(
         return Ok(String::new());
     };
     let destination = layout.artwork_dir().join(below_artwork.1);
-    if destination.is_file() {
-        return Ok(format!("/PIONEER/Artwork/{}", below_artwork.1));
-    }
-    if let Some(dir) = destination.parent() {
-        std::fs::create_dir_all(dir)?;
-    }
-    std::fs::copy(&source, &destination)?;
+    copy_unless_present(&source, &destination)?;
 
     // Rekordbox keeps further versions of the same image beside it, which players look for by
     // name rather than through the database.
@@ -785,7 +801,7 @@ fn copy_artwork(
         };
         if let (Some(from), Some(to)) = (beside(&source), beside(&destination)) {
             if from.is_file() {
-                std::fs::copy(from, to)?;
+                copy_unless_present(&from, &to)?;
             }
         }
     }
@@ -802,17 +818,26 @@ fn copy_analysis_file(source: &Path, destination: &Path, audio_path: &str) -> Cl
     let data = std::fs::read(source)?;
     let mut cursor = std::io::Cursor::new(data.as_slice());
     let Ok(mut anlz) = ANLZ::read(&mut cursor) else {
-        std::fs::copy(source, destination)?;
+        copy_unless_present(source, destination)?;
         return Ok(());
     };
     if !anlz.set_audio_path(audio_path) {
-        std::fs::copy(source, destination)?;
+        copy_unless_present(source, destination)?;
         return Ok(());
     }
 
     let mut written = std::io::Cursor::new(Vec::new());
     anlz.write(&mut written).map_err(rekordcrate::Error::from)?;
-    std::fs::write(destination, written.into_inner())?;
+    let written = written.into_inner();
+    // The file is rewritten rather than copied, so its size says nothing about the one it came
+    // from, and what the device holds is compared against what would be written instead.
+    if std::fs::read(destination).is_ok_and(|existing| existing == written) {
+        return Ok(());
+    }
+    if let Some(dir) = destination.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
+    std::fs::write(destination, written)?;
     Ok(())
 }
 
