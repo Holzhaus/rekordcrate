@@ -25,7 +25,7 @@ use crate::{
 };
 use binrw::{BinRead, BinWrite};
 use fallible_iterator::FallibleIterator;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::fs::File;
 use std::io::{Read, Seek};
@@ -288,11 +288,52 @@ pub struct DeviceExportWriter {
     genre_ids: HashMap<String, GenreId>,
     label_ids: HashMap<String, LabelId>,
     key_ids: HashMap<String, KeyId>,
-    /// The number of nodes in the playlist tree, which the id of the next one follows from.
-    num_playlist_nodes: u32,
-    /// The number of tracks in a playlist, by its id, which the position of the next entry in it
-    /// follows from.
+    /// The nodes of the playlist tree by name, so that a playlist that is already in the export
+    /// is added to rather than added again.
+    playlist_ids: HashMap<String, PlaylistTreeNodeId>,
+    /// The position of the last entry of a playlist, by its id.
     playlist_lengths: HashMap<PlaylistTreeNodeId, u32>,
+    /// The tracks a playlist already holds, so that one is not put in it twice.
+    playlist_members: HashMap<PlaylistTreeNodeId, HashSet<TrackId>>,
+    /// The id to give the next row of each kind, which continues where an export that was opened
+    /// left off.
+    next_ids: NextIds,
+}
+
+/// The id to give the next row of each kind.
+#[derive(Debug, Default)]
+struct NextIds {
+    track: u32,
+    artist: u32,
+    album: u32,
+    artwork: u32,
+    genre: u32,
+    label: u32,
+    key: u32,
+    playlist: u32,
+}
+
+impl NextIds {
+    /// The ids of an export that holds nothing, which are counted from one.
+    fn initial() -> Self {
+        Self {
+            track: 1,
+            artist: 1,
+            album: 1,
+            artwork: 1,
+            genre: 1,
+            label: 1,
+            key: 1,
+            playlist: 1,
+        }
+    }
+
+    /// Takes the next id of a kind, and moves on to the one after it.
+    fn take(counter: &mut u32) -> u32 {
+        let id = *counter;
+        *counter += 1;
+        id
+    }
 }
 
 impl DeviceExportWriter {
@@ -331,9 +372,127 @@ impl DeviceExportWriter {
             genre_ids: HashMap::new(),
             label_ids: HashMap::new(),
             key_ids: HashMap::new(),
-            num_playlist_nodes: 0,
+            playlist_ids: HashMap::new(),
             playlist_lengths: HashMap::new(),
+            playlist_members: HashMap::new(),
+            next_ids: NextIds::initial(),
         })
+    }
+
+    /// Opens an export that is already on a device, to add to it.
+    ///
+    /// What the export already holds is read back, so that a track whose audio file is already
+    /// there keeps the id it has, the rows that tracks share are reused, and a playlist that is
+    /// already there is added to rather than added again. That makes it possible to put a
+    /// playlist that has grown on a device without copying what is on it already.
+    pub fn open(root: impl Into<PathBuf>) -> crate::Result<Self> {
+        let layout = ExportLayout::new(root);
+        let plain = open_database(&layout.export_pdb(), DatabaseType::Plain)?;
+        let ext = open_database(&layout.export_ext_pdb(), DatabaseType::Ext)?;
+
+        let mut writer = Self {
+            layout,
+            plain,
+            ext,
+            track_ids: HashMap::new(),
+            artist_ids: HashMap::new(),
+            album_ids: HashMap::new(),
+            artwork_ids: HashMap::new(),
+            genre_ids: HashMap::new(),
+            label_ids: HashMap::new(),
+            key_ids: HashMap::new(),
+            playlist_ids: HashMap::new(),
+            playlist_lengths: HashMap::new(),
+            playlist_members: HashMap::new(),
+            next_ids: NextIds::initial(),
+        };
+        writer.read_existing()?;
+        Ok(writer)
+    }
+
+    /// Reads back what an export already holds.
+    fn read_existing(&mut self) -> crate::Result<()> {
+        // The rows are collected first, as reading them borrows the database.
+        let tracks: Vec<(String, TrackId)> = self
+            .plain
+            .iter_rows::<crate::pdb::Track>()?
+            .map(|row| Ok((row.offsets.file_path.clone().into_string()?, row.id)))
+            .collect()?;
+        let artists: Vec<(String, ArtistId)> = self
+            .plain
+            .iter_rows::<Artist>()?
+            .map(|row| Ok((row.offsets.name.clone().into_string()?, row.id)))
+            .collect()?;
+        let albums: Vec<(String, AlbumId)> = self
+            .plain
+            .iter_rows::<Album>()?
+            .map(|row| Ok((row.offsets.name.clone().into_string()?, row.id)))
+            .collect()?;
+        let genres: Vec<(String, GenreId)> = self
+            .plain
+            .iter_rows::<Genre>()?
+            .map(|row| Ok((row.name.clone().into_string()?, row.id)))
+            .collect()?;
+        let labels: Vec<(String, LabelId)> = self
+            .plain
+            .iter_rows::<Label>()?
+            .map(|row| Ok((row.name.clone().into_string()?, row.id)))
+            .collect()?;
+        let keys: Vec<(String, KeyId)> = self
+            .plain
+            .iter_rows::<Key>()?
+            .map(|row| Ok((row.name.clone().into_string()?, row.id)))
+            .collect()?;
+        let artwork: Vec<(String, ArtworkId)> = self
+            .plain
+            .iter_rows::<Artwork>()?
+            .map(|row| Ok((row.path.clone().into_string()?, row.id)))
+            .collect()?;
+        let playlists: Vec<(String, PlaylistTreeNodeId)> = self
+            .plain
+            .iter_rows::<PlaylistTreeNode>()?
+            .map(|row| Ok((row.name.clone().into_string()?, row.id)))
+            .collect()?;
+        let entries: Vec<(PlaylistTreeNodeId, u32, TrackId)> = self
+            .plain
+            .iter_rows::<PlaylistEntry>()?
+            .map(|row| Ok((row.playlist_id, row.entry_index, row.track_id)))
+            .collect()?;
+
+        // An id that is already taken must not be given out again.
+        self.next_ids.track = next_after(tracks.iter().map(|(_, id)| id.0));
+        self.next_ids.artist = next_after(artists.iter().map(|(_, id)| id.0));
+        self.next_ids.album = next_after(albums.iter().map(|(_, id)| id.0));
+        self.next_ids.genre = next_after(genres.iter().map(|(_, id)| id.0));
+        self.next_ids.label = next_after(labels.iter().map(|(_, id)| id.0));
+        self.next_ids.key = next_after(keys.iter().map(|(_, id)| id.0));
+        self.next_ids.artwork = next_after(artwork.iter().map(|(_, id)| id.0));
+        self.next_ids.playlist = next_after(playlists.iter().map(|(_, id)| id.0));
+
+        self.track_ids = tracks.into_iter().collect();
+        self.artist_ids = artists.into_iter().collect();
+        self.album_ids = albums.into_iter().collect();
+        self.genre_ids = genres.into_iter().collect();
+        self.label_ids = labels.into_iter().collect();
+        self.key_ids = keys.into_iter().collect();
+        self.artwork_ids = artwork.into_iter().collect();
+        self.playlist_ids = playlists
+            .iter()
+            .map(|(name, id)| (name.clone(), *id))
+            .collect();
+        for (_, id) in playlists {
+            self.playlist_lengths.entry(id).or_insert(0);
+            self.playlist_members.entry(id).or_default();
+        }
+        for (playlist_id, position, track_id) in entries {
+            let length = self.playlist_lengths.entry(playlist_id).or_insert(0);
+            *length = (*length).max(position);
+            self.playlist_members
+                .entry(playlist_id)
+                .or_default()
+                .insert(track_id);
+        }
+        Ok(())
     }
 
     /// The paths of the export being written.
@@ -371,9 +530,7 @@ impl DeviceExportWriter {
         let key_id = self.add_key(&track.key)?;
         let artwork_id = self.add_artwork(&track.artwork_path)?;
 
-        let index = u32::try_from(self.track_ids.len())
-            .map_err(|_| crate::Error::IntegrityError("too many tracks"))?;
-        let id = TrackId(index + 1);
+        let id = TrackId(NextIds::take(&mut self.next_ids.track));
         let row = crate::pdb::Track {
             id,
             artist_id,
@@ -448,10 +605,18 @@ impl DeviceExportWriter {
         &mut self,
         playlist_id: PlaylistTreeNodeId,
         track_id: TrackId,
-    ) -> crate::Result<()> {
+    ) -> crate::Result<bool> {
         let length = self.playlist_lengths.get(&playlist_id).copied().ok_or(
             crate::Error::IntegrityError("no playlist of the export has the given id"),
         )?;
+        if self
+            .playlist_members
+            .get(&playlist_id)
+            .is_some_and(|members| members.contains(&track_id))
+        {
+            return Ok(false);
+        }
+
         self.plain.add_row(PlaylistEntry {
             // Positions in a playlist are counted from one.
             entry_index: length + 1,
@@ -459,7 +624,17 @@ impl DeviceExportWriter {
             playlist_id,
         })?;
         self.playlist_lengths.insert(playlist_id, length + 1);
-        Ok(())
+        self.playlist_members
+            .entry(playlist_id)
+            .or_default()
+            .insert(track_id);
+        Ok(true)
+    }
+
+    /// The playlist of the export with the given name, if it holds one.
+    #[must_use]
+    pub fn playlist_by_name(&self, name: &str) -> Option<PlaylistTreeNodeId> {
+        self.playlist_ids.get(name).copied()
     }
 
     /// Adds a node to the playlist tree, which is either a folder or a playlist.
@@ -477,20 +652,22 @@ impl DeviceExportWriter {
             }
         }
 
-        let id = PlaylistTreeNodeId(self.num_playlist_nodes + 1);
+        let index = self.next_ids.playlist - 1;
+        let id = PlaylistTreeNodeId(NextIds::take(&mut self.next_ids.playlist));
         self.plain.add_row(PlaylistTreeNode {
             // A node with no parent sits at the root of the tree, which is what a parent of zero
             // means.
             parent_id: parent.unwrap_or(PlaylistTreeNodeId(0)),
-            sort_order: self.num_playlist_nodes,
+            sort_order: index,
             id,
             node_is_folder: u32::from(is_folder),
             name: DeviceSQLString::new(name)?,
             ..Default::default()
         })?;
 
-        self.num_playlist_nodes += 1;
+        self.playlist_ids.insert(name.to_owned(), id);
         self.playlist_lengths.insert(id, 0);
+        self.playlist_members.entry(id).or_default();
         Ok(id)
     }
 
@@ -526,9 +703,7 @@ impl DeviceExportWriter {
             return Ok(id);
         }
 
-        let index = u32::try_from(self.artist_ids.len())
-            .map_err(|_| crate::Error::IntegrityError("too many artists"))?;
-        let id = ArtistId(index + 1);
+        let id = ArtistId(NextIds::take(&mut self.next_ids.artist));
         self.plain.add_row(Artist {
             id,
             offsets: OffsetArrayContainer {
@@ -552,9 +727,7 @@ impl DeviceExportWriter {
             return Ok(id);
         }
 
-        let index = u32::try_from(self.album_ids.len())
-            .map_err(|_| crate::Error::IntegrityError("too many albums"))?;
-        let id = AlbumId(index + 1);
+        let id = AlbumId(NextIds::take(&mut self.next_ids.album));
         self.plain.add_row(Album {
             id,
             artist_id,
@@ -579,11 +752,7 @@ impl DeviceExportWriter {
             return Ok(id);
         }
 
-        let id = GenreId(
-            u32::try_from(self.genre_ids.len())
-                .map_err(|_| crate::Error::IntegrityError("too many genres"))?
-                + 1,
-        );
+        let id = GenreId(NextIds::take(&mut self.next_ids.genre));
         self.plain.add_row(Genre {
             id,
             name: DeviceSQLString::new(name)?,
@@ -601,11 +770,7 @@ impl DeviceExportWriter {
             return Ok(id);
         }
 
-        let id = LabelId(
-            u32::try_from(self.label_ids.len())
-                .map_err(|_| crate::Error::IntegrityError("too many labels"))?
-                + 1,
-        );
+        let id = LabelId(NextIds::take(&mut self.next_ids.label));
         self.plain.add_row(Label {
             id,
             name: DeviceSQLString::new(name)?,
@@ -623,9 +788,8 @@ impl DeviceExportWriter {
             return Ok(id);
         }
 
-        let index = u32::try_from(self.key_ids.len())
-            .map_err(|_| crate::Error::IntegrityError("too many keys"))?;
-        let id = KeyId(index + 1);
+        let index = self.next_ids.key - 1;
+        let id = KeyId(NextIds::take(&mut self.next_ids.key));
         self.plain.add_row(Key {
             id,
             // The second copy of the id that a key row holds.
@@ -665,6 +829,17 @@ fn tempo_hundredths(tempo: f32) -> Option<u32> {
 /// The name of the file a path names, which a track row holds alongside the path itself.
 fn file_name_of(path: &str) -> &str {
     path.rsplit('/').next().unwrap_or(path)
+}
+
+/// The id to give out next, after the ids that are already taken.
+fn next_after(ids: impl Iterator<Item = u32>) -> u32 {
+    ids.max().unwrap_or(0) + 1
+}
+
+/// Opens a database that a device already holds, for reading and writing.
+fn open_database(path: &Path, db_type: DatabaseType) -> crate::Result<Database<File>> {
+    let file = File::options().read(true).write(true).open(path)?;
+    Database::open(file, db_type)
 }
 
 /// Creates a database file and an empty database in it.

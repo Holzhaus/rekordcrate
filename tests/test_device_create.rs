@@ -478,3 +478,68 @@ fn test_playlists_reject_an_unknown_id() {
     assert!(writer.add_track_to_playlist(unknown, track).is_err());
     assert!(writer.create_playlist(Some(unknown), "Nested").is_err());
 }
+
+/// An export that is opened again must be added to rather than started over.
+#[test]
+fn test_open_adds_to_an_export() {
+    let dir = TempDir::new("open-adds");
+    let first = demo_track("/Contents/One.mp3", "One");
+    let second = demo_track("/Contents/Two.mp3", "Two");
+
+    let mut writer =
+        DeviceExportWriter::create(dir.path(), REFERENCE_DATE).expect("failed to create export");
+    let first_id = writer.add_track(&first).expect("failed to add track");
+    let playlist = writer
+        .create_playlist(None, "Set")
+        .expect("failed to create playlist");
+    assert!(writer
+        .add_track_to_playlist(playlist, first_id)
+        .expect("failed to add track to playlist"));
+    writer.close().expect("failed to close export");
+
+    let mut writer = DeviceExportWriter::open(dir.path()).expect("failed to open export");
+    // The playlist is the one that is already there, not a second one by the same name.
+    let reopened_playlist = writer
+        .playlist_by_name("Set")
+        .expect("the playlist should be in the export");
+    assert_eq!(reopened_playlist, playlist);
+    // A track whose audio file is already on the device keeps the id it was given.
+    assert_eq!(
+        writer.add_track(&first).expect("failed to add track"),
+        first_id
+    );
+    assert!(
+        !writer
+            .add_track_to_playlist(reopened_playlist, first_id)
+            .expect("failed to add track to playlist"),
+        "a track already in the playlist should not be added again"
+    );
+    // A new track is given an id of its own and goes in after the one that is there.
+    let second_id = writer.add_track(&second).expect("failed to add track");
+    assert_ne!(second_id, first_id);
+    assert!(writer
+        .add_track_to_playlist(reopened_playlist, second_id)
+        .expect("failed to add track to playlist"));
+    writer.close().expect("failed to close export");
+
+    assert_eq!(row_count::<TrackRow>(dir.path()), 2);
+    assert_eq!(
+        row_count::<rekordcrate::pdb::PlaylistTreeNode>(dir.path()),
+        1
+    );
+    assert_eq!(row_count::<PlaylistEntry>(dir.path()), 2);
+    // The rows that tracks share are reused rather than added again.
+    assert_eq!(row_count::<Artist>(dir.path()), 1);
+
+    let mut db = DeviceExportLoader::new(dir.path().to_path_buf())
+        .open_pdb_non_persistent()
+        .expect("failed to open database");
+    let mut entries: Vec<(u32, u32)> = db
+        .iter_rows::<PlaylistEntry>()
+        .expect("failed to load entries")
+        .map(|entry| Ok((entry.entry_index, entry.track_id.0)))
+        .collect()
+        .expect("failed to read entries");
+    entries.sort();
+    assert_eq!(entries, vec![(1, first_id.0), (2, second_id.0)]);
+}
