@@ -41,6 +41,7 @@ All notable changes to this project will be documented in this file.
 - cli: Make DumpFormat impl ValueEnum without the json feature
 - anlz: Correct waveform data structure bugs and add missing PWVC section
 - Correct frequency band mapping in waveform previews
+- Address new clippy error in 1.100
 
 ### Documentation
 
