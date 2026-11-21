@@ -112,6 +112,18 @@ impl ExportLayout {
         self.pioneer_dir().join("USBANLZ")
     }
 
+    /// Where the image holding the artwork of a track belongs on the device.
+    ///
+    /// Rekordbox numbers the images of an export and holds them in directories of twenty, so an
+    /// image is named after the row that names it rather than after the file it came from.
+    #[must_use]
+    pub fn artwork_file(&self, id: ArtworkId) -> PathBuf {
+        let directory = id.0 / ARTWORK_PER_DIRECTORY + 1;
+        self.artwork_dir()
+            .join(format!("{directory:05}"))
+            .join(format!("a{}.jpg", id.0))
+    }
+
     /// The directory holding the analysis files of the track with the given audio file.
     ///
     /// The path is the path of the audio file on the device, as the track row holds it, e.g.
@@ -217,6 +229,9 @@ impl DeviceExportLoader {
 /// bear out: nothing in them is longer, and the names it had to cut end exactly here.
 const MAX_PATH_PART: usize = 48;
 
+/// Number of images that Rekordbox holds in one directory of artwork.
+const ARTWORK_PER_DIRECTORY: u32 = 20;
+
 /// Name standing in for the album of a track that names none, as Rekordbox writes it.
 const UNKNOWN_ALBUM: &str = "UnknownAlbum";
 
@@ -269,8 +284,9 @@ pub struct Track {
     pub mix_name: String,
     /// Path of the analysis file of the track on the device, below `/PIONEER/USBANLZ`.
     pub analyze_path: String,
-    /// Path of the image file holding the artwork of the track on the device, below
-    /// `/PIONEER/Artwork`. The image itself is not touched, as with the audio file.
+    /// Path of the image file holding the artwork of the track, wherever it is kept. The image
+    /// itself is not touched, as with the audio file, but where it belongs on the device follows
+    /// from it being named here.
     pub artwork_path: String,
     /// Date the track was analyzed, in `YYYY-MM-DD` form.
     pub analyze_date: String,
@@ -740,25 +756,37 @@ impl DeviceExportWriter {
 
     /// Adds the image holding the artwork of a track unless it is already in the export, and
     /// returns its id.
-    fn add_artwork(&mut self, device_path: &str) -> crate::Result<ArtworkId> {
-        if device_path.is_empty() {
+    fn add_artwork(&mut self, source_path: &str) -> crate::Result<ArtworkId> {
+        if source_path.is_empty() {
             return Ok(ArtworkId(0));
         }
-        if let Some(&id) = self.artwork_ids.get(device_path) {
+        if let Some(&id) = self.artwork_ids.get(source_path) {
             return Ok(id);
         }
 
-        let id = ArtworkId(
-            u32::try_from(self.artwork_ids.len())
-                .map_err(|_| crate::Error::IntegrityError("too many artwork images"))?
-                + 1,
-        );
+        let id = ArtworkId(NextIds::take(&mut self.next_ids.artwork));
+        // Where the image belongs on the device follows from the id, so the row names that
+        // rather than wherever the image came from.
+        let on_device = self
+            .layout
+            .artwork_file(id)
+            .strip_prefix(self.layout.root())
+            .map(|path| format!("/{}", path.display()))
+            .unwrap_or_default();
         self.plain.add_row(Artwork {
             id,
-            path: DeviceSQLString::new(device_path)?,
+            path: DeviceSQLString::new(&on_device)?,
         })?;
-        self.artwork_ids.insert(device_path.to_owned(), id);
+        self.artwork_ids.insert(source_path.to_owned(), id);
         Ok(id)
+    }
+
+    /// Where the image that a track names belongs on the device, once the track has been added.
+    #[must_use]
+    pub fn artwork_file(&self, source_path: &str) -> Option<PathBuf> {
+        self.artwork_ids
+            .get(source_path)
+            .map(|&id| self.layout.artwork_file(id))
     }
 
     /// Adds an artist to the export unless it is already in it, and returns its id.

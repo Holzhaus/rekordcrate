@@ -791,3 +791,82 @@ fn test_contents_path_is_laid_out_as_rekordbox_lays_it_out() {
         "Contents/An Artist/An Album/Diffuse_Reality_Records_-_Serge_Geyzel_with_.aif"
     );
 }
+
+/// Artwork must be named and held where Rekordbox holds it.
+///
+/// An export written by Rekordbox numbers the images `a1` upwards and holds them in directories
+/// of twenty, named with five digits: its fifty-three images run a1 to a19 in `00001`, a20 to
+/// a39 in `00002`, and a40 to a53 in `00003`.
+#[test]
+fn test_artwork_is_held_where_rekordbox_holds_it() {
+    let layout = ExportLayout::new(PathBuf::from("/device"));
+    let path = |id: u32| {
+        layout
+            .artwork_file(rekordcrate::pdb::ArtworkId(id))
+            .strip_prefix("/device")
+            .expect("the path should be on the device")
+            .to_string_lossy()
+            .to_string()
+    };
+
+    assert_eq!(path(1), "PIONEER/Artwork/00001/a1.jpg");
+    assert_eq!(path(19), "PIONEER/Artwork/00001/a19.jpg");
+    assert_eq!(path(20), "PIONEER/Artwork/00002/a20.jpg");
+    assert_eq!(path(39), "PIONEER/Artwork/00002/a39.jpg");
+    assert_eq!(path(40), "PIONEER/Artwork/00003/a40.jpg");
+    assert_eq!(path(53), "PIONEER/Artwork/00003/a53.jpg");
+}
+
+/// A track must name the image of its artwork where the export holds it, not where the library
+/// holds it.
+#[test]
+fn test_add_track_names_the_artwork_of_the_export() {
+    let dir = TempDir::new("artwork-path");
+    let mut writer =
+        DeviceExportWriter::create(dir.path(), REFERENCE_DATE).expect("failed to create export");
+    // Two tracks sharing one image, and a third with its own.
+    for (path, title, artwork) in [
+        (
+            "/Contents/One.mp3",
+            "One",
+            "/library/PIONEER/Artwork/13/tr_1.jpg",
+        ),
+        (
+            "/Contents/Two.mp3",
+            "Two",
+            "/library/PIONEER/Artwork/13/tr_1.jpg",
+        ),
+        (
+            "/Contents/Three.mp3",
+            "Three",
+            "/library/PIONEER/Artwork/13/tr_2.jpg",
+        ),
+    ] {
+        writer
+            .add_track(&Track {
+                artwork_path: artwork.to_owned(),
+                ..demo_track(path, title)
+            })
+            .expect("failed to add track");
+    }
+    writer.close().expect("failed to close export");
+
+    let mut db = DeviceExportLoader::new(dir.path().to_path_buf())
+        .open_pdb_non_persistent()
+        .expect("failed to open database");
+    let mut artwork: Vec<(u32, String)> = db
+        .iter_rows::<rekordcrate::pdb::Artwork>()
+        .expect("failed to load artwork")
+        .map(|row| Ok((row.id.0, row.path.clone().into_string()?)))
+        .collect()
+        .expect("failed to read artwork");
+    artwork.sort();
+    // One row per image, named as the export holds it, and the shared image is held once.
+    assert_eq!(
+        artwork,
+        vec![
+            (1, "/PIONEER/Artwork/00001/a1.jpg".to_string()),
+            (2, "/PIONEER/Artwork/00001/a2.jpg".to_string()),
+        ]
+    );
+}
