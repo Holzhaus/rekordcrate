@@ -13,7 +13,7 @@ use fallible_iterator::FallibleIterator;
 use rekordcrate::device::{
     get_playlists, DeviceExportWriter, ExportLayout, Tag as DeviceTag, Track as DeviceTrack,
 };
-use rekordcrate::edb::Library;
+use rekordcrate::edb::{Library, LibraryTrack};
 use rekordcrate::pdb::io::Database;
 use rekordcrate::pdb::*;
 use rekordcrate::setting::{Setting, SettingType};
@@ -21,6 +21,7 @@ use rekordcrate::{anlz::ANLZ, util::TableIndex};
 #[cfg(feature = "json")]
 use serde::Serialize;
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -671,13 +672,144 @@ fn library(
         copy_unless_present(&profile, &layout.dj_profile())?;
     }
 
-    let mut missing_audio = 0usize;
-    let mut without_analysis = 0usize;
-    let mut added = 0usize;
-    let mut already_there = 0usize;
-    let mut replaced = 0usize;
+    // A track held by more than one of the chosen playlists is one file on the device and one
+    // row of the database, with an entry per playlist naming it. The tracks are therefore
+    // gathered before anything is copied, so that looking at what the device already holds,
+    // rewriting the analysis of a track and copying its artwork is done once however many of the
+    // playlists hold it.
+    let mut entries: Vec<Vec<&LibraryTrack>> = Vec::new();
+    let mut distinct: Vec<&LibraryTrack> = Vec::new();
+    let mut gathered = BTreeSet::new();
     for playlist in &selected {
         let tracks = library.playlist_tracks(playlist.id);
+        println!("{}: {} tracks", playlist.name, tracks.len());
+        for track in &tracks {
+            if gathered.insert(track.id) {
+                distinct.push(track);
+            }
+        }
+        entries.push(tracks);
+    }
+    let wanted: usize = entries.iter().map(Vec::len).sum();
+    if wanted != distinct.len() {
+        println!(
+            "{} tracks between them, as {} of the entries name a track another playlist holds",
+            distinct.len(),
+            wanted - distinct.len()
+        );
+    }
+
+    let mut missing_audio = 0usize;
+    let mut without_analysis = 0usize;
+    let mut copied = 0usize;
+    let mut already_there = 0usize;
+    let mut replaced = 0usize;
+    // The row each track was given, so that the playlists can name the rows once they are made.
+    let mut rows: BTreeMap<u32, TrackId> = BTreeMap::new();
+
+    for track in &distinct {
+        let source = Path::new(&track.file_path);
+        if !source.is_file() {
+            missing_audio += 1;
+            eprintln!("  warning: no audio file at {}", track.file_path);
+            continue;
+        }
+
+        // Rekordbox holds the audio of a track under the artist and the album it names.
+        let destination = layout.contents_file(&track.artist, &track.album, &track.filename);
+        if let Some(dir) = destination.parent() {
+            std::fs::create_dir_all(dir)?;
+        }
+        // A file that is already on the device is left alone, which is what makes adding to an
+        // export cheap.
+        let was_there = destination.is_file();
+        if copy_unless_present(source, &destination)? {
+            copied += 1;
+            if was_there {
+                replaced += 1;
+                eprintln!(
+                    "  warning: copied {} again, as the file on the device had another size",
+                    track.filename
+                );
+            }
+        } else {
+            already_there += 1;
+        }
+
+        // The path the track has on the device, which is also what decides where its analysis
+        // files belong.
+        let on_device = match name_form {
+            NameForm::Device => destination.with_file_name(stored_name(&destination)?),
+            NameForm::Library => destination.clone(),
+        };
+        let device_path = on_device
+            .strip_prefix(layout.root())
+            .map(|path| format!("/{}", path.display()))
+            .unwrap_or_default();
+
+        let analysis = library.analysis_files(track);
+        if analysis.is_empty() {
+            without_analysis += 1;
+        }
+        // The paths of two tracks can lead to the same directory, so the name within it is
+        // chosen rather than assumed.
+        let analysis_dir = layout.anlz_dir_for_audio(&device_path);
+        let stem = choose_analysis_stem(&analysis_dir, &device_path)?;
+        for file in analysis {
+            let extension = file
+                .extension()
+                .and_then(|extension| extension.to_str())
+                .unwrap_or("DAT");
+            let destination = analysis_dir.join(format!("{stem}.{extension}"));
+            copy_analysis_file(&file, &destination, &device_path)?;
+        }
+
+        let track_id = writer.add_track(&DeviceTrack {
+            file_path: device_path.clone(),
+            title: track.title.clone(),
+            artist: track.artist.clone(),
+            album: track.album.clone(),
+            album_artist: track.album_artist.clone(),
+            genre: track.genre.clone(),
+            label: track.label.clone(),
+            comment: track.comment.clone(),
+            date_added: track.date_added.clone(),
+            analyze_date: track.analyze_date.clone(),
+            artwork_path: track.artwork_path.clone(),
+            analyze_path: analysis_dir
+                .join(format!("{stem}.DAT"))
+                .strip_prefix(layout.root())
+                .map(|path| format!("/{}", path.display()))
+                .unwrap_or_default(),
+            tempo: track.tempo_bpm(),
+            duration: track.duration,
+            bitrate: track.bitrate,
+            sample_rate: track.sample_rate,
+            sample_depth: track.sample_depth,
+            file_size: track.file_size,
+            track_number: track.track_number,
+            disc_number: track.disc_number,
+            year: track.year,
+            rating: track.rating,
+            play_count: track.play_count,
+            color: track.color.clone(),
+            file_type: track.file_type.clone(),
+            ..Default::default()
+        })?;
+        rows.insert(track.id, track_id);
+        // The export decides where the artwork of a track belongs, so it is copied once the
+        // track has been added and the image has been given a name.
+        copy_artwork(&library, track, &writer)?;
+
+        // The tags of a track name rows of the set written with the export.
+        for tag in library.tags_of_track(track.id) {
+            writer.add_tag_to_track(track_id, rekordcrate::pdb::ext::TagId(*tag))?;
+        }
+    }
+
+    let mut added = 0usize;
+    let mut listed_already = 0usize;
+    for (playlist, tracks) in selected.iter().zip(&entries) {
         // The folders the playlist sits in are put on the device as well, so that it is found
         // where it is in the library.
         let parent = create_folders_of(&mut writer, &library, playlist)?;
@@ -685,112 +817,26 @@ fn library(
             Some(playlist_id) => playlist_id,
             None => writer.create_playlist(parent, &playlist.name)?,
         };
-        println!("{}: {} tracks", playlist.name, tracks.len());
-
         for track in tracks {
-            let source = Path::new(&track.file_path);
-            if !source.is_file() {
-                missing_audio += 1;
-                eprintln!("  warning: no audio file at {}", track.file_path);
+            // A track whose audio is not there was left out, so nothing names it.
+            let Some(track_id) = rows.get(&track.id) else {
                 continue;
-            }
-
-            // Rekordbox holds the audio of a track under the artist and the album it names.
-            let destination = layout.contents_file(&track.artist, &track.album, &track.filename);
-            if let Some(dir) = destination.parent() {
-                std::fs::create_dir_all(dir)?;
-            }
-            // A file that is already on the device is left alone, which is what makes adding to
-            // an export cheap.
-            let was_there = destination.is_file();
-            if copy_unless_present(source, &destination)? && was_there {
-                replaced += 1;
-                eprintln!(
-                    "  warning: copied {} again, as the file on the device had another size",
-                    track.filename
-                );
-            }
-
-            // The path the track has on the device, which is also what decides where its
-            // analysis files belong.
-            let on_device = match name_form {
-                NameForm::Device => destination.with_file_name(stored_name(&destination)?),
-                NameForm::Library => destination.clone(),
             };
-            let device_path = on_device
-                .strip_prefix(layout.root())
-                .map(|path| format!("/{}", path.display()))
-                .unwrap_or_default();
-
-            let analysis = library.analysis_files(track);
-            if analysis.is_empty() {
-                without_analysis += 1;
-            }
-            // The paths of two tracks can lead to the same directory, so the name within it is
-            // chosen rather than assumed.
-            let analysis_dir = layout.anlz_dir_for_audio(&device_path);
-            let stem = choose_analysis_stem(&analysis_dir, &device_path)?;
-            for file in analysis {
-                let extension = file
-                    .extension()
-                    .and_then(|extension| extension.to_str())
-                    .unwrap_or("DAT");
-                let destination = analysis_dir.join(format!("{stem}.{extension}"));
-                copy_analysis_file(&file, &destination, &device_path)?;
-            }
-
-            let track_id = writer.add_track(&DeviceTrack {
-                file_path: device_path.clone(),
-                title: track.title.clone(),
-                artist: track.artist.clone(),
-                album: track.album.clone(),
-                album_artist: track.album_artist.clone(),
-                genre: track.genre.clone(),
-                label: track.label.clone(),
-                comment: track.comment.clone(),
-                date_added: track.date_added.clone(),
-                analyze_date: track.analyze_date.clone(),
-                artwork_path: track.artwork_path.clone(),
-                analyze_path: analysis_dir
-                    .join(format!("{stem}.DAT"))
-                    .strip_prefix(layout.root())
-                    .map(|path| format!("/{}", path.display()))
-                    .unwrap_or_default(),
-                tempo: track.tempo_bpm(),
-                duration: track.duration,
-                bitrate: track.bitrate,
-                sample_rate: track.sample_rate,
-                sample_depth: track.sample_depth,
-                file_size: track.file_size,
-                track_number: track.track_number,
-                disc_number: track.disc_number,
-                year: track.year,
-                rating: track.rating,
-                play_count: track.play_count,
-                color: track.color.clone(),
-                file_type: track.file_type.clone(),
-                ..Default::default()
-            })?;
-            // The export decides where the artwork of a track belongs, so it is copied once the
-            // track has been added and the image has been given a name.
-            copy_artwork(&library, track, &writer)?;
-
-            // The tags of a track name rows of the set written with the export.
-            for tag in library.tags_of_track(track.id) {
-                writer.add_tag_to_track(track_id, rekordcrate::pdb::ext::TagId(*tag))?;
-            }
-
-            if writer.add_track_to_playlist(playlist_id, track_id)? {
+            if writer.add_track_to_playlist(playlist_id, *track_id)? {
                 added += 1;
             } else {
-                already_there += 1;
+                listed_already += 1;
             }
         }
     }
     writer.close()?;
 
     println!("wrote an export to {}", output.display());
-    println!("{added} tracks added, {already_there} already on the device");
+    println!(
+        "{} tracks: {copied} audio files copied, {already_there} already on the device",
+        rows.len()
+    );
+    println!("{added} playlist entries added, {listed_already} already on the device");
     if replaced > 0 {
         println!("{replaced} audio files were copied again, as the ones on the device differed");
     }
