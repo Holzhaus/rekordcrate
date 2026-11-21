@@ -654,3 +654,37 @@ fn test_add_track_writes_the_play_count() {
         ]
     );
 }
+
+/// The fields of a track row that hold the same value for every track must hold the value that
+/// Rekordbox writes.
+///
+/// `bitmask` is 0x0700 in an export written by the current Rekordbox, where the two older
+/// exports we have hold 0x000c0700, so the value differs between versions rather than between
+/// tracks. `unknown5` is 41 in all three.
+#[test]
+fn test_add_track_writes_the_fields_rekordbox_fixes() {
+    let dir = TempDir::new("fixed-fields");
+    let mut writer =
+        DeviceExportWriter::create(dir.path(), REFERENCE_DATE).expect("failed to create export");
+    writer
+        .add_track(&demo_track("/Contents/One.mp3", "One"))
+        .expect("failed to add track");
+    writer.close().expect("failed to close export");
+
+    let mut db = DeviceExportLoader::new(dir.path().to_path_buf())
+        .open_pdb_non_persistent()
+        .expect("failed to open database");
+    let rows: Vec<(u32, u16, String)> = db
+        .iter_rows::<TrackRow>()
+        .expect("failed to load tracks")
+        .map(|track| {
+            Ok((
+                track.bitmask,
+                track.unknown5,
+                track.offsets.unknown_string3.clone().into_string()?,
+            ))
+        })
+        .collect()
+        .expect("failed to read tracks");
+    assert_eq!(rows, vec![(0x0700, 41, "\u{1}".to_string())]);
+}
