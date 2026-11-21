@@ -15,8 +15,9 @@ use crate::{
     pdb::offset_array::OffsetArrayContainer,
     pdb::string::DeviceSQLString,
     pdb::{
-        Album, AlbumId, Artist, ArtistId, DatabaseType, Genre, GenreId, Key, KeyId, Label, LabelId,
-        PlaylistEntry, PlaylistTreeNode, PlaylistTreeNodeId, TrackId, TrackStrings, TrailingName,
+        Album, AlbumId, Artist, ArtistId, Artwork, ArtworkId, DatabaseType, Genre, GenreId, Key,
+        KeyId, Label, LabelId, PlaylistEntry, PlaylistTreeNode, PlaylistTreeNodeId, TrackId,
+        TrackStrings, TrailingName,
     },
     setting,
     setting::{Setting, SettingType},
@@ -73,6 +74,12 @@ impl ExportLayout {
     #[must_use]
     pub fn export_ext_pdb(&self) -> PathBuf {
         self.rekordbox_dir().join("exportExt.pdb")
+    }
+
+    /// The directory holding the images that hold the artwork of the tracks.
+    #[must_use]
+    pub fn artwork_dir(&self) -> PathBuf {
+        self.pioneer_dir().join("Artwork")
     }
 
     /// The directory holding the analysis files of the tracks.
@@ -221,6 +228,9 @@ pub struct Track {
     pub mix_name: String,
     /// Path of the analysis file of the track on the device, below `/PIONEER/USBANLZ`.
     pub analyze_path: String,
+    /// Path of the image file holding the artwork of the track on the device, below
+    /// `/PIONEER/Artwork`. The image itself is not touched, as with the audio file.
+    pub artwork_path: String,
     /// Date the track was analyzed, in `YYYY-MM-DD` form.
     pub analyze_date: String,
     /// Tempo in beats per minute.
@@ -274,6 +284,7 @@ pub struct DeviceExportWriter {
     /// The rows that tracks refer to by name, so that they are only added once each.
     artist_ids: HashMap<String, ArtistId>,
     album_ids: HashMap<String, AlbumId>,
+    artwork_ids: HashMap<String, ArtworkId>,
     genre_ids: HashMap<String, GenreId>,
     label_ids: HashMap<String, LabelId>,
     key_ids: HashMap<String, KeyId>,
@@ -316,6 +327,7 @@ impl DeviceExportWriter {
             track_ids: HashMap::new(),
             artist_ids: HashMap::new(),
             album_ids: HashMap::new(),
+            artwork_ids: HashMap::new(),
             genre_ids: HashMap::new(),
             label_ids: HashMap::new(),
             key_ids: HashMap::new(),
@@ -357,6 +369,7 @@ impl DeviceExportWriter {
         let genre_id = self.add_genre(&track.genre)?;
         let label_id = self.add_label(&track.label)?;
         let key_id = self.add_key(&track.key)?;
+        let artwork_id = self.add_artwork(&track.artwork_path)?;
 
         let index = u32::try_from(self.track_ids.len())
             .map_err(|_| crate::Error::IntegrityError("too many tracks"))?;
@@ -368,6 +381,7 @@ impl DeviceExportWriter {
             genre_id,
             label_id,
             key_id,
+            artwork_id,
             sample_rate: track.sample_rate,
             sample_depth: track.sample_depth,
             file_size: track.file_size,
@@ -477,6 +491,29 @@ impl DeviceExportWriter {
 
         self.num_playlist_nodes += 1;
         self.playlist_lengths.insert(id, 0);
+        Ok(id)
+    }
+
+    /// Adds the image holding the artwork of a track unless it is already in the export, and
+    /// returns its id.
+    fn add_artwork(&mut self, device_path: &str) -> crate::Result<ArtworkId> {
+        if device_path.is_empty() {
+            return Ok(ArtworkId(0));
+        }
+        if let Some(&id) = self.artwork_ids.get(device_path) {
+            return Ok(id);
+        }
+
+        let id = ArtworkId(
+            u32::try_from(self.artwork_ids.len())
+                .map_err(|_| crate::Error::IntegrityError("too many artwork images"))?
+                + 1,
+        );
+        self.plain.add_row(Artwork {
+            id,
+            path: DeviceSQLString::new(device_path)?,
+        })?;
+        self.artwork_ids.insert(device_path.to_owned(), id);
         Ok(id)
     }
 
