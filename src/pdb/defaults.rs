@@ -281,6 +281,52 @@ pub fn insert_defaults<IO: Read + Seek>(
     Ok(())
 }
 
+/// Adds a tag, or a category holding tags, with the id it is given.
+///
+/// An export holds the tag set of the library it came from, keeping the ids of that library, so
+/// a tag is written with the id it already has.
+pub fn insert_tag<IO: Read + Seek>(
+    db: &mut Database<IO>,
+    id: u32,
+    parent_id: u32,
+    position: u32,
+    is_category: bool,
+    name: &str,
+) -> RekordcrateResult<()> {
+    db.add_row_with_slack(
+        TagOrCategory {
+            subtype: Subtype(TagOrCategory::SUBTYPE),
+            // Recorded when the row is stored, from the place it takes in its page.
+            index_shift: 0,
+            unknown1: 0,
+            unknown2: 0,
+            parent_id: ParentId(NonZero::new(parent_id)),
+            position,
+            id: TagId(id),
+            raw_is_category: if is_category {
+                TagOrCategory::IS_CATEGORY
+            } else {
+                0
+            },
+            offsets: OffsetArrayContainer {
+                offsets: MaybeCalculated::Calculated,
+                inner: TagOrCategoryStrings {
+                    name: DeviceSQLString::new(name)?,
+                    unknown: DeviceSQLString::empty(),
+                },
+            },
+        },
+        ROW_SLACK_BYTES,
+    )?;
+    Ok(())
+}
+
+/// Adds the row of the ext table whose purpose is not understood.
+pub fn insert_unknown7<IO: Read + Seek>(db: &mut Database<IO>) -> RekordcrateResult<()> {
+    db.add_row(Unknown7 { bytes: UNKNOWN7 })?;
+    Ok(())
+}
+
 /// Adds the tag categories and tags that tracks can be labelled with.
 pub fn insert_default_tags<IO: Read + Seek>(db: &mut Database<IO>) -> RekordcrateResult<()> {
     for (parent, position, id, is_category, name) in TAGS {
@@ -316,7 +362,7 @@ pub fn insert_default_tags<IO: Read + Seek>(db: &mut Database<IO>) -> Rekordcrat
 /// Adds the content that Rekordbox writes into every `exportExt.pdb`.
 pub fn insert_ext_defaults<IO: Read + Seek>(db: &mut Database<IO>) -> RekordcrateResult<()> {
     // Rekordbox fills the tables in this order, which decides which page each table claims.
-    db.add_row(Unknown7 { bytes: UNKNOWN7 })?;
+    insert_unknown7(db)?;
     insert_default_tags(db)?;
     Ok(())
 }
