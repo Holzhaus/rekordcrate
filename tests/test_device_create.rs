@@ -973,3 +973,76 @@ fn test_the_dj_profile_is_held_where_rekordbox_holds_it() {
         PathBuf::from("/device/PIONEER/djprofile.nxs")
     );
 }
+
+/// An export must hold the tag set it is given, with the ids that set uses.
+///
+/// Rekordbox writes the tag set of the library rather than the set it ships with, and keeps the
+/// ids the library holds: the set of the library this was built against runs to 39 rows with
+/// categories 1, 9, 18 and 27, and the export written by Rekordbox holds exactly those.
+#[test]
+fn test_create_writes_the_tag_set_it_is_given() {
+    use rekordcrate::device::Tag;
+    use rekordcrate::pdb::ext::TagOrCategory;
+
+    let dir = TempDir::new("given-tags");
+    let tags = vec![
+        Tag {
+            id: 27,
+            parent_id: 0,
+            name: "taxonomy".to_owned(),
+            position: 3,
+            is_category: true,
+        },
+        Tag {
+            id: 43,
+            parent_id: 27,
+            name: "fst".to_owned(),
+            position: 13,
+            is_category: false,
+        },
+    ];
+    let mut writer = DeviceExportWriter::create_with_tags(dir.path(), REFERENCE_DATE, &tags)
+        .expect("failed to create export");
+    let track = writer
+        .add_track(&demo_track("/Contents/One.mp3", "One"))
+        .expect("failed to add track");
+    assert!(writer
+        .add_tag_to_track(track, rekordcrate::pdb::ext::TagId(43))
+        .expect("failed to label the track"));
+    writer.close().expect("failed to close export");
+
+    let file = std::fs::File::open(
+        DeviceExportLoader::new(dir.path().to_path_buf())
+            .layout()
+            .export_ext_pdb(),
+    )
+    .expect("failed to open the ext database");
+    let mut db = rekordcrate::pdb::io::Database::open_non_persistent(
+        file,
+        rekordcrate::pdb::DatabaseType::Ext,
+    )
+    .expect("failed to open the ext database");
+    let written: Vec<(u32, Option<u32>, bool, u32, String)> = db
+        .iter_rows::<TagOrCategory>()
+        .expect("failed to load tags")
+        .map(|row| {
+            Ok((
+                row.id.0,
+                row.parent_id.0.map(|parent| parent.get()),
+                row.is_category(),
+                row.position,
+                row.offsets.name.clone().into_string()?,
+            ))
+        })
+        .collect()
+        .expect("failed to read tags");
+
+    // The set it was given, and nothing else: the set Rekordbox ships with is not written.
+    assert_eq!(
+        written,
+        vec![
+            (27, None, true, 3, "taxonomy".to_string()),
+            (43, Some(27), false, 13, "fst".to_string()),
+        ]
+    );
+}

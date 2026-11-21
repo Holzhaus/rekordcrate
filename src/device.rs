@@ -326,6 +326,24 @@ pub struct Track {
     pub file_type: FileType,
 }
 
+/// A tag that tracks can be labelled with, or a category holding tags.
+///
+/// An export holds the tag set of the library it was written from, keeping the ids that library
+/// uses, so a tag is given with the id it already has rather than being given a new one.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Tag {
+    /// Id of the tag, which the tracks carrying it refer to it by.
+    pub id: u32,
+    /// Id of the category holding the tag, or zero for a category.
+    pub parent_id: u32,
+    /// Name of the tag.
+    pub name: String,
+    /// Place of the tag among the tags of its category, counted from zero.
+    pub position: u32,
+    /// Whether this is a category rather than a tag.
+    pub is_category: bool,
+}
+
 /// The setting types that an export holds a file for.
 ///
 /// Only the settings of the device are written. The other three files hold the settings of a
@@ -418,6 +436,29 @@ impl DeviceExportWriter {
     /// it in. Fails without writing anything if the directory already holds an export, so that an
     /// export that took a long time to collect cannot be destroyed by accident.
     pub fn create(root: impl Into<PathBuf>, date: &str) -> crate::Result<Self> {
+        Self::create_export(root, date, None)
+    }
+
+    /// Creates the files of an export, holding the given tag set.
+    ///
+    /// Rekordbox writes the tag set of the library an export comes from rather than the set it
+    /// ships with, and keeps the ids of that library, so the set is given here with its ids
+    /// rather than built up a tag at a time. An export created without one holds the set that
+    /// Rekordbox ships with.
+    pub fn create_with_tags(
+        root: impl Into<PathBuf>,
+        date: &str,
+        tags: &[Tag],
+    ) -> crate::Result<Self> {
+        Self::create_export(root, date, Some(tags))
+    }
+
+    /// Creates the files of an export, with or without a tag set of its own.
+    fn create_export(
+        root: impl Into<PathBuf>,
+        date: &str,
+        tags: Option<&[Tag]>,
+    ) -> crate::Result<Self> {
         let layout = ExportLayout::new(root);
         std::fs::create_dir_all(layout.rekordbox_dir())?;
 
@@ -434,7 +475,24 @@ impl DeviceExportWriter {
         let mut plain = create_database(&layout.export_pdb(), DatabaseType::Plain)?;
         defaults::insert_defaults(&mut plain, date, 0)?;
         let mut ext = create_database(&layout.export_ext_pdb(), DatabaseType::Ext)?;
-        defaults::insert_ext_defaults(&mut ext)?;
+        match tags {
+            // The row of the table that is not understood comes first in the exports we have,
+            // whichever tag set follows it.
+            Some(tags) => {
+                defaults::insert_unknown7(&mut ext)?;
+                for tag in tags {
+                    defaults::insert_tag(
+                        &mut ext,
+                        tag.id,
+                        tag.parent_id,
+                        tag.position,
+                        tag.is_category,
+                        &tag.name,
+                    )?;
+                }
+            }
+            None => defaults::insert_ext_defaults(&mut ext)?,
+        }
         // The tag set that was just written has taken ids and rows of its own, which the tags of
         // a caller have to come after.
         let (num_tags, next_tag) = read_tags(&mut ext)?;
