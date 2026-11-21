@@ -78,6 +78,8 @@ pub struct LibraryTrack {
     pub artist: String,
     /// Name of the album, or empty if the track names none.
     pub album: String,
+    /// Name of the artist that the album names, which is not always the artist of the track.
+    pub album_artist: String,
     /// Name of the genre, or empty if the track names none.
     pub genre: String,
     /// Name of the record label, or empty if the track names none.
@@ -291,6 +293,8 @@ fn tagged_rows(data: &[u8], tag: [u8; 2]) -> impl Iterator<Item = usize> + '_ {
 struct Names {
     artists: BTreeMap<u32, String>,
     albums: BTreeMap<u32, String>,
+    /// The artist that an album names, by the id of the album.
+    album_artists: BTreeMap<u32, u32>,
     genres: BTreeMap<u32, String>,
     labels: BTreeMap<u32, String>,
     artwork: BTreeMap<u32, String>,
@@ -321,9 +325,12 @@ fn read_names(data: &[u8]) -> Names {
                 PlainPageType::Artists => row
                     .as_variant::<Artist>()
                     .map(|row| (row.id.0, row.offsets.name.clone())),
-                PlainPageType::Albums => row
-                    .as_variant::<Album>()
-                    .map(|row| (row.id.0, row.offsets.name.clone())),
+                PlainPageType::Albums => row.as_variant::<Album>().map(|row| {
+                    // An album names an artist of its own, which is kept to be resolved once
+                    // every artist has been read.
+                    names.album_artists.insert(row.id.0, row.artist_id.0);
+                    (row.id.0, row.offsets.name.clone())
+                }),
                 PlainPageType::Genres => row
                     .as_variant::<Genre>()
                     .map(|row| (row.id.0, row.name.clone())),
@@ -399,6 +406,12 @@ fn read_tracks(data: &[u8], names: &Names) -> BTreeMap<u32, LibraryTrack> {
                 album: names
                     .albums
                     .get(&row.album_id.0)
+                    .cloned()
+                    .unwrap_or_default(),
+                album_artist: names
+                    .album_artists
+                    .get(&row.album_id.0)
+                    .and_then(|artist_id| names.artists.get(artist_id))
                     .cloned()
                     .unwrap_or_default(),
                 genre: names

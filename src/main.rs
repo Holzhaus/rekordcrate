@@ -719,6 +719,7 @@ fn library(
                 title: track.title.clone(),
                 artist: track.artist.clone(),
                 album: track.album.clone(),
+                album_artist: track.album_artist.clone(),
                 genre: track.genre.clone(),
                 label: track.label.clone(),
                 comment: track.comment.clone(),
