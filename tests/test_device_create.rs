@@ -608,3 +608,49 @@ fn test_playlists_of_the_same_name_stay_apart() {
         .collect();
     assert_eq!(names, vec!["sets/1".to_string(), "archive/1".to_string()]);
 }
+
+/// A track must carry the number of times it was played, along with the counter that Rekordbox
+/// keeps beside it.
+///
+/// In an export written by Rekordbox, the string field following the play count holds the count
+/// plus one for all but two of its fifty-three tracks, so that is what is written here.
+#[test]
+fn test_add_track_writes_the_play_count() {
+    let dir = TempDir::new("play-count");
+    let mut writer =
+        DeviceExportWriter::create(dir.path(), REFERENCE_DATE).expect("failed to create export");
+    writer
+        .add_track(&Track {
+            play_count: 9,
+            ..demo_track("/Contents/Played.mp3", "Played")
+        })
+        .expect("failed to add track");
+    writer
+        .add_track(&demo_track("/Contents/Unplayed.mp3", "Unplayed"))
+        .expect("failed to add track");
+    writer.close().expect("failed to close export");
+
+    let mut db = DeviceExportLoader::new(dir.path().to_path_buf())
+        .open_pdb_non_persistent()
+        .expect("failed to open database");
+    let mut rows: Vec<(String, u16, String)> = db
+        .iter_rows::<TrackRow>()
+        .expect("failed to load tracks")
+        .map(|track| {
+            Ok((
+                track.offsets.title.clone().into_string()?,
+                track.play_count,
+                track.offsets.unknown_string2.clone().into_string()?,
+            ))
+        })
+        .collect()
+        .expect("failed to read tracks");
+    rows.sort();
+    assert_eq!(
+        rows,
+        vec![
+            ("Played".to_string(), 9, "10".to_string()),
+            ("Unplayed".to_string(), 0, "1".to_string()),
+        ]
+    );
+}

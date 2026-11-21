@@ -253,6 +253,8 @@ pub struct Track {
     pub year: u16,
     /// Rating from zero to five stars.
     pub rating: u8,
+    /// Number of times the track was played.
+    pub play_count: u16,
     /// Color the track is labelled with.
     pub color: ColorIndex,
     /// Format of the audio file.
@@ -549,6 +551,7 @@ impl DeviceExportWriter {
             year: track.year,
             duration: track.duration,
             rating: track.rating,
+            play_count: track.play_count,
             color: track.color.clone(),
             file_type: track.file_type.clone(),
             // The tempo is stored in hundredths of a beat per minute.
@@ -558,6 +561,11 @@ impl DeviceExportWriter {
             offsets: OffsetArrayContainer {
                 offsets: MaybeCalculated::Calculated,
                 inner: TrackStrings {
+                    // Rekordbox keeps a counter beside the play count, which holds the count
+                    // plus one in the exports we have to go by.
+                    unknown_string2: DeviceSQLString::new(
+                        &track.play_count.saturating_add(1).to_string(),
+                    )?,
                     title: DeviceSQLString::new(&track.title)?,
                     file_path: DeviceSQLString::new(&track.file_path)?,
                     filename: DeviceSQLString::new(file_name_of(&track.file_path))?,
