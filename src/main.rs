@@ -44,6 +44,23 @@ enum DumpFormat {
     Json,
 }
 
+/// Which form of a file name to record in an export.
+///
+/// A name holding a character outside ASCII can be written in more than one form, and the forms
+/// look the same but are not the same bytes. A file system is free to store a name in another
+/// form than it was given: macOS stores "ö" on a FAT file system as an "o" followed by a
+/// combining mark, where a library holds it as a single character.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, ValueEnum)]
+enum NameForm {
+    /// The form the device holds the name in, which is what a player reads from the directory.
+    #[default]
+    #[value(name = "device")]
+    Device,
+    /// The form the library holds the name in, which is what Rekordbox recorded for the file.
+    #[value(name = "library")]
+    Library,
+}
+
 #[derive(Debug, Error)]
 enum CliError {
     #[error(transparent)]
@@ -140,6 +157,11 @@ enum Commands {
         /// Playlist to put on the export. May be given more than once.
         #[arg(short = 'p', long = "playlist", value_name = "NAME")]
         playlists: Vec<String>,
+        /// Which form to record the name of a file in, where the device stores a name in
+        /// another form than the library holds it. Write to an empty directory when changing
+        /// this, as an export records one form or the other.
+        #[arg(long, value_enum, default_value_t = NameForm::Device)]
+        name_form: NameForm,
         /// Directory to write the export to, which must not hold one yet.
         #[arg(value_name = "OUTPUT_DIR")]
         output: Option<PathBuf>,
@@ -571,6 +593,7 @@ fn library(
     path: &Path,
     list: bool,
     playlist_names: &[String],
+    name_form: NameForm,
     output: Option<&Path>,
 ) -> CliResult<()> {
     let library = Library::open(path)?;
@@ -658,9 +681,12 @@ fn library(
             }
 
             // The path the track has on the device, which is also what decides where its
-            // analysis files belong. The name is taken from the device rather than from the
-            // library, as a file system does not always store a name as it was given.
-            let device_path = format!("/Contents/{}", stored_name(&destination)?);
+            // analysis files belong.
+            let name = match name_form {
+                NameForm::Device => stored_name(&destination)?,
+                NameForm::Library => track.filename.clone(),
+            };
+            let device_path = format!("/Contents/{name}");
 
             // The artwork keeps the place it has in the library, so that the path recorded for
             // it is the one the player finds it at.
@@ -984,8 +1010,9 @@ fn run() -> CliResult<()> {
             path,
             list,
             playlists,
+            name_form,
             output,
-        } => library(path, *list, playlists, output.as_deref())?,
+        } => library(path, *list, playlists, *name_form, output.as_deref())?,
         Commands::ListSettings { path } => list_settings(path)?,
         Commands::ExportPlaylists { path, output_dir } => export_playlists(path, output_dir)?,
         Commands::DumpPDB {
