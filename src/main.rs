@@ -7,6 +7,7 @@
 // SPDX-License-Identifier: MPL-2.0
 
 use binrw::BinRead;
+use binrw::BinWrite;
 use clap::{Parser, Subcommand, ValueEnum};
 use fallible_iterator::FallibleIterator;
 use rekordcrate::device::{get_playlists, DeviceExportWriter, Track as DeviceTrack};
@@ -635,7 +636,7 @@ fn library(
                 if let Some(dir) = destination.parent() {
                     std::fs::create_dir_all(dir)?;
                 }
-                std::fs::copy(&file, destination)?;
+                copy_analysis_file(&file, &destination, &device_path)?;
             }
 
             let track_id = writer.add_track(&DeviceTrack {
@@ -675,6 +676,29 @@ fn library(
     if without_analysis > 0 {
         println!("{without_analysis} tracks have no analysis files in the library");
     }
+    Ok(())
+}
+
+/// Copies an analysis file to a device, naming the path the audio file has there.
+///
+/// An analysis file names the audio file it was made for, which on the device is somewhere else
+/// than in the library it came from. A file that cannot be read is copied as it is, so that a
+/// kind of analysis this crate does not know is still carried over.
+fn copy_analysis_file(source: &Path, destination: &Path, audio_path: &str) -> CliResult<()> {
+    let data = std::fs::read(source)?;
+    let mut cursor = std::io::Cursor::new(data.as_slice());
+    let Ok(mut anlz) = ANLZ::read(&mut cursor) else {
+        std::fs::copy(source, destination)?;
+        return Ok(());
+    };
+    if !anlz.set_audio_path(audio_path) {
+        std::fs::copy(source, destination)?;
+        return Ok(());
+    }
+
+    let mut written = std::io::Cursor::new(Vec::new());
+    anlz.write(&mut written).map_err(rekordcrate::Error::from)?;
+    std::fs::write(destination, written.into_inner())?;
     Ok(())
 }
 
