@@ -117,6 +117,8 @@ pub struct LibraryTrack {
     pub year: u16,
     /// Rating from zero to five stars.
     pub rating: u8,
+    /// Number of times the track was played.
+    pub play_count: u16,
     /// Colour the track is labelled with.
     pub color: ColorIndex,
     /// Format of the audio file.
@@ -430,6 +432,7 @@ fn read_tracks(data: &[u8], names: &Names) -> BTreeMap<u32, LibraryTrack> {
                 disc_number: row.disc_number,
                 year: row.year,
                 rating: row.rating,
+                play_count: row.play_count,
                 color: row.color.clone(),
                 file_type: row.file_type.clone(),
             },

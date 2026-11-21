@@ -740,6 +740,7 @@ fn library(
                 disc_number: track.disc_number,
                 year: track.year,
                 rating: track.rating,
+                play_count: track.play_count,
                 color: track.color.clone(),
                 file_type: track.file_type.clone(),
                 ..Default::default()
