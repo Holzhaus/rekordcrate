@@ -16,13 +16,13 @@ jobs:
             contents: write
         steps:
             - name: Check out repository
-              uses: actions/checkout@v6
+              uses: actions/checkout@v7
               with:
                   fetch-depth: 0
                   persist-credentials: true  # Required by EndBug/add-and-commit
 
             - name: Use cached artifacts
-              uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6
+              uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0
 
             - name: Print Rust version
               run: rustc -vV
@@ -37,7 +37,7 @@ jobs:
               run: echo "GIT_DIRTY=$(git diff --quiet ; printf "%d" "$?")" >> "${GITHUB_ENV}"
 
             - name: Commit new changelog
-              uses: EndBug/add-and-commit@a94899bca583c204427a224a7af87c02f9b325d5
+              uses: EndBug/add-and-commit@cc9c08ba6c8df3b93a8f2db63e89b98368ae2ae8
               if: env.GIT_DIRTY != null && env.GIT_DIRTY != '0'
               with:
                   add: CHANGELOG.md
