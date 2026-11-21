@@ -205,6 +205,12 @@ impl Library {
         &self.tracks
     }
 
+    /// The node of the playlist tree with the given id.
+    #[must_use]
+    pub fn playlist_by_id(&self, id: u32) -> Option<&LibraryPlaylist> {
+        self.playlists.iter().find(|node| node.id == id)
+    }
+
     /// The node of the playlist tree with the given name, if there is exactly one.
     #[must_use]
     pub fn find_playlist(&self, name: &str) -> Option<&LibraryPlaylist> {
