@@ -592,10 +592,18 @@ fn library(
     // Resolve the names first, so that nothing is written if one of them is wrong.
     let mut selected = Vec::new();
     for name in playlist_names {
-        let playlist = library
+        let node = library
             .find_playlist(name)
             .ok_or_else(|| CliError::NoSuchPlaylist(name.clone()))?;
-        selected.push(playlist.clone());
+        // A folder holds playlists rather than tracks, so naming one means every playlist in it.
+        let before = selected.len();
+        collect_playlists(&library, node, &mut selected);
+        if node.is_folder() {
+            println!(
+                "{name} is a folder holding {} playlists",
+                selected.len() - before
+            );
+        }
     }
 
     // An export that is already there is added to, so that a playlist that has grown does not
@@ -850,6 +858,30 @@ fn copy_artwork(
     }
 
     Ok(format!("/PIONEER/Artwork/{}", below_artwork.1))
+}
+
+/// Collects the playlists that a node of the playlist tree stands for.
+///
+/// A playlist stands for itself, while a folder stands for every playlist within it, however
+/// deeply it is held.
+fn collect_playlists(
+    library: &Library,
+    node: &rekordcrate::edb::LibraryPlaylist,
+    found: &mut Vec<rekordcrate::edb::LibraryPlaylist>,
+) {
+    if !node.is_folder() {
+        found.push(node.clone());
+        return;
+    }
+    let mut children: Vec<_> = library
+        .playlists()
+        .iter()
+        .filter(|child| child.parent_id == node.id)
+        .collect();
+    children.sort_by_key(|child| (child.sort_order, child.id));
+    for child in children {
+        collect_playlists(library, child, found);
+    }
 }
 
 /// The name to give the analysis files of a track in the directory they belong in.
