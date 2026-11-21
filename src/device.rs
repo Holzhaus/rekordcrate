@@ -76,6 +76,30 @@ impl ExportLayout {
         self.rekordbox_dir().join("exportExt.pdb")
     }
 
+    /// The directory holding the audio files of the tracks.
+    #[must_use]
+    pub fn contents_dir(&self) -> PathBuf {
+        self.0.join("Contents")
+    }
+
+    /// Where the audio file of a track belongs on the device.
+    ///
+    /// Rekordbox holds the audio of a track under the artist and the album it names, cutting
+    /// each name to what a path allows, and a track naming no album is held under a name
+    /// standing for that.
+    #[must_use]
+    pub fn contents_file(&self, artist: &str, album: &str, filename: &str) -> PathBuf {
+        let directory = |name: &str, unknown: &str| {
+            let name = name.trim();
+            let name = if name.is_empty() { unknown } else { name };
+            cut_to_length(&replace_path_characters(name), MAX_PATH_PART)
+        };
+        self.contents_dir()
+            .join(directory(artist, UNKNOWN_ARTIST))
+            .join(directory(album, UNKNOWN_ALBUM))
+            .join(cut_file_name(&replace_path_characters(filename)))
+    }
+
     /// The directory holding the images that hold the artwork of the tracks.
     #[must_use]
     pub fn artwork_dir(&self) -> PathBuf {
@@ -187,6 +211,20 @@ impl DeviceExportLoader {
     }
 }
 
+/// Longest a part of a path below `Contents` is allowed to be.
+///
+/// Rekordbox cuts the name of an artist, an album or a file to this, which the exports it writes
+/// bear out: nothing in them is longer, and the names it had to cut end exactly here.
+const MAX_PATH_PART: usize = 48;
+
+/// Name standing in for the album of a track that names none, as Rekordbox writes it.
+const UNKNOWN_ALBUM: &str = "UnknownAlbum";
+
+/// Name standing in for the artist of a track that names none.
+///
+/// No export we have holds a track without an artist, so this follows the name used for an
+/// album.
+const UNKNOWN_ARTIST: &str = "UnknownArtist";
 /// Unused page heap space left after a track row.
 ///
 /// Rekordbox leaves this much space after the track rows of the exports we have fixtures for,
@@ -855,6 +893,30 @@ fn tempo_hundredths(tempo: f32) -> Option<u32> {
     Some(hundredths as u32)
 }
 
+/// Replaces the characters that a part of a path cannot hold.
+fn replace_path_characters(name: &str) -> String {
+    name.replace(['/', ':'], "_")
+}
+
+/// Cuts a name to a number of characters, counting characters rather than bytes so that a name
+/// holding more than ASCII is not cut through the middle of one.
+fn cut_to_length(name: &str, length: usize) -> String {
+    name.chars().take(length).collect()
+}
+
+/// Cuts the name of a file, keeping the extension so that the file is still what it was.
+fn cut_file_name(filename: &str) -> String {
+    if filename.chars().count() <= MAX_PATH_PART {
+        return filename.to_owned();
+    }
+    match filename.rsplit_once('.') {
+        Some((stem, extension)) => {
+            let room = MAX_PATH_PART.saturating_sub(extension.chars().count() + 1);
+            format!("{}.{extension}", cut_to_length(stem, room))
+        }
+        None => cut_to_length(filename, MAX_PATH_PART),
+    }
+}
 /// The name of the file a path names, which a track row holds alongside the path itself.
 fn file_name_of(path: &str) -> &str {
     path.rsplit('/').next().unwrap_or(path)

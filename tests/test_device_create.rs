@@ -16,7 +16,7 @@ use rekordcrate::device::{get_playlists, PlaylistNode, Track};
 use rekordcrate::pdb::{Album, Artist, Genre, Key, Label, PlaylistEntry, RowVariant};
 use rekordcrate::pdb::{Track as TrackRow, TrackId};
 use rekordcrate::setting::{Setting, SettingType};
-use rekordcrate::{DeviceExportLoader, DeviceExportWriter};
+use rekordcrate::{DeviceExportLoader, DeviceExportWriter, ExportLayout};
 use std::path::{Path, PathBuf};
 
 /// The export that Rekordbox writes for a device without any tracks on it.
@@ -734,4 +734,60 @@ fn test_add_track_writes_the_artist_of_an_album() {
         .find(|(_, name)| name == "Various Artists")
         .expect("the artist of the album should be in the export");
     assert_eq!(albums, vec![("A Compilation".to_string(), album_artist.0)]);
+}
+
+/// Audio files must be laid out the way Rekordbox lays them out.
+///
+/// Every one of the fifty-three tracks of an export written by Rekordbox sits at
+/// `/Contents/<artist>/<album>/<file>`. A track with no album is held in `UnknownAlbum`, a name
+/// is cut to 48 characters, a slash or colon within one becomes an underscore, and a file name is
+/// cut to 48 characters with its extension kept.
+#[test]
+fn test_contents_path_is_laid_out_as_rekordbox_lays_it_out() {
+    let layout = ExportLayout::new(PathBuf::from("/device"));
+    let path = |artist: &str, album: &str, filename: &str| {
+        layout
+            .contents_file(artist, album, filename)
+            .strip_prefix("/device")
+            .expect("the path should be on the device")
+            .to_string_lossy()
+            .to_string()
+    };
+
+    assert_eq!(
+        path(
+            "Dismantle",
+            "Feature Presentation",
+            "Dismantle_-_Feature.aif"
+        ),
+        "Contents/Dismantle/Feature Presentation/Dismantle_-_Feature.aif"
+    );
+    // A track that names no album is held under a name standing for that.
+    assert_eq!(
+        path("TAH", "", "TAH_-_Beat_It_Up.aif"),
+        "Contents/TAH/UnknownAlbum/TAH_-_Beat_It_Up.aif"
+    );
+    // A slash cannot stand in a path, and a colon is replaced as well.
+    assert_eq!(
+        path("V/A", "Various Artists #06: Ruthless", "x.aif"),
+        "Contents/V_A/Various Artists #06_ Ruthless/x.aif"
+    );
+    // A name longer than a path allows is cut.
+    assert_eq!(
+        path(
+            "An Artist",
+            "Serge Geyzel with remixes from Illektrolab & Karsten Pflum [Vinyl]",
+            "x.aif"
+        ),
+        "Contents/An Artist/Serge Geyzel with remixes from Illektrolab & Kar/x.aif"
+    );
+    // A file name is cut as well, keeping the extension so that the file is still an audio file.
+    assert_eq!(
+        path(
+            "An Artist",
+            "An Album",
+            "Diffuse_Reality_Records_-_Serge_Geyzel_with_remixes_from_Illektrolab.aif"
+        ),
+        "Contents/An Artist/An Album/Diffuse_Reality_Records_-_Serge_Geyzel_with_.aif"
+    );
 }
