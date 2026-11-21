@@ -870,3 +870,87 @@ fn test_add_track_names_the_artwork_of_the_export() {
         ]
     );
 }
+
+/// The tags a track is labelled with must be written as Rekordbox writes them.
+///
+/// An export written by Rekordbox holds the tag set of the library, as categories holding tags,
+/// and a row per tag a track is labelled with. Its rows count `index_shift` up in steps of 32,
+/// mark a category with 0x01000000, and hold a 3 in the field beside a link.
+#[test]
+fn test_tags_are_written_as_rekordbox_writes_them() {
+    use rekordcrate::pdb::ext::{TagOrCategory, TrackTag};
+
+    let dir = TempDir::new("tags");
+    let mut writer =
+        DeviceExportWriter::create(dir.path(), REFERENCE_DATE).expect("failed to create export");
+    let track = writer
+        .add_track(&demo_track("/Contents/One.mp3", "One"))
+        .expect("failed to add track");
+
+    let mood = writer
+        .create_tag_category("Mood")
+        .expect("failed to create category");
+    let dark = writer
+        .create_tag(mood, "Dark")
+        .expect("failed to create tag");
+    let light = writer
+        .create_tag(mood, "Light")
+        .expect("failed to create tag");
+    assert_ne!(dark, light);
+    assert!(writer
+        .add_tag_to_track(track, dark)
+        .expect("failed to label the track"));
+    // Labelling a track twice with the same tag must not hold it twice.
+    assert!(!writer
+        .add_tag_to_track(track, dark)
+        .expect("failed to label the track"));
+    writer.close().expect("failed to close export");
+
+    let file = std::fs::File::open(
+        DeviceExportLoader::new(dir.path().to_path_buf())
+            .layout()
+            .export_ext_pdb(),
+    )
+    .expect("failed to open the ext database");
+    let mut db = rekordcrate::pdb::io::Database::open_non_persistent(
+        file,
+        rekordcrate::pdb::DatabaseType::Ext,
+    )
+    .expect("failed to open the ext database");
+
+    let added: Vec<(u32, Option<u32>, bool, String)> = db
+        .iter_rows::<TagOrCategory>()
+        .expect("failed to load tags")
+        .map(|row| {
+            Ok((
+                row.id.0,
+                row.parent_id.0.map(|parent| parent.get()),
+                row.raw_is_category != 0,
+                row.offsets.name.clone().into_string()?,
+            ))
+        })
+        .collect()
+        .expect("failed to read tags");
+    // The export already holds the tag set that Rekordbox puts in every one, so only the rows
+    // added here are of interest.
+    let ours: Vec<_> = added
+        .iter()
+        .filter(|(id, parent, _, _)| *id == mood.0 || *parent == Some(mood.0))
+        .collect();
+    assert_eq!(
+        ours,
+        vec![
+            &(mood.0, None, true, "Mood".to_string()),
+            &(dark.0, Some(mood.0), false, "Dark".to_string()),
+            &(light.0, Some(mood.0), false, "Light".to_string()),
+        ]
+    );
+
+    let links: Vec<(u32, u32, u32)> = db
+        .iter_rows::<TrackTag>()
+        .expect("failed to load the tags of tracks")
+        .map(|row| Ok((row.track_id.0, row.tag_id.0, row.unknown_const)))
+        .collect()
+        .expect("failed to read the tags of tracks");
+    assert_eq!(links, vec![(track.0, dark.0, 3)]);
+}

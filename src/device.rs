@@ -11,13 +11,14 @@
 use crate::{
     anlz::AnalysisPath,
     pdb::defaults,
+    pdb::ext::{ParentId, TagId, TagOrCategory, TagOrCategoryStrings, TrackTag},
     pdb::io::Database,
     pdb::offset_array::OffsetArrayContainer,
     pdb::string::DeviceSQLString,
     pdb::{
         Album, AlbumId, Artist, ArtistId, Artwork, ArtworkId, DatabaseType, Genre, GenreId, Key,
-        KeyId, Label, LabelId, PlaylistEntry, PlaylistTreeNode, PlaylistTreeNodeId, TrackId,
-        TrackStrings, TrailingName,
+        KeyId, Label, LabelId, PlaylistEntry, PlaylistTreeNode, PlaylistTreeNodeId, Subtype,
+        TrackId, TrackStrings, TrailingName,
     },
     setting,
     setting::{Setting, SettingType},
@@ -29,6 +30,7 @@ use std::collections::{HashMap, HashSet};
 use std::fmt;
 use std::fs::File;
 use std::io::{Read, Seek};
+use std::num::NonZero;
 use std::path::{Path, PathBuf};
 
 /// The paths that make up a Rekordbox device export.
@@ -347,6 +349,12 @@ pub struct DeviceExportWriter {
     genre_ids: HashMap<String, GenreId>,
     label_ids: HashMap<String, LabelId>,
     key_ids: HashMap<String, KeyId>,
+    /// The number of tag rows written, which the index of the next one follows from.
+    num_tags: u32,
+    /// The number of tags in a category, which the place of the next one follows from.
+    tag_positions: HashMap<u32, u32>,
+    /// The tags a track is labelled with, so that one is not held twice.
+    track_tags: HashSet<(TrackId, TagId)>,
     /// The nodes of the playlist tree by the folder holding them and their name, so that a
     /// playlist that is already in the export is added to rather than added again. Two playlists
     /// in different folders may have the same name, which is why the folder is part of the key.
@@ -371,6 +379,7 @@ struct NextIds {
     label: u32,
     key: u32,
     playlist: u32,
+    tag: u32,
 }
 
 impl NextIds {
@@ -385,6 +394,7 @@ impl NextIds {
             label: 1,
             key: 1,
             playlist: 1,
+            tag: 1,
         }
     }
 
@@ -420,6 +430,9 @@ impl DeviceExportWriter {
         defaults::insert_defaults(&mut plain, date, 0)?;
         let mut ext = create_database(&layout.export_ext_pdb(), DatabaseType::Ext)?;
         defaults::insert_ext_defaults(&mut ext)?;
+        // The tag set that was just written has taken ids and rows of its own, which the tags of
+        // a caller have to come after.
+        let (num_tags, next_tag) = read_tags(&mut ext)?;
 
         Ok(Self {
             layout,
@@ -432,10 +445,16 @@ impl DeviceExportWriter {
             genre_ids: HashMap::new(),
             label_ids: HashMap::new(),
             key_ids: HashMap::new(),
+            num_tags,
+            tag_positions: HashMap::new(),
+            track_tags: HashSet::new(),
             playlist_ids: HashMap::new(),
             playlist_lengths: HashMap::new(),
             playlist_members: HashMap::new(),
-            next_ids: NextIds::initial(),
+            next_ids: NextIds {
+                tag: next_tag,
+                ..NextIds::initial()
+            },
         })
     }
 
@@ -461,12 +480,25 @@ impl DeviceExportWriter {
             genre_ids: HashMap::new(),
             label_ids: HashMap::new(),
             key_ids: HashMap::new(),
+            num_tags: 0,
+            tag_positions: HashMap::new(),
+            track_tags: HashSet::new(),
             playlist_ids: HashMap::new(),
             playlist_lengths: HashMap::new(),
             playlist_members: HashMap::new(),
             next_ids: NextIds::initial(),
         };
         writer.read_existing()?;
+        let (num_tags, next_tag) = read_tags(&mut writer.ext)?;
+        writer.num_tags = num_tags;
+        writer.next_ids.tag = next_tag;
+        writer.track_tags = writer
+            .ext
+            .iter_rows::<TrackTag>()?
+            .map(|row| Ok((row.track_id, row.tag_id)))
+            .collect::<Vec<_>>()?
+            .into_iter()
+            .collect();
         Ok(writer)
     }
 
@@ -647,6 +679,75 @@ impl DeviceExportWriter {
         self.plain.add_row_with_slack(row, TRACK_SLACK_BYTES)?;
 
         self.track_ids.insert(track.file_path.clone(), id);
+        Ok(id)
+    }
+
+    /// Adds a category that tags can be put in, which players show as a set of its own.
+    ///
+    /// Returns the id of the category, which [`DeviceExportWriter::create_tag`] takes.
+    pub fn create_tag_category(&mut self, name: &str) -> crate::Result<TagId> {
+        self.add_tag_row(None, name)
+    }
+
+    /// Adds a tag to a category, which tracks can be labelled with.
+    pub fn create_tag(&mut self, category: TagId, name: &str) -> crate::Result<TagId> {
+        self.add_tag_row(Some(category), name)
+    }
+
+    /// Labels a track with a tag, and says whether the track carried it already.
+    pub fn add_tag_to_track(&mut self, track_id: TrackId, tag_id: TagId) -> crate::Result<bool> {
+        if !self.track_tags.insert((track_id, tag_id)) {
+            return Ok(false);
+        }
+        self.ext.add_row_with_slack(
+            TrackTag {
+                track_id,
+                tag_id,
+                // Holds a three in every export we have seen.
+                unknown_const: TrackTag::UNKNOWN_CONST,
+            },
+            0,
+        )?;
+        Ok(true)
+    }
+
+    /// Adds a row to the tag table, as a category when it is given no category to sit in.
+    fn add_tag_row(&mut self, category: Option<TagId>, name: &str) -> crate::Result<TagId> {
+        let id = TagId(NextIds::take(&mut self.next_ids.tag));
+        // A tag holds its place among the tags of its category, counted from zero.
+        let within = self
+            .tag_positions
+            .entry(category.map_or(0, |category| category.0))
+            .or_insert(0);
+        let position = *within;
+        *within += 1;
+
+        self.ext.add_row_with_slack(
+            TagOrCategory {
+                subtype: Subtype(TagOrCategory::SUBTYPE),
+                // Recorded when the row is stored, from the place it takes in its page.
+                index_shift: 0,
+                unknown1: 0,
+                unknown2: 0,
+                parent_id: ParentId(category.and_then(|category| NonZero::new(category.0))),
+                position,
+                id,
+                raw_is_category: if category.is_none() {
+                    TagOrCategory::IS_CATEGORY
+                } else {
+                    0
+                },
+                offsets: OffsetArrayContainer {
+                    offsets: MaybeCalculated::Calculated,
+                    inner: TagOrCategoryStrings {
+                        name: DeviceSQLString::new(name)?,
+                        unknown: DeviceSQLString::empty(),
+                    },
+                },
+            },
+            TagOrCategory::SLACK_BYTES,
+        )?;
+        self.num_tags += 1;
         Ok(id)
     }
 
@@ -953,6 +1054,18 @@ fn file_name_of(path: &str) -> &str {
 /// The id to give out next, after the ids that are already taken.
 fn next_after(ids: impl Iterator<Item = u32>) -> u32 {
     ids.max().unwrap_or(0) + 1
+}
+
+/// The number of tag rows a database holds, and the id to give the next one.
+fn read_tags(db: &mut Database<File>) -> crate::Result<(u32, u32)> {
+    let ids: Vec<u32> = db
+        .iter_rows::<TagOrCategory>()?
+        .map(|row| Ok(row.id.0))
+        .collect()?;
+    let count = u32::try_from(ids.len()).map_err(|_| {
+        crate::Error::IntegrityError("the tag table holds more rows than can be counted")
+    })?;
+    Ok((count, next_after(ids.into_iter())))
 }
 
 /// Opens a database that a device already holds, for reading and writing.
