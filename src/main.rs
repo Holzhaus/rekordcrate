@@ -646,8 +646,6 @@ fn library(
         DeviceExportWriter::create(output, &today())?
     };
     let layout = writer.layout().clone();
-    let contents = layout.root().join("Contents");
-    std::fs::create_dir_all(&contents)?;
 
     let mut missing_audio = 0usize;
     let mut without_analysis = 0usize;
@@ -673,7 +671,11 @@ fn library(
                 continue;
             }
 
-            let destination = contents.join(&track.filename);
+            // Rekordbox holds the audio of a track under the artist and the album it names.
+            let destination = layout.contents_file(&track.artist, &track.album, &track.filename);
+            if let Some(dir) = destination.parent() {
+                std::fs::create_dir_all(dir)?;
+            }
             // A file that is already on the device is left alone, which is what makes adding to
             // an export cheap.
             let was_there = destination.is_file();
@@ -687,11 +689,14 @@ fn library(
 
             // The path the track has on the device, which is also what decides where its
             // analysis files belong.
-            let name = match name_form {
-                NameForm::Device => stored_name(&destination)?,
-                NameForm::Library => track.filename.clone(),
+            let on_device = match name_form {
+                NameForm::Device => destination.with_file_name(stored_name(&destination)?),
+                NameForm::Library => destination.clone(),
             };
-            let device_path = format!("/Contents/{name}");
+            let device_path = on_device
+                .strip_prefix(layout.root())
+                .map(|path| format!("/{}", path.display()))
+                .unwrap_or_default();
 
             // The artwork keeps the place it has in the library, so that the path recorded for
             // it is the one the player finds it at.
