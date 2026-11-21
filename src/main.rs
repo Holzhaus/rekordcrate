@@ -10,7 +10,9 @@ use binrw::BinRead;
 use binrw::BinWrite;
 use clap::{Parser, Subcommand, ValueEnum};
 use fallible_iterator::FallibleIterator;
-use rekordcrate::device::{get_playlists, DeviceExportWriter, ExportLayout, Track as DeviceTrack};
+use rekordcrate::device::{
+    get_playlists, DeviceExportWriter, ExportLayout, Tag as DeviceTag, Track as DeviceTrack,
+};
 use rekordcrate::edb::Library;
 use rekordcrate::pdb::io::Database;
 use rekordcrate::pdb::*;
@@ -639,11 +641,27 @@ fn library(
     let existing = ExportLayout::new(output.to_path_buf())
         .export_pdb()
         .is_file();
+    // An export holds the tag set of the library it comes from, with the ids that library uses,
+    // so that the tags a track carries name the same rows.
+    let tags: Vec<DeviceTag> = library
+        .tags()
+        .iter()
+        .map(|tag| DeviceTag {
+            id: tag.id,
+            parent_id: tag.parent_id,
+            name: tag.name.clone(),
+            position: tag.position,
+            is_category: tag.is_category,
+        })
+        .collect();
+
     let mut writer = if existing {
         println!("adding to the export already in {}", output.display());
         DeviceExportWriter::open(output)?
-    } else {
+    } else if tags.is_empty() {
         DeviceExportWriter::create(output, &today())?
+    } else {
+        DeviceExportWriter::create_with_tags(output, &today(), &tags)?
     };
     let layout = writer.layout().clone();
 
@@ -756,6 +774,11 @@ fn library(
             // The export decides where the artwork of a track belongs, so it is copied once the
             // track has been added and the image has been given a name.
             copy_artwork(&library, track, &writer)?;
+
+            // The tags of a track name rows of the set written with the export.
+            for tag in library.tags_of_track(track.id) {
+                writer.add_tag_to_track(track_id, rekordcrate::pdb::ext::TagId(*tag))?;
+            }
 
             if writer.add_track_to_playlist(playlist_id, track_id)? {
                 added += 1;

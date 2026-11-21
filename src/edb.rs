@@ -35,6 +35,18 @@ const LIBRARY_FILE: &str = "datafile.edb";
 /// Name of the file holding the profile of the DJ, which an export carries a copy of.
 const PROFILE_FILE: &str = "djprofile.nxs";
 
+/// Name of the file holding the tags that tracks are labelled with.
+const EXT_DATA_FILE: &str = "ExtData.edb";
+
+/// Tag of the rows holding a tag or a category of tags.
+const TAG_TAG: [u8; 2] = [0x60, 0x05];
+
+/// Tag of the rows saying that a track carries a tag.
+const TRACK_TAG_TAG: [u8; 2] = [0x80, 0x05];
+
+/// Value marking a tag row as holding a category rather than a tag.
+const TAG_IS_CATEGORY: u32 = 0x0100_0000;
+
 /// Tag that a track row is preceded by.
 const TRACK_TAG: [u8; 2] = [0xc4, 0x02];
 
@@ -139,6 +151,24 @@ impl LibraryTrack {
     }
 }
 
+/// A tag that tracks can be labelled with, or a category holding tags.
+///
+/// Rekordbox keeps these apart from the playlist tree, in a file of their own, though a library
+/// may well also hold playlists named after the tags.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LibraryTag {
+    /// Id of the tag, which the tracks carrying it refer to it by.
+    pub id: u32,
+    /// Id of the category holding the tag, or zero for a category.
+    pub parent_id: u32,
+    /// Name of the tag.
+    pub name: String,
+    /// Place of the tag among the tags of its category, counted from zero.
+    pub position: u32,
+    /// Whether the row holds a category rather than a tag.
+    pub is_category: bool,
+}
+
 /// A node of the playlist tree of a Rekordbox 5 library.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LibraryPlaylist {
@@ -170,6 +200,9 @@ pub struct Library {
     tracks: BTreeMap<u32, LibraryTrack>,
     playlists: Vec<LibraryPlaylist>,
     entries: BTreeMap<u32, Vec<u32>>,
+    tags: Vec<LibraryTag>,
+    /// The tags of a track, by the id of the track.
+    track_tags: BTreeMap<u32, Vec<u32>>,
 }
 
 impl Library {
@@ -187,11 +220,22 @@ impl Library {
             &playlists.iter().map(|node| node.id).collect(),
         );
 
+        // The tags live in a file of their own, which a library need not have.
+        let (tags, track_tags) = match std::fs::read(root.join(EXT_DATA_FILE)) {
+            Ok(data) => (
+                read_tags(&data),
+                read_track_tags(&data, &tracks.keys().copied().collect()),
+            ),
+            Err(_) => (Vec::new(), BTreeMap::new()),
+        };
+
         Ok(Self {
             root,
             tracks,
             playlists,
             entries,
+            tags,
+            track_tags,
         })
     }
 
@@ -199,6 +243,21 @@ impl Library {
     #[must_use]
     pub fn root(&self) -> &Path {
         &self.root
+    }
+
+    /// The tags that tracks can be labelled with, and the categories holding them.
+    #[must_use]
+    pub fn tags(&self) -> &[LibraryTag] {
+        &self.tags
+    }
+
+    /// The tags a track is labelled with.
+    #[must_use]
+    pub fn tags_of_track(&self, track_id: u32) -> &[u32] {
+        self.track_tags
+            .get(&track_id)
+            .map(Vec::as_slice)
+            .unwrap_or_default()
     }
 
     /// The nodes of the playlist tree.
@@ -312,6 +371,90 @@ struct Names {
     genres: BTreeMap<u32, String>,
     labels: BTreeMap<u32, String>,
     artwork: BTreeMap<u32, String>,
+}
+
+/// Reads the tags of a library, along with the categories holding them.
+///
+/// A tag row holds its fields in the order an export does, bar one: an export holds a second
+/// field of unknown purpose which a library does not, so the rows are read here rather than by
+/// the parser of the export.
+fn read_tags(data: &[u8]) -> Vec<LibraryTag> {
+    let number = |offset: usize| {
+        data.get(offset..offset + 4)
+            .and_then(|bytes| bytes.try_into().ok())
+            .map(u32::from_le_bytes)
+    };
+
+    let mut tags: BTreeMap<u32, LibraryTag> = BTreeMap::new();
+    for tag in tagged_rows(data, TAG_TAG) {
+        let row = tag + TAG_SIZE;
+        let (Some(parent_id), Some(position), Some(id), Some(is_category)) = (
+            number(row + 4),
+            number(row + 8),
+            number(row + 12),
+            number(row + 16),
+        ) else {
+            continue;
+        };
+        if id == 0 {
+            continue;
+        }
+        // The fields are followed by the offsets of the strings and then the name itself.
+        let Some(name) = read_name(data, row + 20 + 2) else {
+            continue;
+        };
+        tags.insert(
+            id,
+            LibraryTag {
+                id,
+                parent_id,
+                name,
+                position,
+                is_category: is_category == TAG_IS_CATEGORY,
+            },
+        );
+    }
+    tags.into_values().collect()
+}
+
+/// Reads which tags the tracks of a library are labelled with.
+fn read_track_tags(data: &[u8], track_ids: &BTreeSet<u32>) -> BTreeMap<u32, Vec<u32>> {
+    let number = |offset: usize| {
+        data.get(offset..offset + 4)
+            .and_then(|bytes| bytes.try_into().ok())
+            .map(u32::from_le_bytes)
+    };
+
+    let mut found: BTreeMap<u32, BTreeSet<u32>> = BTreeMap::new();
+    for tag in tagged_rows(data, TRACK_TAG_TAG) {
+        let row = tag + TAG_SIZE;
+        let (Some(track_id), Some(tag_id)) = (number(row + 4), number(row + 8)) else {
+            continue;
+        };
+        // A row of another table carrying the same tag is told apart by naming a track that the
+        // library holds.
+        if tag_id == 0 || !track_ids.contains(&track_id) {
+            continue;
+        }
+        found.entry(track_id).or_default().insert(tag_id);
+    }
+    found
+        .into_iter()
+        .map(|(track, tags)| (track, tags.into_iter().collect()))
+        .collect()
+}
+
+/// Reads a DeviceSQL string of plain characters at an offset, if there is one.
+fn read_name(data: &[u8], offset: usize) -> Option<String> {
+    let header = *data.get(offset)?;
+    // A string of plain characters holds its length in the upper bits, and the lowest bit set.
+    if header & 1 == 0 || header < 3 {
+        return None;
+    }
+    let length = usize::from(header >> 1).checked_sub(1)?;
+    let name = data.get(offset + 1..offset + 1 + length)?;
+    let name = std::str::from_utf8(name).ok()?;
+    (!name.is_empty() && !name.chars().any(char::is_control)).then(|| name.to_owned())
 }
 
 /// Reads the rows holding the names that a track refers to by id.
