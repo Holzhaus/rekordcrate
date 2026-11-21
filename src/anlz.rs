@@ -549,7 +549,7 @@ impl Default for TinyWaveformPreviewColumn {
 pub struct TinyWaveformPreviewColumn {
     /// Height of the Column in pixels.
     pub height: B4,
-    #[allow(dead_code)]
+    #[skip]
     unused: B4,
 }
 
@@ -561,7 +561,7 @@ impl Serialize for TinyWaveformPreviewColumn {
     {
         use serde::ser::SerializeStruct;
         let mut state = serializer.serialize_struct("TinyWaveformPreviewColumn", 2)?;
-        state.serialize_field("unused", &self.unused())?;
+        state.serialize_field("unused", &(self.into_bytes()[0] >> 4))?;
         state.serialize_field("height", &self.height())?;
         state.end()
     }
