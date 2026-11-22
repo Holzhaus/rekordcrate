@@ -231,14 +231,14 @@ fn list_playlists(path: &Path) -> rekordcrate::Result<()> {
 }
 
 fn export_playlists(path: &Path, output_dir: &Path) -> rekordcrate::Result<()> {
-    use rekordcrate::device::{Playlist, PlaylistNode};
-    use rekordcrate::DeviceExportLoader;
+    use rekordcrate::device::{Layout, Playlist, PlaylistNode};
     use std::collections::HashMap;
     use std::io::Write;
 
-    let loader = DeviceExportLoader::new(path.into());
-    let export_path = loader.get_path();
-    let mut db = loader.open_pdb_non_persistent()?;
+    let layout = Layout::new(path.into());
+    let export_path = layout.root();
+    let mut db =
+        Database::open_non_persistent(File::open(layout.export_pdb())?, DatabaseType::Plain)?;
 
     let playlists = get_playlists(&mut db)?;
     let playlist_entries = db
@@ -299,10 +299,9 @@ fn export_playlists(path: &Path, output_dir: &Path) -> rekordcrate::Result<()> {
 }
 
 fn list_settings(path: &Path) -> rekordcrate::Result<()> {
-    use rekordcrate::DeviceExportLoader;
+    use rekordcrate::device::{Layout, Settings};
 
-    let loader = DeviceExportLoader::new(path.into());
-    let settings = loader.load_settings();
+    let settings = Settings::load(&Layout::new(path.into()));
 
     print!("{}", settings);
 
