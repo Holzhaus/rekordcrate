@@ -9,7 +9,6 @@
 use binrw::BinRead;
 use clap::{Parser, Subcommand, ValueEnum};
 use fallible_iterator::FallibleIterator;
-use rekordcrate::device::get_playlists;
 use rekordcrate::pdb::io::Database;
 use rekordcrate::pdb::*;
 use rekordcrate::setting::{Setting, SettingType};
@@ -231,37 +230,25 @@ fn list_playlists(path: &Path) -> rekordcrate::Result<()> {
 }
 
 fn export_playlists(path: &Path, output_dir: &Path) -> rekordcrate::Result<()> {
-    use rekordcrate::device::{Layout, Playlist, PlaylistNode};
+    use rekordcrate::device::{Playlist, PlaylistNode};
+    use rekordcrate::DeviceExport;
     use std::collections::HashMap;
     use std::io::Write;
 
-    let layout = Layout::new(path.into());
-    let export_path = layout.root();
-    let mut db =
-        Database::open_non_persistent(File::open(layout.export_pdb())?, DatabaseType::Plain)?;
+    let mut export = DeviceExport::open(path)?;
+    let export_path = export.root().to_path_buf();
 
-    let playlists = get_playlists(&mut db)?;
-    let playlist_entries = db
-        .iter_rows::<PlaylistEntry>()?
-        .map(|entry| Ok((entry.playlist_id, (entry.entry_index, entry.track_id))))
-        .fold(
-            HashMap::<PlaylistTreeNodeId, BTreeMap<u32, TrackId>>::new(),
-            |mut acc, (playlist_id, entry)| {
-                // BTreeMap keeps entries sorted by their index in the playlist.
-                acc.entry(playlist_id).or_default().insert(entry.0, entry.1);
-                Ok(acc)
-            },
-        )?;
-
-    let tracks = db
-        .iter_rows::<Track>()?
-        .map(|track| Ok((track.id, track.offsets.file_path.clone().into_string()?)))
-        .collect::<HashMap<_, _>>()?;
+    let playlists = export.playlists()?;
+    let tracks = export
+        .tracks()?
+        .into_iter()
+        .map(|(id, track)| (id, track.file_path))
+        .collect::<HashMap<_, _>>();
 
     fn walk_tree(
         node: PlaylistNode,
         path: &Path,
-        visit: &impl Fn(Playlist, &Path) -> rekordcrate::Result<()>,
+        visit: &mut impl FnMut(Playlist, &Path) -> rekordcrate::Result<()>,
     ) -> rekordcrate::Result<()> {
         match node {
             PlaylistNode::Folder(folder) => folder
@@ -273,23 +260,22 @@ fn export_playlists(path: &Path, output_dir: &Path) -> rekordcrate::Result<()> {
     }
 
     playlists.into_iter().try_for_each(|node| {
-        walk_tree(node, output_dir, &|playlist, path| {
+        walk_tree(node, output_dir, &mut |playlist, path| {
             std::fs::create_dir_all(path)?;
             let playlist_path = path.join(format!("{}.m3u", playlist.name));
 
             println!("{}", playlist_path.display());
             let mut file = File::create(playlist_path)?;
-            if let Some(entries) = playlist_entries.get(&playlist.id) {
-                for track in entries.values().filter_map(|track_id| tracks.get(track_id)) {
-                    writeln!(
-                        &mut file,
-                        "{}",
-                        export_path
-                            .canonicalize()?
-                            .join(track.strip_prefix('/').unwrap_or(track))
-                            .display(),
-                    )?;
-                }
+            let entries = export.playlist_tracks(playlist.id)?;
+            for track in entries.iter().filter_map(|track_id| tracks.get(track_id)) {
+                writeln!(
+                    &mut file,
+                    "{}",
+                    export_path
+                        .canonicalize()?
+                        .join(track.strip_prefix('/').unwrap_or(track))
+                        .display(),
+                )?;
             }
             Ok(())
         })

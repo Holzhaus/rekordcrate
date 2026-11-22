@@ -43,7 +43,7 @@ pub struct Playlist {
     pub name: String,
 }
 
-/// Build the playlist tree from the PDB database.
+/// Build the playlist tree from the PDB database, each level in display order.
 pub fn get_playlists<R: Read + Seek>(db: &mut Database<R>) -> crate::Result<Vec<PlaylistNode>> {
     let mut playlists: HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>> = HashMap::new();
 
@@ -54,6 +54,10 @@ pub fn get_playlists<R: Read + Seek>(db: &mut Database<R>) -> crate::Result<Vec<
             .push(node.clone());
         Ok(())
     })?;
+    // Rows are stored in no particular order; `sort_order` is the display order among siblings.
+    for siblings in playlists.values_mut() {
+        siblings.sort_by_key(|node| node.sort_order);
+    }
 
     fn get_child_nodes(
         playlists: &HashMap<PlaylistTreeNodeId, Vec<PlaylistTreeNode>>,

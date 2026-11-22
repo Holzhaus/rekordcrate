@@ -27,7 +27,7 @@
 //!   serialized length unchanged, so it lands cleanly in its slot.
 //! - **Length-changing string edits corrupt the page**, and this is *not* detected: a longer
 //!   string overwrites the next row, a shorter one leaves stale bytes. Grow or add strings by
-//!   appending a new row via [`Database::add_row`] instead.
+//!   appending a new row via [`Database::add_row`] or [`crate::DeviceExport`] instead.
 //!
 //! `flush`/`close` cannot detect heap overflow.
 
