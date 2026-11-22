@@ -20,8 +20,8 @@
 //! - <https://github.com/flesniak/python-prodj-link/tree/master/prodj/pdblib>
 
 use crate::pdb::{
-    offset_array::OffsetArrayItems, DeviceSQLString, OffsetArrayContainer, PageHeapObject, Subtype,
-    TrackId,
+    offset_array::OffsetArrayItems, DeviceSQLString, OffsetArrayContainer, PageHeapObject,
+    PageType, Row, RowVariant, Subtype, TrackId,
 };
 use binrw::binrw;
 #[cfg(feature = "json")]
@@ -167,6 +167,46 @@ impl PageHeapObject for TrackTag {
         ]
         .iter()
         .sum()
+    }
+}
+
+impl RowVariant for TagOrCategory {
+    const PAGE_TYPE: PageType = PageType::Ext(ExtPageType::Tag);
+
+    fn from_row(row: &Row) -> Option<&Self> {
+        match row {
+            Row::Ext(ExtRow::Tag(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn from_row_mut(row: &mut Row) -> Option<&mut Self> {
+        match row {
+            Row::Ext(ExtRow::Tag(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn into_row(self) -> Row {
+        Row::Ext(ExtRow::Tag(self))
+    }
+}
+
+impl RowVariant for TrackTag {
+    const PAGE_TYPE: PageType = PageType::Ext(ExtPageType::TrackTag);
+
+    fn from_row(row: &Row) -> Option<&Self> {
+        match row {
+            Row::Ext(ExtRow::TrackTag(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn from_row_mut(row: &mut Row) -> Option<&mut Self> {
+        match row {
+            Row::Ext(ExtRow::TrackTag(row)) => Some(row),
+            _ => None,
+        }
+    }
+    fn into_row(self) -> Row {
+        Row::Ext(ExtRow::TrackTag(self))
     }
 }
 
