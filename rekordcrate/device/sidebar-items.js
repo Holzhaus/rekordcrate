@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["PlaylistNode"],"fn":["get_playlists"],"struct":["DeviceExportLoader","Playlist","PlaylistFolder","Settings"]};
+window.SIDEBAR_ITEMS = {"mod":["export","layout","playlist","settings","track"]};

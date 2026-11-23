@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["insert_default_colors","insert_default_columns","insert_default_menus"]};

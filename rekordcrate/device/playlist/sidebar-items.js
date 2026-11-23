@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["PlaylistNode"],"fn":["get_playlists"],"struct":["Playlist","PlaylistFolder"]};

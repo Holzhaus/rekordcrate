@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["Database","PageIterator"]};
+window.SIDEBAR_ITEMS = {"struct":["Database","PageIterator","RowRef"]};
