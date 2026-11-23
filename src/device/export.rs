@@ -1357,7 +1357,6 @@ mod tests {
         // Short enough to need the minimum-row-size padding, which must not leak into `comment`.
         let tiny = Track {
             title: "tiny".into(),
-            file_path: "/Contents/tiny.mp3".into(),
             ..Default::default()
         };
 
@@ -1616,7 +1615,6 @@ mod tests {
         let mut dev = DeviceExport::create(&dir).unwrap();
         dev.add_track(&Track {
             title: "tiny".into(),
-            file_path: "/Contents/tiny.mp3".into(),
             ..Default::default()
         })
         .unwrap();

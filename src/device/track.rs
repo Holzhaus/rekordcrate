@@ -9,6 +9,7 @@
 //! The [`Track`] type: a track as a user thinks of it, used both to add tracks to a
 //! [`DeviceExport`](crate::DeviceExport) and to read them back.
 
+use crate::device::layout::anlz_folder;
 use crate::pdb::offset_array::OffsetArrayContainer;
 use crate::pdb::string::DeviceSQLString;
 use crate::pdb::{
@@ -127,6 +128,15 @@ impl Track {
         let title = DeviceSQLString::new(&track.title)?;
         let filename = DeviceSQLString::new(&track.filename)?;
         let file_path = DeviceSQLString::new(&track.file_path)?;
+
+        let analyze_path = if track.file_path.is_empty() {
+            DeviceSQLString::empty()
+        } else {
+            DeviceSQLString::new(&format!(
+                "/PIONEER/USBANLZ/{}/ANLZ0000.DAT",
+                anlz_folder(&track.file_path)
+            ))?
+        };
         let autoload_hotcues = if track.autoload_hotcues {
             DeviceSQLString::new(ON)?
         } else {
@@ -188,7 +198,7 @@ impl Track {
                     release_date,
                     mix_name,
                     unknown_string7: DeviceSQLString::empty(),
-                    analyze_path: DeviceSQLString::empty(),
+                    analyze_path,
                     analyze_date: DeviceSQLString::empty(),
                     comment: DeviceSQLString::empty(),
                     title,
