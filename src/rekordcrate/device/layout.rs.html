@@ -76,51 +76,183 @@
 <a href=#76 id=76 data-nosnippet>76</a>        <span class="self">self</span>.rekordbox_dir().join(<span class="string">"exportExt.pdb"</span>)
 <a href=#77 id=77 data-nosnippet>77</a>    }
 <a href=#78 id=78 data-nosnippet>78</a>
-<a href=#79 id=79 data-nosnippet>79</a>    <span class="doccomment">/// The `PIONEER/USBANLZ` directory holding per-track analysis files.
-<a href=#80 id=80 data-nosnippet>80</a>    </span><span class="attr">#[must_use]
-<a href=#81 id=81 data-nosnippet>81</a>    </span><span class="kw">pub fn </span>usbanlz_dir(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; PathBuf {
-<a href=#82 id=82 data-nosnippet>82</a>        <span class="self">self</span>.pioneer_dir().join(<span class="string">"USBANLZ"</span>)
-<a href=#83 id=83 data-nosnippet>83</a>    }
-<a href=#84 id=84 data-nosnippet>84</a>
-<a href=#85 id=85 data-nosnippet>85</a>    <span class="doccomment">/// The `Contents` directory holding audio files.
-<a href=#86 id=86 data-nosnippet>86</a>    </span><span class="attr">#[must_use]
-<a href=#87 id=87 data-nosnippet>87</a>    </span><span class="kw">pub fn </span>contents_dir(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; PathBuf {
-<a href=#88 id=88 data-nosnippet>88</a>        <span class="self">self</span>.root.join(<span class="string">"Contents"</span>)
-<a href=#89 id=89 data-nosnippet>89</a>    }
-<a href=#90 id=90 data-nosnippet>90</a>
-<a href=#91 id=91 data-nosnippet>91</a>    <span class="doccomment">/// Path to a `*SETTING.DAT` file by name, under `PIONEER`.
-<a href=#92 id=92 data-nosnippet>92</a>    </span><span class="attr">#[must_use]
-<a href=#93 id=93 data-nosnippet>93</a>    </span><span class="kw">pub fn </span>dat_path(<span class="kw-2">&amp;</span><span class="self">self</span>, filename: <span class="kw-2">&amp;</span>str) -&gt; PathBuf {
-<a href=#94 id=94 data-nosnippet>94</a>        <span class="self">self</span>.pioneer_dir().join(filename)
-<a href=#95 id=95 data-nosnippet>95</a>    }
-<a href=#96 id=96 data-nosnippet>96</a>
-<a href=#97 id=97 data-nosnippet>97</a>    <span class="doccomment">/// The `PIONEER/Artwork` directory holding track artwork.
-<a href=#98 id=98 data-nosnippet>98</a>    </span><span class="attr">#[must_use]
-<a href=#99 id=99 data-nosnippet>99</a>    </span><span class="kw">pub fn </span>artwork_dir(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; PathBuf {
-<a href=#100 id=100 data-nosnippet>100</a>        <span class="self">self</span>.pioneer_dir().join(<span class="string">"Artwork"</span>)
-<a href=#101 id=101 data-nosnippet>101</a>    }
-<a href=#102 id=102 data-nosnippet>102</a>
-<a href=#103 id=103 data-nosnippet>103</a>    <span class="doccomment">/// Path to the 80×80 thumbnail `a{id}.jpg` of artwork `id`, the file an `Artwork` row names.
-<a href=#104 id=104 data-nosnippet>104</a>    </span><span class="attr">#[must_use]
-<a href=#105 id=105 data-nosnippet>105</a>    </span><span class="kw">pub fn </span>artwork_file(<span class="kw-2">&amp;</span><span class="self">self</span>, id: u32) -&gt; PathBuf {
-<a href=#106 id=106 data-nosnippet>106</a>        <span class="self">self</span>.artwork_dir()
-<a href=#107 id=107 data-nosnippet>107</a>            .join(artwork_folder(id))
-<a href=#108 id=108 data-nosnippet>108</a>            .join(<span class="macro">format!</span>(<span class="string">"a{id}.jpg"</span>))
-<a href=#109 id=109 data-nosnippet>109</a>    }
-<a href=#110 id=110 data-nosnippet>110</a>
-<a href=#111 id=111 data-nosnippet>111</a>    <span class="doccomment">/// Path to the 240×240 `a{id}_m.jpg` of artwork `id`, which players look for next to the
-<a href=#112 id=112 data-nosnippet>112</a>    /// thumbnail.
-<a href=#113 id=113 data-nosnippet>113</a>    </span><span class="attr">#[must_use]
-<a href=#114 id=114 data-nosnippet>114</a>    </span><span class="kw">pub fn </span>artwork_m_file(<span class="kw-2">&amp;</span><span class="self">self</span>, id: u32) -&gt; PathBuf {
-<a href=#115 id=115 data-nosnippet>115</a>        <span class="self">self</span>.artwork_dir()
-<a href=#116 id=116 data-nosnippet>116</a>            .join(artwork_folder(id))
-<a href=#117 id=117 data-nosnippet>117</a>            .join(<span class="macro">format!</span>(<span class="string">"a{id}_m.jpg"</span>))
-<a href=#118 id=118 data-nosnippet>118</a>    }
-<a href=#119 id=119 data-nosnippet>119</a>}
-<a href=#120 id=120 data-nosnippet>120</a>
-<a href=#121 id=121 data-nosnippet>121</a><span class="doccomment">/// Five-digit folder name Rekordbox files artwork `id` under: `id / 20 + 1`, zero-padded.
-<a href=#122 id=122 data-nosnippet>122</a></span><span class="attr">#[must_use]
-<a href=#123 id=123 data-nosnippet>123</a></span><span class="kw">pub fn </span>artwork_folder(id: u32) -&gt; String {
-<a href=#124 id=124 data-nosnippet>124</a>    <span class="macro">format!</span>(<span class="string">"{:05}"</span>, id / <span class="number">20 </span>+ <span class="number">1</span>)
-<a href=#125 id=125 data-nosnippet>125</a>}
+<a href=#79 id=79 data-nosnippet>79</a>    <span class="doccomment">/// The `PIONEER/USBANLZ` directory holding per-track analysis files, each track's in the
+<a href=#80 id=80 data-nosnippet>80</a>    /// subfolder [`anlz_folder`] names.
+<a href=#81 id=81 data-nosnippet>81</a>    </span><span class="attr">#[must_use]
+<a href=#82 id=82 data-nosnippet>82</a>    </span><span class="kw">pub fn </span>usbanlz_dir(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; PathBuf {
+<a href=#83 id=83 data-nosnippet>83</a>        <span class="self">self</span>.pioneer_dir().join(<span class="string">"USBANLZ"</span>)
+<a href=#84 id=84 data-nosnippet>84</a>    }
+<a href=#85 id=85 data-nosnippet>85</a>
+<a href=#86 id=86 data-nosnippet>86</a>    <span class="doccomment">/// The `Contents` directory holding audio files.
+<a href=#87 id=87 data-nosnippet>87</a>    </span><span class="attr">#[must_use]
+<a href=#88 id=88 data-nosnippet>88</a>    </span><span class="kw">pub fn </span>contents_dir(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; PathBuf {
+<a href=#89 id=89 data-nosnippet>89</a>        <span class="self">self</span>.root.join(<span class="string">"Contents"</span>)
+<a href=#90 id=90 data-nosnippet>90</a>    }
+<a href=#91 id=91 data-nosnippet>91</a>
+<a href=#92 id=92 data-nosnippet>92</a>    <span class="doccomment">/// Path to a `*SETTING.DAT` file by name, under `PIONEER`.
+<a href=#93 id=93 data-nosnippet>93</a>    </span><span class="attr">#[must_use]
+<a href=#94 id=94 data-nosnippet>94</a>    </span><span class="kw">pub fn </span>dat_path(<span class="kw-2">&amp;</span><span class="self">self</span>, filename: <span class="kw-2">&amp;</span>str) -&gt; PathBuf {
+<a href=#95 id=95 data-nosnippet>95</a>        <span class="self">self</span>.pioneer_dir().join(filename)
+<a href=#96 id=96 data-nosnippet>96</a>    }
+<a href=#97 id=97 data-nosnippet>97</a>
+<a href=#98 id=98 data-nosnippet>98</a>    <span class="doccomment">/// The `PIONEER/Artwork` directory holding track artwork.
+<a href=#99 id=99 data-nosnippet>99</a>    </span><span class="attr">#[must_use]
+<a href=#100 id=100 data-nosnippet>100</a>    </span><span class="kw">pub fn </span>artwork_dir(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; PathBuf {
+<a href=#101 id=101 data-nosnippet>101</a>        <span class="self">self</span>.pioneer_dir().join(<span class="string">"Artwork"</span>)
+<a href=#102 id=102 data-nosnippet>102</a>    }
+<a href=#103 id=103 data-nosnippet>103</a>
+<a href=#104 id=104 data-nosnippet>104</a>    <span class="doccomment">/// Path to the 80×80 thumbnail `a{id}.jpg` of artwork `id`, the file an `Artwork` row names.
+<a href=#105 id=105 data-nosnippet>105</a>    </span><span class="attr">#[must_use]
+<a href=#106 id=106 data-nosnippet>106</a>    </span><span class="kw">pub fn </span>artwork_file(<span class="kw-2">&amp;</span><span class="self">self</span>, id: u32) -&gt; PathBuf {
+<a href=#107 id=107 data-nosnippet>107</a>        <span class="self">self</span>.artwork_dir()
+<a href=#108 id=108 data-nosnippet>108</a>            .join(artwork_folder(id))
+<a href=#109 id=109 data-nosnippet>109</a>            .join(<span class="macro">format!</span>(<span class="string">"a{id}.jpg"</span>))
+<a href=#110 id=110 data-nosnippet>110</a>    }
+<a href=#111 id=111 data-nosnippet>111</a>
+<a href=#112 id=112 data-nosnippet>112</a>    <span class="doccomment">/// Path to the 240×240 `a{id}_m.jpg` of artwork `id`, which players look for next to the
+<a href=#113 id=113 data-nosnippet>113</a>    /// thumbnail.
+<a href=#114 id=114 data-nosnippet>114</a>    </span><span class="attr">#[must_use]
+<a href=#115 id=115 data-nosnippet>115</a>    </span><span class="kw">pub fn </span>artwork_m_file(<span class="kw-2">&amp;</span><span class="self">self</span>, id: u32) -&gt; PathBuf {
+<a href=#116 id=116 data-nosnippet>116</a>        <span class="self">self</span>.artwork_dir()
+<a href=#117 id=117 data-nosnippet>117</a>            .join(artwork_folder(id))
+<a href=#118 id=118 data-nosnippet>118</a>            .join(<span class="macro">format!</span>(<span class="string">"a{id}_m.jpg"</span>))
+<a href=#119 id=119 data-nosnippet>119</a>    }
+<a href=#120 id=120 data-nosnippet>120</a>}
+<a href=#121 id=121 data-nosnippet>121</a>
+<a href=#122 id=122 data-nosnippet>122</a><span class="doccomment">/// Five-digit folder name Rekordbox files artwork `id` under: `id / 20 + 1`, zero-padded.
+<a href=#123 id=123 data-nosnippet>123</a></span><span class="attr">#[must_use]
+<a href=#124 id=124 data-nosnippet>124</a></span><span class="kw">pub fn </span>artwork_folder(id: u32) -&gt; String {
+<a href=#125 id=125 data-nosnippet>125</a>    <span class="macro">format!</span>(<span class="string">"{:05}"</span>, id / <span class="number">20 </span>+ <span class="number">1</span>)
+<a href=#126 id=126 data-nosnippet>126</a>}
+<a href=#127 id=127 data-nosnippet>127</a>
+<a href=#128 id=128 data-nosnippet>128</a><span class="kw">const </span>ANLZ_HASH_FIRST_MULTIPLIER: u32 = <span class="number">0x5BC9</span>;
+<a href=#129 id=129 data-nosnippet>129</a><span class="kw">const </span>ANLZ_HASH_SECOND_MULTIPLIER: u32 = <span class="number">0x93B5</span>;
+<a href=#130 id=130 data-nosnippet>130</a><span class="kw">const </span>ANLZ_HASH_MODULUS: u32 = <span class="number">200_003</span>;
+<a href=#131 id=131 data-nosnippet>131</a>
+<a href=#132 id=132 data-nosnippet>132</a><span class="doccomment">/// Folder where Rekordbox puts the analysis files of a track (`ANLZ0000.DAT`, `.EXT` and `.2EX`),
+<a href=#133 id=133 data-nosnippet>133</a>/// relative to `PIONEER/USBANLZ`.
+<a href=#134 id=134 data-nosnippet>134</a>///
+<a href=#135 id=135 data-nosnippet>135</a>/// `audio_path` must be the absolute device path stored for the track, including its leading slash,
+<a href=#136 id=136 data-nosnippet>136</a>/// for example `/Contents/Artist/Album/Track.flac`. Case, separators, and Unicode are significant;
+<a href=#137 id=137 data-nosnippet>137</a>/// this function deliberately performs no path normalization. The returned path always has the
+<a href=#138 id=138 data-nosnippet>138</a>/// form `Pxxx/yyyyyyyy`, using uppercase, zero-padded hexadecimal components.
+<a href=#139 id=139 data-nosnippet>139</a>///
+<a href=#140 id=140 data-nosnippet>140</a>/// The path is processed as UTF-16 code units by a custom rolling hash, reduced modulo 200003,
+<a href=#141 id=141 data-nosnippet>141</a>/// which is the second component. Selected bits of that hash form the first.
+<a href=#142 id=142 data-nosnippet>142</a>///
+<a href=#143 id=143 data-nosnippet>143</a>/// Players have been seen to recompute this folder from the audio path instead of relying on the
+<a href=#144 id=144 data-nosnippet>144</a>/// `analyze_path` stored in `export.pdb` (confirmed on the XDJ-XZ), so analysis files have to be
+<a href=#145 id=145 data-nosnippet>145</a>/// placed here to be found.
+<a href=#146 id=146 data-nosnippet>146</a>///
+<a href=#147 id=147 data-nosnippet>147</a>/// The algorithm was contributed by AnnoyingTechnology from [interoperability research][research]
+<a href=#148 id=148 data-nosnippet>148</a>/// published in December 2025.
+<a href=#149 id=149 data-nosnippet>149</a>///
+<a href=#150 id=150 data-nosnippet>150</a>/// [research]: https://github.com/AnnoyingTechnology/rhythmbox-to-pioneer-xdj-exporter/blob/master/posterity/WAVEFORMS.md
+<a href=#151 id=151 data-nosnippet>151</a></span><span class="attr">#[must_use]
+<a href=#152 id=152 data-nosnippet>152</a></span><span class="kw">pub fn </span>anlz_folder(audio_path: <span class="kw-2">&amp;</span>str) -&gt; String {
+<a href=#153 id=153 data-nosnippet>153</a>    <span class="kw">let </span><span class="kw-2">mut </span>hash = <span class="number">0u32</span>;
+<a href=#154 id=154 data-nosnippet>154</a>    <span class="kw">for </span>code_unit <span class="kw">in </span>audio_path.encode_utf16().map(u32::from) {
+<a href=#155 id=155 data-nosnippet>155</a>        <span class="kw">let </span>intermediate = hash
+<a href=#156 id=156 data-nosnippet>156</a>            .wrapping_mul(ANLZ_HASH_FIRST_MULTIPLIER)
+<a href=#157 id=157 data-nosnippet>157</a>            .wrapping_add(code_unit);
+<a href=#158 id=158 data-nosnippet>158</a>        hash = intermediate
+<a href=#159 id=159 data-nosnippet>159</a>            .wrapping_mul(ANLZ_HASH_SECOND_MULTIPLIER)
+<a href=#160 id=160 data-nosnippet>160</a>            .wrapping_add(code_unit);
+<a href=#161 id=161 data-nosnippet>161</a>    }
+<a href=#162 id=162 data-nosnippet>162</a>
+<a href=#163 id=163 data-nosnippet>163</a>    <span class="kw">let </span>hash = hash % ANLZ_HASH_MODULUS;
+<a href=#164 id=164 data-nosnippet>164</a>    <span class="kw">let </span>p_value = (hash &amp; <span class="number">0x01</span>)
+<a href=#165 id=165 data-nosnippet>165</a>        | ((hash &gt;&gt; <span class="number">1</span>) &amp; <span class="number">0x02</span>)
+<a href=#166 id=166 data-nosnippet>166</a>        | ((hash &gt;&gt; <span class="number">4</span>) &amp; <span class="number">0x04</span>)
+<a href=#167 id=167 data-nosnippet>167</a>        | ((hash &gt;&gt; <span class="number">4</span>) &amp; <span class="number">0x08</span>)
+<a href=#168 id=168 data-nosnippet>168</a>        | ((hash &gt;&gt; <span class="number">5</span>) &amp; <span class="number">0x10</span>)
+<a href=#169 id=169 data-nosnippet>169</a>        | ((hash &gt;&gt; <span class="number">8</span>) &amp; <span class="number">0x20</span>)
+<a href=#170 id=170 data-nosnippet>170</a>        | ((hash &gt;&gt; <span class="number">10</span>) &amp; <span class="number">0x40</span>);
+<a href=#171 id=171 data-nosnippet>171</a>
+<a href=#172 id=172 data-nosnippet>172</a>    <span class="macro">format!</span>(<span class="string">"P{p_value:03X}/{hash:08X}"</span>)
+<a href=#173 id=173 data-nosnippet>173</a>}
+<a href=#174 id=174 data-nosnippet>174</a>
+<a href=#175 id=175 data-nosnippet>175</a><span class="attr">#[cfg(test)]
+<a href=#176 id=176 data-nosnippet>176</a></span><span class="kw">mod </span>tests {
+<a href=#177 id=177 data-nosnippet>177</a>    <span class="kw">use super</span>::<span class="kw-2">*</span>;
+<a href=#178 id=178 data-nosnippet>178</a>    <span class="kw">use </span><span class="kw">crate</span>::pdb::io::Database;
+<a href=#179 id=179 data-nosnippet>179</a>    <span class="kw">use </span><span class="kw">crate</span>::pdb::{DatabaseType, Track};
+<a href=#180 id=180 data-nosnippet>180</a>    <span class="kw">use </span>fallible_iterator::FallibleIterator;
+<a href=#181 id=181 data-nosnippet>181</a>    <span class="kw">use </span>std::fs::File;
+<a href=#182 id=182 data-nosnippet>182</a>
+<a href=#183 id=183 data-nosnippet>183</a>    <span class="doccomment">/// Every track of an export Rekordbox wrote names the analysis file that follows from its
+<a href=#184 id=184 data-nosnippet>184</a>    /// audio path, and the export holds the two analysis folders it comes with.
+<a href=#185 id=185 data-nosnippet>185</a>    </span><span class="attr">#[test]
+<a href=#186 id=186 data-nosnippet>186</a>    </span><span class="kw">fn </span>anlz_paths_match_a_rekordbox_export() {
+<a href=#187 id=187 data-nosnippet>187</a>        <span class="kw">let </span>layout = Layout::new(<span class="string">"data/complete_export/demo_tracks"</span>.into());
+<a href=#188 id=188 data-nosnippet>188</a>        <span class="kw">let </span><span class="kw-2">mut </span>db = Database::open_non_persistent(
+<a href=#189 id=189 data-nosnippet>189</a>            File::open(layout.export_pdb()).unwrap(),
+<a href=#190 id=190 data-nosnippet>190</a>            DatabaseType::Plain,
+<a href=#191 id=191 data-nosnippet>191</a>        )
+<a href=#192 id=192 data-nosnippet>192</a>        .unwrap();
+<a href=#193 id=193 data-nosnippet>193</a>        <span class="kw">let </span>paths: Vec&lt;(String, String)&gt; = db
+<a href=#194 id=194 data-nosnippet>194</a>            .iter_rows::&lt;Track&gt;()
+<a href=#195 id=195 data-nosnippet>195</a>            .unwrap()
+<a href=#196 id=196 data-nosnippet>196</a>            .map(|track| {
+<a href=#197 id=197 data-nosnippet>197</a>                <span class="kw">let </span>strings = <span class="kw-2">&amp;</span>track.offsets.inner;
+<a href=#198 id=198 data-nosnippet>198</a>                <span class="prelude-val">Ok</span>((
+<a href=#199 id=199 data-nosnippet>199</a>                    strings.file_path.clone().into_string()<span class="question-mark">?</span>,
+<a href=#200 id=200 data-nosnippet>200</a>                    strings.analyze_path.clone().into_string()<span class="question-mark">?</span>,
+<a href=#201 id=201 data-nosnippet>201</a>                ))
+<a href=#202 id=202 data-nosnippet>202</a>            })
+<a href=#203 id=203 data-nosnippet>203</a>            .collect()
+<a href=#204 id=204 data-nosnippet>204</a>            .unwrap();
+<a href=#205 id=205 data-nosnippet>205</a>        <span class="macro">assert!</span>(!paths.is_empty());
+<a href=#206 id=206 data-nosnippet>206</a>
+<a href=#207 id=207 data-nosnippet>207</a>        <span class="kw">for </span>(audio_path, analyze_path) <span class="kw">in </span>paths {
+<a href=#208 id=208 data-nosnippet>208</a>            <span class="macro">assert_eq!</span>(
+<a href=#209 id=209 data-nosnippet>209</a>                <span class="macro">format!</span>(<span class="string">"/PIONEER/USBANLZ/{}/ANLZ0000.DAT"</span>, anlz_folder(<span class="kw-2">&amp;</span>audio_path)),
+<a href=#210 id=210 data-nosnippet>210</a>                analyze_path,
+<a href=#211 id=211 data-nosnippet>211</a>                <span class="string">"unexpected analysis path for {audio_path}"
+<a href=#212 id=212 data-nosnippet>212</a>            </span>);
+<a href=#213 id=213 data-nosnippet>213</a>            <span class="kw">for </span>extension <span class="kw">in </span>[<span class="string">"DAT"</span>, <span class="string">"EXT"</span>, <span class="string">"2EX"</span>] {
+<a href=#214 id=214 data-nosnippet>214</a>                <span class="macro">assert!</span>(
+<a href=#215 id=215 data-nosnippet>215</a>                    layout
+<a href=#216 id=216 data-nosnippet>216</a>                        .usbanlz_dir()
+<a href=#217 id=217 data-nosnippet>217</a>                        .join(anlz_folder(<span class="kw-2">&amp;</span>audio_path))
+<a href=#218 id=218 data-nosnippet>218</a>                        .join(<span class="macro">format!</span>(<span class="string">"ANLZ0000.{extension}"</span>))
+<a href=#219 id=219 data-nosnippet>219</a>                        .is_file(),
+<a href=#220 id=220 data-nosnippet>220</a>                    <span class="string">"no {extension} analysis file for {audio_path}"
+<a href=#221 id=221 data-nosnippet>221</a>                </span>);
+<a href=#222 id=222 data-nosnippet>222</a>            }
+<a href=#223 id=223 data-nosnippet>223</a>        }
+<a href=#224 id=224 data-nosnippet>224</a>    }
+<a href=#225 id=225 data-nosnippet>225</a>
+<a href=#226 id=226 data-nosnippet>226</a>    <span class="doccomment">/// Paths and folders taken from Rekordbox exports by AnnoyingTechnology.
+<a href=#227 id=227 data-nosnippet>227</a>    </span><span class="attr">#[test]
+<a href=#228 id=228 data-nosnippet>228</a>    </span><span class="kw">fn </span>anlz_folder_matches_rekordbox_exports() {
+<a href=#229 id=229 data-nosnippet>229</a>        <span class="kw">let </span>cases = [
+<a href=#230 id=230 data-nosnippet>230</a>            (
+<a href=#231 id=231 data-nosnippet>231</a>                <span class="string">"/Contents/ARTISTTEST1/ALBUMTEST1/TITLETEST1.mp3"</span>,
+<a href=#232 id=232 data-nosnippet>232</a>                <span class="string">"P051/0001D603"</span>,
+<a href=#233 id=233 data-nosnippet>233</a>            ),
+<a href=#234 id=234 data-nosnippet>234</a>            (
+<a href=#235 id=235 data-nosnippet>235</a>                <span class="string">"/Contents/ARTISTTEST2/ALBUMTEST2/TITLETEST2.mp3"</span>,
+<a href=#236 id=236 data-nosnippet>236</a>                <span class="string">"P03C/0000A6CA"</span>,
+<a href=#237 id=237 data-nosnippet>237</a>            ),
+<a href=#238 id=238 data-nosnippet>238</a>            (
+<a href=#239 id=239 data-nosnippet>239</a>                <span class="string">"/Contents/ARTISTTEST3/ALBUMTEST3/TITLETEST3.mp3"</span>,
+<a href=#240 id=240 data-nosnippet>240</a>                <span class="string">"P045/0001096B"</span>,
+<a href=#241 id=241 data-nosnippet>241</a>            ),
+<a href=#242 id=242 data-nosnippet>242</a>        ];
+<a href=#243 id=243 data-nosnippet>243</a>
+<a href=#244 id=244 data-nosnippet>244</a>        <span class="kw">for </span>(audio_path, expected) <span class="kw">in </span>cases {
+<a href=#245 id=245 data-nosnippet>245</a>            <span class="macro">assert_eq!</span>(
+<a href=#246 id=246 data-nosnippet>246</a>                anlz_folder(audio_path),
+<a href=#247 id=247 data-nosnippet>247</a>                expected,
+<a href=#248 id=248 data-nosnippet>248</a>                <span class="string">"unexpected folder for {audio_path}"
+<a href=#249 id=249 data-nosnippet>249</a>            </span>);
+<a href=#250 id=250 data-nosnippet>250</a>        }
+<a href=#251 id=251 data-nosnippet>251</a>    }
+<a href=#252 id=252 data-nosnippet>252</a>
+<a href=#253 id=253 data-nosnippet>253</a>    <span class="attr">#[test]
+<a href=#254 id=254 data-nosnippet>254</a>    </span><span class="kw">fn </span>anlz_folder_takes_surrogate_pairs_as_two_code_units() {
+<a href=#255 id=255 data-nosnippet>255</a>        <span class="macro">assert_eq!</span>(anlz_folder(<span class="string">"/Contents/Artist/🚀.flac"</span>), <span class="string">"P074/00012258"</span>);
+<a href=#256 id=256 data-nosnippet>256</a>    }
+<a href=#257 id=257 data-nosnippet>257</a>}
 </code></pre></div></section></main></body></html>
