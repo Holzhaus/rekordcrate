@@ -82,6 +82,8 @@ All notable changes to this project will be documented in this file.
 - pdb: Add row and page writing to Database
 - pdb: Add defaults module for always-present tables
 - device: Add DeviceExport
+- anlz: Add device analysis path calculation
+- Use anlz hash algorithm when adding a track to a device export
 
 ### Refactor
 
@@ -121,6 +123,7 @@ All notable changes to this project will be documented in this file.
 - Shorten syntax of run function removing map_err
 - pdb: Expose row fields and add RowVariant for ext rows
 - device: Split into layout, settings and playlist modules
+- Move anlz path algorithm to device/layout
 
 ### Testing
 
