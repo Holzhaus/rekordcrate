@@ -19,6 +19,7 @@
 //! - <https://github.com/flesniak/python-prodj-link/tree/master/prodj/pdblib>
 
 pub mod bitfields;
+pub mod defaults;
 pub mod ext;
 pub mod io;
 pub mod offset_array;
@@ -150,6 +151,8 @@ pub trait RowVariant {
     fn from_row(row: &Row) -> Option<&Self>;
     /// Extracts a mutable reference to this row variant from a generic `Row`.
     fn from_row_mut(row: &mut Row) -> Option<&mut Self>;
+    /// Wraps this row variant in a generic `Row`.
+    fn into_row(self) -> Row;
 }
 
 /// Points to a table page and can be used to calculate the page's file offset by multiplying it
@@ -158,7 +161,7 @@ pub trait RowVariant {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Hash)]
 #[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
-pub struct PageIndex(pub(crate) u32);
+pub struct PageIndex(pub u32);
 
 impl TryFrom<u32> for PageIndex {
     type Error = PdbError;
@@ -193,7 +196,6 @@ pub struct Table {
     pub page_type: PageType,
     /// Unknown field, maybe links to a chain of empty pages if the database is ever garbage
     /// collected (?).
-    #[allow(dead_code)]
     empty_candidate: u32,
     /// Index of the first page that belongs to this table.
     ///
@@ -387,6 +389,23 @@ pub struct IndexPageContent {
 }
 
 impl IndexPageContent {
+    /// Creates an empty index page content section.
+    #[must_use]
+    pub fn empty(page_index: PageIndex, next_page: PageIndex) -> Self {
+        Self {
+            header: IndexPageHeader {
+                unknown_a: 8191,
+                unknown_b: 8191,
+                next_offset: 0,
+                page_index,
+                next_page,
+                num_entries: 0,
+                first_empty: 8191,
+            },
+            entries: vec![],
+        }
+    }
+
     fn total_entries(page_size: u32) -> usize {
         // The last 20 bytes in an index page are zeros.
         let entries_space = page_size - PageHeader::BINARY_SIZE - IndexPageHeader::BINARY_SIZE - 20;
@@ -579,6 +598,51 @@ pub struct Page {
 }
 
 impl Page {
+    /// Creates a new empty data page.
+    #[must_use]
+    pub fn new_data(
+        page_size: u32,
+        page_index: PageIndex,
+        page_type: PageType,
+        next_page: PageIndex,
+    ) -> Self {
+        let content = PageContent::Data(DataPageContent::empty());
+        let header = PageHeader {
+            page_index,
+            page_type,
+            next_page,
+            unknown1: 0,
+            unknown2: 0,
+            packed_row_counts: PackedRowCounts::new(),
+            page_flags: PageFlags::new_data_page(),
+            free_size: DataPageContent::page_heap_size(page_size)
+                .try_into()
+                .expect("page heap size must fit in u16"),
+            used_size: 0,
+        };
+
+        Self { header, content }
+    }
+
+    /// Creates a new empty index page.
+    #[must_use]
+    pub fn new_index(page_index: PageIndex, page_type: PageType, next_page: PageIndex) -> Self {
+        let content = PageContent::Index(IndexPageContent::empty(page_index, next_page));
+        let header = PageHeader {
+            page_index,
+            page_type,
+            next_page,
+            unknown1: 0,
+            unknown2: 0,
+            packed_row_counts: PackedRowCounts::new(),
+            page_flags: PageFlags::new_index_page(),
+            free_size: 0,
+            used_size: 0,
+        };
+
+        Self { header, content }
+    }
+
     /// Allocate space for a new row in the page heap and return a function to
     /// insert the row at the allocated offset. Returns `None` if there is
     /// insufficient free space in the page.
@@ -700,14 +764,27 @@ pub struct DataPageContent {
 }
 
 impl DataPageContent {
+    /// Creates an empty data page content section.
+    #[must_use]
+    pub fn empty() -> Self {
+        Self {
+            header: DataPageHeader {
+                unknown5: 0,
+                unknown_not_num_rows_large: 0,
+                unknown6: 0,
+                unknown7: 0,
+            },
+            row_groups: vec![],
+            rows: BTreeMap::new(),
+        }
+    }
+
     fn page_heap_size(page_size: u32) -> u32 {
         page_size - PageHeader::BINARY_SIZE - DataPageHeader::BINARY_SIZE
     }
 }
 
-// Usage of PageHeapObject is coming in a future PR.
-#[allow(dead_code)]
-trait PageHeapObject {
+pub(crate) trait PageHeapObject {
     type Args<'a>;
 
     /// Required page heap space in bytes to store the object.
@@ -989,6 +1066,14 @@ impl PageHeapObject for LabelId {
 #[brw(little)]
 pub struct PlaylistTreeNodeId(pub u32);
 
+impl PlaylistTreeNodeId {
+    /// The root of the playlist tree. Nodes with this as their parent sit at the top level.
+    #[must_use]
+    pub const fn root() -> Self {
+        Self(0)
+    }
+}
+
 impl PageHeapObject for PlaylistTreeNodeId {
     type Args<'a> = ();
     fn heap_bytes_required(&self, _: ()) -> u16 {
@@ -1038,21 +1123,21 @@ impl OffsetArrayItems<1> for TrailingName {
 #[brw(little)]
 pub struct Album {
     /// Unknown field, usually `80 00`.
-    subtype: Subtype,
+    pub subtype: Subtype,
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
     /// Appears to always be 0x20 * row index.
-    index_shift: u16,
+    pub index_shift: u16,
     /// Unknown field.
-    unknown2: u32,
+    pub unknown2: u32,
     /// ID of the artist row associated with this row.
-    artist_id: ArtistId,
+    pub artist_id: ArtistId,
     /// ID of this row.
-    id: AlbumId,
+    pub id: AlbumId,
     /// Unknown field.
-    unknown3: u32,
+    pub unknown3: u32,
     /// The offsets and its data and the end of this row
     #[brw(args(20, subtype.get_offset_size(), ()))]
-    offsets: OffsetArrayContainer<TrailingName, 1>,
+    pub offsets: OffsetArrayContainer<TrailingName, 1>,
 }
 
 impl RowVariant for Album {
@@ -1069,6 +1154,9 @@ impl RowVariant for Album {
             Row::Plain(PlainRow::Album(row)) => Some(row),
             _ => None,
         }
+    }
+    fn into_row(self) -> Row {
+        Row::Plain(PlainRow::Album(self))
     }
 }
 
@@ -1097,10 +1185,10 @@ impl PageHeapObject for Album {
 #[brw(little)]
 pub struct Artist {
     /// Determines if the `name` string is located at the 8-bit offset (0x60) or the 16-bit offset (0x64).
-    subtype: Subtype,
+    pub subtype: Subtype,
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
     /// Appears to always be 0x20 * row index.
-    index_shift: u16,
+    pub index_shift: u16,
     /// ID of this row.
     pub id: ArtistId,
     /// offsets at the row end
@@ -1122,6 +1210,9 @@ impl RowVariant for Artist {
             Row::Plain(PlainRow::Artist(row)) => Some(row),
             _ => None,
         }
+    }
+    fn into_row(self) -> Row {
+        Row::Plain(PlainRow::Artist(self))
     }
 }
 
@@ -1147,9 +1238,9 @@ impl PageHeapObject for Artist {
 #[brw(little)]
 pub struct Artwork {
     /// ID of this row.
-    id: ArtworkId,
+    pub id: ArtworkId,
     /// Path to the album art file.
-    path: DeviceSQLString,
+    pub path: DeviceSQLString,
 }
 
 impl RowVariant for Artwork {
@@ -1166,6 +1257,9 @@ impl RowVariant for Artwork {
             Row::Plain(PlainRow::Artwork(row)) => Some(row),
             _ => None,
         }
+    }
+    fn into_row(self) -> Row {
+        Row::Plain(PlainRow::Artwork(self))
     }
 }
 
@@ -1188,15 +1282,15 @@ impl PageHeapObject for Artwork {
 #[brw(little)]
 pub struct Color {
     /// Unknown field.
-    unknown1: u32,
+    pub unknown1: u32,
     /// Unknown field.
-    unknown2: u8,
+    pub unknown2: u8,
     /// Numeric color ID
-    color: ColorIndex,
+    pub color: ColorIndex,
     /// Unknown field.
-    unknown3: u16,
+    pub unknown3: u16,
     /// User-defined name of the color.
-    name: DeviceSQLString,
+    pub name: DeviceSQLString,
 }
 
 impl RowVariant for Color {
@@ -1213,6 +1307,9 @@ impl RowVariant for Color {
             Row::Plain(PlainRow::Color(row)) => Some(row),
             _ => None,
         }
+    }
+    fn into_row(self) -> Row {
+        Row::Plain(PlainRow::Color(self))
     }
 }
 
@@ -1238,9 +1335,9 @@ impl PageHeapObject for Color {
 #[brw(little)]
 pub struct Genre {
     /// ID of this row.
-    id: GenreId,
+    pub id: GenreId,
     /// Name of the genre.
-    name: DeviceSQLString,
+    pub name: DeviceSQLString,
 }
 
 impl RowVariant for Genre {
@@ -1257,6 +1354,9 @@ impl RowVariant for Genre {
             Row::Plain(PlainRow::Genre(row)) => Some(row),
             _ => None,
         }
+    }
+    fn into_row(self) -> Row {
+        Row::Plain(PlainRow::Genre(self))
     }
 }
 
@@ -1279,9 +1379,9 @@ impl PageHeapObject for Genre {
 #[brw(little)]
 pub struct HistoryPlaylist {
     /// ID of this row.
-    id: HistoryPlaylistId,
+    pub id: HistoryPlaylistId,
     /// Name of the playlist.
-    name: DeviceSQLString,
+    pub name: DeviceSQLString,
 }
 
 impl RowVariant for HistoryPlaylist {
@@ -1298,6 +1398,9 @@ impl RowVariant for HistoryPlaylist {
             Row::Plain(PlainRow::HistoryPlaylist(row)) => Some(row),
             _ => None,
         }
+    }
+    fn into_row(self) -> Row {
+        Row::Plain(PlainRow::HistoryPlaylist(self))
     }
 }
 
@@ -1320,11 +1423,11 @@ impl PageHeapObject for HistoryPlaylist {
 #[brw(little)]
 pub struct HistoryEntry {
     /// ID of the track played at this position in the playlist.
-    track_id: TrackId,
+    pub track_id: TrackId,
     /// ID of the history playlist.
-    playlist_id: HistoryPlaylistId,
+    pub playlist_id: HistoryPlaylistId,
     /// Position within the playlist.
-    entry_index: u32,
+    pub entry_index: u32,
 }
 
 impl RowVariant for HistoryEntry {
@@ -1341,6 +1444,9 @@ impl RowVariant for HistoryEntry {
             Row::Plain(PlainRow::HistoryEntry(row)) => Some(row),
             _ => None,
         }
+    }
+    fn into_row(self) -> Row {
+        Row::Plain(PlainRow::HistoryEntry(self))
     }
 }
 
@@ -1368,22 +1474,22 @@ impl PageHeapObject for HistoryEntry {
 #[brw(little)]
 pub struct History {
     /// Subtype field, in this case usually `80 02` (hex) or `640` (decimal).
-    subtype: Subtype,
+    pub subtype: Subtype,
     /// Unknown field. I'm assuming this is the `index_shift` found in other row types.
-    index_shift: u16,
+    pub index_shift: u16,
     /// Tracks present in the database after this sync event.
-    num_tracks: u32,
+    pub num_tracks: u32,
     // Magic value, always zero.
     #[brw(magic = 0u32)]
     /// Sync date, e.g. "2022-02-02".
-    date: DeviceSQLString,
+    pub date: DeviceSQLString,
     // Magic value, always `7705` -> `0x1E19`.
     #[brw(magic = 0x1E19u16)]
     /// Format/protocol version string. In all known exports this is the string "1000".
     // We could make this magic, but for now this seems fine.
-    version: DeviceSQLString,
+    pub version: DeviceSQLString,
     /// Device or backup label. Can be empty.
-    label: DeviceSQLString,
+    pub label: DeviceSQLString,
 }
 
 impl PageHeapObject for History {
@@ -1419,6 +1525,9 @@ impl RowVariant for History {
             _ => None,
         }
     }
+    fn into_row(self) -> Row {
+        Row::Plain(PlainRow::History(self))
+    }
 }
 
 /// Represents a musical key.
@@ -1428,11 +1537,11 @@ impl RowVariant for History {
 #[brw(little)]
 pub struct Key {
     /// ID of this row.
-    id: KeyId,
+    pub id: KeyId,
     /// Apparently a second copy of the row ID.
-    id2: u32,
+    pub id2: u32,
     /// Name of the key.
-    name: DeviceSQLString,
+    pub name: DeviceSQLString,
 }
 
 impl RowVariant for Key {
@@ -1449,6 +1558,9 @@ impl RowVariant for Key {
             Row::Plain(PlainRow::Key(row)) => Some(row),
             _ => None,
         }
+    }
+    fn into_row(self) -> Row {
+        Row::Plain(PlainRow::Key(self))
     }
 }
 
@@ -1472,9 +1584,9 @@ impl PageHeapObject for Key {
 #[brw(little)]
 pub struct Label {
     /// ID of this row.
-    id: LabelId,
+    pub id: LabelId,
     /// Name of the record label.
-    name: DeviceSQLString,
+    pub name: DeviceSQLString,
 }
 
 impl RowVariant for Label {
@@ -1491,6 +1603,9 @@ impl RowVariant for Label {
             Row::Plain(PlainRow::Label(row)) => Some(row),
             _ => None,
         }
+    }
+    fn into_row(self) -> Row {
+        Row::Plain(PlainRow::Label(self))
     }
 }
 
@@ -1515,13 +1630,13 @@ pub struct PlaylistTreeNode {
     /// ID of parent row of this row (which means that the parent is a folder).
     pub parent_id: PlaylistTreeNodeId,
     /// Unknown field.
-    unknown: u32,
+    pub unknown: u32,
     /// Sort order indicastor.
-    sort_order: u32,
+    pub sort_order: u32,
     /// ID of this row.
     pub id: PlaylistTreeNodeId,
     /// Indicates if the node is a folder. Non-zero if it's a leaf node, i.e. a playlist.
-    node_is_folder: u32,
+    pub node_is_folder: u32,
     /// Name of this node, as shown when navigating the menu.
     pub name: DeviceSQLString,
 }
@@ -1541,6 +1656,9 @@ impl RowVariant for PlaylistTreeNode {
             _ => None,
         }
     }
+    fn into_row(self) -> Row {
+        Row::Plain(PlainRow::PlaylistTreeNode(self))
+    }
 }
 
 impl PlaylistTreeNode {
@@ -1548,6 +1666,25 @@ impl PlaylistTreeNode {
     #[must_use]
     pub fn is_folder(&self) -> bool {
         self.node_is_folder > 0
+    }
+
+    /// Construct a node, encoding `is_folder` into the on-disk `node_is_folder` flag.
+    #[must_use]
+    pub fn new(
+        id: PlaylistTreeNodeId,
+        parent_id: PlaylistTreeNodeId,
+        name: DeviceSQLString,
+        is_folder: bool,
+        sort_order: u32,
+    ) -> Self {
+        Self {
+            parent_id,
+            unknown: 0,
+            sort_order,
+            id,
+            node_is_folder: u32::from(is_folder),
+            name,
+        }
     }
 }
 
@@ -1596,6 +1733,9 @@ impl RowVariant for PlaylistEntry {
             _ => None,
         }
     }
+    fn into_row(self) -> Row {
+        Row::Plain(PlainRow::PlaylistEntry(self))
+    }
 }
 
 impl PageHeapObject for PlaylistEntry {
@@ -1618,14 +1758,14 @@ impl PageHeapObject for PlaylistEntry {
 #[cfg_attr(feature = "json", derive(Serialize))]
 #[brw(little)]
 pub struct ColumnEntry {
-    // Possibly the primary key, though I don't know if that would
-    // make sense as I don't think there are references to these
-    // rows anywhere else. This could be a stable ID to identify
-    // a category by in hardware (instead of by name).
-    id: u16,
-    // Maybe a bitfield containing infos on sort order and which
-    // columns are displayed.
-    unknown0: u16,
+    /// Possibly the primary key, though I don't know if that would
+    /// make sense as I don't think there are references to these
+    /// rows anywhere else. This could be a stable ID to identify
+    /// a category by in hardware (instead of by name).
+    pub id: u16,
+    /// Maybe a bitfield containing infos on sort order and which
+    /// columns are displayed.
+    pub unknown0: u16,
     /// TODO Contained string is prefixed by the "interlinear annotation"
     /// characters "\u{fffa}" and postfixed with "\u{fffb}" for some reason?!
     /// Contained strings are actually `DeviceSQLString::LongBody` even though
@@ -1650,6 +1790,9 @@ impl RowVariant for ColumnEntry {
             _ => None,
         }
     }
+    fn into_row(self) -> Row {
+        Row::Plain(PlainRow::ColumnEntry(self))
+    }
 }
 
 impl PageHeapObject for ColumnEntry {
@@ -1670,47 +1813,47 @@ impl PageHeapObject for ColumnEntry {
 /// String fields stored via the offset table in Track rows
 pub struct TrackStrings {
     /// International Standard Recording Code (ISRC), in mangled format.
-    isrc: DeviceSQLString,
+    pub isrc: DeviceSQLString,
     /// Lyricist of the track.
-    lyricist: DeviceSQLString,
+    pub lyricist: DeviceSQLString,
     /// Unknown string field containing a number.
     /// Appears to increment when the track is exported or modified in Rekordbox.
-    unknown_string2: DeviceSQLString,
+    pub unknown_string2: DeviceSQLString,
     /// Unknown string field containing a number.
-    unknown_string3: DeviceSQLString,
+    pub unknown_string3: DeviceSQLString,
     /// Unknown string field.
-    unknown_string4: DeviceSQLString,
+    pub unknown_string4: DeviceSQLString,
     /// Track "message", a field in the Rekordbox UI.
-    message: DeviceSQLString,
+    pub message: DeviceSQLString,
     /// "Publish track information" in Rekordbox, value is either "ON" or empty string.
     /// Appears related to the Stagehand product to control DJ equipment remotely.
-    publish_track_information: DeviceSQLString,
+    pub publish_track_information: DeviceSQLString,
     /// Determines if hotcues should be autoloaded. Value is either "ON" or empty string.
-    autoload_hotcues: DeviceSQLString,
+    pub autoload_hotcues: DeviceSQLString,
     /// Unknown string field (usually empty).
-    unknown_string5: DeviceSQLString,
+    pub unknown_string5: DeviceSQLString,
     /// Unknown string field (usually empty).
-    unknown_string6: DeviceSQLString,
+    pub unknown_string6: DeviceSQLString,
     /// Date when the track was added to the Rekordbox collection (YYYY-MM-DD).
-    date_added: DeviceSQLString,
+    pub date_added: DeviceSQLString,
     /// Date when the track was released (YYYY-MM-DD).
-    release_date: DeviceSQLString,
+    pub release_date: DeviceSQLString,
     /// Name of the remix (if any).
-    mix_name: DeviceSQLString,
+    pub mix_name: DeviceSQLString,
     /// Unknown string field (usually empty).
-    unknown_string7: DeviceSQLString,
+    pub unknown_string7: DeviceSQLString,
     /// File path of the track analysis file.
-    analyze_path: DeviceSQLString,
+    pub analyze_path: DeviceSQLString,
     /// Date when the track analysis was performed (YYYY-MM-DD).
-    analyze_date: DeviceSQLString,
+    pub analyze_date: DeviceSQLString,
     /// Track comment.
-    comment: DeviceSQLString,
+    pub comment: DeviceSQLString,
     /// Track title.
     pub title: DeviceSQLString,
     /// Unknown string field (usually empty).
-    unknown_string8: DeviceSQLString,
+    pub unknown_string8: DeviceSQLString,
     /// Name of the file.
-    filename: DeviceSQLString,
+    pub filename: DeviceSQLString,
     /// Path of the file.
     pub file_path: DeviceSQLString,
 }
@@ -1780,69 +1923,69 @@ impl OffsetArrayItems<21> for TrackStrings {
 #[brw(little)]
 pub struct Track {
     /// Unknown field, usually `24 00`.
-    subtype: Subtype,
+    pub subtype: Subtype,
     /// Unknown field, called `index_shift` by [@flesniak](https://github.com/flesniak).
     /// Appears to always be 0x20 * row index.
-    index_shift: u16,
+    pub index_shift: u16,
     /// Unknown field, called `bitmask` by [@flesniak](https://github.com/flesniak).
     /// Appears to always be 0x000c0700.
-    bitmask: u32,
+    pub bitmask: u32,
     /// Sample Rate in Hz.
-    sample_rate: u32,
+    pub sample_rate: u32,
     /// Composer of this track as artist row ID (non-zero if set).
-    composer_id: ArtistId,
+    pub composer_id: ArtistId,
     /// File size in bytes.
-    file_size: u32,
+    pub file_size: u32,
     /// Unknown field; observed values are effectively random.
-    unknown2: u32,
+    pub unknown2: u32,
     /// Unknown field; observed values: 19048, 64128, 31844.
     /// Appears to be the same for all tracks in a given DB.
-    unknown3: u16,
+    pub unknown3: u16,
     /// Unknown field; observed values: 30967, 1511, 9043.
     /// Appears to be the same for all tracks in a given DB.
-    unknown4: u16,
+    pub unknown4: u16,
     /// Artwork row ID for the cover art (non-zero if set),
-    artwork_id: ArtworkId,
+    pub artwork_id: ArtworkId,
     /// Key row ID for the cover art (non-zero if set).
-    key_id: KeyId,
+    pub key_id: KeyId,
     /// Artist row ID of the original performer (non-zero if set).
-    orig_artist_id: ArtistId,
+    pub orig_artist_id: ArtistId,
     /// Label row ID of the original performer (non-zero if set).
-    label_id: LabelId,
+    pub label_id: LabelId,
     /// Artist row ID of the remixer (non-zero if set).
-    remixer_id: ArtistId,
+    pub remixer_id: ArtistId,
     /// Bitrate of the track.
-    bitrate: u32,
+    pub bitrate: u32,
     /// Track number of the track.
-    track_number: u32,
+    pub track_number: u32,
     /// Track tempo in centi-BPM (= 1/100 BPM).
-    tempo: u32,
+    pub tempo: u32,
     /// Genre row ID for this track (non-zero if set).
-    genre_id: GenreId,
+    pub genre_id: GenreId,
     /// Album row ID for this track (non-zero if set).
-    album_id: AlbumId,
+    pub album_id: AlbumId,
     /// Artist row ID for this track (non-zero if set).
     pub artist_id: ArtistId,
     /// Row ID of this track (non-zero if set).
     pub id: TrackId,
     /// Disc number of this track (non-zero if set).
-    disc_number: u16,
+    pub disc_number: u16,
     /// Number of times this track was played.
-    play_count: u16,
+    pub play_count: u16,
     /// Year this track was released.
-    year: u16,
+    pub year: u16,
     /// Bits per sample of the track aduio file.
-    sample_depth: u16,
+    pub sample_depth: u16,
     /// Playback duration of this track in seconds (at normal speed).
-    duration: u16,
+    pub duration: u16,
     /// Unknown field, apparently always "0x29".
-    unknown5: u16,
+    pub unknown5: u16,
     /// Color row ID for this track (non-zero if set).
-    color: ColorIndex,
+    pub color: ColorIndex,
     /// User rating of this track (0 to 5 starts).
     pub rating: u8,
     /// Format of the file.
-    file_type: FileType,
+    pub file_type: FileType,
     /// offsets (strings) at row end
     #[brw(args(0x5C, subtype.get_offset_size(), ()))]
     pub offsets: OffsetArrayContainer<TrackStrings, 21>,
@@ -1862,6 +2005,9 @@ impl RowVariant for Track {
             Row::Plain(PlainRow::Track(track)) => Some(track),
             _ => None,
         }
+    }
+    fn into_row(self) -> Row {
+        Row::Plain(PlainRow::Track(self))
     }
 }
 
@@ -1993,6 +2139,9 @@ impl RowVariant for Menu {
             Row::Plain(PlainRow::Menu(row)) => Some(row),
             _ => None,
         }
+    }
+    fn into_row(self) -> Row {
+        Row::Plain(PlainRow::Menu(self))
     }
 }
 
