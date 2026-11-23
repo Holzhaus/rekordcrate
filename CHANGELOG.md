@@ -79,6 +79,9 @@ All notable changes to this project will be documented in this file.
 - xml: Parse ratings
 - xml: Parse position mark colors
 - cli: Add JSON output support for dump cmds
+- pdb: Add row and page writing to Database
+- pdb: Add defaults module for always-present tables
+- device: Add DeviceExport
 
 ### Refactor
 
@@ -116,6 +119,8 @@ All notable changes to this project will be documented in this file.
 - cli: Propagate serde_json errors instead of panicking
 - Improve CLI error handling
 - Shorten syntax of run function removing map_err
+- pdb: Expose row fields and add RowVariant for ext rows
+- device: Split into layout, settings and playlist modules
 
 ### Testing
 
