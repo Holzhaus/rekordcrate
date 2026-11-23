@@ -76,35 +76,11 @@ impl Layout {
         self.rekordbox_dir().join("exportExt.pdb")
     }
 
-    /// The `PIONEER/USBANLZ` directory holding per-track analysis files.
+    /// The `PIONEER/USBANLZ` directory holding per-track analysis files, each track's in the
+    /// subfolder [`anlz_folder`] names.
     #[must_use]
     pub fn usbanlz_dir(&self) -> PathBuf {
         self.pioneer_dir().join("USBANLZ")
-    }
-
-    /// The directory under `PIONEER/USBANLZ` holding the analysis files of the track whose audio
-    /// file is at `audio_path`, see [`anlz_folder`].
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use rekordcrate::device::layout::Layout;
-    /// let layout = Layout::new("/srv/export".into());
-    /// assert!(layout
-    ///     .anlz_dir("/Contents/Loopmasters/UnknownAlbum/Demo Track 1.mp3")
-    ///     .ends_with("PIONEER/USBANLZ/P016/0000875E"));
-    /// ```
-    #[must_use]
-    pub fn anlz_dir(&self, audio_path: &str) -> PathBuf {
-        self.usbanlz_dir().join(anlz_folder(audio_path))
-    }
-
-    /// Path to an analysis file of the track whose audio file is at `audio_path`. `extension` is
-    /// `DAT`, `EXT` or `2EX`.
-    #[must_use]
-    pub fn anlz_file(&self, audio_path: &str, extension: &str) -> PathBuf {
-        self.anlz_dir(audio_path)
-            .join(format!("{ANLZ_FILE_STEM}.{extension}"))
     }
 
     /// The `Contents` directory holding audio files.
@@ -149,20 +125,32 @@ pub fn artwork_folder(id: u32) -> String {
     format!("{:05}", id / 20 + 1)
 }
 
-/// File name, without extension, of the analysis files in a track's analysis folder.
-const ANLZ_FILE_STEM: &str = "ANLZ0000";
-
 const ANLZ_HASH_FIRST_MULTIPLIER: u32 = 0x5BC9;
 const ANLZ_HASH_SECOND_MULTIPLIER: u32 = 0x93B5;
 const ANLZ_HASH_MODULUS: u32 = 200_003;
 
-/// The `(P value, hash value)` an audio file's analysis folder is named after.
+/// Folder where Rekordbox puts the analysis files of a track (`ANLZ0000.DAT`, `.EXT` and `.2EX`),
+/// relative to `PIONEER/USBANLZ`.
+///
+/// `audio_path` must be the absolute device path stored for the track, including its leading slash,
+/// for example `/Contents/Artist/Album/Track.flac`. Case, separators, and Unicode are significant;
+/// this function deliberately performs no path normalization. The returned path always has the
+/// form `Pxxx/yyyyyyyy`, using uppercase, zero-padded hexadecimal components.
 ///
 /// The path is processed as UTF-16 code units by a custom rolling hash, reduced modulo 200003,
-/// then selected bits from that hash form the `P` value.
-fn anlz_hash(audio_path: &str) -> (u16, u32) {
+/// which is the second component. Selected bits of that hash form the first.
+///
+/// Players have been seen to recompute this folder from the audio path instead of relying on the
+/// `analyze_path` stored in `export.pdb` (confirmed on the XDJ-XZ), so analysis files have to be
+/// placed here to be found.
+///
+/// The algorithm was contributed by AnnoyingTechnology from [interoperability research][research]
+/// published in December 2025.
+///
+/// [research]: https://github.com/AnnoyingTechnology/rhythmbox-to-pioneer-xdj-exporter/blob/master/posterity/WAVEFORMS.md
+#[must_use]
+pub fn anlz_folder(audio_path: &str) -> String {
     let mut hash = 0u32;
-
     for code_unit in audio_path.encode_utf16().map(u32::from) {
         let intermediate = hash
             .wrapping_mul(ANLZ_HASH_FIRST_MULTIPLIER)
@@ -181,27 +169,6 @@ fn anlz_hash(audio_path: &str) -> (u16, u32) {
         | ((hash >> 8) & 0x20)
         | ((hash >> 10) & 0x40);
 
-    (p_value as u16, hash)
-}
-
-/// Folder Rekordbox files the analysis files of a track under, relative to `PIONEER/USBANLZ`.
-///
-/// `audio_path` must be the exact device path stored for the track, including its leading slash,
-/// for example `/Contents/Artist/Album/Track.flac`. Case, separators, and Unicode are significant;
-/// this function deliberately performs no path normalization. The returned path always has the
-/// form `Pxxx/yyyyyyyy`, using uppercase, zero-padded hexadecimal components.
-///
-/// Players have been seen to recompute this folder from the audio path instead of relying on the
-/// `analyze_path` stored in `export.pdb` (confirmed on the XDJ-XZ), so analysis files have to be
-/// placed here to be found.
-///
-/// The algorithm was contributed by AnnoyingTechnology from [interoperability research][research]
-/// published in December 2025.
-///
-/// [research]: https://github.com/AnnoyingTechnology/rhythmbox-to-pioneer-xdj-exporter/blob/master/posterity/WAVEFORMS.md
-#[must_use]
-pub fn anlz_folder(audio_path: &str) -> String {
-    let (p_value, hash) = anlz_hash(audio_path);
     format!("P{p_value:03X}/{hash:08X}")
 }
 
@@ -239,16 +206,17 @@ mod tests {
 
         for (audio_path, analyze_path) in paths {
             assert_eq!(
-                format!(
-                    "/PIONEER/USBANLZ/{}/{ANLZ_FILE_STEM}.DAT",
-                    anlz_folder(&audio_path)
-                ),
+                format!("/PIONEER/USBANLZ/{}/ANLZ0000.DAT", anlz_folder(&audio_path)),
                 analyze_path,
                 "unexpected analysis path for {audio_path}"
             );
             for extension in ["DAT", "EXT", "2EX"] {
                 assert!(
-                    layout.anlz_file(&audio_path, extension).is_file(),
+                    layout
+                        .usbanlz_dir()
+                        .join(anlz_folder(&audio_path))
+                        .join(format!("ANLZ0000.{extension}"))
+                        .is_file(),
                     "no {extension} analysis file for {audio_path}"
                 );
             }
@@ -257,41 +225,33 @@ mod tests {
 
     /// Paths and folders taken from Rekordbox exports by AnnoyingTechnology.
     #[test]
-    fn anlz_hash_matches_rekordbox_exports() {
+    fn anlz_folder_matches_rekordbox_exports() {
         let cases = [
             (
                 "/Contents/ARTISTTEST1/ALBUMTEST1/TITLETEST1.mp3",
-                (0x051, 0x0001_D603),
+                "P051/0001D603",
             ),
             (
                 "/Contents/ARTISTTEST2/ALBUMTEST2/TITLETEST2.mp3",
-                (0x03C, 0x0000_A6CA),
+                "P03C/0000A6CA",
             ),
             (
                 "/Contents/ARTISTTEST3/ALBUMTEST3/TITLETEST3.mp3",
-                (0x045, 0x0001_096B),
+                "P045/0001096B",
             ),
         ];
 
         for (audio_path, expected) in cases {
             assert_eq!(
-                anlz_hash(audio_path),
+                anlz_folder(audio_path),
                 expected,
-                "unexpected hash for {audio_path}"
+                "unexpected folder for {audio_path}"
             );
         }
     }
 
     #[test]
-    fn anlz_folder_is_formatted_as_uppercase_hex() {
-        assert_eq!(
-            anlz_folder("/Contents/ARTISTTEST1/ALBUMTEST1/TITLETEST1.mp3"),
-            "P051/0001D603"
-        );
-    }
-
-    #[test]
-    fn anlz_hash_takes_surrogate_pairs_as_two_code_units() {
+    fn anlz_folder_takes_surrogate_pairs_as_two_code_units() {
         assert_eq!(anlz_folder("/Contents/Artist/🚀.flac"), "P074/00012258");
     }
 }
